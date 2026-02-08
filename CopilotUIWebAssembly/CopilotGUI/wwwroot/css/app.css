@@ -93,19 +93,19 @@ html, body {
     border-radius: 0px;
 }
 
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: var(--hover-color);
-}
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: var(--hover-color);
+    }
 
 #chatMessages {
     overflow-x: hidden;
     min-width: 0;
 }
 
-#chatMessages .max-w-2xl {
-    max-width: min(42rem, 100%);
-    min-width: 0;
-}
+    #chatMessages .max-w-2xl {
+        max-width: min(42rem, 100%);
+        min-width: 0;
+    }
 
 .dropdown-content {
     max-height: 0;
@@ -113,19 +113,19 @@ html, body {
     transition: max-height 0.3s ease;
 }
 
-.dropdown-content.open {
-    max-height: 500px;
-}
+    .dropdown-content.open {
+        max-height: 500px;
+    }
 
 .sidebar {
     transition: width 0.3s ease, margin-left 0.3s ease;
 }
 
-.sidebar.collapsed {
-    width: 0 !important;
-    min-width: 0 !important;
-    overflow: hidden;
-}
+    .sidebar.collapsed {
+        width: 0 !important;
+        min-width: 0 !important;
+        overflow: hidden;
+    }
 
 .settings-popup {
     display: none;
@@ -136,9 +136,9 @@ html, body {
     z-index: 1000;
 }
 
-.settings-popup.active {
-    display: block;
-}
+    .settings-popup.active {
+        display: block;
+    }
 
 .settings-overlay {
     display: none;
@@ -151,16 +151,16 @@ html, body {
     z-index: 999;
 }
 
-.settings-overlay.active {
-    display: block;
-}
+    .settings-overlay.active {
+        display: block;
+    }
 
 .toggle-switch {
     background-color: var(--input-border);
     transition: background-color 0.3s;
 }
 
-input[type="checkbox"]:checked+.toggle-switch {
+input[type="checkbox"]:checked + .toggle-switch {
     background-color: var(--accent-color);
 }
 
@@ -178,14 +178,14 @@ input[type="checkbox"]:checked+.toggle-switch {
     cursor: pointer;
 }
 
-.accent-btn:hover {
-    transform: scale(1.1);
-}
+    .accent-btn:hover {
+        transform: scale(1.1);
+    }
 
-.accent-btn.active {
-    border-color: var(--title-color) !important;
-    box-shadow: 0 0 0 1px var(--title-color);
-}
+    .accent-btn.active {
+        border-color: var(--title-color) !important;
+        box-shadow: 0 0 0 1px var(--title-color);
+    }
 
 .resize-handle {
     width: 4px;
@@ -196,11 +196,11 @@ input[type="checkbox"]:checked+.toggle-switch {
     transition: background-color 0.2s;
 }
 
-.resize-handle:hover,
-.resize-handle.resizing {
-    background-color: var(--accent-color);
-    cursor: col-resize;
-}
+    .resize-handle:hover,
+    .resize-handle.resizing {
+        background-color: var(--accent-color);
+        cursor: col-resize;
+    }
 
 .btn-primary {
     background-color: var(--button-bg);
@@ -208,9 +208,9 @@ input[type="checkbox"]:checked+.toggle-switch {
     transition: background-color 0.2s;
 }
 
-.btn-primary:hover {
-    background-color: var(--button-hover);
-}
+    .btn-primary:hover {
+        background-color: var(--button-hover);
+    }
 
 .secondary-text {
     color: var(--secondary-text);
@@ -225,174 +225,174 @@ input[type="checkbox"]:checked+.toggle-switch {
     display: inline-block;
 }
 
-.chat-bubble p {
-    margin: 0;
-}
+    .chat-bubble p {
+        margin: 0;
+    }
 
 .markdown-content {
     line-height: 1.5;
     word-break: break-word;
 }
 
-.markdown-content > *:first-child {
-    margin-top: 0;
-}
+    .markdown-content > *:first-child {
+        margin-top: 0;
+    }
 
-.markdown-content > *:last-child {
-    margin-bottom: 0;
-}
+    .markdown-content > *:last-child {
+        margin-bottom: 0;
+    }
 
-.markdown-content p {
-    margin: 0 0 0.75rem 0;
-}
+    .markdown-content p {
+        margin: 0 0 0.75rem 0;
+    }
 
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3,
-.markdown-content h4,
-.markdown-content h5,
-.markdown-content h6 {
-    margin: 1rem 0 0.5rem;
-    font-weight: 600;
-    color: var(--title-color);
-}
+    .markdown-content h1,
+    .markdown-content h2,
+    .markdown-content h3,
+    .markdown-content h4,
+    .markdown-content h5,
+    .markdown-content h6 {
+        margin: 1rem 0 0.5rem;
+        font-weight: 600;
+        color: var(--title-color);
+    }
 
-.markdown-content ul,
-.markdown-content ol {
-    margin: 0 0 0.75rem 1.25rem;
-    padding: 0;
-}
+    .markdown-content ul,
+    .markdown-content ol {
+        margin: 0 0 0.75rem 1.25rem;
+        padding: 0;
+    }
 
-.markdown-content li {
-    margin: 0.25rem 0;
-}
+    .markdown-content li {
+        margin: 0.25rem 0;
+    }
 
-.markdown-content blockquote {
-    margin: 0 0 0.75rem 0;
-    padding: 0.5rem 0.75rem;
-    border-left: 3px solid var(--markdown-blockquote-border);
-    background-color: var(--markdown-blockquote-bg);
-}
+    .markdown-content blockquote {
+        margin: 0 0 0.75rem 0;
+        padding: 0.5rem 0.75rem;
+        border-left: 3px solid var(--markdown-blockquote-border);
+        background-color: var(--markdown-blockquote-bg);
+    }
 
-.markdown-content hr {
-    border: 0;
-    border-top: 1px solid var(--border-color);
-    margin: 1rem 0;
-}
+    .markdown-content hr {
+        border: 0;
+        border-top: 1px solid var(--border-color);
+        margin: 1rem 0;
+    }
 
-.markdown-content table {
-    border-collapse: collapse;
-    margin: 0 0 0.75rem 0;
-    width: 100%;
-    font-size: 0.875rem;
-}
+    .markdown-content table {
+        border-collapse: collapse;
+        margin: 0 0 0.75rem 0;
+        width: 100%;
+        font-size: 0.875rem;
+    }
 
-.markdown-content th,
-.markdown-content td {
-    border: 1px solid var(--border-color);
-    padding: 0.35rem 0.5rem;
-    text-align: left;
-}
+    .markdown-content th,
+    .markdown-content td {
+        border: 1px solid var(--border-color);
+        padding: 0.35rem 0.5rem;
+        text-align: left;
+    }
 
-.markdown-content a {
-    color: var(--accent-color);
-}
+    .markdown-content a {
+        color: var(--accent-color);
+    }
 
-.markdown-content code {
-    background-color: var(--markdown-code-bg);
-    padding: 0.1rem 0.3rem;
-    border-radius: 4px;
-    font-size: 0.85em;
-}
+    .markdown-content code {
+        background-color: var(--markdown-code-bg);
+        padding: 0.1rem 0.3rem;
+        border-radius: 4px;
+        font-size: 0.85em;
+    }
 
-.markdown-content pre {
-    background-color: var(--markdown-code-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 0.75rem 0.75rem 2rem;
-    margin: 0 0 0.75rem 0;
-    overflow-x: auto;
-    position: relative;
-    font-size: 0.85rem;
-}
+    .markdown-content pre {
+        background-color: var(--markdown-code-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 0.75rem 0.75rem 2rem;
+        margin: 0 0 0.75rem 0;
+        overflow-x: auto;
+        position: relative;
+        font-size: 0.85rem;
+    }
 
-.markdown-content pre code {
-    background-color: transparent;
-    padding: 0;
-    display: block;
-    white-space: pre;
-}
+        .markdown-content pre code {
+            background-color: transparent;
+            padding: 0;
+            display: block;
+            white-space: pre;
+        }
 
-.markdown-content pre code.hljs {
-    padding: 0;
-}
+            .markdown-content pre code.hljs {
+                padding: 0;
+            }
 
-.markdown-content .code-copy-button {
-    position: absolute;
-    right: 0.6rem;
-    bottom: 0.5rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
-    background-color: var(--sidebar-color);
-    color: var(--text-color);
-    font-size: 0.7rem;
-    cursor: pointer;
-}
+    .markdown-content .code-copy-button {
+        position: absolute;
+        right: 0.6rem;
+        bottom: 0.5rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        background-color: var(--sidebar-color);
+        color: var(--text-color);
+        font-size: 0.7rem;
+        cursor: pointer;
+    }
 
-.markdown-content .code-copy-button.copied {
-    color: #10893E;
-}
+        .markdown-content .code-copy-button.copied {
+            color: #10893E;
+        }
 
-/* Syntax highlighting for dark theme */
-.markdown-content .hljs {
-    background: transparent;
-    color: #D4D4D4;
-}
+    /* Syntax highlighting for dark theme */
+    .markdown-content .hljs {
+        background: transparent;
+        color: #D4D4D4;
+    }
 
-.markdown-content .hljs-keyword,
-.markdown-content .hljs-selector-tag,
-.markdown-content .hljs-literal,
-.markdown-content .hljs-section,
-.markdown-content .hljs-link {
-    color: #569CD6;
-}
+    .markdown-content .hljs-keyword,
+    .markdown-content .hljs-selector-tag,
+    .markdown-content .hljs-literal,
+    .markdown-content .hljs-section,
+    .markdown-content .hljs-link {
+        color: #569CD6;
+    }
 
-.markdown-content .hljs-string {
-    color: #CE9178;
-}
+    .markdown-content .hljs-string {
+        color: #CE9178;
+    }
 
-.markdown-content .hljs-number,
-.markdown-content .hljs-regexp,
-.markdown-content .hljs-deletion {
-    color: #B5CEA8;
-}
+    .markdown-content .hljs-number,
+    .markdown-content .hljs-regexp,
+    .markdown-content .hljs-deletion {
+        color: #B5CEA8;
+    }
 
-.markdown-content .hljs-title,
-.markdown-content .hljs-section {
-    color: #DCDCAA;
-}
+    .markdown-content .hljs-title,
+    .markdown-content .hljs-section {
+        color: #DCDCAA;
+    }
 
-.markdown-content .hljs-comment,
-.markdown-content .hljs-quote {
-    color: #6A9955;
-    font-style: italic;
-}
+    .markdown-content .hljs-comment,
+    .markdown-content .hljs-quote {
+        color: #6A9955;
+        font-style: italic;
+    }
 
-.markdown-content .hljs-type,
-.markdown-content .hljs-class .hljs-title {
-    color: #4EC9B0;
-}
+    .markdown-content .hljs-type,
+    .markdown-content .hljs-class .hljs-title {
+        color: #4EC9B0;
+    }
 
-.markdown-content .hljs-variable,
-.markdown-content .hljs-template-variable,
-.markdown-content .hljs-attribute {
-    color: #9CDCFE;
-}
+    .markdown-content .hljs-variable,
+    .markdown-content .hljs-template-variable,
+    .markdown-content .hljs-attribute {
+        color: #9CDCFE;
+    }
 
-.markdown-content .hljs-function {
-    color: #DCDCAA;
-}
+    .markdown-content .hljs-function {
+        color: #DCDCAA;
+    }
 
 /* Syntax highlighting for light theme */
 .light-theme .markdown-content .hljs {
@@ -550,3 +550,17 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+input[type="color"] {
+    -webkit-appearance: none;
+    appearance: none;
+    padding: 0;
+}
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+        padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+        border: none;
+    }

@@ -49,6 +49,20 @@
                 </div>
             </div>
 
+            <!-- Accent Color -->
+            <div>
+                <label class="text-sm font-medium text-vscode-title block mb-2">Accent Color</label>
+                <div class="flex items-center space-x-3">
+                    <input type="color"
+                           value="@_customColor"
+                           @oninput="OnCustomColorInput"
+                           class="w-16 h-10 rounded cursor-pointer"
+                           style="border: none; padding: 0;"
+                           title="Select Accent Color" />
+                    <span class="text-sm secondary-text font-mono">@_customColor</span>
+                </div>
+            </div>
+
             <!-- Input Behavior Setting -->
             <div>
                 <label class="text-sm font-medium text-vscode-title block mb-2">Input Behavior</label>
@@ -69,20 +83,6 @@
                         </svg>
                         <span class="text-sm">Enter for new line, use send button</span>
                     </button>
-                </div>
-            </div>
-
-            <!-- Accent Color -->
-            <div>
-                <label class="text-sm font-medium text-vscode-title block mb-2">Accent Color</label>
-                <div class="grid grid-cols-6 gap-2">
-                    @foreach (var color in _accentColors)
-                    {
-                        <button class="accent-btn w-10 h-10 rounded border-2 @(ThemeService.AccentColor == color.Color ? "active" : "") border-transparent"
-                                style="background-color: @color.Color;"
-                                @onclick="() => SetAccentColor(color.Color, color.Hover)"
-                                title="@color.Name"></button>
-                    }
                 </div>
             </div>
         </div>
