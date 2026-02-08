@@ -49,7 +49,7 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 	{
 		return session.Status switch
 		{
-			SessionStatus.AgentRunning => "color: var(--accent-color);",
+			SessionStatus.AgentRunning => "color: #FFB900;",
 			SessionStatus.AgentFinished => "color: #10893E;",
 			_ => ""
 		};
@@ -90,7 +90,7 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 
 	protected virtual void Dispose(bool disposing)
 	{
-		if (disposing)
+		if(disposing)
 		{
 			ChatService.OnSessionsChanged -= StateHasChanged;
 			UIState.OnStateChanged -= StateHasChanged;
