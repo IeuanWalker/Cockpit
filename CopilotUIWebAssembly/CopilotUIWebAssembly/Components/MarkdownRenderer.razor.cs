@@ -18,7 +18,14 @@ public partial class MarkdownRenderer : ComponentBase
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
-		await JSRuntime.InvokeVoidAsync("copilotUI.highlightCodeBlocks", _containerId);
-		await JSRuntime.InvokeVoidAsync("copilotUI.addCopyButtonsToCodeBlocks", _containerId);
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("copilotUI.highlightCodeBlocks", _containerId);
+			await JSRuntime.InvokeVoidAsync("copilotUI.addCopyButtonsToCodeBlocks", _containerId);
+		}
+		catch
+		{
+			// Handle error silently
+		}
 	}
 }
