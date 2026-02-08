@@ -12,6 +12,7 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 // Register application services
 builder.Services.AddScoped<LocalStorageService>();
 builder.Services.AddScoped<ThemeService>();
+builder.Services.AddScoped<MarkdownService>();
 builder.Services.AddSingleton<UIStateService>();
 builder.Services.AddSingleton<ChatService>();
 builder.Services.AddSingleton<ContextService>();

@@ -59,6 +59,61 @@ window.copilotUI = {
             element.scrollTop = element.scrollHeight;
         }
     },
+    highlightCodeBlocks: function (containerId) {
+        if (!window.hljs) {
+            return;
+        }
+
+        const container = document.getElementById(containerId);
+        if (!container) {
+            return;
+        }
+
+        container.querySelectorAll('pre code').forEach((block) => {
+            window.hljs.highlightElement(block);
+        });
+    },
+    addCopyButtonsToCodeBlocks: function (containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            return;
+        }
+
+        container.querySelectorAll('pre').forEach((pre) => {
+            if (pre.querySelector('.code-copy-button')) {
+                return;
+            }
+
+            const code = pre.querySelector('code');
+            if (!code) {
+                return;
+            }
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'code-copy-button';
+            button.textContent = 'Copy';
+            button.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(code.innerText);
+                    button.textContent = 'Copied';
+                    button.classList.add('copied');
+                    setTimeout(() => {
+                        button.textContent = 'Copy';
+                        button.classList.remove('copied');
+                    }, 1500);
+                } catch {
+                    button.textContent = 'Failed';
+                    setTimeout(() => {
+                        button.textContent = 'Copy';
+                    }, 1500);
+                }
+            });
+
+            pre.classList.add('code-block');
+            pre.appendChild(button);
+        });
+    },
     initializeResize: function (handleId, sidebarId, side, dotnetHelper) {
         const handle = document.getElementById(handleId);
         const sidebar = document.getElementById(sidebarId);
