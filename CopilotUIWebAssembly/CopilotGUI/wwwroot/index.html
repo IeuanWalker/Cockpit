@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>GitHub Copilot CLI</title>
+    <base href="/" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="CopilotGUI.styles.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+</head>
+
+<body class="bg-vscode-bg text-vscode-text overflow-hidden">
+
+    <div class="status-bar-safe-area"></div>
+
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+
+    <div id="blazor-error-ui" data-nosnippet>
+        An unhandled error has occurred.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">🗙</span>
+    </div>
+
+    <script src="_framework/blazor.webview.js" autostart="false"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
+    <script src="js/interop.js"></script>
+    <script>
+        // Initialize highlight.js when ready
+        if (window.hljs) {
+            hljs.configure({ 
+                ignoreUnescapedHTML: true,
+                languages: ['csharp', 'javascript', 'typescript', 'python', 'java', 'json', 'xml', 'bash', 'sql', 'css', 'html']
+            });
+        }
+    </script>
+
+</body>
+
+</html>
