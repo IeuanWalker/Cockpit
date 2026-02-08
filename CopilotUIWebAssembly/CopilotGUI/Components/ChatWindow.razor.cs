@@ -152,14 +152,14 @@ public partial class ChatWindow : ComponentBase, IDisposable
 
 	string GetSelectedModelName()
 	{
-		var model = _availableModels.FirstOrDefault(m => m.Id == _selectedModel);
+		CopilotModel? model = _availableModels.FirstOrDefault(m => m.Id == _selectedModel);
 		return model?.Name ?? "Select Model";
 	}
 
 	void UpdateReasoningEffortForSelectedModel()
 	{
-		var model = _availableModels.FirstOrDefault(m => m.Id == _selectedModel);
-		if (model != null)
+		CopilotModel? model = _availableModels.FirstOrDefault(m => m.Id == _selectedModel);
+		if(model != null)
 		{
 			_selectedReasoningEffort = model.DefaultReasoningEffort ?? string.Empty;
 		}
@@ -172,7 +172,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 
 	bool HasReasoningEfforts()
 	{
-		var model = GetSelectedModel();
+		CopilotModel? model = GetSelectedModel();
 		return model?.SupportedReasoningEfforts != null && model.SupportedReasoningEfforts.Count > 0;
 	}
 
@@ -189,10 +189,12 @@ public partial class ChatWindow : ComponentBase, IDisposable
 
 	string GetSelectedReasoningEffortDisplay()
 	{
-		if (string.IsNullOrEmpty(_selectedReasoningEffort))
+		if(string.IsNullOrEmpty(_selectedReasoningEffort))
+		{
 			return "Default";
-		
-		return char.ToUpper(_selectedReasoningEffort[0]) + _selectedReasoningEffort.Substring(1);
+		}
+
+		return char.ToUpper(_selectedReasoningEffort[0]) + _selectedReasoningEffort[1..];
 	}
 
 	public void Dispose()
