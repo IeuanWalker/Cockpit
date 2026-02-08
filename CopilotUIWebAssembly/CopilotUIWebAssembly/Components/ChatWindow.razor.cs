@@ -8,7 +8,7 @@ namespace CopilotUIWebAssembly.Components;
 
 public partial class ChatWindow : ComponentBase, IDisposable
 {
-	[Inject] private TimestampService TimestampService { get; set; } = default!;
+	[Inject] TimestampService TimestampService { get; set; } = default!;
 
 	string _chatInput = string.Empty;
 	string _selectedModel = "GPT-4 Turbo";

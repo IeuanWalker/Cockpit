@@ -8,7 +8,7 @@ public partial class MarkdownRenderer : ComponentBase
 	[Parameter] public string Content { get; set; } = string.Empty;
 	[Parameter] public string? CssClass { get; set; }
 
-	string _containerId = $"markdown-{Guid.NewGuid():N}";
+	readonly string _containerId = $"markdown-{Guid.NewGuid():N}";
 	string _html = string.Empty;
 
 	protected override void OnParametersSet()
