@@ -7,7 +7,7 @@ public class ChatSession
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime LastActivity { get; set; } = DateTime.Now;
     public SessionStatus Status { get; set; } = SessionStatus.Active;
-    public List<ChatMessage> Messages { get; set; } = new();
+    public List<ChatMessage> Messages { get; set; } = [];
 }
 
 public enum SessionStatus

@@ -4,7 +4,7 @@ namespace CopilotUIWebAssembly.Services;
 
 public class LocalStorageService
 {
-    private readonly IJSRuntime _jsRuntime;
+    readonly IJSRuntime _jsRuntime;
 
     public LocalStorageService(IJSRuntime jsRuntime)
     {

@@ -25,16 +25,3 @@
 
 <!-- Settings Popup -->
 <SettingsPopup />
-
-@code {
-    protected override async Task OnInitializedAsync()
-    {
-        await ThemeService.InitializeAsync();
-        UIState.OnStateChanged += StateHasChanged;
-    }
-
-    public void Dispose()
-    {
-        UIState.OnStateChanged -= StateHasChanged;
-    }
-}

@@ -30,7 +30,7 @@
             <div>
                 <label class="text-sm font-medium text-vscode-title block mb-2">Appearance</label>
                 <div class="flex items-center space-x-2">
-                    <button @onclick='() => SetTheme("dark")' 
+                    <button @onclick='() => SetTheme("dark")'
                             class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center @(ThemeService.CurrentTheme == "dark" ? "active" : "")"
                             style="border: 1px solid var(--border-color); color: var(--text-color);">
                         <svg class="icon-sm mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -38,7 +38,7 @@
                         </svg>
                         <span class="text-sm">Dark</span>
                     </button>
-                    <button @onclick='() => SetTheme("light")' 
+                    <button @onclick='() => SetTheme("light")'
                             class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center @(ThemeService.CurrentTheme == "light" ? "active" : "")"
                             style="border: 1px solid var(--border-color); color: var(--text-color);">
                         <svg class="icon-sm mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -53,7 +53,7 @@
             <div>
                 <label class="text-sm font-medium text-vscode-title block mb-2">Input Behavior</label>
                 <div class="space-y-2">
-                    <button @onclick='() => UIState.SetEnterToSend(true)' 
+                    <button @onclick='() => UIState.SetEnterToSend(true)'
                             class="theme-btn w-full px-3 py-2 rounded flex items-center @(UIState.EnterToSend ? "active" : "")"
                             style="border: 1px solid var(--border-color); color: var(--text-color);">
                         <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,7 +61,7 @@
                         </svg>
                         <span class="text-sm">Enter to send message</span>
                     </button>
-                    <button @onclick='() => UIState.SetEnterToSend(false)' 
+                    <button @onclick='() => UIState.SetEnterToSend(false)'
                             class="theme-btn w-full px-3 py-2 rounded flex items-center @(!UIState.EnterToSend ? "active" : "")"
                             style="border: 1px solid var(--border-color); color: var(--text-color);">
                         <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,7 +76,7 @@
             <div>
                 <label class="text-sm font-medium text-vscode-title block mb-2">Accent Color</label>
                 <div class="grid grid-cols-6 gap-2">
-                    @foreach (var color in accentColors)
+                    @foreach (var color in _accentColors)
                     {
                         <button class="accent-btn w-10 h-10 rounded border-2 @(ThemeService.AccentColor == color.Color ? "active" : "") border-transparent"
                                 style="background-color: @color.Color;"
@@ -89,49 +89,4 @@
     </div>
 </div>
 
-@code {
-    private List<AccentColorOption> accentColors = new()
-    {
-        new AccentColorOption { Name = "Blue (Default)", Color = "#0078D4", Hover = "#026ec1" },
-        new AccentColorOption { Name = "Dark Blue", Color = "#005FB8", Hover = "#0050a0" },
-        new AccentColorOption { Name = "Purple", Color = "#8764B8", Hover = "#7555a6" },
-        new AccentColorOption { Name = "Magenta", Color = "#C239B3", Hover = "#b02aa0" },
-        new AccentColorOption { Name = "Red", Color = "#E74856", Hover = "#d53845" },
-        new AccentColorOption { Name = "Orange", Color = "#FF6C2F", Hover = "#e65d28" },
-        new AccentColorOption { Name = "Green", Color = "#10893E", Hover = "#0e7836" },
-        new AccentColorOption { Name = "Cyan", Color = "#00B7C3", Hover = "#00a3ae" },
-        new AccentColorOption { Name = "Bright Red", Color = "#E81123", Hover = "#d00f1f" },
-        new AccentColorOption { Name = "Bright Orange", Color = "#F7630C", Hover = "#de580b" },
-        new AccentColorOption { Name = "Yellow", Color = "#FFB900", Hover = "#e6a700" },
-        new AccentColorOption { Name = "Bright Green", Color = "#00CC6A", Hover = "#00b85f" }
-    };
 
-    protected override void OnInitialized()
-    {
-        UIState.OnStateChanged += StateHasChanged;
-        ThemeService.OnThemeChanged += StateHasChanged;
-    }
-
-    private async Task SetTheme(string theme)
-    {
-        await ThemeService.SetThemeAsync(theme);
-    }
-
-    private async Task SetAccentColor(string color, string hoverColor)
-    {
-        await ThemeService.SetAccentColorAsync(color, hoverColor);
-    }
-
-    public void Dispose()
-    {
-        UIState.OnStateChanged -= StateHasChanged;
-        ThemeService.OnThemeChanged -= StateHasChanged;
-    }
-
-    private class AccentColorOption
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Color { get; set; } = string.Empty;
-        public string Hover { get; set; } = string.Empty;
-    }
-}

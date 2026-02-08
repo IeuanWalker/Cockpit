@@ -100,7 +100,7 @@
         <div class="bg-vscode-bg border border-vscode-border rounded-lg overflow-hidden">
             <div class="flex items-stretch">
                 <div class="flex-1">
-                    <textarea id="chatInput" @bind="chatInput" @bind:event="oninput" @bind:after="OnTextareaInput" @onkeydown="HandleKeyDown"
+                    <textarea id="chatInput" @bind="_chatInput" @bind:event="oninput" @bind:after="OnTextareaInput" @onkeydown="HandleKeyDown"
                         class="w-full bg-transparent text-vscode-text px-3 py-2 resize-none focus:outline-none scrollbar-thin"
                         rows="1" placeholder="Ask Copilot anything..."></textarea>
                 </div>
@@ -141,7 +141,7 @@
                 <div class="flex items-center space-x-3">
                     <div class="flex items-center space-x-2">
                         <label class="text-xs secondary-text">Model:</label>
-                        <select @bind="selectedModel" class="rounded px-2 py-0.5 text-xs focus:outline-none" style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);">
+                        <select @bind="_selectedModel" class="rounded px-2 py-0.5 text-xs focus:outline-none" style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);">
                             <option>GPT-4 Turbo</option>
                             <option>GPT-4</option>
                             <option>GPT-3.5 Turbo</option>
@@ -156,128 +156,4 @@
     </div>
 </div>
 
-@code {
-    private string chatInput = string.Empty;
-    private string selectedModel = "GPT-4 Turbo";
-    private bool shouldScrollToBottom = false;
 
-    protected override void OnInitialized()
-    {
-        ChatService.OnMessagesChanged += OnMessagesChanged;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await UpdateInputBehavior();
-            // Subscribe to UIState changes after first render to update input behavior
-            UIState.OnStateChanged += OnUIStateChangedHandler;
-        }
-        
-        if (shouldScrollToBottom)
-        {
-            shouldScrollToBottom = false;
-            await ScrollToBottom();
-        }
-    }
-
-    private async void OnUIStateChangedHandler()
-    {
-        await UpdateInputBehavior();
-    }
-
-    private async Task UpdateInputBehavior()
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("copilotUI.setupChatInputBehavior", "chatInput", UIState.EnterToSend);
-        }
-        catch
-        {
-            // Handle error silently
-        }
-    }
-
-    private void OnMessagesChanged()
-    {
-        shouldScrollToBottom = true;
-        StateHasChanged();
-    }
-
-    private async Task ScrollToBottom()
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("copilotUI.scrollToBottom", "chatMessages");
-        }
-        catch
-        {
-            // Handle error silently
-        }
-    }
-
-    private async Task OnTextareaInput()
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("copilotUI.autoResizeTextarea", "chatInput");
-        }
-        catch
-        {
-            // Handle error silently
-        }
-    }
-
-    private async Task SendMessage()
-    {
-        if (string.IsNullOrWhiteSpace(chatInput))
-            return;
-
-        var message = chatInput.Trim();
-        chatInput = string.Empty;
-
-        // Reset textarea height after clearing
-        await Task.Delay(10);
-        await OnTextareaInput();
-
-        ChatService.AddMessage(message, true);
-        ChatService.AddTypingIndicator();
-
-        // Simulate AI response
-        await Task.Delay(2000);
-        ChatService.RemoveTypingIndicator();
-        ChatService.AddMessage("This is a simulated response. In a real implementation, this would call your AI backend.", false);
-    }
-
-    private async Task HandleKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter" && !e.ShiftKey && UIState.EnterToSend)
-        {
-            // Prevent default to avoid adding newline
-            await SendMessage();
-        }
-    }
-
-    private string GetTimeAgo(DateTime dateTime)
-    {
-        var timeSpan = DateTime.Now - dateTime;
-        
-        if (timeSpan.TotalSeconds < 10)
-            return "Just now";
-        if (timeSpan.TotalMinutes < 1)
-            return $"{(int)timeSpan.TotalSeconds} seconds ago";
-        if (timeSpan.TotalMinutes < 60)
-            return $"{(int)timeSpan.TotalMinutes} min ago";
-        if (timeSpan.TotalHours < 24)
-            return $"{(int)timeSpan.TotalHours} hours ago";
-        
-        return dateTime.ToShortDateString();
-    }
-
-    public void Dispose()
-    {
-        ChatService.OnMessagesChanged -= OnMessagesChanged;
-        UIState.OnStateChanged -= OnUIStateChangedHandler;
-    }
-}
