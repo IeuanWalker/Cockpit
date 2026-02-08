@@ -8,7 +8,7 @@ namespace CopilotGUI.Components;
 
 public partial class SessionsSidebar : ComponentBase, IDisposable
 {
-	[Inject] private TimestampService TimestampService { get; set; } = default!;
+	[Inject] TimestampService TimestampService { get; set; } = default!;
 
 	DotNetObjectReference<SessionsSidebar>? _dotNetHelper;
 

@@ -157,3 +157,10 @@ window.copilotUI = {
         handle.addEventListener('mousedown', startResize);
     }
 };
+
+// Global function to toggle settings from MAUI title bar
+window.toggleSettings = function() {
+    // Call the .NET static method
+    DotNet.invokeMethodAsync('CopilotGUI', 'ToggleSettingsFromTitleBar')
+        .catch(err => console.error('Failed to toggle settings:', err));
+};

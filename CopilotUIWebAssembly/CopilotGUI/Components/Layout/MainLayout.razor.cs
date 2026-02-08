@@ -1,14 +1,23 @@
 using CopilotGUI.Services;
-using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace CopilotGUI.Components.Layout;
 
 public partial class MainLayout : IDisposable
 {
+	static UIStateService? staticUIState;
+
 	protected override async Task OnInitializedAsync()
 	{
 		await ThemeService.InitializeAsync();
 		UIState.OnStateChanged += StateHasChanged;
+		staticUIState = UIState; // Store static reference for title bar access
+	}
+
+	[JSInvokable("ToggleSettingsFromTitleBar")]
+	public static void ToggleSettingsFromTitleBar()
+	{
+		staticUIState?.ToggleSettingsPopup();
 	}
 
 	public void Dispose()
@@ -19,7 +28,7 @@ public partial class MainLayout : IDisposable
 
 	protected virtual void Dispose(bool disposing)
 	{
-		if (disposing)
+		if(disposing)
 		{
 			UIState.OnStateChanged -= StateHasChanged;
 		}

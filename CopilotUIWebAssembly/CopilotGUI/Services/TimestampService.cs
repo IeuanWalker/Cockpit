@@ -2,7 +2,7 @@ using System.Timers;
 
 namespace CopilotGUI.Services;
 
-public sealed class TimestampService : IDisposable
+public sealed partial class TimestampService : IDisposable
 {
 	readonly System.Timers.Timer _timer;
 	public event Action? OnTick;

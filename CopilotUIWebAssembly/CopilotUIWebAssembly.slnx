@@ -1,4 +1,3 @@
 <Solution>
   <Project Path="CopilotGUI/CopilotGUI.csproj" />
-  <Project Path="CopilotUIWebAssembly/CopilotUIWebAssembly.csproj" />
 </Solution>

@@ -50,6 +50,9 @@ public class ThemeService
 
 		await ApplyThemeAsync();
 		_isInitialized = true;
+		
+		// Update MAUI title bar theme on init
+		App.UpdateTitleBarTheme(CurrentTheme);
 	}
 
 	public async Task SetThemeAsync(string theme)
@@ -58,6 +61,9 @@ public class ThemeService
 		await _localStorage.SetItemAsync("theme", theme);
 		await ApplyThemeAsync();
 		OnThemeChanged?.Invoke();
+		
+		// Update MAUI title bar theme
+		App.UpdateTitleBarTheme(theme);
 	}
 
 	public async Task SetAccentColorAsync(string color, string hoverColor)
