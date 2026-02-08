@@ -39,8 +39,9 @@ public class CopilotModelService : ICopilotModelService
 						MaxPromptImageSize = x.Capabilities.Limits.Vision.MaxPromptImageSize
 					}
 				}
-
-			}
+			},
+			SupportedReasoningEfforts = x.SupportedReasoningEfforts,
+			DefaultReasoningEffort = x.DefaultReasoningEffort,
 		});
 
 		return _models;

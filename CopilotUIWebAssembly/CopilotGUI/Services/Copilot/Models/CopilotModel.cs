@@ -11,8 +11,8 @@ public sealed class CopilotModel
 	public required CapabilitiesModel Capabilities { get; set; }
 	public ModelPolicy? Policy { get; set; }
 	public ModelBilling? Billing { get; set; }
-	public List<string>? SupportedReasoningEfforts { get; set; }
-	public string? DefaultReasoningEffort { get; set; }
+	public required List<string>? SupportedReasoningEfforts { get; set; }
+	public required string? DefaultReasoningEffort { get; set; }
 }
 
 public sealed class CapabilitiesModel
