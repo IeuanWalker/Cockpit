@@ -16,5 +16,6 @@ builder.Services.AddScoped<MarkdownService>();
 builder.Services.AddSingleton<UIStateService>();
 builder.Services.AddSingleton<ChatService>();
 builder.Services.AddSingleton<ContextService>();
+builder.Services.AddSingleton<TimestampService>();
 
 await builder.Build().RunAsync();

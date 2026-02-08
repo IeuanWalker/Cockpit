@@ -1,5 +1,6 @@
 using CopilotUIWebAssembly.Models;
 using CopilotUIWebAssembly.Services;
+using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -7,12 +8,20 @@ namespace CopilotUIWebAssembly.Components;
 
 public partial class SessionsSidebar : ComponentBase, IDisposable
 {
+	[Inject] private TimestampService TimestampService { get; set; } = default!;
+
 	DotNetObjectReference<SessionsSidebar>? _dotNetHelper;
 
 	protected override void OnInitialized()
 	{
 		ChatService.OnSessionsChanged += StateHasChanged;
 		UIState.OnStateChanged += StateHasChanged;
+		TimestampService.OnTick += OnTimestampTick;
+	}
+
+	void OnTimestampTick()
+	{
+		InvokeAsync(StateHasChanged);
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -57,29 +66,7 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 
 	static string GetTimeAgo(DateTime dateTime)
 	{
-		TimeSpan timeSpan = DateTime.Now - dateTime;
-
-		if(timeSpan.TotalMinutes < 1)
-		{
-			return "Just now";
-		}
-
-		if(timeSpan.TotalMinutes < 60)
-		{
-			return $"{(int)timeSpan.TotalMinutes} min ago";
-		}
-
-		if(timeSpan.TotalHours < 24)
-		{
-			return $"{(int)timeSpan.TotalHours} hours ago";
-		}
-
-		if(timeSpan.TotalDays < 7)
-		{
-			return $"{(int)timeSpan.TotalDays} days ago";
-		}
-
-		return "Last week";
+		return dateTime.Humanize();
 	}
 
 	public void Dispose()
@@ -94,6 +81,7 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 		{
 			ChatService.OnSessionsChanged -= StateHasChanged;
 			UIState.OnStateChanged -= StateHasChanged;
+			TimestampService.OnTick -= OnTimestampTick;
 			_dotNetHelper?.Dispose();
 		}
 	}

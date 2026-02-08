@@ -1,4 +1,5 @@
 using CopilotUIWebAssembly.Services;
+using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
@@ -7,6 +8,8 @@ namespace CopilotUIWebAssembly.Components;
 
 public partial class ChatWindow : ComponentBase, IDisposable
 {
+	[Inject] private TimestampService TimestampService { get; set; } = default!;
+
 	string _chatInput = string.Empty;
 	string _selectedModel = "GPT-4 Turbo";
 	bool _shouldScrollToBottom = false;
@@ -14,6 +17,12 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	protected override void OnInitialized()
 	{
 		ChatService.OnMessagesChanged += OnMessagesChanged;
+		TimestampService.OnTick += OnTimestampTick;
+	}
+
+	void OnTimestampTick()
+	{
+		InvokeAsync(StateHasChanged);
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -114,29 +123,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 
 	static string GetTimeAgo(DateTime dateTime)
 	{
-		TimeSpan timeSpan = DateTime.Now - dateTime;
-
-		if(timeSpan.TotalSeconds < 10)
-		{
-			return "Just now";
-		}
-
-		if(timeSpan.TotalMinutes < 1)
-		{
-			return $"{(int)timeSpan.TotalSeconds} seconds ago";
-		}
-
-		if(timeSpan.TotalMinutes < 60)
-		{
-			return $"{(int)timeSpan.TotalMinutes} min ago";
-		}
-
-		if(timeSpan.TotalHours < 24)
-		{
-			return $"{(int)timeSpan.TotalHours} hours ago";
-		}
-
-		return dateTime.ToShortDateString();
+		return dateTime.Humanize();
 	}
 
 	public void Dispose()
@@ -147,10 +134,11 @@ public partial class ChatWindow : ComponentBase, IDisposable
 
 	protected virtual void Dispose(bool disposing)
 	{
-		if (disposing)
+		if(disposing)
 		{
 			ChatService.OnMessagesChanged -= OnMessagesChanged;
 			UIState.OnStateChanged -= OnUIStateChangedHandler;
+			TimestampService.OnTick -= OnTimestampTick;
 		}
 	}
 }
