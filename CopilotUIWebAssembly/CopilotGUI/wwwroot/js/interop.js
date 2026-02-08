@@ -36,21 +36,21 @@ window.copilotUI = {
     setupChatInputBehavior: function (elementId, enterToSend) {
         const element = document.getElementById(elementId);
         if (!element) return;
-        
+
         element.dataset.enterToSend = enterToSend;
-        
+
         // Remove existing listener if any
         if (element._keypressHandler) {
             element.removeEventListener('keypress', element._keypressHandler);
         }
-        
+
         // Add new listener
         element._keypressHandler = function(e) {
             if (e.key === 'Enter' && !e.shiftKey && element.dataset.enterToSend === 'true') {
                 e.preventDefault();
             }
         };
-        
+
         element.addEventListener('keypress', element._keypressHandler);
     },
     scrollToBottom: function (elementId) {
@@ -117,7 +117,7 @@ window.copilotUI = {
     initializeResize: function (handleId, sidebarId, side, dotnetHelper) {
         const handle = document.getElementById(handleId);
         const sidebar = document.getElementById(sidebarId);
-        
+
         if (!handle || !sidebar) return;
 
         let isResizing = false;
@@ -131,10 +131,10 @@ window.copilotUI = {
 
             const doResize = (e) => {
                 if (!isResizing) return;
-                const newWidth = side === 'left' 
+                const newWidth = side === 'left'
                     ? Math.max(150, Math.min(600, e.clientX))
                     : Math.max(150, Math.min(600, window.innerWidth - e.clientX));
-                
+
                 sidebar.style.width = newWidth + 'px';
                 dotnetHelper.invokeMethodAsync('OnResize', newWidth);
             };
@@ -145,7 +145,7 @@ window.copilotUI = {
                 handle.classList.remove('resizing');
                 document.body.style.cursor = '';
                 document.body.style.userSelect = '';
-                
+
                 document.removeEventListener('mousemove', doResize);
                 document.removeEventListener('mouseup', stopResize);
             };

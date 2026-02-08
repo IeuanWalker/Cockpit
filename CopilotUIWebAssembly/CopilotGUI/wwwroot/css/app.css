@@ -189,7 +189,7 @@ input[type="checkbox"]:checked+.toggle-switch {
 
 .resize-handle {
     width: 4px;
-    background-color: transparent;
+    background-color: var(--sidebar-color);
     cursor: col-resize;
     position: relative;
     flex-shrink: 0;
@@ -199,6 +199,7 @@ input[type="checkbox"]:checked+.toggle-switch {
 .resize-handle:hover,
 .resize-handle.resizing {
     background-color: var(--accent-color);
+    cursor: col-resize;
 }
 
 .btn-primary {
