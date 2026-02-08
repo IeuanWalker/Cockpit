@@ -37,9 +37,6 @@
             </button>
             <div class="dropdown-content @(UIState.IsDropdownOpen("directory") ? "open" : "")">
                 <div class="px-3 py-1.5 text-xs text-vscode-text">@ContextService.CurrentDirectory</div>
-                <div class="px-3 pb-2">
-                    <button class="text-xs hover:underline" style="color: var(--accent-color);">Change directory...</button>
-                </div>
             </div>
         </div>
 

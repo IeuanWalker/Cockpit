@@ -8,13 +8,19 @@ public class ChatSession
     public DateTime LastActivity { get; set; } = DateTime.Now;
     public SessionStatus Status { get; set; } = SessionStatus.Active;
     public List<ChatMessage> Messages { get; set; } = [];
+    public string? WorkspacePath { get; set; }
+    public string? WorkingDirectory { get; set; }
+    public string? Model { get; set; }
+    public string? ReasoningEffort { get; set; }
 }
 
 public enum SessionStatus
 {
+    Idle,
     Active,
     AgentRunning,
     AgentFinished,
+    Error,
     Archived
 }
 
@@ -25,13 +31,24 @@ public class ChatMessage
     public bool IsUser { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.Now;
     public MessageType Type { get; set; } = MessageType.Text;
+    public string? EventType { get; set; }
+    public string? ToolName { get; set; }
+    public bool IsStreaming { get; set; }
+    public bool IsComplete { get; set; } = true;
+    public string? ReasoningContent { get; set; }
+    public Dictionary<string, object>? Metadata { get; set; }
 }
 
 public enum MessageType
 {
     Text,
     Code,
-    Typing
+    Typing,
+    ToolExecution,
+    ToolResult,
+    SystemMessage,
+    Error,
+    Reasoning
 }
 
 public class ContextFile

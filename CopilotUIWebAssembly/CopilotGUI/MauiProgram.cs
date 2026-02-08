@@ -1,4 +1,5 @@
 ﻿using CopilotGUI.Services;
+using CopilotGUI.Services.Copilot;
 using CopilotGUI.Services.Copilot.Models;
 using Microsoft.Extensions.Logging;
 
@@ -28,9 +29,13 @@ public static class MauiProgram
 		builder.Services.AddScoped<ThemeService>();
 		builder.Services.AddScoped<MarkdownService>();
 		builder.Services.AddSingleton<UIStateService>();
-		builder.Services.AddSingleton<ChatService>();
-		builder.Services.AddSingleton<ContextService>();
 		builder.Services.AddSingleton<TimestampService>();
+		builder.Services.AddSingleton<ContextService>();
+		
+		// Register Copilot SDK services
+		builder.Services.AddSingleton<CopilotClientService>();
+		builder.Services.AddSingleton<CopilotSessionManager>();
+		builder.Services.AddSingleton<ChatService>();
 		builder.Services.AddSingleton<ICopilotModelService, CopilotModelService>();
 
 		return builder.Build();

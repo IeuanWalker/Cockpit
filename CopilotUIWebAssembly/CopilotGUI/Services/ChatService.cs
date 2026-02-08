@@ -1,130 +1,545 @@
 using CopilotGUI.Models;
+using CopilotGUI.Services.Copilot;
+using GitHub.Copilot.SDK;
+using Microsoft.Extensions.Logging;
+using System.Linq;
 
 namespace CopilotGUI.Services;
 
 public class ChatService
 {
+	readonly CopilotSessionManager _sessionManager;
+	readonly ILogger<ChatService> _logger;
+	readonly ContextService _contextService;
+	readonly Dictionary<string, ChatMessage> _streamingMessages = new();
+
 	public event Action? OnSessionsChanged;
 	public event Action? OnMessagesChanged;
+	public event Action<string>? OnError;
+	public event Action? OnNewSessionRequested;
 
 	public List<ChatSession> Sessions { get; private set; } = [];
 	public ChatSession? CurrentSession { get; private set; }
 
-	// Sample data
-	public ChatService()
+	public ChatService(CopilotSessionManager sessionManager, ILogger<ChatService> logger, ContextService contextService)
 	{
-		InitializeSampleData();
+		_sessionManager = sessionManager;
+		_logger = logger;
+		_contextService = contextService;
+
+		// Subscribe to session events
+		_sessionManager.OnSessionEvent += HandleSessionEvent;
 	}
 
-	void InitializeSampleData()
+	void HandleSessionEvent(string sessionId, SessionEvent evt)
 	{
-		ChatSession activeSession = new()
+		var session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+		if (session == null) return;
+
+		try
 		{
-			Title = "React Component Refactor",
-			CreatedAt = DateTime.Now.AddMinutes(-5),
-			LastActivity = DateTime.Now,
-			Status = SessionStatus.Active,
-			Messages =
-			[
-				new ChatMessage
-				{
-					Content = "Can you help me refactor this React component to use hooks instead of class components?",
-					IsUser = true,
-					Timestamp = DateTime.Now.AddMinutes(-5)
-				},
-				new ChatMessage
-				{
-					Content = "I'll help you refactor your class component to use React hooks. Here's how we can convert it:\n\n```csharp\nimport React, { useState, useEffect } from 'react';\n\nconst MyComponent = () => {\n  const [data, setData] = useState([]);\n  const [loading, setLoading] = useState(false);\n\n  useEffect(() => {\n    fetchData();\n  }, []);\n\n  return (\n    <div>{/* component JSX */}</div>\n  );\n};\n```\n\nThe main changes are:\n- Replaced this.state with useState hooks\n- Used useEffect for lifecycle methods\n- Converted to functional component syntax",
-					IsUser = false,
-					Timestamp = DateTime.Now.AddMinutes(-4)
-				},
-				new ChatMessage
-				{
-					Content = "Perfect! Can you also show me how to handle the component's previous lifecycle methods?",
-					IsUser = true,
-					Timestamp = DateTime.Now.AddSeconds(-10)
-				}
-			]
+			switch (evt)
+			{
+				case UserMessageEvent userMsg:
+					HandleUserMessage(session, userMsg);
+					break;
+
+				case AssistantMessageDeltaEvent deltaMsg:
+					HandleAssistantMessageDelta(session, deltaMsg);
+					break;
+
+				case AssistantMessageEvent assistantMsg:
+					HandleAssistantMessage(session, assistantMsg);
+					break;
+
+				case AssistantReasoningDeltaEvent reasoningDelta:
+					HandleReasoningDelta(session, reasoningDelta);
+					break;
+
+				case AssistantReasoningEvent reasoning:
+					HandleReasoning(session, reasoning);
+					break;
+
+				case ToolExecutionStartEvent toolStart:
+					HandleToolStart(session, toolStart);
+					break;
+
+				case ToolExecutionCompleteEvent toolComplete:
+					HandleToolComplete(session, toolComplete);
+					break;
+
+				case SessionIdleEvent:
+					session.Status = SessionStatus.Idle;
+					RemoveTypingIndicator(session);
+					NotifyStateChanged();
+					break;
+
+				case SessionErrorEvent error:
+					HandleSessionError(session, error);
+					break;
+
+				case SessionCompactionStartEvent:
+					_logger.LogInformation("Session {SessionId} started context compaction", sessionId);
+					break;
+
+				case SessionCompactionCompleteEvent compaction:
+					_logger.LogInformation("Session {SessionId} completed compaction: {TokensRemoved} tokens removed",
+						sessionId, compaction.Data?.TokensRemoved);
+					break;
+			}
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Error handling session event {EventType} for session {SessionId}",
+				evt.Type, sessionId);
+		}
+	}
+
+	void HandleUserMessage(ChatSession session, UserMessageEvent evt)
+	{
+		if (evt.Data == null) return;
+
+		var message = new ChatMessage
+		{
+			Id = Guid.NewGuid().ToString(),
+			Content = evt.Data.Content ?? string.Empty,
+			IsUser = true,
+			Timestamp = DateTime.Now,
+			Type = MessageType.Text,
+			EventType = evt.Type
 		};
 
-		Sessions.Add(activeSession);
-		Sessions.Add(new ChatSession
-		{
-			Title = "API Integration Help",
-			Status = SessionStatus.AgentRunning,
-			CreatedAt = DateTime.Now.AddMinutes(-15),
-			LastActivity = DateTime.Now.AddMinutes(-2)
-		});
-		Sessions.Add(new ChatSession
-		{
-			Title = "Database Schema Design",
-			Status = SessionStatus.AgentFinished,
-			CreatedAt = DateTime.Now.AddMinutes(-30),
-			LastActivity = DateTime.Now.AddMinutes(-10)
-		});
-		Sessions.Add(new ChatSession
-		{
-			Title = "Bug Fix - Authentication",
-			CreatedAt = DateTime.Now.AddDays(-2),
-			LastActivity = DateTime.Now.AddDays(-2)
-		});
-		Sessions.Add(new ChatSession
-		{
-			Title = "TypeScript Migration",
-			CreatedAt = DateTime.Now.AddDays(-7),
-			LastActivity = DateTime.Now.AddDays(-7)
-		});
+		session.Messages.Add(message);
+		session.LastActivity = DateTime.Now;
+		session.Status = SessionStatus.AgentRunning;
+		NotifyStateChanged();
+	}
 
-		CurrentSession = activeSession;
+	void HandleAssistantMessageDelta(ChatSession session, AssistantMessageDeltaEvent evt)
+	{
+		if (evt.Data == null) return;
+
+		var messageId = evt.Data.MessageId ?? "streaming";
+
+		if (!_streamingMessages.TryGetValue(messageId, out var message))
+		{
+			message = new ChatMessage
+			{
+				Id = messageId,
+				Content = string.Empty,
+				IsUser = false,
+				Timestamp = DateTime.Now,
+				Type = MessageType.Text,
+				IsStreaming = true,
+				IsComplete = false,
+				EventType = evt.Type
+			};
+			_streamingMessages[messageId] = message;
+			session.Messages.Add(message);
+		}
+
+		message.Content += evt.Data.DeltaContent ?? string.Empty;
+		session.LastActivity = DateTime.Now;
+		NotifyStateChanged();
+	}
+
+	void HandleAssistantMessage(ChatSession session, AssistantMessageEvent evt)
+	{
+		if (evt.Data == null) return;
+
+		var messageId = evt.Data.MessageId ?? Guid.NewGuid().ToString();
+
+		// If this was a streaming message, update it
+		if (_streamingMessages.TryGetValue(messageId, out var existingMessage))
+		{
+			existingMessage.Content = evt.Data.Content ?? string.Empty;
+			existingMessage.IsStreaming = false;
+			existingMessage.IsComplete = true;
+			_streamingMessages.Remove(messageId);
+		}
+		else
+		{
+			// Add as new message
+			var message = new ChatMessage
+			{
+				Id = messageId,
+				Content = evt.Data.Content ?? string.Empty,
+				IsUser = false,
+				Timestamp = DateTime.Now,
+				Type = MessageType.Text,
+				IsComplete = true,
+				EventType = evt.Type
+			};
+			session.Messages.Add(message);
+		}
+
+		session.LastActivity = DateTime.Now;
+		NotifyStateChanged();
+	}
+
+	void HandleReasoningDelta(ChatSession session, AssistantReasoningDeltaEvent evt)
+	{
+		if (evt.Data == null) return;
+
+		var messageId = "reasoning";
+
+		if (!_streamingMessages.TryGetValue(messageId, out var message))
+		{
+			message = new ChatMessage
+			{
+				Id = messageId,
+				Content = string.Empty,
+				ReasoningContent = string.Empty,
+				IsUser = false,
+				Timestamp = DateTime.Now,
+				Type = MessageType.Reasoning,
+				IsStreaming = true,
+				IsComplete = false,
+				EventType = evt.Type
+			};
+			_streamingMessages[messageId] = message;
+			session.Messages.Add(message);
+		}
+
+		message.ReasoningContent += evt.Data.DeltaContent ?? string.Empty;
+		session.LastActivity = DateTime.Now;
+		NotifyStateChanged();
+	}
+
+	void HandleReasoning(ChatSession session, AssistantReasoningEvent evt)
+	{
+		if (evt.Data == null) return;
+
+		var messageId = "reasoning";
+
+		if (_streamingMessages.TryGetValue(messageId, out var existingMessage))
+		{
+			existingMessage.ReasoningContent = evt.Data.Content ?? string.Empty;
+			existingMessage.IsStreaming = false;
+			existingMessage.IsComplete = true;
+			_streamingMessages.Remove(messageId);
+		}
+
+		session.LastActivity = DateTime.Now;
+		NotifyStateChanged();
+	}
+
+	void HandleToolStart(ChatSession session, ToolExecutionStartEvent evt)
+	{
+		if (evt.Data == null) return;
+
+		var message = new ChatMessage
+		{
+			Id = evt.Data.ToolCallId ?? Guid.NewGuid().ToString(),
+			Content = $"Executing tool: {evt.Data.ToolName}",
+			IsUser = false,
+			Timestamp = DateTime.Now,
+			Type = MessageType.ToolExecution,
+			ToolName = evt.Data.ToolName,
+			IsComplete = false,
+			EventType = evt.Type,
+			Metadata = new Dictionary<string, object>()
+		};
+
+		session.Messages.Add(message);
+		session.LastActivity = DateTime.Now;
+		NotifyStateChanged();
+	}
+
+	void HandleToolComplete(ChatSession session, ToolExecutionCompleteEvent evt)
+	{
+		if (evt.Data == null) return;
+
+		var toolMessage = session.Messages.FirstOrDefault(m =>
+			m.Id == evt.Data.ToolCallId && m.Type == MessageType.ToolExecution);
+
+		if (toolMessage != null)
+		{
+			toolMessage.IsComplete = true;
+			toolMessage.Content = $"Tool '{toolMessage.ToolName}' completed";
+			if (evt.Data.Result != null)
+			{
+				toolMessage.Metadata ??= new Dictionary<string, object>();
+				toolMessage.Metadata["result"] = evt.Data.Result;
+			}
+		}
+
+		session.LastActivity = DateTime.Now;
+		NotifyStateChanged();
+	}
+
+	void HandleSessionError(ChatSession session, SessionErrorEvent evt)
+	{
+		if (evt.Data == null) return;
+
+		var message = new ChatMessage
+		{
+			Id = Guid.NewGuid().ToString(),
+			Content = evt.Data.Message ?? "An error occurred",
+			IsUser = false,
+			Timestamp = DateTime.Now,
+			Type = MessageType.Error,
+			EventType = evt.Type
+		};
+
+		session.Messages.Add(message);
+		session.Status = SessionStatus.Error;
+		session.LastActivity = DateTime.Now;
+
+		OnError?.Invoke(evt.Data.Message ?? "Unknown error");
+		NotifyStateChanged();
+	}
+
+	public void RequestNewSession()
+	{
+		OnNewSessionRequested?.Invoke();
+	}
+
+	public async Task LoadExistingSessionsAsync()
+	{
+		try
+		{
+			_logger.LogInformation("Loading existing sessions from SDK...");
+			
+			var sessionMetadataList = await _sessionManager.ListSessionsAsync();
+			
+			if (sessionMetadataList.Count == 0)
+			{
+				_logger.LogInformation("No existing sessions found");
+				return;
+			}
+
+			_logger.LogInformation("Found {Count} existing sessions", sessionMetadataList.Count);
+
+			// Load each session that isn't already in our list
+			foreach (var metadata in sessionMetadataList)
+			{
+				if (!Sessions.Any(s => s.Id == metadata.SessionId))
+				{
+					try
+					{
+						var chatSession = new ChatSession
+						{
+							Id = metadata.SessionId,
+							Title = $"Session {metadata.SessionId.Substring(0, 8)}",
+							CreatedAt = DateTime.Now,
+							LastActivity = DateTime.Now,
+							Status = SessionStatus.Idle
+						};
+
+						Sessions.Add(chatSession);
+						_logger.LogInformation("Loaded session {SessionId}", chatSession.Id);
+					}
+					catch (Exception ex)
+					{
+						_logger.LogWarning(ex, "Failed to load session {SessionId}", metadata.SessionId);
+					}
+				}
+			}
+
+			NotifyStateChanged();
+			_logger.LogInformation("Successfully loaded {Count} sessions", Sessions.Count);
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Failed to load existing sessions");
+			OnError?.Invoke($"Failed to load existing sessions: {ex.Message}");
+		}
+	}
+
+	public async Task<ChatSession> CreateNewSessionAsync(string? model = null, string? reasoningEffort = null, string? workingDirectory = null)
+	{
+		try
+		{
+			var config = new SessionConfig
+			{
+				Model = model,
+				ReasoningEffort = reasoningEffort,
+				Streaming = true,
+				InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
+				WorkingDirectory = workingDirectory
+			};
+
+			var sdkSession = await _sessionManager.CreateSessionAsync(config);
+
+			var chatSession = new ChatSession
+			{
+				Id = sdkSession.SessionId,
+				Title = !string.IsNullOrEmpty(workingDirectory) 
+					? Path.GetFileName(workingDirectory) 
+					: "New Session",
+				CreatedAt = DateTime.Now,
+				LastActivity = DateTime.Now,
+				Status = SessionStatus.Idle,
+				WorkspacePath = sdkSession.WorkspacePath,
+				WorkingDirectory = workingDirectory,
+				Model = model,
+				ReasoningEffort = reasoningEffort
+			};
+
+			Sessions.Insert(0, chatSession);
+			CurrentSession = chatSession;
+
+			// Update the context service with the working directory
+			if (!string.IsNullOrEmpty(workingDirectory))
+			{
+				_contextService.SetDirectory(workingDirectory);
+			}
+
+			NotifyStateChanged();
+			return chatSession;
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Failed to create new session");
+			OnError?.Invoke($"Failed to create session: {ex.Message}");
+			throw;
+		}
+	}
+
+	public async Task<bool> ResumeSessionAsync(string sessionId)
+	{
+		try
+		{
+			var session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			if (session == null) return false;
+
+			var config = new ResumeSessionConfig
+			{
+				Model = session.Model,
+				ReasoningEffort = session.ReasoningEffort,
+				Streaming = true
+			};
+
+			var sdkSession = await _sessionManager.ResumeSessionAsync(sessionId, config);
+
+			// Load existing messages
+			var events = await _sessionManager.GetMessagesAsync(sessionId);
+			session.Messages.Clear();
+
+			foreach (var evt in events)
+			{
+				// Convert events to messages (simplified)
+				if (evt is UserMessageEvent userMsg && userMsg.Data != null)
+				{
+					session.Messages.Add(new ChatMessage
+					{
+						Content = userMsg.Data.Content ?? string.Empty,
+						IsUser = true,
+						Timestamp = DateTime.Now
+					});
+				}
+				else if (evt is AssistantMessageEvent assistantMsg && assistantMsg.Data != null)
+				{
+					session.Messages.Add(new ChatMessage
+					{
+						Content = assistantMsg.Data.Content ?? string.Empty,
+						IsUser = false,
+						Timestamp = DateTime.Now
+					});
+				}
+			}
+
+			session.Status = SessionStatus.Idle;
+			session.WorkspacePath = sdkSession.WorkspacePath;
+			CurrentSession = session;
+
+			NotifyStateChanged();
+			return true;
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Failed to resume session {SessionId}", sessionId);
+			OnError?.Invoke($"Failed to resume session: {ex.Message}");
+			return false;
+		}
 	}
 
 	public void SetCurrentSession(ChatSession session)
 	{
 		CurrentSession = session;
-		NotifyMessagesChanged();
-	}
-
-	public void CreateNewSession()
-	{
-		ChatSession newSession = new()
+		
+		// Update context service when switching sessions
+		if (!string.IsNullOrEmpty(session.WorkingDirectory))
 		{
-			Title = "New Session",
-			CreatedAt = DateTime.Now,
-			LastActivity = DateTime.Now
-		};
-		Sessions.Insert(0, newSession);
-		CurrentSession = newSession;
-		NotifySessionsChanged();
-		NotifyMessagesChanged();
-	}
-
-	public void AddMessage(string content, bool isUser)
-	{
-		if(CurrentSession is null)
-		{
-			return;
+			_contextService.SetDirectory(session.WorkingDirectory);
 		}
-
-		ChatMessage message = new()
+		else if (!string.IsNullOrEmpty(session.WorkspacePath))
 		{
-			Content = content,
-			IsUser = isUser,
-			Timestamp = DateTime.Now
-		};
-
-		CurrentSession.Messages.Add(message);
-		CurrentSession.LastActivity = DateTime.Now;
+			// Fallback to workspace path if no working directory is set
+			_contextService.SetDirectory(session.WorkspacePath);
+		}
+		
 		NotifyMessagesChanged();
 	}
 
-	public void AddTypingIndicator()
+	public async Task SendMessageAsync(string content, List<UserMessageDataAttachmentsItem>? attachments = null)
 	{
-		if(CurrentSession is null)
-		{
-			return;
-		}
+		if (CurrentSession == null) return;
 
-		ChatMessage typingMessage = new()
+		try
+		{
+			// Add typing indicator
+			AddTypingIndicator(CurrentSession);
+
+			CurrentSession.Status = SessionStatus.AgentRunning;
+			await _sessionManager.SendMessageAsync(CurrentSession.Id, content, attachments);
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Failed to send message");
+			OnError?.Invoke($"Failed to send message: {ex.Message}");
+			RemoveTypingIndicator(CurrentSession);
+			CurrentSession.Status = SessionStatus.Error;
+			NotifyStateChanged();
+		}
+	}
+
+	public async Task DeleteSessionAsync(string sessionId)
+	{
+		try
+		{
+			await _sessionManager.DeleteSessionAsync(sessionId);
+
+			var session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			if (session != null)
+			{
+				Sessions.Remove(session);
+				if (CurrentSession?.Id == sessionId)
+				{
+					CurrentSession = Sessions.FirstOrDefault();
+				}
+				NotifyStateChanged();
+			}
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Failed to delete session {SessionId}", sessionId);
+			OnError?.Invoke($"Failed to delete session: {ex.Message}");
+		}
+	}
+
+	public async Task AbortCurrentSessionAsync()
+	{
+		if (CurrentSession == null) return;
+
+		try
+		{
+			await _sessionManager.AbortSessionAsync(CurrentSession.Id);
+			CurrentSession.Status = SessionStatus.Idle;
+			RemoveTypingIndicator(CurrentSession);
+			NotifyStateChanged();
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError(ex, "Failed to abort session");
+			OnError?.Invoke($"Failed to abort: {ex.Message}");
+		}
+	}
+
+	void AddTypingIndicator(ChatSession session)
+	{
+		var typingMessage = new ChatMessage
 		{
 			Content = string.Empty,
 			IsUser = false,
@@ -132,25 +547,26 @@ public class ChatService
 			Timestamp = DateTime.Now
 		};
 
-		CurrentSession.Messages.Add(typingMessage);
+		session.Messages.Add(typingMessage);
 		NotifyMessagesChanged();
 	}
 
-	public void RemoveTypingIndicator()
+	void RemoveTypingIndicator(ChatSession session)
 	{
-		if(CurrentSession is null)
+		var typingMessage = session.Messages.FirstOrDefault(m => m.Type == MessageType.Typing);
+		if (typingMessage != null)
 		{
-			return;
-		}
-
-		ChatMessage? typingMessage = CurrentSession.Messages.FirstOrDefault(m => m.Type == MessageType.Typing);
-		if(typingMessage is not null)
-		{
-			CurrentSession.Messages.Remove(typingMessage);
+			session.Messages.Remove(typingMessage);
 			NotifyMessagesChanged();
 		}
 	}
 
-	void NotifySessionsChanged() => OnSessionsChanged?.Invoke();
+	void NotifyStateChanged()
+	{
+		OnSessionsChanged?.Invoke();
+		OnMessagesChanged?.Invoke();
+	}
+
 	void NotifyMessagesChanged() => OnMessagesChanged?.Invoke();
 }
+

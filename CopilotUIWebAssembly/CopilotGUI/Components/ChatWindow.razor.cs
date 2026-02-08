@@ -12,9 +12,11 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	[Inject] TimestampService TimestampService { get; set; } = default!;
 	[Inject] ICopilotModelService ModelService { get; set; } = default!;
 
+	WorkingDirectoryDialog? _workingDirectoryDialog;
 	string _chatInput = string.Empty;
 	string _selectedModel = string.Empty;
 	string _selectedReasoningEffort = string.Empty;
+	string? _pendingWorkingDirectory = null;
 	List<CopilotModel> _availableModels = [];
 	bool _shouldScrollToBottom = false;
 	bool _isModelDropdownOpen = false;
@@ -23,13 +25,23 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	protected override async Task OnInitializedAsync()
 	{
 		ChatService.OnMessagesChanged += OnMessagesChanged;
+		ChatService.OnNewSessionRequested += OnNewSessionRequested;
 		TimestampService.OnTick += OnTimestampTick;
 
 		_availableModels = await ModelService.GetModels();
 		if(_availableModels.Count > 0)
 		{
 			_selectedModel = _availableModels[0].Id;
+			UpdateReasoningEffortForSelectedModel();
 		}
+
+		// Load existing sessions from SDK
+		await ChatService.LoadExistingSessionsAsync();
+	}
+
+	void OnNewSessionRequested()
+	{
+		InvokeAsync(CreateNewSession);
 	}
 
 	void OnTimestampTick()
@@ -115,13 +127,39 @@ public partial class ChatWindow : ComponentBase, IDisposable
 		await Task.Delay(10);
 		await OnTextareaInput();
 
-		ChatService.AddMessage(message, true);
-		ChatService.AddTypingIndicator();
+		// Send via SDK
+		await ChatService.SendMessageAsync(message);
+	}
 
-		// Simulate AI response
-		await Task.Delay(2000);
-		ChatService.RemoveTypingIndicator();
-		ChatService.AddMessage("This is a simulated response. In a real implementation, this would call your AI backend.", false);
+	async Task CreateNewSession()
+	{
+		try
+		{
+			// Open directory selection dialog
+			_workingDirectoryDialog?.Open();
+		}
+		catch(Exception ex)
+		{
+			Console.Error.WriteLine($"Failed to open directory dialog: {ex.Message}");
+		}
+	}
+
+	async Task OnWorkingDirectorySelected(string? directory)
+	{
+		if(string.IsNullOrEmpty(directory))
+		{
+			return;
+		}
+
+		try
+		{
+			_pendingWorkingDirectory = directory;
+			await ChatService.CreateNewSessionAsync(_selectedModel, _selectedReasoningEffort, directory);
+		}
+		catch(Exception ex)
+		{
+			Console.Error.WriteLine($"Failed to create session: {ex.Message}");
+		}
 	}
 
 	async Task HandleKeyDown(KeyboardEventArgs e)
@@ -208,6 +246,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 		if(disposing)
 		{
 			ChatService.OnMessagesChanged -= OnMessagesChanged;
+			ChatService.OnNewSessionRequested -= OnNewSessionRequested;
 			UIState.OnStateChanged -= OnUIStateChangedHandler;
 			TimestampService.OnTick -= OnTimestampTick;
 		}

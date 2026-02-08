@@ -44,6 +44,11 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 		ChatService.SetCurrentSession(session);
 	}
 
+	void CreateNewSession()
+	{
+		ChatService.RequestNewSession();
+	}
+
 	static string GetSessionStatusClass(ChatSession session)
 	{
 		return session.Status switch
