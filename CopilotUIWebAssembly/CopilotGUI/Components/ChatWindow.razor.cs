@@ -1,4 +1,5 @@
 using CopilotGUI.Services;
+using CopilotGUI.Services.Copilot.Models;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -9,15 +10,24 @@ namespace CopilotGUI.Components;
 public partial class ChatWindow : ComponentBase, IDisposable
 {
 	[Inject] TimestampService TimestampService { get; set; } = default!;
+	[Inject] ICopilotModelService ModelService { get; set; } = default!;
 
 	string _chatInput = string.Empty;
-	string _selectedModel = "GPT-4 Turbo";
+	string _selectedModel = string.Empty;
+	List<CopilotModel> _availableModels = [];
 	bool _shouldScrollToBottom = false;
+	bool _isModelDropdownOpen = false;
 
-	protected override void OnInitialized()
+	protected override async Task OnInitializedAsync()
 	{
 		ChatService.OnMessagesChanged += OnMessagesChanged;
 		TimestampService.OnTick += OnTimestampTick;
+
+		_availableModels = await ModelService.GetModels();
+		if(_availableModels.Count > 0)
+		{
+			_selectedModel = _availableModels[0].Id;
+		}
 	}
 
 	void OnTimestampTick()
@@ -124,6 +134,23 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	static string GetTimeAgo(DateTime dateTime)
 	{
 		return dateTime.Humanize();
+	}
+
+	void ToggleModelDropdown()
+	{
+		_isModelDropdownOpen = !_isModelDropdownOpen;
+	}
+
+	void SelectModel(string modelId)
+	{
+		_selectedModel = modelId;
+		_isModelDropdownOpen = false;
+	}
+
+	string GetSelectedModelName()
+	{
+		var model = _availableModels.FirstOrDefault(m => m.Id == _selectedModel);
+		return model?.Name ?? "Select Model";
 	}
 
 	public void Dispose()

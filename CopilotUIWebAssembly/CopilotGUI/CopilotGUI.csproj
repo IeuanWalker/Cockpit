@@ -59,6 +59,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="GitHub.Copilot.SDK" Version="0.1.23" />
     <PackageReference Include="Humanizer" Version="3.0.1" />
     <PackageReference Include="Markdig" Version="0.44.0" />
     <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.31" />

@@ -90,7 +90,7 @@ html, body {
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
     background: var(--border-color);
-    border-radius: 5px;
+    border-radius: 0px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {

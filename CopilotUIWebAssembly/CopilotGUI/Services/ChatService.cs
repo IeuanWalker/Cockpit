@@ -1,4 +1,5 @@
 using CopilotGUI.Models;
+using GitHub.Copilot.SDK;
 
 namespace CopilotGUI.Services;
 
@@ -14,6 +15,12 @@ public class ChatService
 	public ChatService()
 	{
 		InitializeSampleData();
+	}
+
+	async Task GetModels()
+	{
+		await using var client = new CopilotClient();
+		var test = client.ListModelsAsync();
 	}
 
 	void InitializeSampleData()

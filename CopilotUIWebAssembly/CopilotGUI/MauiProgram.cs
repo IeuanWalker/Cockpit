@@ -1,5 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
-using CopilotGUI.Services;
+﻿using CopilotGUI.Services;
+using CopilotGUI.Services.Copilot.Models;
+using Microsoft.Extensions.Logging;
 
 namespace CopilotGUI;
 
@@ -30,6 +31,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<ChatService>();
 		builder.Services.AddSingleton<ContextService>();
 		builder.Services.AddSingleton<TimestampService>();
+		builder.Services.AddSingleton<ICopilotModelService, CopilotModelService>();
 
 		return builder.Build();
 	}
