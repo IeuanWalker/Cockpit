@@ -14,9 +14,11 @@ public partial class ChatWindow : ComponentBase, IDisposable
 
 	string _chatInput = string.Empty;
 	string _selectedModel = string.Empty;
+	string _selectedReasoningEffort = string.Empty;
 	List<CopilotModel> _availableModels = [];
 	bool _shouldScrollToBottom = false;
 	bool _isModelDropdownOpen = false;
+	bool _isReasoningEffortDropdownOpen = false;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -145,12 +147,52 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	{
 		_selectedModel = modelId;
 		_isModelDropdownOpen = false;
+		UpdateReasoningEffortForSelectedModel();
 	}
 
 	string GetSelectedModelName()
 	{
 		var model = _availableModels.FirstOrDefault(m => m.Id == _selectedModel);
 		return model?.Name ?? "Select Model";
+	}
+
+	void UpdateReasoningEffortForSelectedModel()
+	{
+		var model = _availableModels.FirstOrDefault(m => m.Id == _selectedModel);
+		if (model != null)
+		{
+			_selectedReasoningEffort = model.DefaultReasoningEffort ?? string.Empty;
+		}
+	}
+
+	CopilotModel? GetSelectedModel()
+	{
+		return _availableModels.FirstOrDefault(m => m.Id == _selectedModel);
+	}
+
+	bool HasReasoningEfforts()
+	{
+		var model = GetSelectedModel();
+		return model?.SupportedReasoningEfforts != null && model.SupportedReasoningEfforts.Count > 0;
+	}
+
+	void ToggleReasoningEffortDropdown()
+	{
+		_isReasoningEffortDropdownOpen = !_isReasoningEffortDropdownOpen;
+	}
+
+	void SelectReasoningEffort(string effort)
+	{
+		_selectedReasoningEffort = effort;
+		_isReasoningEffortDropdownOpen = false;
+	}
+
+	string GetSelectedReasoningEffortDisplay()
+	{
+		if (string.IsNullOrEmpty(_selectedReasoningEffort))
+			return "Default";
+		
+		return char.ToUpper(_selectedReasoningEffort[0]) + _selectedReasoningEffort.Substring(1);
 	}
 
 	public void Dispose()
