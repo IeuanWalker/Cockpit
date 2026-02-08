@@ -6,23 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitHub Copilot CLI</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'vscode-bg': '#1e1e1e',
-                        'vscode-sidebar': '#252526',
-                        'vscode-border': '#3e3e42',
-                        'vscode-hover': '#2a2d2e',
-                        'vscode-active': '#094771',
-                        'vscode-text': '#cccccc',
-                        'vscode-title': '#ffffff',
-                    }
-                }
-            }
-        }
-    </script>
     <style>
         :root {
             /* Dark Modern Theme - Official VS Code Colors */
@@ -202,12 +185,49 @@
             transition: background-color 0.2s;
         }
 
-        .resize-handle:hover {
+        .resize-handle:hover,
+        .resize-handle.resizing {
             background-color: var(--accent-color);
         }
 
-        .resize-handle.resizing {
-            background-color: var(--accent-color);
+        .btn-primary {
+            background-color: var(--button-bg);
+            color: white;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--button-hover);
+        }
+
+        .secondary-text {
+            color: var(--secondary-text);
+        }
+
+        .chat-bubble {
+            background-color: var(--button-bg);
+            color: white;
+        }
+
+        .status-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 9999px;
+        }
+
+        .icon-xs {
+            width: 0.875rem;
+            height: 0.875rem;
+        }
+
+        .icon-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .icon-md {
+            width: 1.25rem;
+            height: 1.25rem;
         }
     </style>
 </head>
@@ -228,7 +248,7 @@
                         <circle cx="12" cy="12" r="3" />
                     </svg>
                     SESSIONS
-                </h2> <button onclick="toggleSidebar('left')" class="p-1 hover:bg-vscode-hover rounded"
+                </h2> <button data-action="toggle-sidebar" data-side="left" class="p-1 hover:bg-vscode-hover rounded"
                     title="Collapse">
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd"
@@ -246,8 +266,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="text-xs font-medium text-vscode-title truncate">React
                             Component Refactor</div>
-                        <div class="text-xs mt-0.5" style="color: var(--secondary-text);">5 min
-                            ago</div>
+                        <div class="text-xs mt-0.5 secondary-text">5 min ago</div>
                     </div>
                 </div>
 
@@ -288,8 +307,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="text-xs truncate">Bug Fix -
                             Authentication</div>
-                        <div class="text-xs mt-0.5" style="color: var(--secondary-text);">2 days
-                            ago</div>
+                        <div class="text-xs mt-0.5 secondary-text">2 days ago</div>
                     </div>
                 </div>
 
@@ -298,8 +316,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="text-xs truncate">TypeScript
                             Migration</div>
-                        <div class="text-xs mt-0.5" style="color: var(--secondary-text);">Last
-                            week</div>
+                        <div class="text-xs mt-0.5 secondary-text">Last week</div>
                     </div>
                 </div>
             </div>
@@ -307,11 +324,8 @@
             <!-- New Session Button -->
             <div class="p-2 border-t border-vscode-border">
                 <button
-                    class="w-full text-white py-1.5 px-3 rounded text-xs font-medium flex items-center justify-center"
-                    style="background-color: var(--button-bg);"
-                    onmouseover="this.style.backgroundColor='var(--button-hover)'"
-                    onmouseout="this.style.backgroundColor='var(--button-bg)'">
-                    <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="btn-primary w-full py-1.5 px-3 rounded text-xs font-medium flex items-center justify-center">
+                    <svg class="icon-xs mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
                     New Session
@@ -328,9 +342,9 @@
             <div class="h-10 bg-vscode-sidebar border-b border-vscode-border px-3 flex items-center">
                 <div class="flex items-center flex-1">
                     <!-- Left expand button -->
-                    <button id="leftExpandBtn" onclick="toggleSidebar('left')"
+                    <button id="leftExpandBtn" data-action="toggle-sidebar" data-side="left"
                         class="p-1 hover:bg-vscode-hover rounded hidden mr-2" title="Expand sessions">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="icon-sm" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd"
                                 d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
                                 clip-rule="evenodd" />
@@ -341,8 +355,8 @@
                 </div>
 
                 <div class="flex items-center space-x-2 ml-auto">
-                    <button onclick="toggleSettings()" class="p-1.5 hover:bg-vscode-hover rounded" title="Settings">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button data-action="toggle-settings" class="p-1.5 hover:bg-vscode-hover rounded" title="Settings">
+                        <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -350,16 +364,16 @@
                         </svg>
                     </button>
                     <!-- Right expand button -->
-                    <button id="rightExpandBtn" onclick="toggleSidebar('right')"
+                    <button id="rightExpandBtn" data-action="toggle-sidebar" data-side="right"
                         class="p-1.5 hover:bg-vscode-hover rounded hidden" title="Expand context">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <svg class="icon-sm" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd"
                                 d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
                                 clip-rule="evenodd" />
                         </svg>
                     </button>
                     <button class="p-1.5 hover:bg-vscode-hover rounded" title="Close">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -372,13 +386,12 @@
                 <!-- User Message -->
                 <div class="flex justify-end">
                     <div class="max-w-2xl">
-                        <div class="text-white rounded-lg px-4 py-2.5" style="background-color: var(--button-bg);">
+                        <div class="chat-bubble rounded-lg px-4 py-2.5">
                             <p class="text-sm">Can you help me refactor this
                                 React component to use hooks instead of
                                 class components?</p>
                         </div>
-                        <div class="text-xs mt-1 text-right" style="color: var(--secondary-text);">5 minutes
-                            ago</div>
+                        <div class="text-xs mt-1 text-right secondary-text">5 minutes ago</div>
                     </div>
                 </div>
 
@@ -426,8 +439,7 @@
                                             component syntax</li>
                                     </ul>
                                 </div>
-                                <div class="text-xs mt-1" style="color: var(--secondary-text);">Just
-                                    now</div>
+                                <div class="text-xs mt-1 secondary-text">Just now</div>
                             </div>
                         </div>
                     </div>
@@ -436,13 +448,12 @@
                 <!-- User Message -->
                 <div class="flex justify-end">
                     <div class="max-w-2xl">
-                        <div class="text-white rounded-lg px-4 py-2.5" style="background-color: var(--button-bg);">
+                        <div class="chat-bubble rounded-lg px-4 py-2.5">
                             <p class="text-sm">Perfect! Can you also show me
                                 how to handle the component's previous
                                 lifecycle methods?</p>
                         </div>
-                        <div class="text-xs mt-1 text-right" style="color: var(--secondary-text);">Just
-                            now</div>
+                        <div class="text-xs mt-1 text-right secondary-text">Just now</div>
                     </div>
                 </div>
 
@@ -458,12 +469,12 @@
                             </div>
                             <div class="bg-vscode-sidebar border border-vscode-border rounded-lg px-4 py-3">
                                 <div class="flex space-x-1">
-                                    <div class="w-2 h-2 rounded-full animate-bounce"
-                                        style="background-color: var(--secondary-text);"></div>
-                                    <div class="w-2 h-2 rounded-full animate-bounce"
-                                        style="background-color: var(--secondary-text); animation-delay: 0.1s"></div>
-                                    <div class="w-2 h-2 rounded-full animate-bounce"
-                                        style="background-color: var(--secondary-text); animation-delay: 0.2s"></div>
+                                    <div class="w-2 h-2 rounded-full animate-bounce secondary-text"
+                                        style="background-color: currentColor;"></div>
+                                    <div class="w-2 h-2 rounded-full animate-bounce secondary-text"
+                                        style="background-color: currentColor; animation-delay: 0.1s"></div>
+                                    <div class="w-2 h-2 rounded-full animate-bounce secondary-text"
+                                        style="background-color: currentColor; animation-delay: 0.2s"></div>
                                 </div>
                             </div>
                         </div>
@@ -484,19 +495,15 @@
                                     oninput="autoResizeTextarea(this)"></textarea>
                             </div>
                             <div class="flex items-end space-x-1 p-2 border-l border-vscode-border self-stretch">
-                                <button id="micButton" class="p-1.5 hover:bg-vscode-hover rounded" title="Voice input"
-                                    onclick="toggleMicrophone()">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        style="color: var(--secondary-text);">
+                                <button id="micButton" class="p-1.5 hover:bg-vscode-hover rounded" title="Voice input">
+                                    <svg class="icon-sm secondary-text" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                                     </svg>
                                 </button>
-                                <button class="text-white p-1.5 rounded" title="Send"
-                                    style="background-color: var(--button-bg);"
-                                    onmouseover="this.style.backgroundColor='var(--button-hover)'"
-                                    onmouseout="this.style.backgroundColor='var(--button-bg)'">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <button class="btn-primary p-1.5 rounded" title="Send">
+                                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                     </svg>
@@ -506,15 +513,15 @@
                         <div class="flex items-center justify-between px-3 py-1.5 border-t border-vscode-border">
                             <div class="flex items-center space-x-2">
                                 <button class="p-1 hover:bg-vscode-hover rounded" title="Attach file">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        style="color: var(--secondary-text);">
+                                    <svg class="icon-xs secondary-text" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                     </svg>
                                 </button>
                                 <button class="p-1 hover:bg-vscode-hover rounded" title="Code snippet">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        style="color: var(--secondary-text);">
+                                    <svg class="icon-xs secondary-text" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                     </svg>
@@ -522,11 +529,9 @@
                             </div>
                             <div class="flex items-center space-x-3">
                                 <div class="flex items-center space-x-2">
-                                    <label class="text-xs" style="color: var(--secondary-text);">Model:</label>
-                                    <select class="rounded px-2 py-0.5 text-xs focus:outline-none"
-                                        style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);"
-                                        onfocus="this.style.borderColor='var(--accent-color)'"
-                                        onblur="this.style.borderColor='var(--input-border)'">
+                                    <label class="text-xs secondary-text">Model:</label>
+                                    <select id="modelSelect" class="rounded px-2 py-0.5 text-xs focus:outline-none"
+                                        style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);">
                                         <option>GPT-4 Turbo</option>
                                         <option>GPT-4</option>
                                         <option>GPT-3.5 Turbo</option>
@@ -535,8 +540,6 @@
                                         <option>Gemini Pro</option>
                                     </select>
                                 </div>
-                                <span class="text-xs" style="color: var(--secondary-text);">Shift
-                                    + Enter</span>
                             </div>
                         </div>
                     </div>
@@ -557,7 +560,7 @@
                             d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                     CONTEXT
-                </h2> <button onclick="toggleSidebar('right')" class="p-1 hover:bg-vscode-hover rounded"
+                </h2> <button data-action="toggle-sidebar" data-side="right" class="p-1 hover:bg-vscode-hover rounded"
                     title="Collapse">
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd"
@@ -573,9 +576,9 @@
                 <!-- Directory Dropdown -->
                 <div class="border-b border-vscode-border">
                     <button class="w-full px-3 py-2 flex items-center justify-between hover:bg-vscode-hover text-left"
-                        onclick="toggleDropdown('directory')">
+                        data-dropdown="directory">
                         <div class="flex items-center">
-                            <svg class="w-3.5 h-3.5 mr-2 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="icon-xs mr-2 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                             </svg>
                             <span class="text-xs font-medium">Directory</span>
@@ -599,9 +602,9 @@
                 <!-- Git Branch Dropdown -->
                 <div class="border-b border-vscode-border">
                     <button class="w-full px-3 py-2 flex items-center justify-between hover:bg-vscode-hover text-left"
-                        onclick="toggleDropdown('branch')">
+                        data-dropdown="branch">
                         <div class="flex items-center">
-                            <svg class="w-3.5 h-3.5 mr-2 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="icon-xs mr-2 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd"
                                     d="M7 2a1 1 0 00-.707 1.707L7 4.414v3.758a1 1 0 01-.293.707l-4 4C.817 14.769 2.156 18 4.828 18h10.343c2.673 0 4.012-3.231 2.122-5.121l-4-4A1 1 0 0113 8.172V4.414l.707-.707A1 1 0 0013 2H7zm2 6.172V4h2v4.172a3 3 0 00.879 2.12l1.027 1.028a4 4 0 00-2.171.102l-.47.156a4 4 0 01-2.53 0l-.563-.187a1.993 1.993 0 00-.114-.035l1.063-1.063A3 3 0 009 8.172z"
                                     clip-rule="evenodd" />
@@ -621,19 +624,19 @@
                             <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
                             <span class="text-xs">main</span>
                         </div>
-                        <div class="px-3 py-1 hover:bg-vscode-hover cursor-pointer text-xs"
-                            style="color: var(--secondary-text);">feature/new-ui</div>
-                        <div class="px-3 py-1 hover:bg-vscode-hover cursor-pointer text-xs"
-                            style="color: var(--secondary-text);">bugfix/auth-issue</div>
+                        <div class="px-3 py-1 hover:bg-vscode-hover cursor-pointer text-xs secondary-text">
+                            feature/new-ui</div>
+                        <div class="px-3 py-1 hover:bg-vscode-hover cursor-pointer text-xs secondary-text">
+                            bugfix/auth-issue</div>
                     </div>
                 </div>
 
                 <!-- Edited Files Dropdown -->
                 <div class="border-b border-vscode-border">
                     <button class="w-full px-3 py-2 flex items-center justify-between hover:bg-vscode-hover text-left"
-                        onclick="toggleDropdown('files')">
+                        data-dropdown="files">
                         <div class="flex items-center">
-                            <svg class="w-3.5 h-3.5 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="icon-xs mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd"
                                     d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
                                     clip-rule="evenodd" />
@@ -714,8 +717,7 @@
                                             clip-rule="evenodd" />
                                     </svg>
                                     <div class="flex-1 min-w-0">
-                                        <div class="text-xs truncate line-through"
-                                            style="color: var(--secondary-text);">OldComponent.jsx</div>
+                                        <div class="text-xs truncate line-through secondary-text">OldComponent.jsx</div>
                                     </div>
                                 </div>
                                 <span class="ml-2 text-xs bg-red-600 text-white px-1 rounded">D</span>
@@ -745,9 +747,9 @@
                 <!-- Allowed Commands Dropdown -->
                 <div class="border-b border-vscode-border">
                     <button class="w-full px-3 py-2 flex items-center justify-between hover:bg-vscode-hover text-left"
-                        onclick="toggleDropdown('commands')">
+                        data-dropdown="commands">
                         <div class="flex items-center">
-                            <svg class="w-3.5 h-3.5 mr-2 text-green-400" fill="none" stroke="currentColor"
+                            <svg class="icon-xs mr-2 text-green-400" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -785,9 +787,9 @@
                 <!-- MCP Server Dropdown -->
                 <div class="border-b border-vscode-border">
                     <button class="w-full px-3 py-2 flex items-center justify-between hover:bg-vscode-hover text-left"
-                        onclick="toggleDropdown('mcp')">
+                        data-dropdown="mcp">
                         <div class="flex items-center">
-                            <svg class="w-3.5 h-3.5 mr-2 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="icon-xs mr-2 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path
                                     d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
                                 <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
@@ -810,8 +812,7 @@
                                 <span class="w-2 h-2 bg-green-500 rounded-full"></span>
                             </div>
                         </div>
-                        <div class="px-3 py-1 text-xs" style="color: var(--secondary-text);">Status:
-                            Connected</div>
+                        <div class="px-3 py-1 text-xs secondary-text">Status: Connected</div>
                         <div class="px-3 pb-2">
                             <button class="text-xs hover:underline"
                                 style="color: var(--accent-color);">Configure...</button>
@@ -822,9 +823,9 @@
                 <!-- Agent Skills Dropdown -->
                 <div class="border-b border-vscode-border">
                     <button class="w-full px-3 py-2 flex items-center justify-between hover:bg-vscode-hover text-left"
-                        onclick="toggleDropdown('skills')">
+                        data-dropdown="skills">
                         <div class="flex items-center">
-                            <svg class="w-3.5 h-3.5 mr-2 text-pink-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="icon-xs mr-2 text-pink-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path
                                     d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
                             </svg>
@@ -867,13 +868,12 @@
             <div class="border-t border-vscode-border p-3 bg-vscode-bg" style="flex: 1;">
                 <div
                     class="h-full flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-vscode-border p-2">
-                    <svg class="w-8 h-8 mb-2" style="color: var(--secondary-text);" fill="none" stroke="currentColor"
-                        viewBox="0 0 24 24">
+                    <svg class="w-8 h-8 mb-2 secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
                     </svg>
                     <p class="text-xs text-center font-medium text-vscode-title">Advertisement</p>
-                    <p class="text-xs text-center mt-1" style="color: var(--secondary-text);">Sponsor content here</p>
+                    <p class="text-xs text-center mt-1 secondary-text">Sponsor content here</p>
                 </div>
             </div>
         </div>
@@ -881,7 +881,7 @@
     </div>
 
     <!-- Settings Overlay -->
-    <div id="settingsOverlay" class="settings-overlay" onclick="toggleSettings()"></div>
+    <div id="settingsOverlay" class="settings-overlay"></div>
 
     <!-- Settings Popup -->
     <div id="settingsPopup" class="settings-popup">
@@ -897,8 +897,8 @@
                     </svg>
                     Settings
                 </h3>
-                <button onclick="toggleSettings()" class="p-1 hover:bg-vscode-hover rounded">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button data-action="toggle-settings" class="p-1 hover:bg-vscode-hover rounded">
+                    <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -911,18 +911,18 @@
                 <div>
                     <label class="text-sm font-medium text-vscode-title block mb-2">Appearance</label>
                     <div class="flex items-center space-x-2">
-                        <button onclick="setTheme('dark')" id="darkThemeBtn"
+                        <button data-theme="dark" id="darkThemeBtn"
                             class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center"
                             style="border: 1px solid var(--border-color); color: var(--text-color);">
-                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="icon-sm mr-2" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
                             </svg>
                             <span class="text-sm">Dark</span>
                         </button>
-                        <button onclick="setTheme('light')" id="lightThemeBtn"
+                        <button data-theme="light" id="lightThemeBtn"
                             class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center"
                             style="border: 1px solid var(--border-color); color: var(--text-color);">
-                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="icon-sm mr-2" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd"
                                     d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
                                     clip-rule="evenodd" />
@@ -934,45 +934,44 @@
 
                 <!-- Accent Color -->
                 <div>
-                    <label class="text-sm font-medium text-vscode-title block mb-2">Accent
-                        Color</label>
+                    <label class="text-sm font-medium text-vscode-title block mb-2">Accent Color</label>
                     <div class="grid grid-cols-6 gap-2">
-                        <button onclick="setAccentColor('#0078D4', '#026ec1')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #0078D4;" data-color="#0078D4" title="Blue (Default)"></button>
-                        <button onclick="setAccentColor('#005FB8', '#0050a0')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #005FB8;" data-color="#005FB8" title="Dark Blue"></button>
-                        <button onclick="setAccentColor('#8764B8', '#7555a6')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #8764B8;" data-color="#8764B8" title="Purple"></button>
-                        <button onclick="setAccentColor('#C239B3', '#b02aa0')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #C239B3;" data-color="#C239B3" title="Magenta"></button>
-                        <button onclick="setAccentColor('#E74856', '#d53845')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #E74856;" data-color="#E74856" title="Red"></button>
-                        <button onclick="setAccentColor('#FF6C2F', '#e65d28')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #FF6C2F;" data-color="#FF6C2F" title="Orange"></button>
-                        <button onclick="setAccentColor('#10893E', '#0e7836')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #10893E;" data-color="#10893E" title="Green"></button>
-                        <button onclick="setAccentColor('#00B7C3', '#00a3ae')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #00B7C3;" data-color="#00B7C3" title="Cyan"></button>
-                        <button onclick="setAccentColor('#E81123', '#d00f1f')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #E81123;" data-color="#E81123" title="Bright Red"></button>
-                        <button onclick="setAccentColor('#F7630C', '#de580b')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #F7630C;" data-color="#F7630C" title="Bright Orange"></button>
-                        <button onclick="setAccentColor('#FFB900', '#e6a700')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #FFB900;" data-color="#FFB900" title="Yellow"></button>
-                        <button onclick="setAccentColor('#00CC6A', '#00b85f')"
-                            class="accent-btn w-10 h-10 rounded border-2 border-transparent"
-                            style="background-color: #00CC6A;" data-color="#00CC6A" title="Bright Green"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #0078D4;" data-color="#0078D4" data-hover="#026ec1"
+                            title="Blue (Default)"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #005FB8;" data-color="#005FB8" data-hover="#0050a0"
+                            title="Dark Blue"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #8764B8;" data-color="#8764B8" data-hover="#7555a6"
+                            title="Purple"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #C239B3;" data-color="#C239B3" data-hover="#b02aa0"
+                            title="Magenta"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #E74856;" data-color="#E74856" data-hover="#d53845"
+                            title="Red"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #FF6C2F;" data-color="#FF6C2F" data-hover="#e65d28"
+                            title="Orange"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #10893E;" data-color="#10893E" data-hover="#0e7836"
+                            title="Green"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #00B7C3;" data-color="#00B7C3" data-hover="#00a3ae"
+                            title="Cyan"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #E81123;" data-color="#E81123" data-hover="#d00f1f"
+                            title="Bright Red"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #F7630C;" data-color="#F7630C" data-hover="#de580b"
+                            title="Bright Orange"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #FFB900;" data-color="#FFB900" data-hover="#e6a700"
+                            title="Yellow"></button>
+                        <button class="accent-btn w-10 h-10 rounded border-2 border-transparent"
+                            style="background-color: #00CC6A;" data-color="#00CC6A" data-hover="#00b85f"
+                            title="Bright Green"></button>
                     </div>
                 </div>
             </div>
@@ -980,231 +979,238 @@
     </div>
 
     <script>
-        // Resize functionality
-        let isResizing = false;
-        let currentHandle = null;
+        (() => {
+            'use strict';
 
-        function initResize() {
-            const leftHandle = document.getElementById('leftResizeHandle');
-            const rightHandle = document.getElementById('rightResizeHandle');
-            const leftSidebar = document.getElementById('leftSidebar');
-            const rightSidebar = document.getElementById('rightSidebar');
+            // State
+            const state = {
+                isResizing: false,
+                isRecording: false,
+                currentHandle: null
+            };
 
-            function startResize(e, handle, sidebar, side) {
-                e.preventDefault();
-                e.stopPropagation();
+            // Utilities
+            const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+            const $ = id => document.getElementById(id);
+            const $$ = sel => document.querySelectorAll(sel);
 
-                isResizing = true;
-                currentHandle = handle;
-                handle.classList.add('resizing');
-                document.body.style.cursor = 'col-resize';
-                document.body.style.userSelect = 'none';
+            // LocalStorage helpers
+            const storage = {
+                get: (key, defaultVal) => localStorage.getItem(key) || defaultVal,
+                set: (key, val) => localStorage.setItem(key, val)
+            };
 
-                function doResize(e) {
-                    if (!isResizing) return;
+            // Resize functionality
+            const resize = {
+                init() {
+                    const leftHandle = $('leftResizeHandle');
+                    const rightHandle = $('rightResizeHandle');
+                    const leftSidebar = $('leftSidebar');
+                    const rightSidebar = $('rightSidebar');
 
-                    let newWidth;
-                    if (side === 'left') {
-                        newWidth = e.clientX;
-                    } else {
-                        newWidth = window.innerWidth - e.clientX;
-                    }
+                    const startResize = (e, handle, sidebar, side) => {
+                        e.preventDefault();
+                        state.isResizing = true;
+                        state.currentHandle = handle;
+                        handle.classList.add('resizing');
+                        Object.assign(document.body.style, { cursor: 'col-resize', userSelect: 'none' });
 
-                    // Set min and max width
-                    newWidth = Math.max(150, Math.min(600, newWidth));
-                    sidebar.style.width = newWidth + 'px';
+                        const doResize = e => {
+                            if (!state.isResizing) return;
+                            const newWidth = clamp(
+                                side === 'left' ? e.clientX : window.innerWidth - e.clientX,
+                                150, 600
+                            );
+                            sidebar.style.width = newWidth + 'px';
+                        };
+
+                        const stopResize = () => {
+                            if (!state.isResizing) return;
+                            state.isResizing = false;
+                            state.currentHandle.classList.remove('resizing');
+                            Object.assign(document.body.style, { cursor: '', userSelect: '' });
+                            storage.set(side + 'SidebarWidth', sidebar.offsetWidth);
+                            document.removeEventListener('mousemove', doResize);
+                            document.removeEventListener('mouseup', stopResize);
+                        };
+
+                        document.addEventListener('mousemove', doResize);
+                        document.addEventListener('mouseup', stopResize);
+                    };
+
+                    leftHandle?.addEventListener('mousedown', e => startResize(e, leftHandle, leftSidebar, 'left'));
+                    rightHandle?.addEventListener('mousedown', e => startResize(e, rightHandle, rightSidebar, 'right'));
+                },
+                loadSaved() {
+                    const leftWidth = storage.get('leftSidebarWidth');
+                    const rightWidth = storage.get('rightSidebarWidth');
+                    if (leftWidth) $('leftSidebar').style.width = leftWidth + 'px';
+                    if (rightWidth) $('rightSidebar').style.width = rightWidth + 'px';
                 }
+            };
 
-                function stopResize() {
-                    if (!isResizing) return;
-                    isResizing = false;
-                    currentHandle.classList.remove('resizing');
-                    document.body.style.cursor = '';
-                    document.body.style.userSelect = '';
+            // Textarea auto-resize
+            const autoResizeTextarea = textarea => {
+                textarea.style.height = 'auto';
+                textarea.style.height = Math.min(textarea.scrollHeight, 300) + 'px';
+            };
 
-                    // Save to localStorage only on release
-                    const finalWidth = sidebar.offsetWidth;
-                    localStorage.setItem(side + 'SidebarWidth', finalWidth);
+            // Microphone toggle
+            const toggleMicrophone = () => {
+                const micButton = $('micButton');
+                const micSvg = micButton?.querySelector('svg');
+                if (!micButton || !micSvg) return;
 
-                    document.removeEventListener('mousemove', doResize);
-                    document.removeEventListener('mouseup', stopResize);
-                }
+                state.isRecording = !state.isRecording;
+                const icons = {
+                    recording: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>',
+                    normal: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>'
+                };
 
-                document.addEventListener('mousemove', doResize);
-                document.addEventListener('mouseup', stopResize);
-            }
-
-            leftHandle.addEventListener('mousedown', (e) => startResize(e, leftHandle, leftSidebar, 'left'));
-            rightHandle.addEventListener('mousedown', (e) => startResize(e, rightHandle, rightSidebar, 'right'));
-        }
-
-        // Auto-resize textarea as user types
-        function autoResizeTextarea(textarea) {
-            textarea.style.height = 'auto';
-            const newHeight = Math.min(textarea.scrollHeight, 300);
-            textarea.style.height = newHeight + 'px';
-        }
-
-        // Toggle microphone recording state
-        let isRecording = false;
-        function toggleMicrophone() {
-            const micButton = document.getElementById('micButton');
-            const micSvg = micButton.querySelector('svg');
-
-            isRecording = !isRecording;
-
-            if (isRecording) {
-                // Recording mode
-                micButton.style.backgroundColor = '#E74856';
-                micButton.classList.add('animate-pulse');
-                micButton.classList.remove('hover:bg-vscode-hover');
-                micButton.title = 'Stop recording';
-                micSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>';
-                micSvg.style.color = 'white';
-            } else {
-                // Normal mode
-                micButton.style.backgroundColor = '';
-                micButton.classList.remove('animate-pulse');
-                micButton.classList.add('hover:bg-vscode-hover');
-                micButton.title = 'Voice input';
-                micSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>';
-                micSvg.style.color = 'var(--secondary-text)';
-            }
-        }
-
-        // Sidebar toggle functionality
-        function toggleSidebar(side) {
-            const sidebar = document.getElementById(side === 'left' ? 'leftSidebar' : 'rightSidebar');
-            const expandBtn = document.getElementById(side === 'left' ? 'leftExpandBtn' : 'rightExpandBtn');
-
-            if (sidebar.classList.contains('collapsed')) {
-                sidebar.classList.remove('collapsed');
-                expandBtn.classList.add('hidden');
-            } else {
-                sidebar.classList.add('collapsed');
-                expandBtn.classList.remove('hidden');
-            }
-        }
-
-        // Dropdown toggle functionality
-        function toggleDropdown(id) {
-            const content = document.getElementById(id + '-content');
-            const arrow = document.getElementById(id + '-arrow');
-
-            if (content.classList.contains('open')) {
-                content.classList.remove('open');
-                arrow.classList.remove('rotate-180');
-            } else {
-                content.classList.add('open');
-                arrow.classList.add('rotate-180');
-            }
-        }
-
-        // Settings popup toggle
-        function toggleSettings() {
-            const popup = document.getElementById('settingsPopup');
-            const overlay = document.getElementById('settingsOverlay');
-
-            if (popup.classList.contains('active')) {
-                popup.classList.remove('active');
-                overlay.classList.remove('active');
-            } else {
-                popup.classList.add('active');
-                overlay.classList.add('active');
-            }
-        }
-
-        // Theme functionality
-        function setTheme(theme) {
-            const body = document.body;
-            const darkBtn = document.getElementById('darkThemeBtn');
-            const lightBtn = document.getElementById('lightThemeBtn');
-
-            if (theme === 'light') {
-                body.classList.add('light-theme');
-                lightBtn.classList.add('active');
-                darkBtn.classList.remove('active');
-                localStorage.setItem('theme', 'light');
-            } else {
-                body.classList.remove('light-theme');
-                darkBtn.classList.add('active');
-                lightBtn.classList.remove('active');
-                localStorage.setItem('theme', 'dark');
-            }
-        }
-
-        // Accent color functionality
-        function setAccentColor(color, hoverColor) {
-            const root = document.documentElement;
-            root.style.setProperty('--accent-color', color);
-            root.style.setProperty('--button-bg', color);
-            root.style.setProperty('--button-hover', hoverColor);
-
-            // Update active state on accent buttons
-            document.querySelectorAll('.accent-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.getAttribute('data-color') === color) {
-                    btn.classList.add('active');
-                }
-            });
-
-            localStorage.setItem('accentColor', color);
-            localStorage.setItem('accentHoverColor', hoverColor);
-        }
-
-        // Toggle switch update function
-        function updateToggle(checkbox) {
-            const toggleSwitch = checkbox.nextElementSibling;
-            if (checkbox.checked) {
-                toggleSwitch.style.backgroundColor = 'var(--accent-color)';
-            } else {
-                toggleSwitch.style.backgroundColor = 'var(--input-border)';
-            }
-        }
-
-        // Load saved theme on page load
-        document.addEventListener('DOMContentLoaded', function () {
-            // Initialize resize functionality
-            initResize();
-
-            // Load saved sidebar widths
-            const leftSidebar = document.getElementById('leftSidebar');
-            const rightSidebar = document.getElementById('rightSidebar');
-            const savedLeftWidth = localStorage.getItem('leftSidebarWidth');
-            const savedRightWidth = localStorage.getItem('rightSidebarWidth');
-
-            if (savedLeftWidth) {
-                leftSidebar.style.width = savedLeftWidth + 'px';
-            }
-            if (savedRightWidth) {
-                rightSidebar.style.width = savedRightWidth + 'px';
-            }
-
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            setTheme(savedTheme);
-
-            // Load saved accent color
-            const savedAccentColor = localStorage.getItem('accentColor');
-            const savedAccentHoverColor = localStorage.getItem('accentHoverColor');
-            if (savedAccentColor && savedAccentHoverColor) {
-                setAccentColor(savedAccentColor, savedAccentHoverColor);
-            } else {
-                // Set default based on theme
-                if (savedTheme === 'light') {
-                    setAccentColor('#005FB8', '#0050a0');
+                if (state.isRecording) {
+                    micButton.style.backgroundColor = '#E74856';
+                    micButton.classList.add('animate-pulse');
+                    micButton.classList.remove('hover:bg-vscode-hover');
+                    micButton.title = 'Stop recording';
+                    micSvg.innerHTML = icons.recording;
+                    micSvg.style.color = 'white';
                 } else {
-                    setAccentColor('#0078D4', '#026ec1');
+                    micButton.style.backgroundColor = '';
+                    micButton.classList.remove('animate-pulse');
+                    micButton.classList.add('hover:bg-vscode-hover');
+                    micButton.title = 'Voice input';
+                    micSvg.innerHTML = icons.normal;
+                    micSvg.style.color = 'var(--secondary-text)';
                 }
-            }
+            };
 
-            // Initialize toggle switches
-            document.querySelectorAll('.toggle-switch').forEach(toggle => {
-                const checkbox = toggle.previousElementSibling;
-                if (checkbox && checkbox.type === 'checkbox') {
-                    updateToggle(checkbox);
+            // Sidebar toggle
+            const toggleSidebar = side => {
+                const sidebar = $(side === 'left' ? 'leftSidebar' : 'rightSidebar');
+                const expandBtn = $(side === 'left' ? 'leftExpandBtn' : 'rightExpandBtn');
+                sidebar?.classList.toggle('collapsed');
+                expandBtn?.classList.toggle('hidden');
+            };
+
+            // Dropdown toggle
+            const toggleDropdown = id => {
+                const content = $(id + '-content');
+                const arrow = $(id + '-arrow');
+                content?.classList.toggle('open');
+                arrow?.classList.toggle('rotate-180');
+            };
+
+            // Settings popup toggle
+            const toggleSettings = () => {
+                const popup = $('settingsPopup');
+                const overlay = $('settingsOverlay');
+                popup?.classList.toggle('active');
+                overlay?.classList.toggle('active');
+            };
+
+            // Theme management
+            const theme = {
+                set(themeName) {
+                    const isLight = themeName === 'light';
+                    document.body.classList.toggle('light-theme', isLight);
+                    $('darkThemeBtn')?.classList.toggle('active', !isLight);
+                    $('lightThemeBtn')?.classList.toggle('active', isLight);
+                    storage.set('theme', themeName);
+                },
+                load() {
+                    this.set(storage.get('theme', 'dark'));
                 }
+            };
+
+            // Accent color management
+            const accentColor = {
+                set(color, hoverColor) {
+                    const root = document.documentElement;
+                    root.style.setProperty('--accent-color', color);
+                    root.style.setProperty('--button-bg', color);
+                    root.style.setProperty('--button-hover', hoverColor);
+
+                    $$('.accent-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.color === color);
+                    });
+
+                    storage.set('accentColor', color);
+                    storage.set('accentHoverColor', hoverColor);
+                },
+                load(savedTheme) {
+                    const saved = storage.get('accentColor');
+                    const savedHover = storage.get('accentHoverColor');
+                    if (saved && savedHover) {
+                        this.set(saved, savedHover);
+                    } else {
+                        const defaults = savedTheme === 'light'
+                            ? ['#005FB8', '#0050a0']
+                            : ['#0078D4', '#026ec1'];
+                        this.set(...defaults);
+                    }
+                }
+            };
+
+            // Event delegation
+            const handleClick = e => {
+                const target = e.target.closest('[data-action], [data-dropdown], [data-theme]');
+                if (!target) return;
+
+                const actions = {
+                    'toggle-settings': toggleSettings,
+                    'toggle-sidebar': () => toggleSidebar(target.dataset.side)
+                };
+
+                if (target.dataset.action && actions[target.dataset.action]) {
+                    actions[target.dataset.action]();
+                } else if (target.dataset.dropdown) {
+                    toggleDropdown(target.dataset.dropdown);
+                } else if (target.dataset.theme) {
+                    theme.set(target.dataset.theme);
+                }
+            };
+
+            // Model select focus handling
+            const handleModelSelect = () => {
+                const select = $('modelSelect');
+                if (!select) return;
+                select.addEventListener('focus', () => select.style.borderColor = 'var(--accent-color)');
+                select.addEventListener('blur', () => select.style.borderColor = 'var(--input-border)');
+            };
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', () => {
+                resize.init();
+                resize.loadSaved();
+                theme.load();
+                accentColor.load(storage.get('theme', 'dark'));
+                handleModelSelect();
+
+                // Event delegation
+                document.addEventListener('click', handleClick);
+
+                // Microphone button
+                $('micButton')?.addEventListener('click', toggleMicrophone);
+
+                // Textarea auto-resize
+                $('chatInput')?.addEventListener('input', e => autoResizeTextarea(e.target));
+
+                // Settings overlay
+                $('settingsOverlay')?.addEventListener('click', toggleSettings);
+
+                // Accent color buttons
+                $$('.accent-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const color = btn.dataset.color;
+                        const hoverColor = btn.dataset.hover;
+                        if (color && hoverColor) accentColor.set(color, hoverColor);
+                    });
+                });
             });
-        });
+
+            // Make autoResizeTextarea globally available for inline handlers
+            window.autoResizeTextarea = autoResizeTextarea;
+        })();
     </script>
 </body>
 
