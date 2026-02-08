@@ -35,6 +35,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	async void OnUIStateChangedHandler()
 	{
 		await UpdateInputBehavior();
+		StateHasChanged();
 	}
 
 	async Task UpdateInputBehavior()
