@@ -1,11 +1,6 @@
+using CommunityToolkit.Maui.Storage;
 using Microsoft.AspNetCore.Components;
-#if WINDOWS
-using Windows.Storage;
-using Windows.Storage.Pickers;
-#endif
-#if __IOS__
-using UIKit;
-#endif
+
 
 namespace Cockpit.Components;
 
@@ -54,57 +49,17 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 	{
 		try
 		{
-#if WINDOWS
-			FolderPicker folderPicker = new();
-
-			// Get the current window handle properly in MAUI
-			Microsoft.UI.Xaml.Window? window = Application.Current?.Windows[0]?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
-			if(window != null)
+			FolderPickerResult result = await FolderPicker.Default.PickAsync();
+			if(result.IsSuccessful)
 			{
-				nint hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
-				WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hwnd);
-			}
-
-			folderPicker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
-			folderPicker.FileTypeFilter.Add("*");
-
-			StorageFolder folder = await folderPicker.PickSingleFolderAsync();
-			if(folder != null)
-			{
-				_selectedPath = folder.Path;
+				_selectedPath = result.Folder.Path;
 				_errorMessage = null;
 			}
-#elif MACCATALYST
-			// macOS directory picker
-			UIDocumentPickerViewController picker = new(
-				[UniformTypeIdentifiers.UTTypes.Folder],
-				false);
-
-			TaskCompletionSource<string?> tcs = new();
-
-			picker.DidPickDocument += (sender, e) =>
+			else
 			{
-				tcs.SetResult(e.Url?.Path);
-			};
-
-			picker.WasCancelled += (sender, e) =>
-			{
-				tcs.SetResult(null);
-			};
-
-			UIViewController? viewController = Platform.GetCurrentUIViewController();
-			if(viewController != null)
-			{
-				await viewController.PresentViewControllerAsync(picker, true);
-
-				string? path = await tcs.Task;
-				if(!string.IsNullOrEmpty(path))
-				{
-					_selectedPath = path;
-					_errorMessage = null;
-				}
+				_errorMessage = $"Failed to open directory picker: {result.Exception.Message}";
 			}
-#endif
+
 			StateHasChanged();
 		}
 		catch(Exception ex)

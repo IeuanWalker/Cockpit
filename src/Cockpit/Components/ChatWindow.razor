@@ -3,7 +3,7 @@
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-@if(ChatService.CurrentSession == null)
+@if(ChatService.CurrentSession is null)
 {
     <!-- No Session Selected - Welcome Screen -->
     <div class="flex flex-col items-center justify-center h-full bg-vscode-bg">
@@ -69,11 +69,7 @@ else
                     <div class="flex justify-start">
                         <div class="max-w-2xl">
                             <div class="flex items-start">
-                                <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 mr-3">
-                                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />
-                                    </svg>
-                                </div>
+                                <img src="/images/logo.png" style="max-height:45px; margin: 0 5px 0 0" />
                                 <div class="bg-vscode-sidebar border border-vscode-border rounded-lg px-4 py-3">
                                     <div class="flex space-x-1">
                                         <div class="w-2 h-2 rounded-full animate-bounce secondary-text" style="background-color: currentColor;"></div>
@@ -228,7 +224,6 @@ else
             </div>
         </div>
     </div>
-
 }
 
 <!-- Working Directory Dialog -->

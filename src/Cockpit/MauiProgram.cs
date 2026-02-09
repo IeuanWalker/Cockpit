@@ -1,6 +1,7 @@
 ﻿using Cockpit.Services;
 using Cockpit.Services.Copilot;
 using Cockpit.Services.Copilot.Models;
+using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit;
@@ -12,6 +13,7 @@ public static class MauiProgram
 		MauiAppBuilder builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
+			.UseMauiCommunityToolkit()
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
