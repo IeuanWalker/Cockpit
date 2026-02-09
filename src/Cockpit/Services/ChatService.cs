@@ -347,7 +347,7 @@ public class ChatService
 						ChatSession chatSession = new()
 						{
 							Id = metadata.SessionId,
-							Title = $"Session {metadata.SessionId[..8]}",
+							Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
 							CreatedAt = metadata.StartTime,
 							LastActivity = metadata.ModifiedTime,
 							Status = SessionStatus.Idle
