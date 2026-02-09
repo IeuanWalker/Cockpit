@@ -103,8 +103,8 @@ html, body {
 }
 
     #chatMessages .max-w-2xl {
-        max-width: min(42rem, 100%);
         min-width: 0;
+        width: 100%;
     }
 
 .dropdown-content {
@@ -222,7 +222,8 @@ input[type="checkbox"]:checked + .toggle-switch {
     word-wrap: break-word;
     overflow-wrap: break-word;
     max-width: 100%;
-    display: inline-block;
+    display: block;
+    min-width: 0;
 }
 
     .chat-bubble p {
@@ -232,6 +233,8 @@ input[type="checkbox"]:checked + .toggle-switch {
 .markdown-content {
     line-height: 1.5;
     word-break: break-word;
+    min-width: 0;
+    max-width: 100%;
 }
 
     .markdown-content > *:first-child {
@@ -314,6 +317,8 @@ input[type="checkbox"]:checked + .toggle-switch {
         overflow-x: auto;
         position: relative;
         font-size: 0.85rem;
+        max-width: 100%;
+        min-width: 0;
     }
 
         .markdown-content pre code {
