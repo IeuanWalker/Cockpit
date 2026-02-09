@@ -3,14 +3,11 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>GitHub Copilot CLI</title>
+    <title>Cockpit</title>
     <base href="/" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/app.css" />
-    <link rel="stylesheet" href="CopilotGUI.styles.css" />
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <link rel="stylesheet" href="Cockpit.styles.css" />
 </head>
 
 <body class="bg-vscode-bg text-vscode-text overflow-hidden">
@@ -37,7 +34,7 @@
     <script>
         // Initialize highlight.js when ready
         if (window.hljs) {
-            hljs.configure({ 
+            hljs.configure({
                 ignoreUnescapedHTML: true,
                 languages: ['csharp', 'javascript', 'typescript', 'python', 'java', 'json', 'xml', 'bash', 'sql', 'css', 'html']
             });

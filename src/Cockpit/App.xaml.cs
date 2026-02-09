@@ -16,10 +16,16 @@ public partial class App : Application
 			Title = "Cockpit",
 			TitleBar = new TitleBar
 			{
-				Title = "Cockpit",
 				BackgroundColor = Color.FromArgb("#1F1F1F"),
 				ForegroundColor = Color.FromArgb("#CCCCCC"),
 				HeightRequest = 48,
+				LeadingContent = new Image
+				{
+					HeightRequest = 36,
+					WidthRequest = 26,
+					Margin = new Thickness(10, 0),
+					Source = "logo.png"
+				},
 				TrailingContent = new HorizontalStackLayout
 				{
 					Children =
