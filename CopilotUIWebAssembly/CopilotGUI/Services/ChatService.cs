@@ -2,7 +2,6 @@ using CopilotGUI.Models;
 using CopilotGUI.Services.Copilot;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
-using System.Linq;
 
 namespace CopilotGUI.Services;
 
@@ -11,7 +10,7 @@ public class ChatService
 	readonly CopilotSessionManager _sessionManager;
 	readonly ILogger<ChatService> _logger;
 	readonly ContextService _contextService;
-	readonly Dictionary<string, ChatMessage> _streamingMessages = new();
+	readonly Dictionary<string, ChatMessage> _streamingMessages = [];
 
 	public event Action? OnSessionsChanged;
 	public event Action? OnMessagesChanged;
@@ -33,12 +32,15 @@ public class ChatService
 
 	void HandleSessionEvent(string sessionId, SessionEvent evt)
 	{
-		var session = Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if (session == null) return;
+		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+		if(session == null)
+		{
+			return;
+		}
 
 		try
 		{
-			switch (evt)
+			switch(evt)
 			{
 				case UserMessageEvent userMsg:
 					HandleUserMessage(session, userMsg);
@@ -88,7 +90,7 @@ public class ChatService
 					break;
 			}
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Error handling session event {EventType} for session {SessionId}",
 				evt.Type, sessionId);
@@ -97,9 +99,12 @@ public class ChatService
 
 	void HandleUserMessage(ChatSession session, UserMessageEvent evt)
 	{
-		if (evt.Data == null) return;
+		if(evt.Data == null)
+		{
+			return;
+		}
 
-		var message = new ChatMessage
+		ChatMessage message = new()
 		{
 			Id = Guid.NewGuid().ToString(),
 			Content = evt.Data.Content ?? string.Empty,
@@ -117,11 +122,14 @@ public class ChatService
 
 	void HandleAssistantMessageDelta(ChatSession session, AssistantMessageDeltaEvent evt)
 	{
-		if (evt.Data == null) return;
+		if(evt.Data == null)
+		{
+			return;
+		}
 
-		var messageId = evt.Data.MessageId ?? "streaming";
+		string messageId = evt.Data.MessageId ?? "streaming";
 
-		if (!_streamingMessages.TryGetValue(messageId, out var message))
+		if(!_streamingMessages.TryGetValue(messageId, out ChatMessage? message))
 		{
 			message = new ChatMessage
 			{
@@ -145,12 +153,15 @@ public class ChatService
 
 	void HandleAssistantMessage(ChatSession session, AssistantMessageEvent evt)
 	{
-		if (evt.Data == null) return;
+		if(evt.Data == null)
+		{
+			return;
+		}
 
-		var messageId = evt.Data.MessageId ?? Guid.NewGuid().ToString();
+		string messageId = evt.Data.MessageId ?? Guid.NewGuid().ToString();
 
 		// If this was a streaming message, update it
-		if (_streamingMessages.TryGetValue(messageId, out var existingMessage))
+		if(_streamingMessages.TryGetValue(messageId, out ChatMessage? existingMessage))
 		{
 			existingMessage.Content = evt.Data.Content ?? string.Empty;
 			existingMessage.IsStreaming = false;
@@ -160,7 +171,7 @@ public class ChatService
 		else
 		{
 			// Add as new message
-			var message = new ChatMessage
+			ChatMessage message = new()
 			{
 				Id = messageId,
 				Content = evt.Data.Content ?? string.Empty,
@@ -179,11 +190,14 @@ public class ChatService
 
 	void HandleReasoningDelta(ChatSession session, AssistantReasoningDeltaEvent evt)
 	{
-		if (evt.Data == null) return;
+		if(evt.Data == null)
+		{
+			return;
+		}
 
-		var messageId = "reasoning";
+		string messageId = "reasoning";
 
-		if (!_streamingMessages.TryGetValue(messageId, out var message))
+		if(!_streamingMessages.TryGetValue(messageId, out ChatMessage? message))
 		{
 			message = new ChatMessage
 			{
@@ -208,11 +222,14 @@ public class ChatService
 
 	void HandleReasoning(ChatSession session, AssistantReasoningEvent evt)
 	{
-		if (evt.Data == null) return;
+		if(evt.Data == null)
+		{
+			return;
+		}
 
-		var messageId = "reasoning";
+		string messageId = "reasoning";
 
-		if (_streamingMessages.TryGetValue(messageId, out var existingMessage))
+		if(_streamingMessages.TryGetValue(messageId, out ChatMessage? existingMessage))
 		{
 			existingMessage.ReasoningContent = evt.Data.Content ?? string.Empty;
 			existingMessage.IsStreaming = false;
@@ -226,9 +243,12 @@ public class ChatService
 
 	void HandleToolStart(ChatSession session, ToolExecutionStartEvent evt)
 	{
-		if (evt.Data == null) return;
+		if(evt.Data == null)
+		{
+			return;
+		}
 
-		var message = new ChatMessage
+		ChatMessage message = new()
 		{
 			Id = evt.Data.ToolCallId ?? Guid.NewGuid().ToString(),
 			Content = $"Executing tool: {evt.Data.ToolName}",
@@ -238,7 +258,7 @@ public class ChatService
 			ToolName = evt.Data.ToolName,
 			IsComplete = false,
 			EventType = evt.Type,
-			Metadata = new Dictionary<string, object>()
+			Metadata = []
 		};
 
 		session.Messages.Add(message);
@@ -248,18 +268,21 @@ public class ChatService
 
 	void HandleToolComplete(ChatSession session, ToolExecutionCompleteEvent evt)
 	{
-		if (evt.Data == null) return;
+		if(evt.Data == null)
+		{
+			return;
+		}
 
-		var toolMessage = session.Messages.FirstOrDefault(m =>
+		ChatMessage? toolMessage = session.Messages.FirstOrDefault(m =>
 			m.Id == evt.Data.ToolCallId && m.Type == MessageType.ToolExecution);
 
-		if (toolMessage != null)
+		if(toolMessage != null)
 		{
 			toolMessage.IsComplete = true;
 			toolMessage.Content = $"Tool '{toolMessage.ToolName}' completed";
-			if (evt.Data.Result != null)
+			if(evt.Data.Result != null)
 			{
-				toolMessage.Metadata ??= new Dictionary<string, object>();
+				toolMessage.Metadata ??= [];
 				toolMessage.Metadata["result"] = evt.Data.Result;
 			}
 		}
@@ -270,9 +293,12 @@ public class ChatService
 
 	void HandleSessionError(ChatSession session, SessionErrorEvent evt)
 	{
-		if (evt.Data == null) return;
+		if(evt.Data == null)
+		{
+			return;
+		}
 
-		var message = new ChatMessage
+		ChatMessage message = new()
 		{
 			Id = Guid.NewGuid().ToString(),
 			Content = evt.Data.Message ?? "An error occurred",
@@ -300,10 +326,10 @@ public class ChatService
 		try
 		{
 			_logger.LogInformation("Loading existing sessions from SDK...");
-			
-			var sessionMetadataList = await _sessionManager.ListSessionsAsync();
-			
-			if (sessionMetadataList.Count == 0)
+
+			List<SessionMetadata> sessionMetadataList = await _sessionManager.ListSessionsAsync();
+
+			if(sessionMetadataList.Count == 0)
 			{
 				_logger.LogInformation("No existing sessions found");
 				return;
@@ -312,25 +338,25 @@ public class ChatService
 			_logger.LogInformation("Found {Count} existing sessions", sessionMetadataList.Count);
 
 			// Load each session that isn't already in our list
-			foreach (var metadata in sessionMetadataList)
+			foreach(SessionMetadata metadata in sessionMetadataList)
 			{
-				if (!Sessions.Any(s => s.Id == metadata.SessionId))
+				if(!Sessions.Any(s => s.Id == metadata.SessionId))
 				{
 					try
 					{
-						var chatSession = new ChatSession
+						ChatSession chatSession = new()
 						{
 							Id = metadata.SessionId,
-							Title = $"Session {metadata.SessionId.Substring(0, 8)}",
-							CreatedAt = DateTime.Now,
-							LastActivity = DateTime.Now,
+							Title = $"Session {metadata.SessionId[..8]}",
+							CreatedAt = metadata.StartTime,
+							LastActivity = metadata.ModifiedTime,
 							Status = SessionStatus.Idle
 						};
 
 						Sessions.Add(chatSession);
 						_logger.LogInformation("Loaded session {SessionId}", chatSession.Id);
 					}
-					catch (Exception ex)
+					catch(Exception ex)
 					{
 						_logger.LogWarning(ex, "Failed to load session {SessionId}", metadata.SessionId);
 					}
@@ -340,7 +366,7 @@ public class ChatService
 			NotifyStateChanged();
 			_logger.LogInformation("Successfully loaded {Count} sessions", Sessions.Count);
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load existing sessions");
 			OnError?.Invoke($"Failed to load existing sessions: {ex.Message}");
@@ -351,7 +377,7 @@ public class ChatService
 	{
 		try
 		{
-			var config = new SessionConfig
+			SessionConfig config = new()
 			{
 				Model = model,
 				ReasoningEffort = reasoningEffort,
@@ -360,13 +386,13 @@ public class ChatService
 				WorkingDirectory = workingDirectory
 			};
 
-			var sdkSession = await _sessionManager.CreateSessionAsync(config);
+			CopilotSession sdkSession = await _sessionManager.CreateSessionAsync(config);
 
-			var chatSession = new ChatSession
+			ChatSession chatSession = new()
 			{
 				Id = sdkSession.SessionId,
-				Title = !string.IsNullOrEmpty(workingDirectory) 
-					? Path.GetFileName(workingDirectory) 
+				Title = !string.IsNullOrEmpty(workingDirectory)
+					? Path.GetFileName(workingDirectory)
 					: "New Session",
 				CreatedAt = DateTime.Now,
 				LastActivity = DateTime.Now,
@@ -381,7 +407,7 @@ public class ChatService
 			CurrentSession = chatSession;
 
 			// Update the context service with the working directory
-			if (!string.IsNullOrEmpty(workingDirectory))
+			if(!string.IsNullOrEmpty(workingDirectory))
 			{
 				_contextService.SetDirectory(workingDirectory);
 			}
@@ -389,7 +415,7 @@ public class ChatService
 			NotifyStateChanged();
 			return chatSession;
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to create new session");
 			OnError?.Invoke($"Failed to create session: {ex.Message}");
@@ -401,41 +427,53 @@ public class ChatService
 	{
 		try
 		{
-			var session = Sessions.FirstOrDefault(s => s.Id == sessionId);
-			if (session == null) return false;
+			ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			if(session == null)
+			{
+				_logger.LogWarning("Session {SessionId} not found", sessionId);
+				return false;
+			}
 
-			var config = new ResumeSessionConfig
+			_logger.LogInformation("Resuming session {SessionId}", sessionId);
+
+			ResumeSessionConfig config = new()
 			{
 				Model = session.Model,
 				ReasoningEffort = session.ReasoningEffort,
 				Streaming = true
 			};
 
-			var sdkSession = await _sessionManager.ResumeSessionAsync(sessionId, config);
+			CopilotSession sdkSession = await _sessionManager.ResumeSessionAsync(sessionId, config);
 
-			// Load existing messages
-			var events = await _sessionManager.GetMessagesAsync(sessionId);
+			// Load existing messages from SDK
+			IReadOnlyList<SessionEvent> events = await _sessionManager.GetMessagesAsync(sessionId);
 			session.Messages.Clear();
 
-			foreach (var evt in events)
+			_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
+
+			foreach(SessionEvent evt in events)
 			{
-				// Convert events to messages (simplified)
-				if (evt is UserMessageEvent userMsg && userMsg.Data != null)
+				// Convert SDK events to chat messages
+				if(evt is UserMessageEvent userMsg && userMsg.Data != null)
 				{
 					session.Messages.Add(new ChatMessage
 					{
+						Id = Guid.NewGuid().ToString(),
 						Content = userMsg.Data.Content ?? string.Empty,
 						IsUser = true,
-						Timestamp = DateTime.Now
+						Timestamp = userMsg.Timestamp,
+						Type = MessageType.Text
 					});
 				}
-				else if (evt is AssistantMessageEvent assistantMsg && assistantMsg.Data != null)
+				else if(evt is AssistantMessageEvent assistantMsg && assistantMsg.Data != null)
 				{
 					session.Messages.Add(new ChatMessage
 					{
+						Id = Guid.NewGuid().ToString(),
 						Content = assistantMsg.Data.Content ?? string.Empty,
 						IsUser = false,
-						Timestamp = DateTime.Now
+						Timestamp = assistantMsg.Timestamp,
+						Type = MessageType.Text
 					});
 				}
 			}
@@ -444,10 +482,22 @@ public class ChatService
 			session.WorkspacePath = sdkSession.WorkspacePath;
 			CurrentSession = session;
 
+			// Update context service with working directory
+			if(!string.IsNullOrEmpty(session.WorkingDirectory))
+			{
+				_contextService.SetDirectory(session.WorkingDirectory);
+			}
+			else if(!string.IsNullOrEmpty(session.WorkspacePath))
+			{
+				_contextService.SetDirectory(session.WorkspacePath);
+			}
+
 			NotifyStateChanged();
+			_logger.LogInformation("Successfully resumed session {SessionId} with {MessageCount} messages",
+				sessionId, session.Messages.Count);
 			return true;
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to resume session {SessionId}", sessionId);
 			OnError?.Invoke($"Failed to resume session: {ex.Message}");
@@ -458,24 +508,27 @@ public class ChatService
 	public void SetCurrentSession(ChatSession session)
 	{
 		CurrentSession = session;
-		
+
 		// Update context service when switching sessions
-		if (!string.IsNullOrEmpty(session.WorkingDirectory))
+		if(!string.IsNullOrEmpty(session.WorkingDirectory))
 		{
 			_contextService.SetDirectory(session.WorkingDirectory);
 		}
-		else if (!string.IsNullOrEmpty(session.WorkspacePath))
+		else if(!string.IsNullOrEmpty(session.WorkspacePath))
 		{
 			// Fallback to workspace path if no working directory is set
 			_contextService.SetDirectory(session.WorkspacePath);
 		}
-		
+
 		NotifyMessagesChanged();
 	}
 
 	public async Task SendMessageAsync(string content, List<UserMessageDataAttachmentsItem>? attachments = null)
 	{
-		if (CurrentSession == null) return;
+		if(CurrentSession == null)
+		{
+			return;
+		}
 
 		try
 		{
@@ -485,7 +538,7 @@ public class ChatService
 			CurrentSession.Status = SessionStatus.AgentRunning;
 			await _sessionManager.SendMessageAsync(CurrentSession.Id, content, attachments);
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to send message");
 			OnError?.Invoke($"Failed to send message: {ex.Message}");
@@ -501,18 +554,18 @@ public class ChatService
 		{
 			await _sessionManager.DeleteSessionAsync(sessionId);
 
-			var session = Sessions.FirstOrDefault(s => s.Id == sessionId);
-			if (session != null)
+			ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			if(session != null)
 			{
 				Sessions.Remove(session);
-				if (CurrentSession?.Id == sessionId)
+				if(CurrentSession?.Id == sessionId)
 				{
 					CurrentSession = Sessions.FirstOrDefault();
 				}
 				NotifyStateChanged();
 			}
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to delete session {SessionId}", sessionId);
 			OnError?.Invoke($"Failed to delete session: {ex.Message}");
@@ -521,7 +574,10 @@ public class ChatService
 
 	public async Task AbortCurrentSessionAsync()
 	{
-		if (CurrentSession == null) return;
+		if(CurrentSession == null)
+		{
+			return;
+		}
 
 		try
 		{
@@ -530,7 +586,7 @@ public class ChatService
 			RemoveTypingIndicator(CurrentSession);
 			NotifyStateChanged();
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to abort session");
 			OnError?.Invoke($"Failed to abort: {ex.Message}");
@@ -539,7 +595,7 @@ public class ChatService
 
 	void AddTypingIndicator(ChatSession session)
 	{
-		var typingMessage = new ChatMessage
+		ChatMessage typingMessage = new()
 		{
 			Content = string.Empty,
 			IsUser = false,
@@ -553,8 +609,8 @@ public class ChatService
 
 	void RemoveTypingIndicator(ChatSession session)
 	{
-		var typingMessage = session.Messages.FirstOrDefault(m => m.Type == MessageType.Typing);
-		if (typingMessage != null)
+		ChatMessage? typingMessage = session.Messages.FirstOrDefault(m => m.Type == MessageType.Typing);
+		if(typingMessage != null)
 		{
 			session.Messages.Remove(typingMessage);
 			NotifyMessagesChanged();

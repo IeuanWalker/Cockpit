@@ -13,10 +13,10 @@ public partial class App : Application
 	{
 		_mainWindow = new Window(new MainPage())
 		{
-			Title = "GitHub Copilot CLI",
+			Title = "Cockpit",
 			TitleBar = new TitleBar
 			{
-				Title = "GitHub Copilot CLI",
+				Title = "Cockpit",
 				BackgroundColor = Color.FromArgb("#1F1F1F"),
 				ForegroundColor = Color.FromArgb("#CCCCCC"),
 				HeightRequest = 48,

@@ -11,6 +11,8 @@ public partial class MainLayout : IDisposable
 	{
 		await ThemeService.InitializeAsync();
 		UIState.OnStateChanged += StateHasChanged;
+		ChatService.OnSessionsChanged += StateHasChanged;
+		ChatService.OnMessagesChanged += StateHasChanged;
 		staticUIState = UIState; // Store static reference for title bar access
 	}
 
@@ -31,6 +33,8 @@ public partial class MainLayout : IDisposable
 		if(disposing)
 		{
 			UIState.OnStateChanged -= StateHasChanged;
+			ChatService.OnSessionsChanged -= StateHasChanged;
+			ChatService.OnMessagesChanged -= StateHasChanged;
 		}
 	}
 }

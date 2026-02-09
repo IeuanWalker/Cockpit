@@ -25,12 +25,12 @@ public class CopilotClientService : IAsyncDisposable
 		await _clientLock.WaitAsync(cancellationToken);
 		try
 		{
-			if (_disposed)
+			if(_disposed)
 			{
 				throw new ObjectDisposedException(nameof(CopilotClientService));
 			}
 
-			if (_client == null)
+			if(_client == null)
 			{
 				_logger.LogInformation("Initializing CopilotClient");
 				_client = new CopilotClient(new CopilotClientOptions
@@ -49,7 +49,7 @@ public class CopilotClientService : IAsyncDisposable
 
 			return _client;
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to initialize or start CopilotClient");
 			OnError?.Invoke($"Failed to connect to Copilot: {ex.Message}");
@@ -65,10 +65,10 @@ public class CopilotClientService : IAsyncDisposable
 	{
 		try
 		{
-			var client = await GetClientAsync(cancellationToken);
+			CopilotClient client = await GetClientAsync(cancellationToken);
 			return await client.PingAsync("health check", cancellationToken);
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Ping failed");
 			return null;
@@ -87,14 +87,14 @@ public class CopilotClientService : IAsyncDisposable
 		await _clientLock.WaitAsync();
 		try
 		{
-			if (_client != null)
+			if(_client != null)
 			{
 				_logger.LogInformation("Stopping CopilotClient");
 				try
 				{
 					await _client.StopAsync();
 				}
-				catch (Exception ex)
+				catch(Exception ex)
 				{
 					_logger.LogWarning(ex, "Error during normal stop, attempting force stop");
 					await _client.ForceStopAsync();
@@ -115,7 +115,10 @@ public class CopilotClientService : IAsyncDisposable
 
 	public async ValueTask DisposeAsync()
 	{
-		if (_disposed) return;
+		if(_disposed)
+		{
+			return;
+		}
 
 		_disposed = true;
 		await StopAsync();

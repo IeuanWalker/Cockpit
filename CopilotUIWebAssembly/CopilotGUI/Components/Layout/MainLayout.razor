@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject UIStateService UIState
+@inject ChatService ChatService
 @inject ThemeService ThemeService
 @implements IDisposable
 
@@ -16,11 +17,14 @@
         @Body
     </div>
 
-    <!-- Right Resize Handle -->
-    <div id="rightResizeHandle" class="resize-handle @(UIState.RightSidebarCollapsed ? "hidden" : "")"></div>
+    @if (ChatService.CurrentSession != null)
+    {
+        <!-- Right Resize Handle -->
+        <div id="rightResizeHandle" class="resize-handle @(UIState.RightSidebarCollapsed ? "hidden" : "")"></div>
 
-    <!-- Right Sidebar - Context Panel -->
-    <ContextPanel />
+        <!-- Right Sidebar - Context Panel -->
+        <ContextPanel />
+    }
 </div>
 
 <!-- Settings Popup -->

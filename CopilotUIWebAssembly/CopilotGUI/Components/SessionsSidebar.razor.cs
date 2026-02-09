@@ -39,9 +39,9 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 		UIState.SetLeftSidebarWidth(width);
 	}
 
-	void SelectSession(ChatSession session)
+	async Task SelectSession(ChatSession session)
 	{
-		ChatService.SetCurrentSession(session);
+		await ChatService.ResumeSessionAsync(session.Id);
 	}
 
 	void CreateNewSession()

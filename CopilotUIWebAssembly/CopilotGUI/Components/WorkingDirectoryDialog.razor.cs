@@ -1,12 +1,16 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
+#if WINDOWS
+using Windows.Storage;
+using Windows.Storage.Pickers;
+#endif
+#if __IOS__
+using UIKit;
+#endif
 
 namespace CopilotGUI.Components;
 
 public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 {
-	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
-
 	[Parameter] public EventCallback<string?> OnDirectorySelected { get; set; }
 
 	bool _isOpen = false;
@@ -14,7 +18,7 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 	string? _errorMessage;
 	string? _userHomeDirectory;
 	string? _documentsDirectory;
-	List<string> _recentDirectories = new();
+	readonly List<string> _recentDirectories = [];
 
 	protected override void OnInitialized()
 	{
@@ -51,50 +55,50 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 		try
 		{
 #if WINDOWS
-			var folderPicker = new Windows.Storage.Pickers.FolderPicker();
-			
+			FolderPicker folderPicker = new();
+
 			// Get the current window handle properly in MAUI
-			var window = Microsoft.Maui.Controls.Application.Current?.Windows[0]?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
-			if (window != null)
+			Microsoft.UI.Xaml.Window? window = Application.Current?.Windows[0]?.Handler?.PlatformView as Microsoft.UI.Xaml.Window;
+			if(window != null)
 			{
-				var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+				nint hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
 				WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hwnd);
 			}
-			
-			folderPicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+
+			folderPicker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
 			folderPicker.FileTypeFilter.Add("*");
 
-			var folder = await folderPicker.PickSingleFolderAsync();
-			if (folder != null)
+			StorageFolder folder = await folderPicker.PickSingleFolderAsync();
+			if(folder != null)
 			{
 				_selectedPath = folder.Path;
 				_errorMessage = null;
 			}
 #elif MACCATALYST
 			// macOS directory picker
-			var picker = new UIKit.UIDocumentPickerViewController(
-				new[] { UniformTypeIdentifiers.UTTypes.Folder },
+			UIDocumentPickerViewController picker = new(
+				[UniformTypeIdentifiers.UTTypes.Folder],
 				false);
-			
-			var tcs = new TaskCompletionSource<string?>();
-			
+
+			TaskCompletionSource<string?> tcs = new();
+
 			picker.DidPickDocument += (sender, e) =>
 			{
 				tcs.SetResult(e.Url?.Path);
 			};
-			
+
 			picker.WasCancelled += (sender, e) =>
 			{
 				tcs.SetResult(null);
 			};
 
-			var viewController = Platform.GetCurrentUIViewController();
-			if (viewController != null)
+			UIViewController? viewController = Platform.GetCurrentUIViewController();
+			if(viewController != null)
 			{
 				await viewController.PresentViewControllerAsync(picker, true);
-				
-				var path = await tcs.Task;
-				if (!string.IsNullOrEmpty(path))
+
+				string? path = await tcs.Task;
+				if(!string.IsNullOrEmpty(path))
 				{
 					_selectedPath = path;
 					_errorMessage = null;
@@ -103,7 +107,7 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 #endif
 			StateHasChanged();
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_errorMessage = $"Failed to open directory picker: {ex.Message}";
 			StateHasChanged();
@@ -112,8 +116,10 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 
 	bool IsValidDirectory()
 	{
-		if (string.IsNullOrWhiteSpace(_selectedPath))
+		if(string.IsNullOrWhiteSpace(_selectedPath))
+		{
 			return false;
+		}
 
 		try
 		{
@@ -127,7 +133,7 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 
 	async Task Confirm()
 	{
-		if (!IsValidDirectory())
+		if(!IsValidDirectory())
 		{
 			_errorMessage = "Please select a valid directory";
 			return;
@@ -151,8 +157,8 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 	{
 		// TODO: Load from localStorage or settings
 		// For now, just add the current directory
-		var currentDir = Directory.GetCurrentDirectory();
-		if (Directory.Exists(currentDir))
+		string currentDir = Directory.GetCurrentDirectory();
+		if(Directory.Exists(currentDir))
 		{
 			_recentDirectories.Add(currentDir);
 		}
@@ -160,10 +166,10 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 
 	void SaveToRecentDirectories(string path)
 	{
-		if (!_recentDirectories.Contains(path))
+		if(!_recentDirectories.Contains(path))
 		{
 			_recentDirectories.Insert(0, path);
-			if (_recentDirectories.Count > 5)
+			if(_recentDirectories.Count > 5)
 			{
 				_recentDirectories.RemoveAt(_recentDirectories.Count - 1);
 			}

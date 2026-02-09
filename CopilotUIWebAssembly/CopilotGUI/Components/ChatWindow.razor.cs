@@ -171,7 +171,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 		}
 	}
 
-	static string GetTimeAgo(DateTime dateTime)
+	static string GetTimeAgo(DateTimeOffset dateTime)
 	{
 		return dateTime.Humanize();
 	}
