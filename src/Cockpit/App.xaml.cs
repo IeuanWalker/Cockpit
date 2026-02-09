@@ -30,20 +30,15 @@ public partial class App : Application
 				{
 					Children =
 					{
-						new ImageButton
+						new Button
 						{
-							HeightRequest = 36,
-							WidthRequest = 36,
-							BorderWidth = 0,
+							Text = "Settings",
+							FontSize = 14,
 							Background = Colors.Transparent,
-							Source = new FontImageSource
-							{
-								Size = 16,
-								Glyph = "&#xE713;",
-								FontFamily="SegoeMDL2"
-							},
+							BorderWidth = 0,
+							TextColor = Color.FromArgb("#CCCCCC"),
 							Command = new Command(OnSettingsClicked)
-						}
+						},
 					}
 				}
 			}

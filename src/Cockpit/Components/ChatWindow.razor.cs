@@ -75,7 +75,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("copilotUI.setupChatInputBehavior", "chatInput", UIState.EnterToSend);
+			await JSRuntime.InvokeVoidAsync("cockpit.setupChatInputBehavior", "chatInput", UIState.EnterToSend);
 		}
 		catch
 		{
@@ -93,7 +93,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("copilotUI.scrollToBottom", "chatMessages");
+			await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "chatMessages");
 		}
 		catch
 		{
@@ -105,7 +105,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("copilotUI.autoResizeTextarea", "chatInput");
+			await JSRuntime.InvokeVoidAsync("cockpit.autoResizeTextarea", "chatInput");
 		}
 		catch
 		{

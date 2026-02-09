@@ -82,11 +82,11 @@ public class ThemeService
 		{
 			if(CurrentTheme == "light")
 			{
-				await _jsRuntime.InvokeVoidAsync("copilotUI.addBodyClass", "light-theme");
+				await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
 			}
 			else
 			{
-				await _jsRuntime.InvokeVoidAsync("copilotUI.removeBodyClass", "light-theme");
+				await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
 			}
 		}
 		catch
@@ -99,9 +99,9 @@ public class ThemeService
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("copilotUI.setRootProperty", "--accent-color", AccentColor);
-			await _jsRuntime.InvokeVoidAsync("copilotUI.setRootProperty", "--button-bg", AccentColor);
-			await _jsRuntime.InvokeVoidAsync("copilotUI.setRootProperty", "--button-hover", AccentHoverColor);
+			await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--accent-color", AccentColor);
+			await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--button-bg", AccentColor);
+			await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--button-hover", AccentHoverColor);
 		}
 		catch
 		{

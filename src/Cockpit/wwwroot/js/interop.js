@@ -10,7 +10,7 @@ window.localStorageHelper = {
     }
 };
 
-window.copilotUI = {
+window.cockpit = {
     setRootProperty: function (property, value) {
         document.documentElement.style.setProperty(property, value);
     },
@@ -45,7 +45,7 @@ window.copilotUI = {
         }
 
         // Add new listener
-        element._keypressHandler = function(e) {
+        element._keypressHandler = function (e) {
             if (e.key === 'Enter' && !e.shiftKey && element.dataset.enterToSend === 'true') {
                 e.preventDefault();
             }
@@ -159,8 +159,8 @@ window.copilotUI = {
 };
 
 // Global function to toggle settings from MAUI title bar
-window.toggleSettings = function() {
+window.toggleSettings = function () {
     // Call the .NET static method
-    DotNet.invokeMethodAsync('CopilotGUI', 'ToggleSettingsFromTitleBar')
+    DotNet.invokeMethodAsync('Cockpit', 'ToggleSettingsFromTitleBar')
         .catch(err => console.error('Failed to toggle settings:', err));
 };

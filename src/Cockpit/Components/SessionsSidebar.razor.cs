@@ -29,7 +29,7 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 		if(firstRender)
 		{
 			_dotNetHelper = DotNetObjectReference.Create(this);
-			await JSRuntime.InvokeVoidAsync("copilotUI.initializeResize", "leftResizeHandle", "leftSidebar", "left", _dotNetHelper);
+			await JSRuntime.InvokeVoidAsync("cockpit.initializeResize", "leftResizeHandle", "leftSidebar", "left", _dotNetHelper);
 		}
 	}
 

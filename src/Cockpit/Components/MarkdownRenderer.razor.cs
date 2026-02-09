@@ -20,8 +20,8 @@ public partial class MarkdownRenderer : ComponentBase
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("copilotUI.highlightCodeBlocks", _containerId);
-			await JSRuntime.InvokeVoidAsync("copilotUI.addCopyButtonsToCodeBlocks", _containerId);
+			await JSRuntime.InvokeVoidAsync("cockpit.highlightCodeBlocks", _containerId);
+			await JSRuntime.InvokeVoidAsync("cockpit.addCopyButtonsToCodeBlocks", _containerId);
 		}
 		catch
 		{

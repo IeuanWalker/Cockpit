@@ -22,7 +22,7 @@ public partial class ContextPanel : ComponentBase, IDisposable
 		if(firstRender)
 		{
 			_dotNetHelper = DotNetObjectReference.Create(this);
-			await JSRuntime.InvokeVoidAsync("copilotUI.initializeResize", "rightResizeHandle", "rightSidebar", "right", _dotNetHelper);
+			await JSRuntime.InvokeVoidAsync("cockpit.initializeResize", "rightResizeHandle", "rightSidebar", "right", _dotNetHelper);
 		}
 	}
 
