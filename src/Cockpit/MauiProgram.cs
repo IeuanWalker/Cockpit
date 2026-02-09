@@ -2,6 +2,7 @@
 using Cockpit.Services.Copilot;
 using Cockpit.Services.Copilot.Models;
 using CommunityToolkit.Maui;
+using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit;
@@ -25,6 +26,8 @@ public static class MauiProgram
 		builder.Services.AddBlazorWebViewDeveloperTools();
 		builder.Logging.AddDebug();
 #endif
+
+		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
 
 		// Register application services
 		builder.Services.AddScoped<LocalStorageService>();

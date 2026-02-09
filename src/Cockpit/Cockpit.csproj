@@ -38,6 +38,7 @@
 
     <!-- Suppress CA1822 for DI services -->
     <NoWarn>$(NoWarn);CA1822</NoWarn>
+    <DefaultLanguage>en-GB</DefaultLanguage>
   </PropertyGroup>
 
   <ItemGroup>

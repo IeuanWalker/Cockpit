@@ -1,4 +1,3 @@
-@inject UIStateService UIState
 @inject ChatService ChatService
 @inject IJSRuntime JSRuntime
 @implements IDisposable
@@ -123,7 +122,7 @@ else
                                   rows="1" placeholder="Ask Copilot anything..."></textarea>
                     </div>
                     <div class="flex items-end space-x-1 p-2 border-l border-vscode-border self-stretch">
-                        <button @onclick="UIState.ToggleRecording" class="p-1.5 @(UIState.IsRecording ? "animate-pulse" : "hover:bg-vscode-hover") rounded" title="@(UIState.IsRecording ? "Stop recording" : "Voice input")" style="@(UIState.IsRecording ? "background-color: #E74856;" : "")">
+                        <button @onclick="async () => await VoiceRecording()" class="p-1.5 @(UIState.IsRecording ? "animate-pulse" : "hover:bg-vscode-hover") rounded" title="@(UIState.IsRecording ? "Stop recording" : "Voice input")" style="@(UIState.IsRecording ? "background-color: #E74856;" : "")">
                             <svg class="icon-sm @(UIState.IsRecording ? "text-white" : "secondary-text")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 @if(UIState.IsRecording)
                                 {

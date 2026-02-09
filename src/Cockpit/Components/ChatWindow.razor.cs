@@ -1,5 +1,7 @@
+using System.Globalization;
 using Cockpit.Services;
 using Cockpit.Services.Copilot.Models;
+using CommunityToolkit.Maui.Media;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -11,6 +13,8 @@ public partial class ChatWindow : ComponentBase, IDisposable
 {
 	[Inject] TimestampService TimestampService { get; set; } = default!;
 	[Inject] ICopilotModelService ModelService { get; set; } = default!;
+	[Inject] UIStateService UIState { get; set; } = default!;
+	[Inject] ISpeechToText SpeechToText { get; set; } = default!;
 
 	WorkingDirectoryDialog? _workingDirectoryDialog;
 	string _chatInput = string.Empty;
@@ -37,6 +41,8 @@ public partial class ChatWindow : ComponentBase, IDisposable
 
 		// Load existing sessions from SDK
 		await ChatService.LoadExistingSessionsAsync();
+
+		SpeechToText.RecognitionResultCompleted += HandleRecognitionResultCompleted;
 	}
 
 	void OnNewSessionRequested()
@@ -250,5 +256,48 @@ public partial class ChatWindow : ComponentBase, IDisposable
 			UIState.OnStateChanged -= OnUIStateChangedHandler;
 			TimestampService.OnTick -= OnTimestampTick;
 		}
+	}
+
+	public async Task VoiceRecording()
+	{
+		if(!UIState.IsRecording)
+		{
+			await StartListening();
+		}
+		else
+		{
+			await StopListen();
+		}
+
+		UIState.ToggleRecording();
+
+		async Task StartListening()
+		{
+			bool isGranted = await SpeechToText.RequestPermissions();
+			if(!isGranted)
+			{
+				return;
+			}
+
+			SpeechToText.RecognitionResultUpdated += HandleRecognitionResultUpdated;
+			await SpeechToText.StartListenAsync(new SpeechToTextOptions { Culture = CultureInfo.CurrentCulture, ShouldReportPartialResults = true }, CancellationToken.None);
+		}
+
+		Task StopListen()
+		{
+			SpeechToText.RecognitionResultUpdated -= HandleRecognitionResultUpdated;
+
+			return SpeechToText.StopListenAsync(CancellationToken.None);
+		}
+	}
+
+	void HandleRecognitionResultUpdated(object? sender, SpeechToTextRecognitionResultUpdatedEventArgs args)
+	{
+		_chatInput += args.RecognitionResult;
+	}
+
+	void HandleRecognitionResultCompleted(object? sender, SpeechToTextRecognitionResultCompletedEventArgs e)
+	{
+		_chatInput = e.RecognitionResult.IsSuccessful ? e.RecognitionResult.Text : e.RecognitionResult.Exception.Message;
 	}
 }
