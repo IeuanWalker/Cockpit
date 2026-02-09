@@ -16,7 +16,7 @@ public partial class App : Application
 			Title = "Cockpit",
 			TitleBar = new TitleBar
 			{
-				BackgroundColor = Color.FromArgb("#1F1F1F"),
+				BackgroundColor = Color.FromArgb("#181818"),
 				ForegroundColor = Color.FromArgb("#CCCCCC"),
 				HeightRequest = 48,
 				LeadingContent = new Image
@@ -67,7 +67,7 @@ public partial class App : Application
 		{
 			if(theme == "light")
 			{
-				titleBar.BackgroundColor = Color.FromArgb("#FFFFFF");
+				titleBar.BackgroundColor = Color.FromArgb("#F8F8F8");
 				titleBar.ForegroundColor = Color.FromArgb("#3B3B3B");
 
 				// Update button text color
@@ -79,7 +79,7 @@ public partial class App : Application
 			}
 			else
 			{
-				titleBar.BackgroundColor = Color.FromArgb("#1F1F1F");
+				titleBar.BackgroundColor = Color.FromArgb("#181818");
 				titleBar.ForegroundColor = Color.FromArgb("#CCCCCC");
 
 				// Update button text color
