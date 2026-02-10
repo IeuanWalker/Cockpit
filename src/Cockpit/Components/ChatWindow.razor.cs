@@ -3,7 +3,6 @@ using Cockpit.Services;
 using Cockpit.Services.Copilot.Models;
 using CommunityToolkit.Maui.Media;
 using GitHub.Copilot.SDK;
-using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
@@ -179,11 +178,6 @@ public partial class ChatWindow : ComponentBase, IDisposable
 			// Prevent default to avoid adding newline
 			await SendMessage();
 		}
-	}
-
-	static string GetTimeAgo(DateTimeOffset dateTime)
-	{
-		return dateTime.Humanize();
 	}
 
 	void ToggleModelDropdown()

@@ -84,7 +84,6 @@ else
                             <div class="chat-bubble rounded-lg px-4 py-2.5">
                                 <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
                             </div>
-                            <div class="text-xs mt-1 text-right secondary-text timestamp-text">@GetTimeAgo(message.Timestamp)</div>
                         </div>
                     </div>
                 }
@@ -98,7 +97,6 @@ else
                                 <div class="bg-vscode-sidebar border border-vscode-border rounded-lg px-4 py-3">
                                     <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
                                 </div>
-                                <div class="text-xs mt-1 secondary-text timestamp-text">@GetTimeAgo(message.Timestamp)</div>
                             </div>
                         </div>
                     </div>
