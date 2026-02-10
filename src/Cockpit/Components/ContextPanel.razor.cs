@@ -7,6 +7,9 @@ namespace Cockpit.Components;
 public partial class ContextPanel : ComponentBase, IDisposable
 {
 	DotNetObjectReference<ContextPanel>? _dotNetHelper;
+	[Inject] UIStateService UIState { get; set; } = default!;
+	[Inject] ContextService ContextService { get; set; } = default!;
+	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
 	protected override void OnInitialized()
 	{

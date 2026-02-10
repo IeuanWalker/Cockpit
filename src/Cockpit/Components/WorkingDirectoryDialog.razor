@@ -1,6 +1,4 @@
-@implements IDisposable
-
-@if (_isOpen)
+@if(_isOpen)
 {
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @onclick="Cancel">
         <div class="bg-vscode-bg border border-vscode-border rounded-lg shadow-lg w-[600px] max-h-[80vh] flex flex-col" @onclick:stopPropagation="true">
@@ -17,12 +15,12 @@
                     <div>
                         <label class="block text-sm font-medium text-vscode-title mb-2">Selected Directory</label>
                         <div class="flex gap-2">
-                            <input type="text" 
-                                   @bind="_selectedPath" 
+                            <input type="text"
+                                   @bind="_selectedPath"
                                    @bind:event="oninput"
                                    class="flex-1 px-3 py-2 bg-vscode-input border border-vscode-border rounded text-sm focus:outline-none focus:ring-1 focus:ring-accent"
                                    placeholder="Enter directory path or browse..." />
-                            <button @onclick="BrowseDirectory" 
+                            <button @onclick="BrowseDirectory"
                                     class="px-4 py-2 bg-vscode-button text-vscode-button-fg rounded hover:bg-vscode-button-hover">
                                 Browse
                             </button>
@@ -33,9 +31,9 @@
                     <div>
                         <label class="block text-sm font-medium text-vscode-title mb-2">Quick Access</label>
                         <div class="space-y-1">
-                            @if (!string.IsNullOrEmpty(_userHomeDirectory))
+                            @if(!string.IsNullOrEmpty(_userHomeDirectory))
                             {
-                                <button @onclick="() => SelectPath(_userHomeDirectory)" 
+                                <button @onclick="() => SelectPath(_userHomeDirectory)"
                                         class="w-full text-left px-3 py-2 rounded hover:bg-vscode-hover text-sm flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -44,9 +42,9 @@
                                     <span class="ml-auto text-vscode-secondary text-xs">@_userHomeDirectory</span>
                                 </button>
                             }
-                            @if (!string.IsNullOrEmpty(_documentsDirectory))
+                            @if(!string.IsNullOrEmpty(_documentsDirectory))
                             {
-                                <button @onclick="() => SelectPath(_documentsDirectory)" 
+                                <button @onclick="() => SelectPath(_documentsDirectory)"
                                         class="w-full text-left px-3 py-2 rounded hover:bg-vscode-hover text-sm flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
@@ -55,9 +53,9 @@
                                     <span class="ml-auto text-vscode-secondary text-xs">@_documentsDirectory</span>
                                 </button>
                             }
-                            @foreach (var recent in _recentDirectories)
+                            @foreach(var recent in _recentDirectories)
                             {
-                                <button @onclick="() => SelectPath(recent)" 
+                                <button @onclick="() => SelectPath(recent)"
                                         class="w-full text-left px-3 py-2 rounded hover:bg-vscode-hover text-sm flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -69,7 +67,7 @@
                         </div>
                     </div>
 
-                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    @if(!string.IsNullOrEmpty(_errorMessage))
                     {
                         <div class="p-3 bg-red-500 bg-opacity-10 border border-red-500 rounded text-sm text-red-400">
                             @_errorMessage
@@ -80,11 +78,11 @@
 
             <!-- Footer -->
             <div class="px-6 py-4 border-t border-vscode-border flex justify-end gap-3">
-                <button @onclick="Cancel" 
+                <button @onclick="Cancel"
                         class="px-4 py-2 rounded text-sm hover:bg-vscode-hover">
                     Cancel
                 </button>
-                <button @onclick="Confirm" 
+                <button @onclick="Confirm"
                         disabled="@(!IsValidDirectory())"
                         class="px-4 py-2 rounded text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         style="background-color: var(--accent-color); color: white;">

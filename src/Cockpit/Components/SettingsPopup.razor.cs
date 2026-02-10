@@ -6,6 +6,8 @@ namespace Cockpit.Components;
 public partial class SettingsPopup : ComponentBase, IDisposable
 {
 	string _customColor = "#0078D4";
+	[Inject] UIStateService UIState { get; set; } = default!;
+	[Inject] ThemeService ThemeService { get; set; } = default!;
 
 	protected override void OnInitialized()
 	{

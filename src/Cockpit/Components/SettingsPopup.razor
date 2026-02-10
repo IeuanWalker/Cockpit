@@ -1,7 +1,3 @@
-@inject UIStateService UIState
-@inject ThemeService ThemeService
-@implements IDisposable
-
 <!-- Settings Overlay -->
 <div class="settings-overlay @(UIState.SettingsPopupOpen ? "active" : "")" @onclick="UIState.CloseSettingsPopup"></div>
 

@@ -1,3 +1,4 @@
+using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -7,6 +8,9 @@ public partial class MarkdownRenderer : ComponentBase
 {
 	[Parameter] public string Content { get; set; } = string.Empty;
 	[Parameter] public string? CssClass { get; set; }
+
+	[Inject] MarkdownService MarkdownService { get; set; } = default!;
+	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
 	readonly string _containerId = $"markdown-{Guid.NewGuid():N}";
 	string _html = string.Empty;

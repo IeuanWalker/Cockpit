@@ -16,6 +16,8 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	[Inject] ICopilotModelService ModelService { get; set; } = default!;
 	[Inject] UIStateService UIState { get; set; } = default!;
 	[Inject] ISpeechToText SpeechToText { get; set; } = default!;
+	[Inject] ChatService ChatService { get; set; } = default!;
+	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
 	WorkingDirectoryDialog? _workingDirectoryDialog;
 	string _chatInput = string.Empty;
