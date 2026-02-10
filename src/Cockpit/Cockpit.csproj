@@ -39,6 +39,8 @@
     <!-- Suppress CA1822 for DI services -->
     <NoWarn>$(NoWarn);CA1822</NoWarn>
     <DefaultLanguage>en-GB</DefaultLanguage>
+
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

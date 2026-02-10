@@ -25,27 +25,29 @@ public class CopilotClientService : IAsyncDisposable
 		await _clientLock.WaitAsync(cancellationToken);
 		try
 		{
-			if(_disposed)
+			ObjectDisposedException.ThrowIf(_disposed, nameof(CopilotClientService));
+
+			if(_client is not null)
 			{
-				throw new ObjectDisposedException(nameof(CopilotClientService));
+				return _client;
 			}
 
-			if(_client == null)
-			{
-				_logger.LogInformation("Initializing CopilotClient");
-				_client = new CopilotClient(new CopilotClientOptions
-				{
-					AutoStart = true,
-					AutoRestart = true,
-					LogLevel = "info",
-					UseStdio = true,
-					Logger = _logger
-				});
+			_logger.LogInformation("Initializing CopilotClient");
 
-				await _client.StartAsync(cancellationToken);
-				_logger.LogInformation("CopilotClient started successfully");
-				OnConnectionStateChanged?.Invoke(_client.State);
-			}
+			_client = new CopilotClient(new CopilotClientOptions
+			{
+				AutoStart = true,
+				AutoRestart = true,
+				LogLevel = "info",
+				UseStdio = true,
+				Logger = _logger
+			});
+
+			await _client.StartAsync(cancellationToken);
+
+			_logger.LogInformation("CopilotClient started successfully");
+
+			OnConnectionStateChanged?.Invoke(_client.State);
 
 			return _client;
 		}
@@ -71,6 +73,7 @@ public class CopilotClientService : IAsyncDisposable
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Ping failed");
+
 			return null;
 		}
 	}
@@ -78,6 +81,7 @@ public class CopilotClientService : IAsyncDisposable
 	public async Task RestartAsync(CancellationToken cancellationToken = default)
 	{
 		_logger.LogInformation("Restarting CopilotClient");
+
 		await StopAsync();
 		await GetClientAsync(cancellationToken);
 	}
@@ -87,24 +91,28 @@ public class CopilotClientService : IAsyncDisposable
 		await _clientLock.WaitAsync();
 		try
 		{
-			if(_client != null)
+			if(_client is null)
 			{
-				_logger.LogInformation("Stopping CopilotClient");
-				try
-				{
-					await _client.StopAsync();
-				}
-				catch(Exception ex)
-				{
-					_logger.LogWarning(ex, "Error during normal stop, attempting force stop");
-					await _client.ForceStopAsync();
-				}
-				finally
-				{
-					await _client.DisposeAsync();
-					_client = null;
-					OnConnectionStateChanged?.Invoke(ConnectionState.Disconnected);
-				}
+				return;
+			}
+
+			_logger.LogInformation("Stopping CopilotClient");
+
+			try
+			{
+				await _client.StopAsync();
+			}
+			catch(Exception ex)
+			{
+				_logger.LogWarning(ex, "Error during normal stop, attempting force stop");
+
+				await _client.ForceStopAsync();
+			}
+			finally
+			{
+				await _client.DisposeAsync();
+				_client = null;
+				OnConnectionStateChanged?.Invoke(ConnectionState.Disconnected);
 			}
 		}
 		finally
