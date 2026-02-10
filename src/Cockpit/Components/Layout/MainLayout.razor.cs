@@ -10,10 +10,15 @@ public partial class MainLayout : IDisposable
 	protected override async Task OnInitializedAsync()
 	{
 		await ThemeService.InitializeAsync();
-		UIState.OnStateChanged += StateHasChanged;
-		ChatService.OnSessionsChanged += StateHasChanged;
-		ChatService.OnMessagesChanged += StateHasChanged;
+		UIState.OnStateChanged += OnStateChanged;
+		ChatService.OnSessionsChanged += OnStateChanged;
+		ChatService.OnMessagesChanged += OnStateChanged;
 		staticUIState = UIState; // Store static reference for title bar access
+	}
+
+	void OnStateChanged()
+	{
+		InvokeAsync(StateHasChanged);
 	}
 
 	[JSInvokable("ToggleSettingsFromTitleBar")]
@@ -32,9 +37,9 @@ public partial class MainLayout : IDisposable
 	{
 		if(disposing)
 		{
-			UIState.OnStateChanged -= StateHasChanged;
-			ChatService.OnSessionsChanged -= StateHasChanged;
-			ChatService.OnMessagesChanged -= StateHasChanged;
+			UIState.OnStateChanged -= OnStateChanged;
+			ChatService.OnSessionsChanged -= OnStateChanged;
+			ChatService.OnMessagesChanged -= OnStateChanged;
 		}
 	}
 }

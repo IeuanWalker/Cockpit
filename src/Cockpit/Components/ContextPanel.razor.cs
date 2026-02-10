@@ -13,11 +13,16 @@ public partial class ContextPanel : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		UIState.OnStateChanged += StateHasChanged;
-		ContextService.OnContextChanged += StateHasChanged;
+		UIState.OnStateChanged += OnStateChanged;
+		ContextService.OnContextChanged += OnStateChanged;
 
 		// Initialize files dropdown as open
 		UIState.SetDropdownOpen("files", true);
+	}
+
+	void OnStateChanged()
+	{
+		InvokeAsync(StateHasChanged);
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -45,8 +50,8 @@ public partial class ContextPanel : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			UIState.OnStateChanged -= StateHasChanged;
-			ContextService.OnContextChanged -= StateHasChanged;
+			UIState.OnStateChanged -= OnStateChanged;
+			ContextService.OnContextChanged -= OnStateChanged;
 			_dotNetHelper?.Dispose();
 		}
 	}

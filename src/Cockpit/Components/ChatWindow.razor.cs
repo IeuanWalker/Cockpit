@@ -74,10 +74,13 @@ public partial class ChatWindow : ComponentBase, IDisposable
 		}
 	}
 
-	async void OnUIStateChangedHandler()
+	void OnUIStateChangedHandler()
 	{
-		await UpdateInputBehavior();
-		StateHasChanged();
+		InvokeAsync(async () =>
+		{
+			await UpdateInputBehavior();
+			StateHasChanged();
+		});
 	}
 
 	async Task UpdateInputBehavior()
@@ -95,7 +98,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	void OnMessagesChanged()
 	{
 		_shouldScrollToBottom = true;
-		StateHasChanged();
+		InvokeAsync(StateHasChanged);
 	}
 
 	async Task ScrollToBottom()

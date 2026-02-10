@@ -17,9 +17,14 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		ChatService.OnSessionsChanged += StateHasChanged;
-		UIState.OnStateChanged += StateHasChanged;
+		ChatService.OnSessionsChanged += OnStateChanged;
+		UIState.OnStateChanged += OnStateChanged;
 		TimestampService.OnTick += OnTimestampTick;
+	}
+
+	void OnStateChanged()
+	{
+		InvokeAsync(StateHasChanged);
 	}
 
 	bool _isLoadingSessions = true;
@@ -102,8 +107,8 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			ChatService.OnSessionsChanged -= StateHasChanged;
-			UIState.OnStateChanged -= StateHasChanged;
+			ChatService.OnSessionsChanged -= OnStateChanged;
+			UIState.OnStateChanged -= OnStateChanged;
 			TimestampService.OnTick -= OnTimestampTick;
 			_dotNetHelper?.Dispose();
 		}

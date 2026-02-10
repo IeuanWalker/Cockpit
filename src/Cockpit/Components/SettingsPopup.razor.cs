@@ -11,9 +11,14 @@ public partial class SettingsPopup : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		UIState.OnStateChanged += StateHasChanged;
-		ThemeService.OnThemeChanged += StateHasChanged;
+		UIState.OnStateChanged += OnStateChanged;
+		ThemeService.OnThemeChanged += OnStateChanged;
 		_customColor = ThemeService.AccentColor;
+	}
+
+	void OnStateChanged()
+	{
+		InvokeAsync(StateHasChanged);
 	}
 
 	async Task OnCustomColorInput(ChangeEventArgs e)
@@ -45,8 +50,8 @@ public partial class SettingsPopup : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			UIState.OnStateChanged -= StateHasChanged;
-			ThemeService.OnThemeChanged -= StateHasChanged;
+			UIState.OnStateChanged -= OnStateChanged;
+			ThemeService.OnThemeChanged -= OnStateChanged;
 		}
 	}
 
