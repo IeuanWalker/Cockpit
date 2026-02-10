@@ -1,0 +1,12 @@
+{
+  "sdk": {
+    "version": "10.0.102", // check .net sdk version for latest version number - https://dotnet.microsoft.com/en-us/download/dotnet/10.0
+    "rollForward": "disable"
+  },
+  "workload": {
+    "setVersion": "10.0.102"
+    // To get latest manifests version, run outside of the solution:
+    // dotnet workload update --source https://api.nuget.org/v3/index.json
+    // dotnet workload --version
+  }
+}
