@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Cockpit.Models;
 using Cockpit.Services.Copilot;
 using GitHub.Copilot.SDK;
@@ -99,6 +100,9 @@ public class ChatService
 
 	void HandleUserMessage(ChatSession session, UserMessageEvent evt)
 	{
+		Debug.WriteLine("HandleUserMessage");
+		Debug.WriteLine(evt);
+
 		if(evt.Data == null)
 		{
 			return;
@@ -122,6 +126,9 @@ public class ChatService
 
 	void HandleAssistantMessageDelta(ChatSession session, AssistantMessageDeltaEvent evt)
 	{
+		Debug.WriteLine("HandleAssistantMessageDelta");
+		Debug.WriteLine(evt);
+
 		if(evt.Data == null)
 		{
 			return;
@@ -153,6 +160,9 @@ public class ChatService
 
 	void HandleAssistantMessage(ChatSession session, AssistantMessageEvent evt)
 	{
+		Debug.WriteLine("HandleAssistantMessage");
+		Debug.WriteLine(evt);
+
 		if(evt.Data == null)
 		{
 			return;
@@ -190,6 +200,9 @@ public class ChatService
 
 	void HandleReasoningDelta(ChatSession session, AssistantReasoningDeltaEvent evt)
 	{
+		Debug.WriteLine("HandleReasoningDelta");
+		Debug.WriteLine(evt);
+
 		if(evt.Data == null)
 		{
 			return;
@@ -222,6 +235,9 @@ public class ChatService
 
 	void HandleReasoning(ChatSession session, AssistantReasoningEvent evt)
 	{
+		Debug.WriteLine("HandleReasoning");
+		Debug.WriteLine(evt);
+
 		if(evt.Data == null)
 		{
 			return;
@@ -243,6 +259,9 @@ public class ChatService
 
 	void HandleToolStart(ChatSession session, ToolExecutionStartEvent evt)
 	{
+		Debug.WriteLine("HandleToolStart");
+		Debug.WriteLine(evt);
+
 		if(evt.Data == null)
 		{
 			return;
@@ -268,6 +287,9 @@ public class ChatService
 
 	void HandleToolComplete(ChatSession session, ToolExecutionCompleteEvent evt)
 	{
+		Debug.WriteLine("HandleToolComplete");
+		Debug.WriteLine(evt);
+
 		if(evt.Data == null)
 		{
 			return;
@@ -293,6 +315,9 @@ public class ChatService
 
 	void HandleSessionError(ChatSession session, SessionErrorEvent evt)
 	{
+		Debug.WriteLine("HandleSessionError");
+		Debug.WriteLine(evt);
+
 		if(evt.Data == null)
 		{
 			return;
