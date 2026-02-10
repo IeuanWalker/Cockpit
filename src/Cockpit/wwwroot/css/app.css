@@ -30,11 +30,8 @@
     --input-bg: #FFFFFF;
     --input-border: #CECECE;
     --secondary-text: #616161;
-    --accent-color: #005FB8;
-    --button-bg: #005FB8;
-    --button-hover: #0050a0;
     --markdown-blockquote-bg: #F3F5F8;
-    --markdown-blockquote-border: #005FB8;
+    --markdown-blockquote-border: var(--accent-color);
     --markdown-code-bg: #F8F8F8;
 }
 

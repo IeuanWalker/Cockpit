@@ -30,7 +30,6 @@ public static class MauiProgram
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
 
 		// Register application services
-		builder.Services.AddScoped<LocalStorageService>();
 		builder.Services.AddScoped<ThemeService>();
 		builder.Services.AddScoped<MarkdownService>();
 		builder.Services.AddSingleton<UIStateService>();

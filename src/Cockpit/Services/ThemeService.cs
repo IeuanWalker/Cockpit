@@ -5,19 +5,21 @@ namespace Cockpit.Services;
 public class ThemeService
 {
 	readonly IJSRuntime _jsRuntime;
-	readonly LocalStorageService _localStorage;
 	bool _isInitialized = false;
 
 	public event Action? OnThemeChanged;
 
-	public string CurrentTheme { get; private set; } = "dark";
-	public string AccentColor { get; private set; } = "#0078D4";
-	public string AccentHoverColor { get; private set; } = "#026ec1";
+	public ThemeEnum CurrentTheme { get; private set; }
+	public string AccentColor { get; private set; }
+	public string AccentHoverColor { get; private set; }
 
-	public ThemeService(IJSRuntime jsRuntime, LocalStorageService localStorage)
+	public ThemeService(IJSRuntime jsRuntime)
 	{
 		_jsRuntime = jsRuntime;
-		_localStorage = localStorage;
+
+		CurrentTheme = UserAppSettings.Theme;
+		AccentColor = UserAppSettings.AccentColor;
+		AccentHoverColor = UserAppSettings.AccentHoverColor;
 	}
 
 	public async Task InitializeAsync()
@@ -27,38 +29,18 @@ public class ThemeService
 			return;
 		}
 
-		string? savedTheme = await _localStorage.GetItemAsync("theme");
-		CurrentTheme = savedTheme ?? "dark";
-
-		string? savedAccent = await _localStorage.GetItemAsync("accentColor");
-		string? savedAccentHover = await _localStorage.GetItemAsync("accentHoverColor");
-
-		if(!string.IsNullOrEmpty(savedAccent) && !string.IsNullOrEmpty(savedAccentHover))
-		{
-			AccentColor = savedAccent;
-			AccentHoverColor = savedAccentHover;
-		}
-		else
-		{
-			// Set defaults based on theme
-			if(CurrentTheme == "light")
-			{
-				AccentColor = "#005FB8";
-				AccentHoverColor = "#0050a0";
-			}
-		}
-
 		await ApplyThemeAsync();
+		await ApplyAccentColorAsync();
 		_isInitialized = true;
 
 		// Update MAUI title bar theme on init
 		App.UpdateTitleBarTheme(CurrentTheme);
 	}
 
-	public async Task SetThemeAsync(string theme)
+	public async Task SetThemeAsync(ThemeEnum theme)
 	{
 		CurrentTheme = theme;
-		await _localStorage.SetItemAsync("theme", theme);
+		UserAppSettings.Theme = theme;
 		await ApplyThemeAsync();
 		OnThemeChanged?.Invoke();
 
@@ -70,8 +52,10 @@ public class ThemeService
 	{
 		AccentColor = color;
 		AccentHoverColor = hoverColor;
-		await _localStorage.SetItemAsync("accentColor", color);
-		await _localStorage.SetItemAsync("accentHoverColor", hoverColor);
+
+		UserAppSettings.AccentColor = color;
+		UserAppSettings.AccentHoverColor = hoverColor;
+
 		await ApplyAccentColorAsync();
 		OnThemeChanged?.Invoke();
 	}
@@ -80,7 +64,7 @@ public class ThemeService
 	{
 		try
 		{
-			if(CurrentTheme == "light")
+			if(CurrentTheme.Equals(ThemeEnum.Light))
 			{
 				await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
 			}

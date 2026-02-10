@@ -25,7 +25,7 @@ public partial class SettingsPopup : ComponentBase, IDisposable
 		}
 	}
 
-	async Task SetTheme(string theme)
+	async Task SetTheme(ThemeEnum theme)
 	{
 		await ThemeService.SetThemeAsync(theme);
 	}

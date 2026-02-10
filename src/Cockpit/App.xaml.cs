@@ -55,12 +55,12 @@ public partial class App : Application
 		}
 	}
 
-	public static void UpdateTitleBarTheme(string theme)
+	public static void UpdateTitleBarTheme(ThemeEnum theme)
 	{
 		App? app = Current as App;
 		if(app?._mainWindow?.TitleBar is TitleBar titleBar)
 		{
-			if(theme == "light")
+			if(theme.Equals(ThemeEnum.Light))
 			{
 				titleBar.BackgroundColor = Color.FromArgb("#F8F8F8");
 				titleBar.ForegroundColor = Color.FromArgb("#3B3B3B");
