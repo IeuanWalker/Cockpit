@@ -9,6 +9,9 @@ namespace Cockpit.Components;
 public partial class SessionsSidebar : ComponentBase, IDisposable
 {
 	[Inject] TimestampService TimestampService { get; set; } = default!;
+	[Inject] UIStateService UIState { get; set; } = default!;
+	[Inject] ChatService ChatService { get; set; } = default!;
+	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
 	DotNetObjectReference<SessionsSidebar>? _dotNetHelper;
 
@@ -17,6 +20,21 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 		ChatService.OnSessionsChanged += StateHasChanged;
 		UIState.OnStateChanged += StateHasChanged;
 		TimestampService.OnTick += OnTimestampTick;
+	}
+
+	bool _isLoadingSessions = true;
+	protected override async Task OnInitializedAsync()
+	{
+		_isLoadingSessions = true;
+		await ChatService.LoadExistingSessionsAsync();
+		_isLoadingSessions = false;
+	}
+
+	async Task RefreshSessions()
+	{
+		_isLoadingSessions = true;
+		await ChatService.LoadExistingSessionsAsync();
+		_isLoadingSessions = false;
 	}
 
 	void OnTimestampTick()
