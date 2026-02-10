@@ -1,6 +1,8 @@
-﻿namespace Cockpit.Services.Copilot.Models;
+﻿using GitHub.Copilot.SDK;
+
+namespace Cockpit.Services.Copilot.Models;
 
 public interface ICopilotModelService
 {
-	ValueTask<List<CopilotModel>> GetModels();
+	ValueTask<List<ModelInfo>> GetModels();
 }

@@ -373,13 +373,13 @@ public class ChatService
 		}
 	}
 
-	public async Task<ChatSession> CreateNewSessionAsync(string? model = null, string? reasoningEffort = null, string? workingDirectory = null)
+	public async Task<ChatSession> CreateNewSessionAsync(ModelInfo? model = null, string? reasoningEffort = null, string? workingDirectory = null)
 	{
 		try
 		{
 			SessionConfig config = new()
 			{
-				Model = model,
+				Model = model?.Id,
 				ReasoningEffort = reasoningEffort,
 				Streaming = true,
 				InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
@@ -399,7 +399,7 @@ public class ChatService
 				Status = SessionStatus.Idle,
 				WorkspacePath = sdkSession.WorkspacePath,
 				WorkingDirectory = workingDirectory,
-				Model = model,
+				Model = model?.Id,
 				ReasoningEffort = reasoningEffort
 			};
 

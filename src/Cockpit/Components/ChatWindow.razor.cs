@@ -2,6 +2,7 @@ using System.Globalization;
 using Cockpit.Services;
 using Cockpit.Services.Copilot.Models;
 using CommunityToolkit.Maui.Media;
+using GitHub.Copilot.SDK;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -18,10 +19,10 @@ public partial class ChatWindow : ComponentBase, IDisposable
 
 	WorkingDirectoryDialog? _workingDirectoryDialog;
 	string _chatInput = string.Empty;
-	string _selectedModel = string.Empty;
+	ModelInfo? _selectedModel;
 	string _selectedReasoningEffort = string.Empty;
 	string? _pendingWorkingDirectory = null;
-	List<CopilotModel> _availableModels = [];
+	List<ModelInfo> _availableModels = [];
 	bool _shouldScrollToBottom = false;
 	bool _isModelDropdownOpen = false;
 	bool _isReasoningEffortDropdownOpen = false;
@@ -35,7 +36,8 @@ public partial class ChatWindow : ComponentBase, IDisposable
 		_availableModels = await ModelService.GetModels();
 		if(_availableModels.Count > 0)
 		{
-			_selectedModel = _availableModels[0].Id;
+			// TODO: Default model logic
+			_selectedModel = _availableModels[0];
 			UpdateReasoningEffortForSelectedModel();
 		}
 
@@ -187,37 +189,19 @@ public partial class ChatWindow : ComponentBase, IDisposable
 		_isModelDropdownOpen = !_isModelDropdownOpen;
 	}
 
-	void SelectModel(string modelId)
+	void SelectModel(ModelInfo model)
 	{
-		_selectedModel = modelId;
+		_selectedModel = model;
 		_isModelDropdownOpen = false;
 		UpdateReasoningEffortForSelectedModel();
 	}
 
-	string GetSelectedModelName()
-	{
-		CopilotModel? model = _availableModels.FirstOrDefault(m => m.Id == _selectedModel);
-		return model?.Name ?? "Select Model";
-	}
-
 	void UpdateReasoningEffortForSelectedModel()
 	{
-		CopilotModel? model = _availableModels.FirstOrDefault(m => m.Id == _selectedModel);
-		if(model != null)
+		if(_selectedModel is not null)
 		{
-			_selectedReasoningEffort = model.DefaultReasoningEffort ?? string.Empty;
+			_selectedReasoningEffort = _selectedModel.DefaultReasoningEffort ?? string.Empty;
 		}
-	}
-
-	CopilotModel? GetSelectedModel()
-	{
-		return _availableModels.FirstOrDefault(m => m.Id == _selectedModel);
-	}
-
-	bool HasReasoningEfforts()
-	{
-		CopilotModel? model = GetSelectedModel();
-		return model?.SupportedReasoningEfforts != null && model.SupportedReasoningEfforts.Count > 0;
 	}
 
 	void ToggleReasoningEffortDropdown()
