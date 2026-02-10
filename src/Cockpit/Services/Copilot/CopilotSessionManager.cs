@@ -18,9 +18,7 @@ public class CopilotSessionManager
 		_logger = logger;
 	}
 
-	public async Task<CopilotSession> CreateSessionAsync(
-		SessionConfig? config = null,
-		CancellationToken cancellationToken = default)
+	public async Task<CopilotSession> CreateSessionAsync(SessionConfig? config = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -46,10 +44,7 @@ public class CopilotSessionManager
 		}
 	}
 
-	public async Task<CopilotSession> ResumeSessionAsync(
-		string sessionId,
-		ResumeSessionConfig? config = null,
-		CancellationToken cancellationToken = default)
+	public async Task<CopilotSession> ResumeSessionAsync(string sessionId, ResumeSessionConfig? config = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
