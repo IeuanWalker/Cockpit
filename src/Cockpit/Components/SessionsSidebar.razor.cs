@@ -2,6 +2,7 @@ using Cockpit.Models;
 using Cockpit.Services;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components;
@@ -14,6 +15,8 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
 	DotNetObjectReference<SessionsSidebar>? _dotNetHelper;
+	bool _showDeleteDialog = false;
+	ChatSession? _sessionToDelete;
 
 	protected override void OnInitialized()
 	{
@@ -95,6 +98,31 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 	static string GetTimeAgo(DateTime dateTime)
 	{
 		return dateTime.Humanize();
+	}
+
+	void ShowDeleteDialog(ChatSession session, MouseEventArgs e)
+	{
+		_sessionToDelete = session;
+		_showDeleteDialog = true;
+		StateHasChanged();
+	}
+
+	async Task ConfirmDelete()
+	{
+		if(_sessionToDelete != null)
+		{
+			await ChatService.DeleteSessionAsync(_sessionToDelete.Id);
+		}
+		_showDeleteDialog = false;
+		_sessionToDelete = null;
+		StateHasChanged();
+	}
+
+	void CancelDelete()
+	{
+		_showDeleteDialog = false;
+		_sessionToDelete = null;
+		StateHasChanged();
 	}
 
 	public void Dispose()

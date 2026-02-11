@@ -1,0 +1,39 @@
+<!-- Delete Confirmation Overlay -->
+<div class="settings-overlay @(IsOpen ? "active" : "")" @onclick="Cancel"></div>
+
+<!-- Delete Confirmation Dialog -->
+<div class="settings-popup @(IsOpen ? "active" : "")">
+    <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl w-96">
+        <!-- Dialog Header -->
+        <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between">
+            <h3 class="text-vscode-title font-semibold flex items-center">
+                <svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Delete Session
+            </h3>
+            <button @onclick="Cancel" class="p-1 hover:bg-vscode-hover rounded">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Dialog Content -->
+        <div class="p-4">
+            <p class="text-vscode-text text-sm mb-1">Are you sure you want to delete this session?</p>
+            <p class="text-sm font-medium text-vscode-title mb-4">@SessionTitle</p>
+            <p class="text-xs secondary-text">This action cannot be undone.</p>
+        </div>
+
+        <!-- Dialog Actions -->
+        <div class="px-4 py-3 border-t border-vscode-border flex items-center justify-end gap-2">
+            <button @onclick="Cancel" class="px-3 py-1.5 text-xs rounded hover:bg-vscode-hover text-vscode-text">
+                Cancel
+            </button>
+            <button @onclick="Confirm" class="px-3 py-1.5 text-xs rounded text-white" style="background-color: #D13438; hover:background-color: #A82A2E;">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>

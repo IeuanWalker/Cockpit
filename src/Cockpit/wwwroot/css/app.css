@@ -566,3 +566,12 @@ input[type="color"] {
     input[type="color"]::-webkit-color-swatch {
         border: none;
     }
+
+/* Session list item delete button */
+.session-delete-btn {
+    transition: opacity 0.2s ease-in-out;
+}
+
+.session-item:hover .session-delete-btn {
+    opacity: 1;
+}
