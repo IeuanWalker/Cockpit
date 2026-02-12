@@ -245,32 +245,58 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	{
 		if(!UIState.IsRecording)
 		{
-			await StartListening();
+			bool started = await StartListening();
+			if(started)
+			{
+				UIState.ToggleRecording();
+			}
 		}
 		else
 		{
 			await StopListen();
+			UIState.ToggleRecording();
 		}
 
-		UIState.ToggleRecording();
-
-		async Task StartListening()
+		async Task<bool> StartListening()
 		{
-			bool isGranted = await SpeechToText.RequestPermissions();
-			if(!isGranted)
+			try
 			{
-				return;
-			}
+				bool isGranted = await SpeechToText.RequestPermissions();
+				if(!isGranted)
+				{
+					return false;
+				}
 
-			SpeechToText.RecognitionResultUpdated += HandleRecognitionResultUpdated;
-			await SpeechToText.StartListenAsync(new SpeechToTextOptions { Culture = CultureInfo.CurrentCulture, ShouldReportPartialResults = true }, CancellationToken.None);
+				SpeechToText.RecognitionResultUpdated += HandleRecognitionResultUpdated;
+				await SpeechToText.StartListenAsync(new SpeechToTextOptions { Culture = CultureInfo.CurrentCulture, ShouldReportPartialResults = true }, CancellationToken.None);
+				return true;
+			}
+			catch(FileNotFoundException ex) when((ex.FileName ?? string.Empty).EndsWith("AppxManifest.xml", StringComparison.OrdinalIgnoreCase))
+			{
+				_chatInput = "Speech recognition requires the packaged MSIX app. Run using the 'MsixPackage' debug profile.";
+				await InvokeAsync(StateHasChanged);
+				return false;
+			}
+			catch(Exception ex)
+			{
+				_chatInput = $"Error starting recording: {ex.Message}";
+				await InvokeAsync(StateHasChanged);
+				return false;
+			}
 		}
 
-		Task StopListen()
+		async Task StopListen()
 		{
-			SpeechToText.RecognitionResultUpdated -= HandleRecognitionResultUpdated;
-
-			return SpeechToText.StopListenAsync(CancellationToken.None);
+			try
+			{
+				SpeechToText.RecognitionResultUpdated -= HandleRecognitionResultUpdated;
+				await SpeechToText.StopListenAsync(CancellationToken.None);
+			}
+			catch(Exception ex)
+			{
+				_chatInput = $"Error stopping recording: {ex.Message}";
+				await InvokeAsync(StateHasChanged);
+			}
 		}
 	}
 

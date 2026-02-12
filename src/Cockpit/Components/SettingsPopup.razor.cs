@@ -5,7 +5,18 @@ namespace Cockpit.Components;
 
 public partial class SettingsPopup : ComponentBase, IDisposable
 {
+	enum SettingsSection
+	{
+		Appearance,
+		Commands,
+		Input,
+		Voice,
+		Sounds,
+		Diagnostics
+	}
+
 	string _customColor = "#0078D4";
+	SettingsSection _activeSection = SettingsSection.Appearance;
 	[Inject] UIStateService UIState { get; set; } = default!;
 	[Inject] ThemeService ThemeService { get; set; } = default!;
 
@@ -38,6 +49,11 @@ public partial class SettingsPopup : ComponentBase, IDisposable
 	async Task SetAccentColor(string color, string hoverColor)
 	{
 		await ThemeService.SetAccentColorAsync(color, hoverColor);
+	}
+
+	void SetActiveSection(SettingsSection section)
+	{
+		_activeSection = section;
 	}
 
 	public void Dispose()

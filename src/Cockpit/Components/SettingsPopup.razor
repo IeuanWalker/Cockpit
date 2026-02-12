@@ -3,7 +3,7 @@
 
 <!-- Settings Popup -->
 <div class="settings-popup @(UIState.SettingsPopupOpen ? "active" : "")">
-    <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl w-96">
+    <div class="settings-popup-shell bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl">
         <!-- Settings Header -->
         <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between">
             <h3 class="text-vscode-title font-semibold flex items-center">
@@ -21,65 +21,126 @@
         </div>
 
         <!-- Settings Content -->
-        <div class="p-4 space-y-4">
-            <!-- Theme Setting -->
-            <div>
-                <label class="text-sm font-medium text-vscode-title block mb-2">Appearance</label>
-                <div class="flex items-center space-x-2">
-                    <button @onclick='() => SetTheme(ThemeEnum.Dark)'
-                            class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center @(ThemeService.CurrentTheme.Equals(ThemeEnum.Dark) ? "active" : "")"
-                            style="border: 1px solid var(--border-color); color: var(--text-color);">
-                        <svg class="icon-sm mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                        </svg>
-                        <span class="text-sm">Dark</span>
-                    </button>
-                    <button @onclick='() => SetTheme(ThemeEnum.Light)'
-                            class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center @(ThemeService.CurrentTheme.Equals(ThemeEnum.Light) ? "active" : "")"
-                            style="border: 1px solid var(--border-color); color: var(--text-color);">
-                        <svg class="icon-sm mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
-                        </svg>
-                        <span class="text-sm">Light</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Accent Color -->
-            <div>
-                <label class="text-sm font-medium text-vscode-title block mb-2">Accent Color</label>
-                <div class="flex items-center space-x-3">
-                    <input type="color"
-                           value="@_customColor"
-                           @oninput="OnCustomColorInput"
-                           class="w-16 h-10 rounded cursor-pointer"
-                           style="border: none; padding: 0;"
-                           title="Select Accent Color" />
-                    <span class="text-sm secondary-text font-mono">@_customColor</span>
-                </div>
-            </div>
-
-            <!-- Input Behavior Setting -->
-            <div>
-                <label class="text-sm font-medium text-vscode-title block mb-2">Input Behavior</label>
-                <div class="space-y-2">
-                    <button @onclick='() => UIState.SetEnterToSend(true)'
-                            class="theme-btn w-full px-3 py-2 rounded flex items-center @(UIState.EnterToSend ? "active" : "")"
-                            style="border: 1px solid var(--border-color); color: var(--text-color);">
-                        <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                        <span class="text-sm">Enter to send message</span>
-                    </button>
-                    <button @onclick='() => UIState.SetEnterToSend(false)'
-                            class="theme-btn w-full px-3 py-2 rounded flex items-center @(!UIState.EnterToSend ? "active" : "")"
-                            style="border: 1px solid var(--border-color); color: var(--text-color);">
-                        <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <span class="text-sm">Enter for new line, use send button</span>
-                    </button>
-                </div>
+        <div class="settings-popup-content">
+            <nav class="settings-menu border-r border-vscode-border">
+                <button class="settings-menu-item @(_activeSection == SettingsSection.Appearance ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSection.Appearance)">
+                    <span class="text-sm font-medium text-vscode-title">Appearance</span>
+                    <span class="text-xs secondary-text">Theme, accent</span>
+                </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSection.Commands ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSection.Commands)">
+                    <span class="text-sm font-medium text-vscode-title">Commands</span>
+                    <span class="text-xs secondary-text">Allowlist, tools</span>
+                </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSection.Input ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSection.Input)">
+                    <span class="text-sm font-medium text-vscode-title">Input settings</span>
+                    <span class="text-xs secondary-text">Enter behavior</span>
+                </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSection.Voice ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSection.Voice)">
+                    <span class="text-sm font-medium text-vscode-title">Voice</span>
+                    <span class="text-xs secondary-text">Mic, transcription</span>
+                </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSection.Sounds ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSection.Sounds)">
+                    <span class="text-sm font-medium text-vscode-title">Sounds</span>
+                    <span class="text-xs secondary-text">Alerts, feedback</span>
+                </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSection.Diagnostics ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSection.Diagnostics)">
+                    <span class="text-sm font-medium text-vscode-title">Diagnostics</span>
+                    <span class="text-xs secondary-text">Logs, telemetry</span>
+                </button>
+            </nav>
+            <div class="settings-panel">
+                @switch(_activeSection)
+                {
+                    case SettingsSection.Appearance:
+                        <div class="settings-section">
+                            <h4 class="text-sm font-semibold text-vscode-title mb-3">Appearance</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-sm font-medium text-vscode-title block mb-2">Theme</label>
+                                    <div class="flex items-center space-x-2">
+                                        <button @onclick='() => SetTheme(ThemeEnum.Dark)'
+                                                class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center @(ThemeService.CurrentTheme.Equals(ThemeEnum.Dark) ? "active" : "")"
+                                                style="border: 1px solid var(--border-color); color: var(--text-color);">
+                                            <svg class="icon-sm mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                                            </svg>
+                                            <span class="text-sm">Dark</span>
+                                        </button>
+                                        <button @onclick='() => SetTheme(ThemeEnum.Light)'
+                                                class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center @(ThemeService.CurrentTheme.Equals(ThemeEnum.Light) ? "active" : "")"
+                                                style="border: 1px solid var(--border-color); color: var(--text-color);">
+                                            <svg class="icon-sm mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span class="text-sm">Light</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium text-vscode-title block mb-2">Accent Color</label>
+                                    <div class="flex items-center space-x-3">
+                                        <input type="color"
+                                               value="@_customColor"
+                                               @oninput="OnCustomColorInput"
+                                               class="w-16 h-10 rounded cursor-pointer"
+                                               style="border: none; padding: 0;"
+                                               title="Select Accent Color" />
+                                        <span class="text-sm secondary-text font-mono">@_customColor</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        break;
+                    case SettingsSection.Input:
+                        <div class="settings-section">
+                            <h4 class="text-sm font-semibold text-vscode-title mb-3">Input settings</h4>
+                            <div class="space-y-2">
+                                <button @onclick='() => UIState.SetEnterToSend(true)'
+                                        class="theme-btn w-full px-3 py-2 rounded flex items-center @(UIState.EnterToSend ? "active" : "")"
+                                        style="border: 1px solid var(--border-color); color: var(--text-color);">
+                                    <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                    <span class="text-sm">Enter to send message</span>
+                                </button>
+                                <button @onclick='() => UIState.SetEnterToSend(false)'
+                                        class="theme-btn w-full px-3 py-2 rounded flex items-center @(!UIState.EnterToSend ? "active" : "")"
+                                        style="border: 1px solid var(--border-color); color: var(--text-color);">
+                                    <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    <span class="text-sm">Enter for new line, use send button</span>
+                                </button>
+                            </div>
+                        </div>
+                        break;
+                    case SettingsSection.Commands:
+                        <div class="settings-section settings-section-empty">
+                            <h4 class="text-sm font-semibold text-vscode-title mb-3">Commands</h4>
+                        </div>
+                        break;
+                    case SettingsSection.Voice:
+                        <div class="settings-section settings-section-empty">
+                            <h4 class="text-sm font-semibold text-vscode-title mb-3">Voice</h4>
+                        </div>
+                        break;
+                    case SettingsSection.Sounds:
+                        <div class="settings-section settings-section-empty">
+                            <h4 class="text-sm font-semibold text-vscode-title mb-3">Sounds</h4>
+                        </div>
+                        break;
+                    case SettingsSection.Diagnostics:
+                        <div class="settings-section settings-section-empty">
+                            <h4 class="text-sm font-semibold text-vscode-title mb-3">Diagnostics</h4>
+                        </div>
+                        break;
+                }
             </div>
         </div>
     </div>
