@@ -102,7 +102,7 @@
                             <h4 class="text-sm font-semibold text-vscode-title mb-3">Input settings</h4>
                             <div class="space-y-2">
                                 <button @onclick='() => UIState.SetEnterToSend(true)'
-                                        class="theme-btn w-full px-3 py-2 rounded flex items-center @(UIState.EnterToSend ? "active" : "")"
+                                        class="theme-btn w-full px-3 py-2 rounded flex items-center @(UIState.SendOnEnter ? "active" : "")"
                                         style="border: 1px solid var(--border-color); color: var(--text-color);">
                                     <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -110,7 +110,7 @@
                                     <span class="text-sm">Enter to send message</span>
                                 </button>
                                 <button @onclick='() => UIState.SetEnterToSend(false)'
-                                        class="theme-btn w-full px-3 py-2 rounded flex items-center @(!UIState.EnterToSend ? "active" : "")"
+                                        class="theme-btn w-full px-3 py-2 rounded flex items-center @(!UIState.SendOnEnter ? "active" : "")"
                                         style="border: 1px solid var(--border-color); color: var(--text-color);">
                                     <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />

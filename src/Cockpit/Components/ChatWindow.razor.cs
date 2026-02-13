@@ -94,7 +94,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("cockpit.setupChatInputBehavior", "chatInput", UIState.EnterToSend);
+			await JSRuntime.InvokeVoidAsync("cockpit.setupChatInputBehavior", "chatInput", UIState.SendOnEnter);
 		}
 		catch
 		{
@@ -200,7 +200,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 
 	async Task HandleKeyDown(KeyboardEventArgs e)
 	{
-		if(e.Key == "Enter" && !e.ShiftKey && UIState.EnterToSend)
+		if(e.Key == "Enter" && !e.ShiftKey && UIState.SendOnEnter)
 		{
 			// Prevent default to avoid adding newline
 			await SendMessage();

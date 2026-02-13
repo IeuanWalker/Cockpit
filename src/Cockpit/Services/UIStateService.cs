@@ -17,8 +17,16 @@ public class UIStateService
 	public bool IsRecording { get; private set; } = false;
 
 	// Input behavior
-	public bool EnterToSend { get; private set; } = true;
-
+	bool _sendOnEnter = UserAppSettings.SendOnEnter;
+	public bool SendOnEnter
+	{
+		get => _sendOnEnter;
+		private set
+		{
+			_sendOnEnter = value;
+			UserAppSettings.SendOnEnter = value;
+		}
+	}
 	// Dropdown states
 	readonly Dictionary<string, bool> _dropdownStates = [];
 
@@ -69,7 +77,7 @@ public class UIStateService
 
 	public void SetEnterToSend(bool value)
 	{
-		EnterToSend = value;
+		SendOnEnter = value;
 		NotifyStateChanged();
 	}
 

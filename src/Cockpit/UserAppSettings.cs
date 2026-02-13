@@ -33,6 +33,12 @@ public static class UserAppSettings
 		get => Preferences.Default.Get("AccentHoverColor", "#0050a0");
 		set => Preferences.Default.Set("AccentHoverColor", value);
 	}
+
+	public static bool SendOnEnter
+	{
+		get => Preferences.Default.Get("SendOnEnter", true);
+		set => Preferences.Default.Set("SendOnEnter", value);
+	}
 }
 
 // TODO: Implement system
