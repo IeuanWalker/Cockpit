@@ -1,4 +1,5 @@
 using Cockpit.Models;
+using Cockpit.Services;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 
@@ -6,6 +7,9 @@ namespace Cockpit.Components;
 
 public sealed partial class WorkingPanel : IDisposable
 {
+	[Inject]
+	ChatService ChatService { get; set; } = default!;
+
 	[Parameter]
 	public Models.ActivityGroup? Group { get; set; }
 
@@ -64,5 +68,10 @@ public sealed partial class WorkingPanel : IDisposable
 		int complete = tools.Count(t => t.Status == ToolStatus.Success);
 
 		return $"{running} running, {complete} complete";
+	}
+
+	async Task StopSession()
+	{
+		await ChatService.AbortCurrentSessionAsync();
 	}
 }

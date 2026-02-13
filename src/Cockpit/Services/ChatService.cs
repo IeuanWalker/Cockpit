@@ -359,10 +359,26 @@ public class ChatService
 				IsExpanded = true
 			};
 
-			// Find the most recent assistant message to use as initial message
-			ChatMessage? lastAssistantMessage = session.Messages
-				.Where(m => !m.IsUser && m.Type == MessageType.Text)
-				.LastOrDefault();
+			// Find the most recent assistant message AFTER the last user message (current turn only)
+			int lastUserIndex = -1;
+			for(int i = session.Messages.Count - 1; i >= 0; i--)
+			{
+				if(session.Messages[i].IsUser)
+				{
+					lastUserIndex = i;
+					break;
+				}
+			}
+
+			ChatMessage? lastAssistantMessage = null;
+			if(lastUserIndex >= 0)
+			{
+				// Look for assistant messages after the last user message
+				lastAssistantMessage = session.Messages
+					.Skip(lastUserIndex + 1)
+					.Where(m => !m.IsUser && m.Type == MessageType.Text)
+					.LastOrDefault();
+			}
 
 			if(lastAssistantMessage is not null)
 			{
@@ -441,6 +457,7 @@ public class ChatService
 			List<ThinkingEvent> events = group.GetEventsSnapshot();
 			ThinkingEvent? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventType.Message);
 
+			bool hasSummary = false;
 			if(lastMessage != null && !string.IsNullOrWhiteSpace(lastMessage.Message))
 			{
 				// Remove the summary from thinking events
@@ -462,6 +479,7 @@ public class ChatService
 
 				// Stream the summary text progressively
 				_ = StreamSummaryTextAsync(session, summaryMsg, lastMessage.Message);
+				hasSummary = true;
 			}
 
 			// Insert activity group between initial and summary messages
@@ -484,15 +502,17 @@ public class ChatService
 				}
 				else
 				{
-					// Insert before the summary (second to last)
-					session.Messages.Insert(Math.Max(0, session.Messages.Count - 1), activityMessage);
+					// Insert before the summary if it exists, otherwise at the end
+					int insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
+					session.Messages.Insert(insertIndex, activityMessage);
 				}
 			}
 			else
 			{
-				// No initial assistant message - insert after the last user message before the summary
+				// No initial assistant message - insert after the last user message
 				int lastUserIndex = -1;
-				for(int i = session.Messages.Count - 2; i >= 0; i--)
+				int searchLimit = hasSummary ? session.Messages.Count - 2 : session.Messages.Count - 1;
+				for(int i = searchLimit; i >= 0; i--)
 				{
 					if(session.Messages[i].IsUser)
 					{
@@ -501,14 +521,27 @@ public class ChatService
 					}
 				}
 
+				int insertIndex;
 				if(lastUserIndex >= 0)
 				{
-					session.Messages.Insert(lastUserIndex + 1, activityMessage);
+					// Insert right after the user message
+					insertIndex = lastUserIndex + 1;
 				}
 				else
 				{
-					session.Messages.Insert(Math.Max(0, session.Messages.Count - 1), activityMessage);
+					// Fallback: No user message found - insert before summary if exists, otherwise at end
+					insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
 				}
+
+				// Ensure we never insert at index 0 if there are messages
+				if(insertIndex == 0 && session.Messages.Count > 0)
+				{
+					insertIndex = session.Messages.Count;
+					Debug.WriteLine($"WARNING: Attempted to insert activity group at index 0, moved to end");
+				}
+
+				session.Messages.Insert(insertIndex, activityMessage);
+				Debug.WriteLine($"Inserted activity group at index {insertIndex} (lastUserIndex={lastUserIndex}, hasSummary={hasSummary}, Count={session.Messages.Count})");
 			}
 
 			// Clear the thinking group
@@ -576,6 +609,8 @@ public class ChatService
 		// Extract the last message as the summary (same logic as HandleSessionIdle)
 		List<ThinkingEvent> events = g.GetEventsSnapshot();
 		ThinkingEvent? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventType.Message);
+		
+		bool hasSummary = false;
 		if(lastMessage != null && !string.IsNullOrWhiteSpace(lastMessage.Message))
 		{
 			g.RemoveEvent(lastMessage);
@@ -588,6 +623,7 @@ public class ChatService
 				Type = MessageType.Text,
 				IsComplete = true
 			});
+			hasSummary = true;
 		}
 
 		// Insert activity group between initial and summary
@@ -609,15 +645,17 @@ public class ChatService
 			}
 			else
 			{
-				// Insert before the summary (second to last)
-				session.Messages.Insert(Math.Max(0, session.Messages.Count - 1), activityMessage);
+				// Insert before the summary if it exists, otherwise at the end
+				int insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
+				session.Messages.Insert(insertIndex, activityMessage);
 			}
 		}
 		else
 		{
-			// No initial assistant message - insert after the last user message before the summary
+			// No initial assistant message - insert after the last user message
 			int lastUserIndex = -1;
-			for(int i = session.Messages.Count - 2; i >= 0; i--)
+			int searchLimit = hasSummary ? session.Messages.Count - 2 : session.Messages.Count - 1;
+			for(int i = searchLimit; i >= 0; i--)
 			{
 				if(session.Messages[i].IsUser)
 				{
@@ -626,14 +664,25 @@ public class ChatService
 				}
 			}
 
+			int insertIndex;
 			if(lastUserIndex >= 0)
 			{
-				session.Messages.Insert(lastUserIndex + 1, activityMessage);
+				// Insert right after the user message
+				insertIndex = lastUserIndex + 1;
 			}
 			else
 			{
-				session.Messages.Insert(Math.Max(0, session.Messages.Count - 1), activityMessage);
+				// Fallback: No user message found - insert before summary if exists, otherwise at end
+				insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
 			}
+
+			// Ensure we never insert at index 0 if there are messages
+			if(insertIndex == 0 && session.Messages.Count > 0)
+			{
+				insertIndex = session.Messages.Count;
+			}
+
+			session.Messages.Insert(insertIndex, activityMessage);
 		}
 
 		group = null;
@@ -1027,9 +1076,8 @@ public class ChatService
 		try
 		{
 			await _sessionManager.AbortSessionAsync(CurrentSession.Id);
-			CurrentSession.Status = SessionStatus.Idle;
 			RemoveTypingIndicator(CurrentSession);
-			NotifyStateChanged();
+			HandleSessionIdle(CurrentSession);
 		}
 		catch(Exception ex)
 		{
