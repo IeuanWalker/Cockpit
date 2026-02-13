@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Blazor.Sonner.Services;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
@@ -8,14 +9,16 @@ public class CopilotSessionManager
 {
 	readonly CopilotClientService _clientService;
 	readonly ILogger<CopilotSessionManager> _logger;
+	readonly ToastService _toastService;
 	readonly ConcurrentDictionary<string, CopilotSession> _sessions = new();
 
 	public event Action<string, SessionEvent>? OnSessionEvent;
 
-	public CopilotSessionManager(CopilotClientService clientService, ILogger<CopilotSessionManager> logger)
+	public CopilotSessionManager(CopilotClientService clientService, ILogger<CopilotSessionManager> logger, ToastService toastService)
 	{
 		_clientService = clientService;
 		_logger = logger;
+		_toastService = toastService;
 	}
 
 	public async Task<CopilotSession> CreateSessionAsync(SessionConfig? config = null, CancellationToken cancellationToken = default)
@@ -62,6 +65,15 @@ public class CopilotSessionManager
 
 			_logger.LogInformation("Resumed session {SessionId}", session.SessionId);
 			return session;
+		}
+		catch(Exception ex) when(ex.Message.Equals("Communication error with Copilot CLI: Request session.resume failed with message: Session file is corrupted or incompatible"))
+		{
+			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
+			_toastService.Error("Session Unavailable", opts =>
+			{
+				opts.Description = "The session file may be corrupted, incompatible, or in use by another instance. You may need to delete or exit the session running else where";
+			});
+			throw;
 		}
 		catch(Exception ex)
 		{

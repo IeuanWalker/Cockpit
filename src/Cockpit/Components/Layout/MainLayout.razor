@@ -17,7 +17,7 @@
         @Body
     </div>
 
-    @if (ChatService.CurrentSession != null)
+    @if(ChatService.CurrentSession is not null)
     {
         <!-- Right Resize Handle -->
         <div id="rightResizeHandle" class="resize-handle @(UIState.RightSidebarCollapsed ? "hidden" : "")"></div>
@@ -29,3 +29,6 @@
 
 <!-- Settings Popup -->
 <SettingsPopup />
+
+<!-- Toast Notifications -->
+<Toaster Position="ToastPosition.BottomRight" RichColors="true" CloseButton="false" />

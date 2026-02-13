@@ -1,8 +1,11 @@
-﻿using Cockpit.Services;
+﻿using Blazor.Sonner.Extensions;
+using Blazor.Sonner.Services;
+using Cockpit.Services;
 using Cockpit.Services.Copilot;
 using Cockpit.Services.Copilot.Models;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit;
@@ -21,6 +24,10 @@ public static class MauiProgram
 			});
 
 		builder.Services.AddMauiBlazorWebView();
+		builder.Services.AddSonner();
+		// Re-register as singleton so it's accessible from singleton services in MAUI Blazor
+		builder.Services.RemoveAll<ToastService>();
+		builder.Services.AddSingleton<ToastService>();
 
 #if DEBUG
 		builder.Services.AddBlazorWebViewDeveloperTools();
