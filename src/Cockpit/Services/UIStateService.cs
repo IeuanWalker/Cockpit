@@ -4,7 +4,6 @@ public class UIStateService
 {
 	public event Action? OnStateChanged;
 
-	// Sidebar states
 	public bool LeftSidebarCollapsed { get; private set; } = false;
 	public bool RightSidebarCollapsed { get; private set; } = false;
 
@@ -18,6 +17,7 @@ public class UIStateService
 			UserAppSettings.LeftSidebarWidth = value;
 		}
 	}
+
 	int _rightSidebarWidth = UserAppSettings.RightSidebarWidth;
 	public int RightSidebarWidth
 	{
@@ -29,15 +29,11 @@ public class UIStateService
 		}
 	}
 
-	// Settings popup
 	public bool SettingsPopupOpen { get; private set; } = false;
 
-	// Microphone recording
 	public bool IsRecording { get; private set; } = false;
 
-	// Input behavior
 	bool _sendOnEnter = UserAppSettings.SendOnEnter;
-
 	public bool SendOnEnter
 	{
 		get => _sendOnEnter;
@@ -47,37 +43,35 @@ public class UIStateService
 			UserAppSettings.SendOnEnter = value;
 		}
 	}
-	// Dropdown states
-	readonly Dictionary<string, bool> _dropdownStates = [];
 
 	public void ToggleLeftSidebar()
 	{
 		LeftSidebarCollapsed = !LeftSidebarCollapsed;
-		NotifyStateChanged();
+		OnStateChanged?.Invoke();
 	}
 
 	public void ToggleRightSidebar()
 	{
 		RightSidebarCollapsed = !RightSidebarCollapsed;
-		NotifyStateChanged();
+		OnStateChanged?.Invoke();
 	}
 
 	public void SetLeftSidebarWidth(int width)
 	{
 		LeftSidebarWidth = Math.Clamp(width, 150, 600);
-		NotifyStateChanged();
+		OnStateChanged?.Invoke();
 	}
 
 	public void SetRightSidebarWidth(int width)
 	{
 		RightSidebarWidth = Math.Clamp(width, 150, 600);
-		NotifyStateChanged();
+		OnStateChanged?.Invoke();
 	}
 
 	public void ToggleSettingsPopup()
 	{
 		SettingsPopupOpen = !SettingsPopupOpen;
-		NotifyStateChanged();
+		OnStateChanged?.Invoke();
 	}
 
 	public void CloseSettingsPopup()
@@ -85,26 +79,28 @@ public class UIStateService
 		if(SettingsPopupOpen)
 		{
 			SettingsPopupOpen = false;
-			NotifyStateChanged();
+			OnStateChanged?.Invoke();
 		}
 	}
 
 	public void ToggleRecording()
 	{
 		IsRecording = !IsRecording;
-		NotifyStateChanged();
+		OnStateChanged?.Invoke();
 	}
 
 	public void SetEnterToSend(bool value)
 	{
 		SendOnEnter = value;
-		NotifyStateChanged();
+		OnStateChanged?.Invoke();
 	}
+
+	readonly Dictionary<string, bool> _dropdownStates = [];
 
 	public void ToggleDropdown(string dropdownId)
 	{
 		_dropdownStates[dropdownId] = !_dropdownStates.TryGetValue(dropdownId, out bool value) || (_dropdownStates[dropdownId] = !value);
-		NotifyStateChanged();
+		OnStateChanged?.Invoke();
 	}
 
 	public bool IsDropdownOpen(string dropdownId)
@@ -115,8 +111,6 @@ public class UIStateService
 	public void SetDropdownOpen(string dropdownId, bool isOpen)
 	{
 		_dropdownStates[dropdownId] = isOpen;
-		NotifyStateChanged();
+		OnStateChanged?.Invoke();
 	}
-
-	void NotifyStateChanged() => OnStateChanged?.Invoke();
 }
