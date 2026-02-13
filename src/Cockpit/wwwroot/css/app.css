@@ -115,15 +115,11 @@ html, body {
         max-height: 500px;
     }
 
-.sidebar {
-    transition: width 0.3s ease, margin-left 0.3s ease;
+.sidebar.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden;
 }
-
-    .sidebar.collapsed {
-        width: 0 !important;
-        min-width: 0 !important;
-        overflow: hidden;
-    }
 
 .settings-popup {
     display: none;
@@ -707,14 +703,14 @@ input[type="color"] {
     transition: background-color 0.2s, color 0.2s;
 }
 
-.stop-session-btn:hover {
-    background: rgba(231, 72, 86, 0.1);
-    color: #E74856;
-}
+    .stop-session-btn:hover {
+        background: rgba(231, 72, 86, 0.1);
+        color: #E74856;
+    }
 
-.stop-session-btn:active {
-    background: rgba(231, 72, 86, 0.2);
-}
+    .stop-session-btn:active {
+        background: rgba(231, 72, 86, 0.2);
+    }
 
 .working-content {
     flex: 1;
