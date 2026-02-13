@@ -1,4 +1,5 @@
 using System.Globalization;
+using Cockpit.Models;
 using Cockpit.Services;
 using CommunityToolkit.Maui.Media;
 using GitHub.Copilot.SDK;
@@ -15,6 +16,7 @@ public partial class Main : ComponentBase, IDisposable
 	[Inject] UIStateService UIState { get; set; } = default!;
 	[Inject] ISpeechToText SpeechToText { get; set; } = default!;
 	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
+	[Inject] PermissionService PermissionService { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
 	string _chatInput = string.Empty;
@@ -277,22 +279,36 @@ public partial class Main : ComponentBase, IDisposable
 		}
 		else if(multiplier < 1)
 		{
-			return "#90ee90";
+			return "#00d000";
 		}
-		else if(multiplier == 1)
+		else if(multiplier >= maxMultiplier)
 		{
-			return "var(--text-color)";
+			return "#ff8c00";
 		}
-		else if(multiplier > 2 && multiplier >= maxMultiplier)
+		else
 		{
-			return "#ff4444";
+			return "#999999";
 		}
-		else if(multiplier > 1)
+	}
+
+	void ToggleYoloMode()
+	{
+		if(SessionManager.CurrentSession is null)
 		{
-			return "#ffa500";
+			return;
 		}
 
-		return "var(--text-color)";
+		SessionManager.CurrentSession.IsYolo = !SessionManager.CurrentSession.IsYolo;
+		StateHasChanged();
+	}
+
+	string GetYoloButtonStyle()
+	{
+		if(SessionManager.CurrentSession?.IsYolo == true)
+		{
+			return "background-color: var(--accent-color); color: white; border: 1px solid var(--accent-color);";
+		}
+		return "color: var(--text-color); border: 1px solid var(--input-border); background-color: var(--input-bg);";
 	}
 
 	public void Dispose()
@@ -378,5 +394,17 @@ public partial class Main : ComponentBase, IDisposable
 	void HandleRecognitionResultCompleted(object? sender, SpeechToTextRecognitionResultCompletedEventArgs e)
 	{
 		_chatInput = e.RecognitionResult.IsSuccessful ? e.RecognitionResult.Text : e.RecognitionResult.Exception.Message;
+	}
+
+	// Handle permission decision from the PermissionRequestPanel
+	void HandlePermissionDecision(PermissionDecision decision)
+	{
+		if(SessionManager.CurrentSession is null)
+		{
+			return;
+		}
+
+		// Pass decision to PermissionService for resolution
+		PermissionService.ResolvePermissionRequest(SessionManager.CurrentSession.Id, decision);
 	}
 }

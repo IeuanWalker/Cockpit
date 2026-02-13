@@ -14,6 +14,7 @@ public partial class UnifiedSessionManager
 	readonly ToastService _toastService;
 	readonly ContextService _contextService;
 	readonly CopilotModelService _copilotModelService;
+	readonly PermissionService _permissionService;
 
 	// Internal: Maps sessionId -> SDK CopilotSession (for ALL resumed sessions)
 	readonly ConcurrentDictionary<string, CopilotSession> _sdkSessions = new();
@@ -35,13 +36,19 @@ public partial class UnifiedSessionManager
 		ILogger<UnifiedSessionManager> logger,
 		ToastService toastService,
 		ContextService contextService,
-		CopilotModelService copilotModelService)
+		CopilotModelService copilotModelService,
+		PermissionService permissionService)
 	{
 		_clientService = clientService;
 		_logger = logger;
 		_toastService = toastService;
 		_contextService = contextService;
 		_copilotModelService = copilotModelService;
+		_permissionService = permissionService;
+
+		// Subscribe to permission events
+		_permissionService.OnPermissionRequested += HandlePermissionRequested;
+		_permissionService.OnPermissionResolved += HandlePermissionResolved;
 	}
 
 	// Deserialize JsonElement arguments to Dictionary<string, object>
@@ -277,7 +284,8 @@ public partial class UnifiedSessionManager
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				Streaming = true,
 				InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
-				WorkingDirectory = workingDirectory
+				WorkingDirectory = workingDirectory,
+				OnPermissionRequest = HandlePermissionRequest
 			};
 
 			CopilotClient client = await _clientService.GetClientAsync();
@@ -353,7 +361,8 @@ public partial class UnifiedSessionManager
 			{
 				Model = session.Model.Id,
 				ReasoningEffort = session.ReasoningEffort,
-				Streaming = true
+				Streaming = true,
+				OnPermissionRequest = HandlePermissionRequest
 			};
 
 			CopilotClient client = await _clientService.GetClientAsync();
@@ -628,7 +637,8 @@ public partial class UnifiedSessionManager
 			{
 				Model = newModelId,
 				ReasoningEffort = newReasoningEffort,
-				Streaming = true
+				Streaming = true,
+				OnPermissionRequest = HandlePermissionRequest
 			};
 
 			// 4. Resume session with same ID but new config
@@ -708,4 +718,143 @@ public partial class UnifiedSessionManager
 	}
 
 	void NotifyStateChanged() => OnStateChanged?.Invoke();
+
+	// Handle permission requested event from PermissionService
+	void HandlePermissionRequested(string sessionId, Cockpit.Models.PermissionRequest request)
+	{
+		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+		if(session is null)
+		{
+			return;
+		}
+
+		// Update session state
+		session.PreviousStatus = session.Status;
+		session.Status = SessionStatus.NeedsPermission;
+		session.PendingPermissionRequest = request;
+
+		// Notify UI
+		NotifyStateChanged();
+	}
+
+	// Handle permission resolved event from PermissionService
+	void HandlePermissionResolved(string sessionId, PermissionDecision decision)
+	{
+		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+		if(session is null)
+		{
+			return;
+		}
+
+		// Restore previous status
+		session.Status = session.PreviousStatus ?? SessionStatus.Idle;
+		session.PendingPermissionRequest = null;
+
+		// Notify UI
+		NotifyStateChanged();
+	}
+
+	// Permission handler for SDK tool execution requests
+	async Task<PermissionRequestResult> HandlePermissionRequest(GitHub.Copilot.SDK.PermissionRequest request, PermissionInvocation invocation)
+	{
+		try
+		{
+			// Get the session this permission request is for
+			if(!_sdkSessions.TryGetValue(invocation.SessionId, out CopilotSession? sdkSession))
+			{
+				_logger.LogWarning("Permission request for unknown session {SessionId}", invocation.SessionId);
+				return new PermissionRequestResult { Kind = "denied" };
+			}
+
+			ChatSession? session = Sessions.FirstOrDefault(s => s.Id == invocation.SessionId);
+			if(session is null)
+			{
+				_logger.LogWarning("ChatSession not found for SDK session {SessionId}", invocation.SessionId);
+				return new PermissionRequestResult { Kind = "denied" };
+			}
+
+			// Extract tool information from the permission request
+			// The SDK sends different "kinds" of permission requests (e.g., "write", "execute", etc.)
+			string toolName = request.Kind; // e.g., "write", "execute", etc.
+			string command = ExtractCommandFromRequest(request);
+
+			// Pass ExtensionData as arguments for detailed message generation
+			Dictionary<string, object>? arguments = request.ExtensionData != null
+				? new Dictionary<string, object>(request.ExtensionData)
+				: null;
+
+
+			_logger.LogInformation("Permission request: Kind={Kind}, Command={Command}, SessionId={SessionId}",
+				toolName, command, session.Id);
+
+			// Check permission through our service
+			PermissionDecision decision = await _permissionService.CheckPermissionAsync(
+				session.Id,
+				toolName,
+				command,
+				arguments: arguments,
+				kind: request.Kind,
+				isYolo: session.IsYolo);
+
+			// Convert our decision to SDK format
+			string resultKind = decision.IsApproved ? "approved" : "denied-interactively-by-user";
+
+			_logger.LogInformation("Permission decision: {Decision} for {Command}", resultKind, command);
+
+			return new PermissionRequestResult { Kind = resultKind };
+		}
+		catch(Exception ex)
+		{
+			_logger.LogError(ex, "Error in permission handler");
+			return new PermissionRequestResult { Kind = "denied" };
+		}
+	}
+
+	// Extract command string from SDK permission request
+	static string ExtractCommandFromRequest(GitHub.Copilot.SDK.PermissionRequest request)
+	{
+		// The SDK puts additional context in ExtensionData
+		if(request.ExtensionData is null)
+		{
+			return request.Kind;
+		}
+
+		// Try to extract command from various possible fields
+		if(request.ExtensionData.TryGetValue("command", out object? cmdObj))
+		{
+			string cmdStr = cmdObj?.ToString() ?? "";
+
+			// If it's a JSON object with fullCommandText, extract that
+			if(cmdStr.StartsWith("{") && cmdStr.Contains("fullCommandText"))
+			{
+				try
+				{
+					using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(cmdStr);
+					if(doc.RootElement.TryGetProperty("fullCommandText", out System.Text.Json.JsonElement fullCmd))
+					{
+						return fullCmd.GetString() ?? request.Kind;
+					}
+				}
+				catch
+				{
+					// Fall through to return as-is
+				}
+			}
+
+			return cmdStr;
+		}
+
+		if(request.ExtensionData.TryGetValue("path", out object? pathObj))
+		{
+			return pathObj?.ToString() ?? request.Kind;
+		}
+
+		if(request.ExtensionData.TryGetValue("args", out object? argsObj))
+		{
+			return argsObj?.ToString() ?? request.Kind;
+		}
+
+		// Fallback: return kind
+		return request.Kind;
+	}
 }

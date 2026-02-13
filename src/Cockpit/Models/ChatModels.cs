@@ -16,6 +16,17 @@ public class ChatSession
 	public string? ReasoningEffort { get; set; }
 	public ActivityGroup? ActiveWorkingGroup { get; set; }
 	public Dictionary<string, ChatMessage> StreamingMessages { get; } = [];
+
+	/// <summary>
+	/// Pending permission request for this session (if any)
+	/// </summary>
+	public PermissionRequest? PendingPermissionRequest { get; set; }
+
+	/// <summary>
+	/// Previous status before permission request (to restore after decision)
+	/// </summary>
+	public SessionStatus? PreviousStatus { get; set; }
+
 	/// <summary>
 	/// Whether this session has an active SDK connection
 	/// </summary>
@@ -25,6 +36,11 @@ public class ChatSession
 	/// Whether this session requires a restart to apply configuration changes (model/reasoning effort)
 	/// </summary>
 	public bool RequiresRestart { get; set; }
+
+	/// <summary>
+	/// YOLO mode - automatically accept all permissions without prompting
+	/// </summary>
+	public bool IsYolo { get; set; }
 }
 
 public enum SessionStatus
@@ -32,6 +48,7 @@ public enum SessionStatus
 	Idle,
 	Active,
 	Running,
+	NeedsPermission,
 	Finished,
 	Error,
 	Archived

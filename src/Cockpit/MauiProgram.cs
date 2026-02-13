@@ -44,7 +44,7 @@ public static class MauiProgram
 		// Register Copilot SDK services
 		builder.Services.AddSingleton<CopilotClientService>();
 		builder.Services.AddSingleton<UnifiedSessionManager>();
-		
+		builder.Services.AddSingleton<PermissionService>();
 		builder.Services.AddSingleton<CopilotModelService>();
 
 		return builder.Build();

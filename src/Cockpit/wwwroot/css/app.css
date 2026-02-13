@@ -213,6 +213,23 @@ html, body {
     max-height: 26rem;
 }
 
+    .settings-panel::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .settings-panel::-webkit-scrollbar-track {
+        background: var(--sidebar-color);
+    }
+
+    .settings-panel::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 0px;
+    }
+
+        .settings-panel::-webkit-scrollbar-thumb:hover {
+            background: var(--hover-color);
+        }
+
 .settings-section {
     padding: 0.25rem 0;
 }

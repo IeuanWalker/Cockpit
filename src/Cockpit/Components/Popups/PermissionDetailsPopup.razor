@@ -1,0 +1,50 @@
+<!-- Overlay -->
+<div class="settings-overlay @(IsOpen ? "active" : "")" @onclick="Close"></div>
+
+<!-- Details Dialog -->
+<div class="settings-popup @(IsOpen ? "active" : "")">
+    <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl w-[500px] max-w-[90vw]">
+        <!-- Dialog Header -->
+        <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between">
+            <h3 class="text-vscode-title font-semibold flex items-center">
+                <svg class="w-5 h-5 mr-2 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                Permission Details
+            </h3>
+            <button @onclick="Close" class="p-1 hover:bg-vscode-hover rounded">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Dialog Content -->
+        <div class="p-4 space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin">
+            @if(Request is not null)
+            {
+                <div class="detail-section">
+                    <div class="detail-label">Tool</div>
+                    <div class="detail-value">@Request.ToolName</div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-label">Command</div>
+                    <div class="detail-value code-json">
+                        <pre>@FormatAsJson(Request.Command)</pre>
+                    </div>
+                </div>
+
+                @if(Request.Arguments is not null && Request.Arguments.Count > 0)
+                {
+                    <div class="detail-section">
+                        <div class="detail-label">Arguments</div>
+                        <div class="detail-value code-json">
+                            <pre>@FormatArgumentsAsJson(Request.Arguments)</pre>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
