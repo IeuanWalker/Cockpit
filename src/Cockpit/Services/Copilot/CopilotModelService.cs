@@ -19,6 +19,10 @@ public class CopilotModelService
 		return _models;
 	}
 
+	/// <summary>
+	/// TODO: Impelement functionality too allow the user to select the default model
+	/// </summary>
+	/// <returns></returns>
 	public async ValueTask<ModelInfo> GetDefaultModel()
 	{
 		List<ModelInfo>? models = _models;
