@@ -2,39 +2,6 @@ namespace Cockpit.Services;
 
 public class ActivityGroupingService
 {
-	public static (string Label, string Color) GetToolLabel(string toolName)
-	{
-		return toolName switch
-		{
-			"edit" => ("Edit", "#f59e0b"),      // orange
-			"create" => ("Create", "#22c55e"),   // green
-			"view" => ("Read", "#4ea8d1"),       // blue
-			"bash" or "powershell" => ("Run", "#a78bfa"),  // purple
-			"grep" => ("Search", "#4ea8d1"),     // blue
-			"glob" => ("Search", "#4ea8d1"),     // blue
-			"web_fetch" => ("Fetch", "#34d399"), // teal
-			"web_search" => ("Search", "#4ea8d1"), // blue
-			"sql" => ("Query", "#f472b6"),       // pink
-			"task" => ("Agent", "#c084fc"),      // purple
-			"ask_user" => ("Ask", "#fbbf24"),    // yellow
-			"task_complete" => ("Done", "#22c55e"), // green
-			"store_memory" => ("Memory", "#a78bfa"), // purple
-			"report_intent" => ("Intent", "#6b7280"), // gray
-			_ => (FormatToolName(toolName), "#9ca3af")   // gray default
-		};
-	}
-
-	static string FormatToolName(string toolName)
-	{
-		if(string.IsNullOrEmpty(toolName))
-		{
-			return string.Empty;
-		}
-
-		return string.Join(" ", toolName.Split('_').Select(w =>
-			w.Length > 0 ? char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant() : w));
-	}
-
 	// PolyPilot-style description - shows key info even when collapsed
 	public static string GenerateDescription(string toolName, Dictionary<string, object>? inputParams)
 	{

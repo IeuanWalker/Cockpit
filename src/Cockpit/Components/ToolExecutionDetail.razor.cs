@@ -30,16 +30,49 @@ public partial class ToolExecutionDetail
 		};
 	}
 
+	readonly Dictionary<string, (string Label, string Color)> _toolInfo = new()
+	{
+		["edit"] = ("Edit", "#f59e0b"),
+		["create"] = ("Create", "#22c55e"),
+		["view"] = ("Read", "#4ea8d1"),
+		["bash"] = ("Run", "#a78bfa"),
+		["powershell"] = ("Run", "#a78bfa"),
+		["grep"] = ("Search", "#4ea8d1"),
+		["glob"] = ("Search", "#4ea8d1"),
+		["web_search"] = ("Search", "#4ea8d1"),
+		["web_fetch"] = ("Fetch", "#34d399"),
+		["sql"] = ("Query", "#f472b6"),
+		["task"] = ("Agent", "#c084fc"),
+		["ask_user"] = ("Ask", "#fbbf24"),
+		["task_complete"] = ("Done", "#22c55e"),
+		["store_memory"] = ("Memory", "#a78bfa"),
+		["report_intent"] = ("Intent", "#6b7280")
+	};
+
 	string GetToolLabel()
 	{
-		(string? label, string _) = ActivityGroupingService.GetToolLabel(Tool.ToolName ?? "unknown");
-		return label;
+		if(_toolInfo.TryGetValue(Tool.ToolName, out (string Label, string Color) info))
+		{
+			return info.Label;
+		}
+
+		if(string.IsNullOrEmpty(Tool.ToolName))
+		{
+			return string.Empty;
+		}
+
+		return string.Join(" ", Tool.ToolName.Split('_').Select(w =>
+			w.Length > 0 ? char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant() : w));
 	}
 
 	string GetLabelColor()
 	{
-		(string _, string? color) = ActivityGroupingService.GetToolLabel(Tool.ToolName ?? "unknown");
-		return color;
+		if(_toolInfo.TryGetValue(Tool.ToolName, out (string Label, string Color) info))
+		{
+			return info.Color;
+		}
+
+		return "#9ca3af";
 	}
 
 	string GetToolDescription()

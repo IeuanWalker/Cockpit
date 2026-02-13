@@ -393,9 +393,6 @@ public class ChatService
 			ToolName = evt.Data.ToolName ?? "unknown",
 			ToolCallId = evt.Data.ToolCallId,
 			InputParameters = ActivityGroupingService.DeserializeArguments(evt.Data.Arguments),
-			InputSummary = ActivityGroupingService.GenerateInputSummary(
-				evt.Data.ToolName ?? "unknown",
-				ActivityGroupingService.DeserializeArguments(evt.Data.Arguments)),
 			StartTime = DateTime.Now,
 			Status = ToolStatus.Running
 		};
@@ -996,15 +993,10 @@ public class ChatService
 					{
 						ToolName = toolStart.Data.ToolName ?? "unknown",
 						ToolCallId = toolStart.Data.ToolCallId,
-						InputSummary = ActivityGroupingService.GenerateInputSummary(
-							toolStart.Data.ToolName ?? "unknown",
-							ActivityGroupingService.DeserializeArguments(toolStart.Data.Arguments)),
 						StartTime = toolStart.Timestamp.LocalDateTime,
 						Status = ToolStatus.Running,
 						InputParameters = ActivityGroupingService.DeserializeArguments(toolStart.Data.Arguments)
 					};
-					(string? label, string? color) = ActivityGroupingService.GetToolLabel(toolExec.ToolName);
-					toolExec.InputSummary ??= label;
 
 					currentGroup.AddEvent(new ThinkingEvent
 					{

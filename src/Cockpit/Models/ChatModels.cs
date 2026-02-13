@@ -135,7 +135,6 @@ public class ToolExecution
 	public string ToolName { get; set; } = string.Empty;
 	public string? ToolCallId { get; set; }
 	public Dictionary<string, object>? InputParameters { get; set; }
-	public string? InputSummary { get; set; }
 	public string? Output { get; set; }
 	public DateTime StartTime { get; set; } = DateTime.Now;
 	public DateTime? EndTime { get; set; }
