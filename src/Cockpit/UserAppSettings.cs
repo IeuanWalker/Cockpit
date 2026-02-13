@@ -39,6 +39,18 @@ public static class UserAppSettings
 		get => Preferences.Default.Get("SendOnEnter", true);
 		set => Preferences.Default.Set("SendOnEnter", value);
 	}
+
+	public static int LeftSidebarWidth
+	{
+		get => Preferences.Default.Get("LeftSidebarWidth", 224);
+		set => Preferences.Default.Set("LeftSidebarWidth", value);
+	}
+
+	public static int RightSidebarWidth
+	{
+		get => Preferences.Default.Get("RightSidebarWidth", 256);
+		set => Preferences.Default.Set("RightSidebarWidth", value);
+	}
 }
 
 // TODO: Implement system

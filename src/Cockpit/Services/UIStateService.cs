@@ -7,8 +7,27 @@ public class UIStateService
 	// Sidebar states
 	public bool LeftSidebarCollapsed { get; private set; } = false;
 	public bool RightSidebarCollapsed { get; private set; } = false;
-	public int LeftSidebarWidth { get; private set; } = 224; // 14rem = 224px
-	public int RightSidebarWidth { get; private set; } = 256; // 16rem = 256px
+
+	int _leftSidebarWidth = UserAppSettings.LeftSidebarWidth;
+	public int LeftSidebarWidth
+	{
+		get => _leftSidebarWidth;
+		private set
+		{
+			_leftSidebarWidth = value;
+			UserAppSettings.LeftSidebarWidth = value;
+		}
+	}
+	int _rightSidebarWidth = UserAppSettings.RightSidebarWidth;
+	public int RightSidebarWidth
+	{
+		get => _rightSidebarWidth;
+		private set
+		{
+			_rightSidebarWidth = value;
+			UserAppSettings.RightSidebarWidth = value;
+		}
+	}
 
 	// Settings popup
 	public bool SettingsPopupOpen { get; private set; } = false;
@@ -18,6 +37,7 @@ public class UIStateService
 
 	// Input behavior
 	bool _sendOnEnter = UserAppSettings.SendOnEnter;
+
 	public bool SendOnEnter
 	{
 		get => _sendOnEnter;
