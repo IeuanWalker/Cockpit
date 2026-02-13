@@ -86,9 +86,7 @@ public partial class ToolExecutionDetail
 			switch(Tool.ToolName)
 			{
 				case "report_intent":
-					string? intent = GetValue(Tool.InputParameters, "intent");
-					return intent ?? string.Empty;
-
+					return GetValue(Tool.InputParameters, "intent") ?? string.Empty;
 				case "view":
 					string? viewPath = GetValue(Tool.InputParameters, "path");
 					if(string.IsNullOrEmpty(viewPath))
@@ -139,30 +137,23 @@ public partial class ToolExecutionDetail
 						? Path.GetFileName(createPath)
 						: createPath;
 				case "bash" or "powershell":
-					string? command = GetValue(Tool.InputParameters, "command");
-					return !string.IsNullOrEmpty(command) ? $"$ {Truncate(command, 80)}" : "";
+					return GetValue(Tool.InputParameters, "command") ?? string.Empty;
 				case "grep":
 					string? grepPattern = GetValue(Tool.InputParameters, "pattern");
 					string glob = GetValue(Tool.InputParameters, "glob") ?? GetValue(Tool.InputParameters, "path") ?? ".";
 					return $"{grepPattern} in {glob}";
 				case "glob":
-					string? globPattern = GetValue(Tool.InputParameters, "pattern");
-					return globPattern ?? string.Empty;
+					return GetValue(Tool.InputParameters, "pattern") ?? string.Empty;
 				case "web_fetch":
-					string? url = GetValue(Tool.InputParameters, "url");
-					return Truncate(url ?? string.Empty, 80);
+					return GetValue(Tool.InputParameters, "url") ?? string.Empty;
 				case "web_search":
-					string? query = GetValue(Tool.InputParameters, "query");
-					return Truncate(query ?? string.Empty, 80);
+					return GetValue(Tool.InputParameters, "query") ?? string.Empty;
 				case "sql":
-					string? sqlQquery = GetValue(Tool.InputParameters, "query");
-					return Truncate(sqlQquery ?? string.Empty, 80);
+					return GetValue(Tool.InputParameters, "query") ?? string.Empty;
 				case "task":
-					string? desc = GetValue(Tool.InputParameters, "description");
-					return Truncate(desc ?? string.Empty, 80);
+					return GetValue(Tool.InputParameters, "description") ?? string.Empty;
 				case "ask_user":
-					string? question = GetValue(Tool.InputParameters, "question");
-					return Truncate(question ?? string.Empty, 80);
+					return GetValue(Tool.InputParameters, "question") ?? string.Empty;
 			}
 
 			object? first = Tool.InputParameters.Values.FirstOrDefault();
@@ -171,18 +162,7 @@ public partial class ToolExecutionDetail
 				return string.Empty;
 			}
 
-			string str = first.ToString() ?? string.Empty;
-			return Truncate(str, 80);
-
-			static string Truncate(string s, int max)
-			{
-				if(s.Length <= max)
-				{
-					return s;
-				}
-
-				return s[..max] + "…";
-			}
+			return first.ToString() ?? string.Empty;
 		}
 		catch
 		{
@@ -203,7 +183,7 @@ public partial class ToolExecutionDetail
 	{
 		if(!Tool.EndTime.HasValue)
 		{
-			return "";
+			return string.Empty;
 		}
 
 		TimeSpan duration = Tool.EndTime.Value - Tool.StartTime;
