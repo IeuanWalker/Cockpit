@@ -22,7 +22,6 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	string _chatInput = string.Empty;
 	ModelInfo? _selectedModel;
 	string _selectedReasoningEffort = string.Empty;
-	string? _pendingWorkingDirectory = null;
 	List<ModelInfo> _availableModels = [];
 	bool _shouldScrollToBottom = false;
 	bool _shouldScrollThinkingPanel = false;
@@ -189,7 +188,6 @@ public partial class ChatWindow : ComponentBase, IDisposable
 
 		try
 		{
-			_pendingWorkingDirectory = directory;
 			await ChatService.CreateNewSessionAsync(_selectedModel, _selectedReasoningEffort, directory);
 		}
 		catch(Exception ex)
