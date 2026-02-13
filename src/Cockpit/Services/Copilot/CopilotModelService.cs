@@ -32,6 +32,6 @@ public class CopilotModelService
 			models = await GetModels();
 		}
 
-		return models!.First();
+		return models!.Where(x => x.Billing?.Multiplier == 0).ToList()[1];
 	}
 }

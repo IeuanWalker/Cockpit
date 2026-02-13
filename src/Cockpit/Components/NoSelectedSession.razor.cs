@@ -6,7 +6,7 @@ namespace Cockpit.Components;
 
 public partial class NoSelectedSession : ComponentBase
 {
-	[Inject] ChatService ChatService { get; set; } = default!;
+	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
 	CreateSessionPopup? _createSessionPopup;
 
 	async Task CreateNewSession()

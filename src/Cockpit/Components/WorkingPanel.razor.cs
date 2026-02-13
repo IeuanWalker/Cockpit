@@ -14,7 +14,7 @@ public sealed partial class WorkingPanel : IDisposable
 	public bool IsVisible { get; set; }
 
 	[Inject]
-	ChatService ChatService { get; set; } = default!;
+	UnifiedSessionManager SessionManager { get; set; } = default!;
 
 	Timer? _timer;
 
@@ -69,6 +69,6 @@ public sealed partial class WorkingPanel : IDisposable
 
 	async Task StopSession()
 	{
-		await ChatService.AbortCurrentSessionAsync();
+		await SessionManager.AbortCurrentSessionAsync();
 	}
 }

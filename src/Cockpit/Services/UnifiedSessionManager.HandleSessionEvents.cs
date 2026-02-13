@@ -1,12 +1,17 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Services;
 
-public partial class ChatService
+public partial class UnifiedSessionManager
 {
+	/// <summary>
+	/// Handles session events for ALL resumed sessions (not just CurrentSession).
+	/// Events are processed regardless of which session is currently visible.
+	/// UI notifications are only triggered for CurrentSession to avoid unnecessary re-renders.
+	/// </summary>
 	void HandleSessionEvent(string sessionId, SessionEvent evt)
 	{
 		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
@@ -103,7 +108,12 @@ public partial class ChatService
 		session.Messages.Add(message);
 		session.LastActivity = DateTime.Now;
 		session.Status = SessionStatus.AgentRunning;
-		NotifyStateChanged();
+
+		// Only notify if this is the current visible session
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
 	}
 
 	void HandleAssistantMessageDelta(ChatSession session, AssistantMessageDeltaEvent evt)
@@ -141,7 +151,12 @@ public partial class ChatService
 
 			message.Content += evt.Data.DeltaContent ?? string.Empty;
 			session.LastActivity = DateTime.Now;
-			NotifyStateChanged();
+
+			// Only notify if this is the current visible session
+			if(session == CurrentSession)
+			{
+				NotifyStateChanged();
+			}
 			return;
 		}
 
@@ -165,7 +180,12 @@ public partial class ChatService
 
 		msg.Content += evt.Data.DeltaContent ?? string.Empty;
 		session.LastActivity = DateTime.Now;
-		NotifyStateChanged();
+
+		// Only notify if this is the current visible session
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
 	}
 
 	void HandleAssistantMessage(ChatSession session, AssistantMessageEvent evt)
@@ -207,7 +227,12 @@ public partial class ChatService
 				}
 
 				session.LastActivity = DateTime.Now;
-				NotifyStateChanged();
+
+				// Only notify if this is the current visible session
+				if(session == CurrentSession)
+				{
+					NotifyStateChanged();
+				}
 				return;
 			}
 
@@ -232,7 +257,12 @@ public partial class ChatService
 			}
 
 			session.LastActivity = DateTime.Now;
-			NotifyStateChanged();
+
+			// Only notify if this is the current visible session
+			if(session == CurrentSession)
+			{
+				NotifyStateChanged();
+			}
 			return;
 		}
 
@@ -260,7 +290,12 @@ public partial class ChatService
 		}
 
 		session.LastActivity = DateTime.Now;
-		NotifyStateChanged();
+
+		// Only notify if this is the current visible session
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
 	}
 
 	void HandleReasoningDelta(ChatSession session, AssistantReasoningDeltaEvent evt)
@@ -276,7 +311,12 @@ public partial class ChatService
 		// Reasoning is only shown in the thinking panel, not in chat
 		// Just update activity timestamp
 		session.LastActivity = DateTime.Now;
-		NotifyStateChanged();
+
+		// Only notify if this is the current visible session
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
 	}
 
 	void HandleReasoning(ChatSession session, AssistantReasoningEvent evt)
@@ -300,7 +340,12 @@ public partial class ChatService
 		}
 
 		session.LastActivity = DateTime.Now;
-		NotifyStateChanged();
+
+		// Only notify if this is the current visible session
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
 	}
 
 	void HandleAssistantTurnStart(ChatSession session)
@@ -308,7 +353,12 @@ public partial class ChatService
 		Debug.WriteLine("HandleAssistantTurnStart");
 
 		session.Status = SessionStatus.AgentRunning;
-		NotifyStateChanged();
+
+		// Only notify if this is the current visible session
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
 	}
 
 	void HandleToolStart(ChatSession session, ToolExecutionStartEvent evt)
@@ -364,7 +414,7 @@ public partial class ChatService
 		{
 			ToolName = evt.Data.ToolName ?? "unknown",
 			ToolCallId = evt.Data.ToolCallId,
-			InputParameters = ActivityGroupingService.DeserializeArguments(evt.Data.Arguments),
+			InputParameters = DeserializeArguments(evt.Data.Arguments),
 			StartTime = DateTime.Now,
 			Status = ToolStatus.Running
 		};
@@ -378,7 +428,12 @@ public partial class ChatService
 		});
 
 		session.LastActivity = DateTime.Now;
-		NotifyStateChanged();
+
+		// Only notify if this is the current visible session
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
 	}
 
 	void HandleToolComplete(ChatSession session, ToolExecutionCompleteEvent evt)
@@ -407,7 +462,12 @@ public partial class ChatService
 		}
 
 		session.LastActivity = DateTime.Now;
-		NotifyStateChanged();
+
+		// Only notify if this is the current visible session
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
 	}
 
 	void HandleSessionIdle(ChatSession session)
@@ -427,7 +487,12 @@ public partial class ChatService
 			{
 				Debug.WriteLine($"Activity message already exists for group {group.Id}, skipping insertion");
 				session.ActiveThinkingGroup = null;
-				NotifyStateChanged();
+
+				// Only notify if this is the current visible session
+				if(session == CurrentSession)
+				{
+					NotifyStateChanged();
+				}
 				return;
 			}
 
@@ -472,8 +537,18 @@ public partial class ChatService
 				session.Messages.Add(summaryMsg);
 				Debug.WriteLine($"Added summary message to chat: {summaryMsg.Id}");
 
-				// Stream the summary text progressively
-				_ = StreamSummaryTextAsync(session, summaryMsg, lastMessage.Message);
+				// Stream the summary text progressively (only for current session)
+				if(session == CurrentSession)
+				{
+					_ = StreamSummaryTextAsync(session, summaryMsg, lastMessage.Message);
+				}
+				else
+				{
+					// For background sessions, just set the content immediately
+					summaryMsg.Content = lastMessage.Message;
+					summaryMsg.IsStreaming = false;
+					summaryMsg.IsComplete = true;
+				}
 				hasSummary = true;
 			}
 
@@ -564,7 +639,12 @@ public partial class ChatService
 		}
 
 		session.Status = SessionStatus.Idle;
-		NotifyStateChanged();
+
+		// Only notify if this is the current visible session
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
 	}
 
 	void HandleSessionError(ChatSession session, SessionErrorEvent evt)
@@ -591,10 +671,14 @@ public partial class ChatService
 		session.Status = SessionStatus.Error;
 		session.LastActivity = DateTime.Now;
 
-		NotifyStateChanged();
+		// Only notify if this is the current visible session
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
 	}
 
-	async Task StreamSummaryTextAsync(ChatSession _, ChatMessage message, string fullText)
+	async Task StreamSummaryTextAsync(ChatSession session, ChatMessage message, string fullText)
 	{
 		const int chunkSize = 3; // Characters per tick
 		const int delayMs = 8; // Milliseconds between chunks
@@ -603,13 +687,23 @@ public partial class ChatService
 		{
 			int end = Math.Min(i + chunkSize, fullText.Length);
 			message.Content = fullText[..end];
-			NotifyMessagesChanged();
+
+			// Only notify if this is still the current session
+			if(session == CurrentSession)
+			{
+				NotifyStateChanged();
+			}
 			await Task.Delay(delayMs);
 		}
 
 		message.Content = fullText;
 		message.IsStreaming = false;
 		message.IsComplete = true;
-		NotifyMessagesChanged();
+
+		// Only notify if this is still the current session
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
 	}
 }

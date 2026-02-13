@@ -15,7 +15,7 @@ public partial class Main : ComponentBase, IDisposable
 	[Inject] CopilotModelService ModelService { get; set; } = default!;
 	[Inject] UIStateService UIState { get; set; } = default!;
 	[Inject] ISpeechToText SpeechToText { get; set; } = default!;
-	[Inject] ChatService ChatService { get; set; } = default!;
+	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
 	string _chatInput = string.Empty;
@@ -27,19 +27,19 @@ public partial class Main : ComponentBase, IDisposable
 
 	protected override async Task OnInitializedAsync()
 	{
-		ChatService.OnMessagesChanged += OnMessagesChanged;
+		SessionManager.OnStateChanged += OnStateChanged;
 		TimestampService.OnTick += OnTimestampTick;
 
 		_availableModels = await ModelService.GetModels();
 		if(_availableModels.Count > 0)
 		{
 			// TODO: Default model logic
-			ChatService.CurrentSession?.Model = _availableModels[0];
+			SessionManager.CurrentSession?.Model = _availableModels[0];
 			UpdateReasoningEffortForSelectedModel();
 		}
 
 		// Load existing sessions from SDK
-		await ChatService.LoadExistingSessionsAsync();
+		await SessionManager.LoadExistingSessionsAsync();
 
 		SpeechToText.RecognitionResultCompleted += HandleRecognitionResultCompleted;
 	}
@@ -92,11 +92,11 @@ public partial class Main : ComponentBase, IDisposable
 		}
 	}
 
-	void OnMessagesChanged()
+	void OnStateChanged()
 	{
 		_shouldScrollToBottom = true;
 		// Also scroll thinking panel if it's visible and has content
-		if(ChatService.IsThinking && ChatService.ActiveThinkingGroup?.Tools.Any() == true)
+		if(SessionManager.IsThinking && SessionManager.ActiveThinkingGroup?.Tools.Any() == true)
 		{
 			_shouldScrollThinkingPanel = true;
 		}
@@ -154,7 +154,7 @@ public partial class Main : ComponentBase, IDisposable
 		await OnTextareaInput();
 
 		// Send via SDK
-		await ChatService.SendMessageAsync(message);
+		await SessionManager.SendMessageAsync(message);
 	}
 
 	async Task HandleKeyDown(KeyboardEventArgs e)
@@ -173,21 +173,21 @@ public partial class Main : ComponentBase, IDisposable
 
 	void SelectModel(ModelInfo model)
 	{
-		if(ChatService.CurrentSession is null)
+		if(SessionManager.CurrentSession is null)
 		{
 			return;
 		}
 
 		// Check if model actually changed
-		if(ChatService.CurrentSession.Model.Id == model.Id)
+		if(SessionManager.CurrentSession.Model.Id == model.Id)
 		{
 			_isModelDropdownOpen = false;
 			return;
 		}
 
 		// Update model and mark session for restart
-		ChatService.CurrentSession.Model = model;
-		ChatService.CurrentSession.RequiresRestart = true;
+		SessionManager.CurrentSession.Model = model;
+		SessionManager.CurrentSession.RequiresRestart = true;
 
 		_isModelDropdownOpen = false;
 
@@ -197,18 +197,18 @@ public partial class Main : ComponentBase, IDisposable
 
 	void UpdateReasoningEffortForSelectedModel()
 	{
-		if(ChatService.CurrentSession?.Model is null)
+		if(SessionManager.CurrentSession?.Model is null)
 		{
 			return;
 		}
 
-		string newEffort = ChatService.CurrentSession.Model.DefaultReasoningEffort ?? string.Empty;
+		string newEffort = SessionManager.CurrentSession.Model.DefaultReasoningEffort ?? string.Empty;
 
 		// Only mark for restart if reasoning effort actually changed
-		if(ChatService.CurrentSession.ReasoningEffort != newEffort)
+		if(SessionManager.CurrentSession.ReasoningEffort != newEffort)
 		{
-			ChatService.CurrentSession.ReasoningEffort = newEffort;
-			ChatService.CurrentSession.RequiresRestart = true;
+			SessionManager.CurrentSession.ReasoningEffort = newEffort;
+			SessionManager.CurrentSession.RequiresRestart = true;
 		}
 	}
 
@@ -219,53 +219,53 @@ public partial class Main : ComponentBase, IDisposable
 
 	void SelectReasoningEffort(string effort)
 	{
-		if(ChatService.CurrentSession is null)
+		if(SessionManager.CurrentSession is null)
 		{
 			return;
 		}
 
 		// Check if reasoning effort actually changed
-		if(ChatService.CurrentSession.ReasoningEffort == effort)
+		if(SessionManager.CurrentSession.ReasoningEffort == effort)
 		{
 			_isReasoningEffortDropdownOpen = false;
 			return;
 		}
 
 		// Update reasoning effort and mark session for restart
-		ChatService.CurrentSession.ReasoningEffort = effort;
-		ChatService.CurrentSession.RequiresRestart = true;
+		SessionManager.CurrentSession.ReasoningEffort = effort;
+		SessionManager.CurrentSession.RequiresRestart = true;
 
 		_isReasoningEffortDropdownOpen = false;
 	}
 
 	string GetSelectedReasoningEffortDisplay()
 	{
-		if(string.IsNullOrEmpty(ChatService.CurrentSession?.ReasoningEffort))
+		if(string.IsNullOrEmpty(SessionManager.CurrentSession?.ReasoningEffort))
 		{
 			return "Default";
 		}
 
-		return char.ToUpper(ChatService.CurrentSession.ReasoningEffort[0]) + ChatService.CurrentSession.ReasoningEffort[1..];
+		return char.ToUpper(SessionManager.CurrentSession.ReasoningEffort[0]) + SessionManager.CurrentSession.ReasoningEffort[1..];
 	}
 
 	string GetDisplayModelName()
 	{
-		if(ChatService.CurrentSession is null)
+		if(SessionManager.CurrentSession is null)
 		{
 			return "No Model";
 		}
 
-		return ChatService.CurrentSession.Model.Name;
+		return SessionManager.CurrentSession.Model.Name;
 	}
 
 	double GetDisplayModelMultiplier()
 	{
-		if(ChatService.CurrentSession is null)
+		if(SessionManager.CurrentSession is null)
 		{
 			return 1.0;
 		}
 
-		return ChatService.CurrentSession.Model.Billing?.Multiplier ?? 1.0;
+		return SessionManager.CurrentSession.Model.Billing?.Multiplier ?? 1.0;
 	}
 
 	string GetMultiplierColor(double multiplier)
@@ -306,7 +306,7 @@ public partial class Main : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			ChatService.OnMessagesChanged -= OnMessagesChanged;
+			SessionManager.OnStateChanged -= OnStateChanged;
 			UIState.OnStateChanged -= OnUIStateChangedHandler;
 			TimestampService.OnTick -= OnTimestampTick;
 		}

@@ -1,18 +1,22 @@
 using Cockpit.Services;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Layout;
 
 public partial class MainLayout : IDisposable
 {
+	[Inject] UIStateService UIState { get; set; } = default!;
+	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
+	[Inject] ThemeService ThemeService { get; set; } = default!;
+
 	static UIStateService? staticUIState;
 
 	protected override async Task OnInitializedAsync()
 	{
 		await ThemeService.InitializeAsync();
 		UIState.OnStateChanged += OnStateChanged;
-		ChatService.OnSessionsChanged += OnStateChanged;
-		ChatService.OnMessagesChanged += OnStateChanged;
+		SessionManager.OnStateChanged += OnStateChanged;
 		staticUIState = UIState; // Store static reference for title bar access
 	}
 
@@ -38,8 +42,7 @@ public partial class MainLayout : IDisposable
 		if(disposing)
 		{
 			UIState.OnStateChanged -= OnStateChanged;
-			ChatService.OnSessionsChanged -= OnStateChanged;
-			ChatService.OnMessagesChanged -= OnStateChanged;
+			SessionManager.OnStateChanged -= OnStateChanged;
 		}
 	}
 }

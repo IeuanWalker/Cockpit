@@ -1,4 +1,4 @@
-﻿@using Cockpit.Components.Popups
+@using Cockpit.Components.Popups
 <div class="flex flex-col items-center justify-center h-full bg-vscode-bg">
     <div class="text-center max-w-md px-6">
         <img src="/images/logo.png" style="max-height:350px; margin: 0 auto" />
@@ -16,10 +16,10 @@
                 <span>Create New Session</span>
             </button>
 
-            @if(ChatService.Sessions.Count > 0)
+            @if(SessionManager.Sessions.Count > 0)
             {
                 <p class="text-xs text-vscode-secondary">
-                    Or select from <strong>@ChatService.Sessions.Count</strong> existing session@(ChatService.Sessions.Count == 1 ? "" : "s") in the sidebar
+                    Or select from <strong>@SessionManager.Sessions.Count</strong> existing session@(SessionManager.Sessions.Count == 1 ? "" : "s") in the sidebar
                 </p>
             }
         </div>

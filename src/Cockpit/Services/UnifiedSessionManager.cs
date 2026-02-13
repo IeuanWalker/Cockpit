@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using System.Text.Json;
+using Blazor.Sonner.Services;
 using Cockpit.Models;
 using Cockpit.Services.Copilot;
 using GitHub.Copilot.SDK;
@@ -5,36 +8,74 @@ using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Services;
 
-public partial class ChatService
+public partial class UnifiedSessionManager
 {
-	readonly CopilotSessionManager _sessionManager;
-	readonly ILogger<ChatService> _logger;
+	readonly CopilotClientService _clientService;
+	readonly ILogger<UnifiedSessionManager> _logger;
+	readonly ToastService _toastService;
 	readonly ContextService _contextService;
 	readonly CopilotModelService _copilotModelService;
 
-	public event Action? OnSessionsChanged;
-	public event Action? OnMessagesChanged;
+	// Internal: Maps sessionId -> SDK CopilotSession (for ALL resumed sessions)
+	readonly ConcurrentDictionary<string, CopilotSession> _sdkSessions = new();
 
+	public event Action? OnStateChanged;
+
+	// All sessions (persisted + in-memory)
 	public List<ChatSession> Sessions { get; private set; } = [];
+
+	// The ONE session currently visible in UI
 	public ChatSession? CurrentSession { get; private set; }
 
 	// Activity grouping for thinking panel (per-session)
 	public ActivityGroup? ActiveThinkingGroup => CurrentSession?.ActiveThinkingGroup;
 	public bool IsThinking => CurrentSession?.ActiveThinkingGroup is not null && CurrentSession.ActiveThinkingGroup.Status == GroupStatus.Running;
 
-	public ChatService(
-		CopilotSessionManager sessionManager,
-		ILogger<ChatService> logger,
+	public UnifiedSessionManager(
+		CopilotClientService clientService,
+		ILogger<UnifiedSessionManager> logger,
+		ToastService toastService,
 		ContextService contextService,
 		CopilotModelService copilotModelService)
 	{
-		_sessionManager = sessionManager;
+		_clientService = clientService;
 		_logger = logger;
+		_toastService = toastService;
 		_contextService = contextService;
 		_copilotModelService = copilotModelService;
+	}
 
-		// Subscribe to session events
-		_sessionManager.OnSessionEvent += HandleSessionEvent;
+	// Deserialize JsonElement arguments to Dictionary<string, object>
+	static Dictionary<string, object>? DeserializeArguments(object? arguments)
+	{
+		if(arguments is null)
+		{
+			return null;
+		}
+
+		try
+		{
+			// If it's already a dictionary, return it
+			if(arguments is Dictionary<string, object> dict)
+			{
+				return dict;
+			}
+
+			// If it's a JsonElement, deserialize it
+			if(arguments is JsonElement je)
+			{
+				if(je.ValueKind == JsonValueKind.Object)
+				{
+					return JsonSerializer.Deserialize<Dictionary<string, object>>(je.GetRawText());
+				}
+			}
+		}
+		catch
+		{
+			// Fall through to return null
+		}
+
+		return null;
 	}
 
 	string GenerateActivitySummary(ActivityGroup group)
@@ -175,7 +216,8 @@ public partial class ChatService
 		{
 			_logger.LogInformation("Loading existing sessions from SDK...");
 
-			List<SessionMetadata> sessionMetadataList = await _sessionManager.ListSessionsAsync();
+			CopilotClient client = await _clientService.GetClientAsync();
+			List<SessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
 
 			if(sessionMetadataList.Count == 0)
 			{
@@ -221,7 +263,6 @@ public partial class ChatService
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load existing sessions");
-			// TODO: Dipslay toest to user
 		}
 	}
 
@@ -240,7 +281,18 @@ public partial class ChatService
 				WorkingDirectory = workingDirectory
 			};
 
-			CopilotSession sdkSession = await _sessionManager.CreateSessionAsync(config);
+			CopilotClient client = await _clientService.GetClientAsync();
+			CopilotSession sdkSession = await client.CreateSessionAsync(config);
+
+			// Subscribe to session events
+			sdkSession.On(evt =>
+			{
+				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
+				HandleSessionEvent(sdkSession.SessionId, evt);
+			});
+
+			// Add to SDK sessions dictionary
+			_sdkSessions.TryAdd(sdkSession.SessionId, sdkSession);
 
 			ChatSession chatSession = new()
 			{
@@ -273,7 +325,6 @@ public partial class ChatService
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to create new session");
-			// TODO: Dipslay toest to user
 			throw;
 		}
 	}
@@ -306,10 +357,21 @@ public partial class ChatService
 				Streaming = true
 			};
 
-			CopilotSession sdkSession = await _sessionManager.ResumeSessionAsync(sessionId, config);
+			CopilotClient client = await _clientService.GetClientAsync();
+			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
+
+			// Subscribe to session events (will process in background)
+			sdkSession.On(evt =>
+			{
+				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
+				HandleSessionEvent(sdkSession.SessionId, evt);
+			});
+
+			// Add to SDK sessions dictionary
+			_sdkSessions.AddOrUpdate(sdkSession.SessionId, sdkSession, (_, _) => sdkSession);
 
 			// Load existing messages from SDK
-			IReadOnlyList<SessionEvent> events = await _sessionManager.GetMessagesAsync(sessionId);
+			IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
 			session.Messages.Clear();
 			session.StreamingMessages.Clear();
 			session.ActiveThinkingGroup = null;
@@ -390,7 +452,7 @@ public partial class ChatService
 						ToolCallId = toolStart.Data.ToolCallId,
 						StartTime = toolStart.Timestamp.LocalDateTime,
 						Status = ToolStatus.Running,
-						InputParameters = ActivityGroupingService.DeserializeArguments(toolStart.Data.Arguments)
+						InputParameters = DeserializeArguments(toolStart.Data.Arguments)
 					};
 
 					currentGroup.AddEvent(new ThinkingEvent
@@ -441,10 +503,18 @@ public partial class ChatService
 			_logger.LogInformation("Successfully resumed session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
 			return true;
 		}
+		catch(Exception ex) when(ex.Message.Equals("Communication error with Copilot CLI: Request session.resume failed with message: Session file is corrupted or incompatible"))
+		{
+			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
+			_toastService.Error("Session Unavailable", opts =>
+			{
+				opts.Description = "The session file may be corrupted, incompatible, or in use by another instance. You may need to delete or exit the session running else where";
+			});
+			return false;
+		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to resume session {SessionId}", sessionId);
-			// TODO: Dipslay toest to user
 			return false;
 		}
 	}
@@ -464,7 +534,7 @@ public partial class ChatService
 			_contextService.SetDirectory(session.WorkspacePath);
 		}
 
-		NotifyMessagesChanged();
+		NotifyStateChanged();
 	}
 
 	public async Task SendMessageAsync(string content, List<UserMessageDataAttachmentsItem>? attachments = null)
@@ -482,13 +552,22 @@ public partial class ChatService
 				await RestartSessionWithPendingConfigAsync();
 			}
 
+			if(!_sdkSessions.TryGetValue(CurrentSession.Id, out CopilotSession? sdkSession))
+			{
+				throw new InvalidOperationException($"Session {CurrentSession.Id} not found in SDK sessions");
+			}
+
 			CurrentSession.Status = SessionStatus.AgentRunning;
-			await _sessionManager.SendMessageAsync(CurrentSession.Id, content, attachments);
+
+			await sdkSession.SendAsync(new MessageOptions
+			{
+				Prompt = content,
+				Attachments = attachments
+			});
 		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to send message");
-			// TODO: Dipslay toest to user
 			CurrentSession.Status = SessionStatus.Error;
 			NotifyStateChanged();
 		}
@@ -511,7 +590,7 @@ public partial class ChatService
 			);
 
 			// Perform restart (destroy + resume with new config)
-			await _sessionManager.RestartSessionAsync(
+			await RestartSessionAsync(
 				CurrentSession.Id,
 				CurrentSession.Model.Id,
 				CurrentSession.ReasoningEffort
@@ -531,11 +610,64 @@ public partial class ChatService
 		}
 	}
 
+	public async Task RestartSessionAsync(string sessionId, string newModelId, string? newReasoningEffort = null, CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			// 1. Get existing session from dictionary
+			if(!_sdkSessions.TryRemove(sessionId, out CopilotSession? existingSession))
+			{
+				throw new InvalidOperationException($"Session {sessionId} not found");
+			}
+
+			// 2. Destroy the in-memory session object
+			await existingSession.DisposeAsync();
+			_logger.LogInformation("Destroyed session {SessionId} for restart", sessionId);
+
+			// 3. Create ResumeSessionConfig with new model/reasoning
+			ResumeSessionConfig resumeConfig = new()
+			{
+				Model = newModelId,
+				ReasoningEffort = newReasoningEffort,
+				Streaming = true
+			};
+
+			// 4. Resume session with same ID but new config
+			CopilotClient client = await _clientService.GetClientAsync(cancellationToken);
+			CopilotSession resumedSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
+
+			// 5. Re-subscribe to session events
+			resumedSession.On(evt =>
+			{
+				_logger.LogDebug("Session {SessionId} event: {EventType}", resumedSession.SessionId, evt.Type);
+				HandleSessionEvent(resumedSession.SessionId, evt);
+			});
+
+			// 6. Update dictionary with resumed session
+			_sdkSessions.TryAdd(resumedSession.SessionId, resumedSession);
+
+			_logger.LogInformation("Restarted session {SessionId} with model {Model}", sessionId, newModelId);
+		}
+		catch(Exception ex)
+		{
+			_logger.LogError(ex, "Failed to restart session {SessionId}", sessionId);
+			throw;
+		}
+	}
+
 	public async Task DeleteSessionAsync(string sessionId)
 	{
 		try
 		{
-			await _sessionManager.DeleteSessionAsync(sessionId);
+			// Remove from SDK sessions and dispose
+			if(_sdkSessions.TryRemove(sessionId, out CopilotSession? sdkSession))
+			{
+				await sdkSession.DisposeAsync();
+			}
+
+			// Delete from Copilot CLI
+			CopilotClient client = await _clientService.GetClientAsync();
+			await client.DeleteSessionAsync(sessionId);
 
 			ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
 			if(session is not null)
@@ -551,8 +683,6 @@ public partial class ChatService
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to delete session {SessionId}", sessionId);
-
-			// TODO: Dipslay toest to user
 		}
 	}
 
@@ -565,22 +695,18 @@ public partial class ChatService
 
 		try
 		{
-			await _sessionManager.AbortSessionAsync(CurrentSession.Id);
+			if(!_sdkSessions.TryGetValue(CurrentSession.Id, out CopilotSession? sdkSession))
+			{
+				throw new InvalidOperationException($"Session {CurrentSession.Id} not found in SDK sessions");
+			}
+
+			await sdkSession.AbortAsync();
 		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to abort session");
-
-			// TODO: Dipslay toest to user
 		}
 	}
 
-	void NotifyStateChanged()
-	{
-		OnSessionsChanged?.Invoke();
-		OnMessagesChanged?.Invoke();
-	}
-
-	void NotifyMessagesChanged() => OnMessagesChanged?.Invoke();
+	void NotifyStateChanged() => OnStateChanged?.Invoke();
 }
-

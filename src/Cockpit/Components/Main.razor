@@ -1,6 +1,6 @@
 @using Cockpit.Components.Controls
 @using Cockpit.Components.Popups
-@if(ChatService.CurrentSession is null)
+@if(SessionManager.CurrentSession is null)
 {
     <NoSelectedSession />
 }
@@ -15,7 +15,7 @@ else
                     <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                 </svg>
             </button>
-            <h1 class="text-vscode-title font-semibold text-sm">@(ChatService.CurrentSession?.Title ?? "No Session")</h1>
+            <h1 class="text-vscode-title font-semibold text-sm">@(SessionManager.CurrentSession?.Title ?? "No Session")</h1>
         </div>
 
         <div class="flex items-center ml-auto">
@@ -30,9 +30,9 @@ else
 
     <!-- Chat Messages -->
     <div id="chatMessages" class="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin p-3 space-y-3">
-        @if(ChatService.CurrentSession?.Messages != null)
+        @if(SessionManager.CurrentSession?.Messages != null)
         {
-            @foreach(var message in ChatService.CurrentSession.Messages)
+            @foreach(var message in SessionManager.CurrentSession.Messages)
             {
                 if(message.Type == MessageType.ActivityGroup && message.ActivityGroup != null)
                 {
@@ -70,7 +70,7 @@ else
     </div>
 
     <!-- Working Panel (appears above input when agent is working) -->
-    <WorkingPanel Group="@ChatService.ActiveThinkingGroup" IsVisible="@ChatService.IsThinking" />
+    <WorkingPanel Group="@SessionManager.ActiveThinkingGroup" IsVisible="@SessionManager.IsThinking" />
 
     <!-- Input Area -->
     <div class="border-t border-vscode-border bg-vscode-sidebar p-3">
@@ -145,7 +145,7 @@ else
                                 }
                             </div>
                         </div>
-                        @if(@ChatService.CurrentSession?.Model?.SupportedReasoningEfforts?.Count > 0)
+                        @if(@SessionManager.CurrentSession?.Model?.SupportedReasoningEfforts?.Count > 0)
                         {
                             <div class="flex items-center space-x-2">
                                 <label class="text-xs secondary-text">Reasoning:</label>
@@ -162,14 +162,14 @@ else
                                     {
                                         <div class="absolute bottom-full mb-1 right-0 rounded border shadow-lg min-w-[150px] max-h-[200px] overflow-y-auto scrollbar-thin"
                                              style="background-color: var(--input-bg); border-color: var(--input-border); z-index: 1000;">
-                                            @if(@ChatService.CurrentSession?.Model?.SupportedReasoningEfforts is not null)
+                                            @if(@SessionManager.CurrentSession?.Model?.SupportedReasoningEfforts is not null)
                                             {
-                                                @foreach(var effort in @ChatService.CurrentSession.Model.SupportedReasoningEfforts)
+                                                @foreach(var effort in @SessionManager.CurrentSession.Model.SupportedReasoningEfforts)
                                                 {
                                                     <button @onclick="() => SelectReasoningEffort(effort)"
                                                             class="w-full px-3 py-1.5 text-xs hover:bg-vscode-hover text-left"
                                                             style="color: var(--text-color);">
-                                                        @(char.ToUpper(effort[0]) + effort.Substring(1))@(effort == @ChatService.CurrentSession.Model.DefaultReasoningEffort ? " (default)" : "")
+                                                        @(char.ToUpper(effort[0]) + effort.Substring(1))@(effort == @SessionManager.CurrentSession.Model.DefaultReasoningEffort ? " (default)" : "")
                                                     </button>
                                                 }
                                             }

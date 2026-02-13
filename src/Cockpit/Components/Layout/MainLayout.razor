@@ -1,8 +1,5 @@
 @using Cockpit.Components.Popups
 @inherits LayoutComponentBase
-@inject UIStateService UIState
-@inject ChatService ChatService
-@inject ThemeService ThemeService
 @implements IDisposable
 
 <!-- Main Container -->
@@ -18,7 +15,7 @@
         @Body
     </div>
 
-    @if(ChatService.CurrentSession is not null)
+    @if(SessionManager.CurrentSession is not null)
     {
         <!-- Right Resize Handle -->
         <div id="rightResizeHandle" class="resize-handle @(UIState.RightSidebarCollapsed ? "hidden" : "")"></div>

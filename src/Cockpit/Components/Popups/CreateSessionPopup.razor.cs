@@ -7,7 +7,7 @@ namespace Cockpit.Components.Popups;
 
 public partial class CreateSessionPopup : ComponentBase, IDisposable
 {
-	[Inject] ChatService ChatService { get; set; } = default!;
+	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
 
 	bool _isOpen = false;
 	string _selectedPath = string.Empty;
@@ -94,7 +94,7 @@ public partial class CreateSessionPopup : ComponentBase, IDisposable
 
 		try
 		{
-			await ChatService.CreateNewSessionAsync(_selectedPath);
+			await SessionManager.CreateNewSessionAsync(_selectedPath);
 		}
 		catch(Exception ex)
 		{

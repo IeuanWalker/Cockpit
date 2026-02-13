@@ -12,7 +12,7 @@ public partial class SessionPannel : ComponentBase, IDisposable
 {
 	[Inject] TimestampService TimestampService { get; set; } = default!;
 	[Inject] UIStateService UIState { get; set; } = default!;
-	[Inject] ChatService ChatService { get; set; } = default!;
+	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
 	DotNetObjectReference<SessionPannel>? _dotNetHelper;
@@ -22,7 +22,7 @@ public partial class SessionPannel : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		ChatService.OnSessionsChanged += OnStateChanged;
+		SessionManager.OnStateChanged += OnStateChanged;
 		UIState.OnStateChanged += OnStateChanged;
 		TimestampService.OnTick += OnTimestampTick;
 	}
@@ -36,14 +36,14 @@ public partial class SessionPannel : ComponentBase, IDisposable
 	protected override async Task OnInitializedAsync()
 	{
 		_isLoadingSessions = true;
-		await ChatService.LoadExistingSessionsAsync();
+		await SessionManager.LoadExistingSessionsAsync();
 		_isLoadingSessions = false;
 	}
 
 	async Task RefreshSessions()
 	{
 		_isLoadingSessions = true;
-		await ChatService.LoadExistingSessionsAsync();
+		await SessionManager.LoadExistingSessionsAsync();
 		_isLoadingSessions = false;
 	}
 
@@ -69,7 +69,7 @@ public partial class SessionPannel : ComponentBase, IDisposable
 
 	async Task SelectSession(ChatSession session)
 	{
-		await ChatService.ResumeSessionAsync(session.Id);
+		await SessionManager.ResumeSessionAsync(session.Id);
 	}
 
 	void CreateNewSession()
@@ -120,7 +120,7 @@ public partial class SessionPannel : ComponentBase, IDisposable
 	{
 		if(_sessionToDelete != null)
 		{
-			await ChatService.DeleteSessionAsync(_sessionToDelete.Id);
+			await SessionManager.DeleteSessionAsync(_sessionToDelete.Id);
 		}
 		_showDeleteDialog = false;
 		_sessionToDelete = null;
@@ -144,7 +144,7 @@ public partial class SessionPannel : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			ChatService.OnSessionsChanged -= OnStateChanged;
+			SessionManager.OnStateChanged -= OnStateChanged;
 			UIState.OnStateChanged -= OnStateChanged;
 			TimestampService.OnTick -= OnTimestampTick;
 			_dotNetHelper?.Dispose();
