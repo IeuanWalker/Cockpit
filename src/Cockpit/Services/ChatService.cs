@@ -449,11 +449,37 @@ public class ChatService
 		{
 			ActivityGroup group = session.ActiveThinkingGroup;
 			Debug.WriteLine($"Finalizing thinking group. Has {group.Tools.Count()} tools");
+			
+			// Check if activity message already exists for this group
+			bool activityMessageExists = session.Messages.Any(m => 
+				m.Type == MessageType.ActivityGroup && m.ActivityGroup?.Id == group.Id);
+
+			if(activityMessageExists)
+			{
+				Debug.WriteLine($"Activity message already exists for group {group.Id}, skipping insertion");
+				session.ActiveThinkingGroup = null;
+				NotifyStateChanged();
+				return;
+			}
+
+			// Mark any still-running tools as stopped (Error status)
+			bool hasStoppedTools = false;
+			foreach(ToolExecution tool in group.Tools)
+			{
+				if(tool.Status == ToolStatus.Running)
+				{
+					tool.Status = ToolStatus.Error;
+					tool.EndTime = DateTime.Now;
+					tool.IsSuccess = false;
+					hasStoppedTools = true;
+				}
+			}
+			
 			group.Status = GroupStatus.Complete;
 			group.EndTime = DateTime.Now;
 			group.IsExpanded = false;
 
-			// Extract the last message event as the summary
+			// Extract the last message event as the summary (but not "Session stopped")
 			List<ThinkingEvent> events = group.GetEventsSnapshot();
 			ThinkingEvent? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventType.Message);
 
@@ -480,6 +506,17 @@ public class ChatService
 				// Stream the summary text progressively
 				_ = StreamSummaryTextAsync(session, summaryMsg, lastMessage.Message);
 				hasSummary = true;
+			}
+
+			// Add "Session stopped" event to operation list AFTER extracting summary
+			if(hasStoppedTools)
+			{
+				group.AddEvent(new ThinkingEvent
+				{
+					Type = ThinkingEventType.Message,
+					Message = "Session stopped",
+					Timestamp = DateTime.Now
+				});
 			}
 
 			// Insert activity group between initial and summary messages
@@ -606,6 +643,19 @@ public class ChatService
 		g.EndTime = g.GetEventsSnapshot().LastOrDefault()?.Timestamp ?? g.StartTime;
 		g.IsExpanded = false;
 
+		// Mark any still-running tools as stopped (Error status) - handles incomplete resumed sessions
+		bool hasStoppedTools = false;
+		foreach(ToolExecution tool in g.Tools)
+		{
+			if(tool.Status == ToolStatus.Running)
+			{
+				tool.Status = ToolStatus.Error;
+				tool.EndTime = g.EndTime;
+				tool.IsSuccess = false;
+				hasStoppedTools = true;
+			}
+		}
+
 		// Extract the last message as the summary (same logic as HandleSessionIdle)
 		List<ThinkingEvent> events = g.GetEventsSnapshot();
 		ThinkingEvent? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventType.Message);
@@ -624,6 +674,17 @@ public class ChatService
 				IsComplete = true
 			});
 			hasSummary = true;
+		}
+
+		// Add "Session stopped" event for resumed sessions that had stopped tools
+		if(hasStoppedTools)
+		{
+			g.AddEvent(new ThinkingEvent
+			{
+				Type = ThinkingEventType.Message,
+				Message = "Session stopped",
+				Timestamp = g.EndTime ?? DateTime.Now
+			});
 		}
 
 		// Insert activity group between initial and summary
@@ -1077,7 +1138,7 @@ public class ChatService
 		{
 			await _sessionManager.AbortSessionAsync(CurrentSession.Id);
 			RemoveTypingIndicator(CurrentSession);
-			HandleSessionIdle(CurrentSession);
+			// Don't call HandleSessionIdle here - the SDK will send SessionIdleEvent which will call it
 		}
 		catch(Exception ex)
 		{
