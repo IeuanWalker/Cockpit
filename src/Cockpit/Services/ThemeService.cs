@@ -31,9 +31,9 @@ public class ThemeService
 
 		await ApplyThemeAsync();
 		await ApplyAccentColorAsync();
+
 		_isInitialized = true;
 
-		// Update MAUI title bar theme on init
 		App.UpdateTitleBarTheme(CurrentTheme);
 	}
 
@@ -44,7 +44,6 @@ public class ThemeService
 		await ApplyThemeAsync();
 		OnThemeChanged?.Invoke();
 
-		// Update MAUI title bar theme
 		App.UpdateTitleBarTheme(theme);
 	}
 
@@ -62,34 +61,20 @@ public class ThemeService
 
 	async Task ApplyThemeAsync()
 	{
-		try
+		if(CurrentTheme.Equals(ThemeEnum.Light))
 		{
-			if(CurrentTheme.Equals(ThemeEnum.Light))
-			{
-				await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
-			}
-			else
-			{
-				await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
-			}
+			await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
 		}
-		catch
+		else
 		{
-			// Handle error silently
+			await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
 		}
 	}
 
 	async Task ApplyAccentColorAsync()
 	{
-		try
-		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--accent-color", AccentColor);
-			await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--button-bg", AccentColor);
-			await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--button-hover", AccentHoverColor);
-		}
-		catch
-		{
-			// Handle error silently
-		}
+		await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--accent-color", AccentColor);
+		await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--button-bg", AccentColor);
+		await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--button-hover", AccentHoverColor);
 	}
 }

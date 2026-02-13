@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using Blazor.Sonner.Services;
 using Cockpit.Models;
-using Cockpit.Services.Copilot;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
@@ -121,7 +120,7 @@ public partial class UnifiedSessionManager
 		ThinkingEvent? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventType.Message);
 
 		bool hasSummary = false;
-		if(lastMessage != null && !string.IsNullOrWhiteSpace(lastMessage.Message))
+		if(lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
 		{
 			g.RemoveEvent(lastMessage);
 			session.Messages.Add(new ChatMessage

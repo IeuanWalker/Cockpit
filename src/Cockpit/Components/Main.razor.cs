@@ -1,6 +1,5 @@
 using System.Globalization;
 using Cockpit.Services;
-using Cockpit.Services.Copilot;
 using CommunityToolkit.Maui.Media;
 using GitHub.Copilot.SDK;
 using Microsoft.AspNetCore.Components;

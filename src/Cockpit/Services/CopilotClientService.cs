@@ -1,7 +1,7 @@
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
-namespace Cockpit.Services.Copilot;
+namespace Cockpit.Services;
 
 public class CopilotClientService : IAsyncDisposable
 {
