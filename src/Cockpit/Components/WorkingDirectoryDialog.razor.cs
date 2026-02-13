@@ -91,11 +91,11 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 			return;
 		}
 
-		// Save to recent directories
-		SaveToRecentDirectories(_selectedPath);
-
 		await OnDirectorySelected.InvokeAsync(_selectedPath);
 		Close();
+
+		// Save to recent directories
+		SaveToRecentDirectories(_selectedPath);
 	}
 
 	void Cancel()
