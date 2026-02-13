@@ -11,22 +11,16 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 	bool _isOpen = false;
 	string _selectedPath = string.Empty;
 	string? _errorMessage;
-	string? _userHomeDirectory;
-	string? _documentsDirectory;
 	readonly List<string> _recentDirectories = [];
 
 	protected override void OnInitialized()
 	{
-		_userHomeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-		_documentsDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-
-		// Load recent directories from localStorage (to be implemented)
 		LoadRecentDirectories();
 	}
 
-	public void Open(string? defaultPath = null)
+	public void Open()
 	{
-		_selectedPath = defaultPath ?? _userHomeDirectory ?? string.Empty;
+		_selectedPath = string.Empty;
 		_errorMessage = null;
 		_isOpen = true;
 		StateHasChanged();
@@ -57,7 +51,10 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 			}
 			else
 			{
-				_errorMessage = $"Failed to open directory picker: {result.Exception.Message}";
+				if(result.Exception is not OperationCanceledException)
+				{
+					_errorMessage = $"Failed to open directory picker: {result.Exception.Message}";
+				}
 			}
 
 			StateHasChanged();
@@ -110,13 +107,7 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 
 	void LoadRecentDirectories()
 	{
-		// TODO: Load from localStorage or settings
-		// For now, just add the current directory
-		string currentDir = Directory.GetCurrentDirectory();
-		if(Directory.Exists(currentDir))
-		{
-			_recentDirectories.Add(currentDir);
-		}
+		// TODO: Load previous sessions
 	}
 
 	void SaveToRecentDirectories(string path)
@@ -128,7 +119,6 @@ public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
 			{
 				_recentDirectories.RemoveAt(_recentDirectories.Count - 1);
 			}
-			// TODO: Save to localStorage
 		}
 	}
 
