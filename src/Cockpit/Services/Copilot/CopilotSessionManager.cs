@@ -117,16 +117,7 @@ public class CopilotSessionManager
 		}
 	}
 
-	public bool TryGetSession(string sessionId, out CopilotSession? session)
-	{
-		return _sessions.TryGetValue(sessionId, out session);
-	}
-
-	public async Task<string> SendMessageAsync(
-		string sessionId,
-		string prompt,
-		List<UserMessageDataAttachmentsItem>? attachments = null,
-		CancellationToken cancellationToken = default)
+	public async Task<string> SendMessageAsync(string sessionId, string prompt, List<UserMessageDataAttachmentsItem>? attachments = null, CancellationToken cancellationToken = default)
 	{
 		if(!_sessions.TryGetValue(sessionId, out CopilotSession? session))
 		{
@@ -170,9 +161,7 @@ public class CopilotSessionManager
 		}
 	}
 
-	public async Task<IReadOnlyList<SessionEvent>> GetMessagesAsync(
-		string sessionId,
-		CancellationToken cancellationToken = default)
+	public async Task<IReadOnlyList<SessionEvent>> GetMessagesAsync(string sessionId, CancellationToken cancellationToken = default)
 	{
 		if(!_sessions.TryGetValue(sessionId, out CopilotSession? session))
 		{
@@ -188,21 +177,5 @@ public class CopilotSessionManager
 			_logger.LogError(ex, "Failed to get messages for session {SessionId}", sessionId);
 			throw;
 		}
-	}
-
-	public async ValueTask DisposeAllSessionsAsync()
-	{
-		foreach(CopilotSession session in _sessions.Values)
-		{
-			try
-			{
-				await session.DisposeAsync();
-			}
-			catch(Exception ex)
-			{
-				_logger.LogWarning(ex, "Error disposing session {SessionId}", session.SessionId);
-			}
-		}
-		_sessions.Clear();
 	}
 }
