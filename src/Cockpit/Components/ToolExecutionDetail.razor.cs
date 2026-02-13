@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Cockpit.Models;
-using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components;
@@ -77,7 +76,127 @@ public partial class ToolExecutionDetail
 
 	string GetToolDescription()
 	{
-		return ActivityGroupingService.GenerateDescription(Tool.ToolName, Tool.InputParameters);
+		if(Tool.InputParameters is null)
+		{
+			return string.Empty;
+		}
+
+		try
+		{
+			switch(Tool.ToolName)
+			{
+				case "report_intent":
+					string? intent = GetValue(Tool.InputParameters, "intent");
+					return intent ?? string.Empty;
+
+				case "view":
+					string? viewPath = GetValue(Tool.InputParameters, "path");
+					if(string.IsNullOrEmpty(viewPath))
+					{
+						return string.Empty;
+					}
+
+					string viewFileName = viewPath.Contains('/') || viewPath.Contains('\\')
+						? Path.GetFileName(viewPath)
+						: viewPath;
+
+					if(Tool.InputParameters.TryGetValue("view_range", out object? rangeObj))
+					{
+						return $"{viewFileName} lines {rangeObj}";
+					}
+
+					return viewFileName;
+				case "edit":
+					string? editPath = GetValue(Tool.InputParameters, "path");
+					if(string.IsNullOrEmpty(editPath))
+					{
+						return string.Empty;
+					}
+
+					string editFileName = editPath.Contains('/') || editPath.Contains('\\')
+						? Path.GetFileName(editPath)
+						: editPath;
+
+					string? oldStr = GetValue(Tool.InputParameters, "old_str");
+					string? newStr = GetValue(Tool.InputParameters, "new_str");
+
+					if(!string.IsNullOrEmpty(oldStr) || !string.IsNullOrEmpty(newStr))
+					{
+						int added = newStr?.Split('\n').Length ?? 0;
+						int removed = oldStr?.Split('\n').Length ?? 0;
+						return $"{editFileName} (+{added} -{removed})";
+					}
+
+					return editFileName;
+				case "create":
+					string? createPath = GetValue(Tool.InputParameters, "path");
+					if(string.IsNullOrEmpty(createPath))
+					{
+						return string.Empty;
+					}
+
+					return createPath.Contains('/') || createPath.Contains('\\')
+						? Path.GetFileName(createPath)
+						: createPath;
+				case "bash" or "powershell":
+					string? command = GetValue(Tool.InputParameters, "command");
+					return !string.IsNullOrEmpty(command) ? $"$ {Truncate(command, 80)}" : "";
+				case "grep":
+					string? grepPattern = GetValue(Tool.InputParameters, "pattern");
+					string glob = GetValue(Tool.InputParameters, "glob") ?? GetValue(Tool.InputParameters, "path") ?? ".";
+					return $"{grepPattern} in {glob}";
+				case "glob":
+					string? globPattern = GetValue(Tool.InputParameters, "pattern");
+					return globPattern ?? string.Empty;
+				case "web_fetch":
+					string? url = GetValue(Tool.InputParameters, "url");
+					return Truncate(url ?? string.Empty, 80);
+				case "web_search":
+					string? query = GetValue(Tool.InputParameters, "query");
+					return Truncate(query ?? string.Empty, 80);
+				case "sql":
+					string? sqlQquery = GetValue(Tool.InputParameters, "query");
+					return Truncate(sqlQquery ?? string.Empty, 80);
+				case "task":
+					string? desc = GetValue(Tool.InputParameters, "description");
+					return Truncate(desc ?? string.Empty, 80);
+				case "ask_user":
+					string? question = GetValue(Tool.InputParameters, "question");
+					return Truncate(question ?? string.Empty, 80);
+			}
+
+			object? first = Tool.InputParameters.Values.FirstOrDefault();
+			if(first is null)
+			{
+				return string.Empty;
+			}
+
+			string str = first.ToString() ?? string.Empty;
+			return Truncate(str, 80);
+
+			static string Truncate(string s, int max)
+			{
+				if(s.Length <= max)
+				{
+					return s;
+				}
+
+				return s[..max] + "…";
+			}
+		}
+		catch
+		{
+			return string.Empty;
+		}
+
+		static string? GetValue(Dictionary<string, object> dict, string key)
+		{
+			if(dict.TryGetValue(key, out object? value))
+			{
+				return value?.ToString();
+			}
+			return null;
+		}
 	}
 
 	string GetDuration()
