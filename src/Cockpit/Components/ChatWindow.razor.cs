@@ -248,6 +248,34 @@ public partial class ChatWindow : ComponentBase, IDisposable
 		return char.ToUpper(_selectedReasoningEffort[0]) + _selectedReasoningEffort[1..];
 	}
 
+	string GetMultiplierColor(double multiplier)
+	{
+		double maxMultiplier = _availableModels.Max(m => m.Billing?.Multiplier ?? 0);
+
+		if(multiplier == 0)
+		{
+			return "#00ff00";
+		}
+		else if(multiplier < 1)
+		{
+			return "#90ee90";
+		}
+		else if(multiplier == 1)
+		{
+			return "var(--text-color)";
+		}
+		else if(multiplier > 2 && multiplier >= maxMultiplier)
+		{
+			return "#ff4444";
+		}
+		else if(multiplier > 1)
+		{
+			return "#ffa500";
+		}
+
+		return "var(--text-color)";
+	}
+
 	public void Dispose()
 	{
 		Dispose(true);
