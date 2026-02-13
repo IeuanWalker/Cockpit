@@ -2,7 +2,7 @@ using System.Text.Json;
 using Cockpit.Models;
 using Microsoft.AspNetCore.Components;
 
-namespace Cockpit.Components;
+namespace Cockpit.Components.Controls;
 
 public partial class ToolExecutionDetail
 {

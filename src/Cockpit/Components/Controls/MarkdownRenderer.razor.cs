@@ -2,7 +2,7 @@ using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Cockpit.Components;
+namespace Cockpit.Components.Controls;
 
 public partial class MarkdownRenderer : ComponentBase
 {

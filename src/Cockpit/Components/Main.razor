@@ -1,3 +1,5 @@
+@using Cockpit.Components.Controls
+@using Cockpit.Components.Popups
 @if(ChatService.CurrentSession is null)
 {
     <!-- No Session Selected - Welcome Screen -->
@@ -61,7 +63,7 @@ else
                 if(message.Type == MessageType.ActivityGroup && message.ActivityGroup != null)
                 {
                     <!-- Activity Group (completed thinking) - plain inline expander -->
-                    <ActivityGroup Group="message.ActivityGroup" />
+                    <Opperations Group="message.ActivityGroup" />
                 }
                 @* Typing indicator removed - using thinking panel instead *@
                 else if(message.IsUser)
@@ -211,5 +213,4 @@ else
     </div>
 }
 
-<!-- Working Directory Dialog -->
-<WorkingDirectoryDialog @ref="_workingDirectoryDialog" OnDirectorySelected="OnWorkingDirectorySelected" />
+<CreateSessionPopup @ref="_createSessionPopup" OnDirectorySelected="OnWorkingDirectorySelected" />

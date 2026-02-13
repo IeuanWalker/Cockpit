@@ -1,3 +1,4 @@
+@using Cockpit.Components.Popups
 <div id="leftSidebar" class="sidebar @(UIState.LeftSidebarCollapsed ? "collapsed" : "") w-56 bg-vscode-sidebar border-r border-vscode-border flex flex-col" style="width: @(UIState.LeftSidebarWidth)px">
     <!-- Sidebar Header -->
     <div class="h-10 px-3 py-2 border-b border-vscode-border flex items-center justify-between">
@@ -93,8 +94,7 @@
 </div>
 
 <!-- Delete Confirmation Dialog -->
-<DeleteSessionDialog IsOpen="_showDeleteDialog"
-                     SessionTitle="@_sessionToDelete?.Title"
-                     OnConfirm="ConfirmDelete"
-                     OnCancel="CancelDelete" />
-
+<DeleteSessionPopup IsOpen="_showDeleteDialog"
+                    SessionTitle="@_sessionToDelete?.Title"
+                    OnConfirm="ConfirmDelete"
+                    OnCancel="CancelDelete" />

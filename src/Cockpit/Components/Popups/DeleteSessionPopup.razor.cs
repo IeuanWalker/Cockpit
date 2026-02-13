@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Components;
 
-namespace Cockpit.Components;
+namespace Cockpit.Components.Popups;
 
-public partial class DeleteSessionDialog : ComponentBase
+public partial class DeleteSessionPopup : ComponentBase
 {
 	[Parameter] public bool IsOpen { get; set; }
 	[Parameter] public string SessionTitle { get; set; } = string.Empty;

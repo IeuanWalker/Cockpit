@@ -1,4 +1,5 @@
-@if(IsVisible && Group != null)
+@using Cockpit.Components.Controls
+@if(IsVisible && Group is not null)
 {
     var events = Group.GetEventsSnapshot();
     <div class="working-panel" style="max-height: @MaxHeight">

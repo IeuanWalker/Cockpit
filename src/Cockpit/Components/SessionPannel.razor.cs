@@ -7,14 +7,14 @@ using Microsoft.JSInterop;
 
 namespace Cockpit.Components;
 
-public partial class SessionsSidebar : ComponentBase, IDisposable
+public partial class SessionPannel : ComponentBase, IDisposable
 {
 	[Inject] TimestampService TimestampService { get; set; } = default!;
 	[Inject] UIStateService UIState { get; set; } = default!;
 	[Inject] ChatService ChatService { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
-	DotNetObjectReference<SessionsSidebar>? _dotNetHelper;
+	DotNetObjectReference<SessionPannel>? _dotNetHelper;
 	bool _showDeleteDialog = false;
 	ChatSession? _sessionToDelete;
 

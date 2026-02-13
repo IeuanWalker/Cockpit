@@ -2,9 +2,9 @@ using CommunityToolkit.Maui.Storage;
 using Microsoft.AspNetCore.Components;
 
 
-namespace Cockpit.Components;
+namespace Cockpit.Components.Popups;
 
-public partial class WorkingDirectoryDialog : ComponentBase, IDisposable
+public partial class CreateSessionPopup : ComponentBase, IDisposable
 {
 	[Parameter] public EventCallback<string?> OnDirectorySelected { get; set; }
 

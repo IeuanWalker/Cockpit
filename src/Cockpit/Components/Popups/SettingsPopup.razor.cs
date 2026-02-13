@@ -1,7 +1,7 @@
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 
-namespace Cockpit.Components;
+namespace Cockpit.Components.Popups;
 
 public partial class SettingsPopup : ComponentBase, IDisposable
 {

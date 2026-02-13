@@ -1,3 +1,4 @@
+@using Cockpit.Components.Popups
 @inherits LayoutComponentBase
 @inject UIStateService UIState
 @inject ChatService ChatService
@@ -7,7 +8,7 @@
 <!-- Main Container -->
 <div class="flex h-screen">
     <!-- Left Sidebar - Sessions -->
-    <SessionsSidebar />
+    <SessionPannel />
 
     <!-- Left Resize Handle -->
     <div id="leftResizeHandle" class="resize-handle @(UIState.LeftSidebarCollapsed ? "hidden" : "")"></div>

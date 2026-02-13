@@ -2,12 +2,12 @@ using Cockpit.Models;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 
-namespace Cockpit.Components;
+namespace Cockpit.Components.Controls;
 
-public partial class ActivityGroup
+public partial class Opperations
 {
 	[Parameter]
-	public Models.ActivityGroup Group { get; set; } = default!;
+	public ActivityGroup Group { get; set; } = default!;
 
 	void ToggleExpanded()
 	{

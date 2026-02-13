@@ -1,4 +1,5 @@
 using System.Globalization;
+using Cockpit.Components.Popups;
 using Cockpit.Services;
 using Cockpit.Services.Copilot.Models;
 using CommunityToolkit.Maui.Media;
@@ -9,7 +10,7 @@ using Microsoft.JSInterop;
 
 namespace Cockpit.Components;
 
-public partial class ChatWindow : ComponentBase, IDisposable
+public partial class Main : ComponentBase, IDisposable
 {
 	[Inject] TimestampService TimestampService { get; set; } = default!;
 	[Inject] CopilotModelService ModelService { get; set; } = default!;
@@ -18,7 +19,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	[Inject] ChatService ChatService { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
-	WorkingDirectoryDialog? _workingDirectoryDialog;
+	CreateSessionPopup? _createSessionPopup;
 	string _chatInput = string.Empty;
 	ModelInfo? _selectedModel;
 	string _selectedReasoningEffort = string.Empty;
@@ -171,7 +172,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 		try
 		{
 			// Open directory selection dialog
-			_workingDirectoryDialog?.Open();
+			_createSessionPopup?.Open();
 		}
 		catch(Exception ex)
 		{
