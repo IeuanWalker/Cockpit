@@ -7,24 +7,21 @@ namespace Cockpit.Components;
 
 public sealed partial class WorkingPanel : IDisposable
 {
-	[Inject]
-	ChatService ChatService { get; set; } = default!;
-
 	[Parameter]
-	public Models.ActivityGroup? Group { get; set; }
+	public ActivityGroup? Group { get; set; }
 
 	[Parameter]
 	public bool IsVisible { get; set; }
 
-	[Parameter]
-	public string MaxHeight { get; set; } = "35%";
+	[Inject]
+	ChatService ChatService { get; set; } = default!;
 
 	Timer? _timer;
 
 	protected override void OnParametersSet()
 	{
 		// Start timer when thinking starts
-		if(IsVisible && Group != null && Group.Status == GroupStatus.Running)
+		if(IsVisible && Group is not null && Group.Status == GroupStatus.Running)
 		{
 			_timer ??= new Timer(_ => InvokeAsync(StateHasChanged), null, 0, 1000);
 		}

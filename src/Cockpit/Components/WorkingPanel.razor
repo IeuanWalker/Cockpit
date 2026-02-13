@@ -2,7 +2,7 @@
 @if(IsVisible && Group is not null)
 {
     var events = Group.GetEventsSnapshot();
-    <div class="working-panel" style="max-height: @MaxHeight">
+    <div class="working-panel" style="max-height: 35%">
         <div class="working-header">
             <span class="working-title">Working...</span>
             <span class="working-time">@GetElapsedTime()</span>
