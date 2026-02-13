@@ -12,6 +12,9 @@ public class ChatSession
 	public string? WorkingDirectory { get; set; }
 	public string? Model { get; set; }
 	public string? ReasoningEffort { get; set; }
+	public ActivityGroup? ActiveThinkingGroup { get; set; } // Per-session thinking state
+	public Dictionary<string, ChatMessage> StreamingMessages { get; } = []; // Per-session streaming state
+	public bool IsResumed { get; set; } // Whether this session has an active SDK connection
 }
 
 public enum SessionStatus
@@ -37,6 +40,7 @@ public class ChatMessage
 	public bool IsComplete { get; set; } = true;
 	public string? ReasoningContent { get; set; }
 	public Dictionary<string, object>? Metadata { get; set; }
+	public ActivityGroup? ActivityGroup { get; set; }
 }
 
 public enum MessageType
@@ -48,7 +52,110 @@ public enum MessageType
 	ToolResult,
 	SystemMessage,
 	Error,
-	Reasoning
+	Reasoning,
+	ActivityGroup
+}
+
+// Thinking event - can be either a message or a tool execution
+public class ThinkingEvent
+{
+	public string? Id { get; set; }
+	public DateTime Timestamp { get; set; } = DateTime.Now;
+	public ThinkingEventType Type { get; set; }
+	public string? Message { get; set; } // For message events
+	public ToolExecution? Tool { get; set; } // For tool events
+}
+
+public enum ThinkingEventType
+{
+	Message,
+	Tool
+}
+
+// Activity group for multiple tool executions
+public class ActivityGroup
+{
+	public string Id { get; set; } = Guid.NewGuid().ToString();
+	public DateTime StartTime { get; set; } = DateTime.Now;
+	public DateTime? EndTime { get; set; }
+	public bool IsExpanded { get; set; } = false;
+	public List<ThinkingEvent> Events { get; set; } = []; // Chronological list of messages and tools
+	public GroupStatus Status { get; set; } = GroupStatus.Running;
+	public string? InitialMessageId { get; set; } // Track the initial message to insert after it
+
+	readonly Lock _eventsLock = new();
+
+	// Thread-safe helper to get snapshot of events
+	public List<ThinkingEvent> GetEventsSnapshot()
+	{
+		lock(_eventsLock)
+		{
+			return [.. Events];
+		}
+	}
+
+	// Thread-safe helper to add event
+	public void AddEvent(ThinkingEvent evt)
+	{
+		lock(_eventsLock)
+		{
+			Events.Add(evt);
+		}
+	}
+
+	// Thread-safe helper to remove event
+	public void RemoveEvent(ThinkingEvent evt)
+	{
+		lock(_eventsLock)
+		{
+			Events.Remove(evt);
+		}
+	}
+
+	// Helper to get just tools for summary
+	public IEnumerable<ToolExecution> Tools
+	{
+		get
+		{
+			lock(_eventsLock)
+			{
+				return Events
+					.Where(e => e.Type == ThinkingEventType.Tool && e.Tool != null)
+					.Select(e => e.Tool!)
+					.ToList(); // Return a list to avoid deferred execution issues
+			}
+		}
+	}
+}
+
+// Individual tool execution
+public class ToolExecution
+{
+	public string Id { get; set; } = Guid.NewGuid().ToString();
+	public string ToolName { get; set; } = string.Empty;
+	public string? ToolCallId { get; set; }
+	public Dictionary<string, object>? InputParameters { get; set; }
+	public string? InputSummary { get; set; }
+	public string? Output { get; set; }
+	public DateTime StartTime { get; set; } = DateTime.Now;
+	public DateTime? EndTime { get; set; }
+	public ToolStatus Status { get; set; } = ToolStatus.Running;
+	public bool IsExpanded { get; set; } = false;
+	public bool IsSuccess { get; set; } = true;
+}
+
+public enum GroupStatus
+{
+	Running,
+	Complete,
+	Error
+}
+
+public enum ToolStatus
+{
+	Running,
+	Success,
+	Error
 }
 
 public class ContextFile

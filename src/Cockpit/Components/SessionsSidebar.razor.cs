@@ -100,7 +100,7 @@ public partial class SessionsSidebar : ComponentBase, IDisposable
 		return dateTime.Humanize();
 	}
 
-	void ShowDeleteDialog(ChatSession session, MouseEventArgs e)
+	void ShowDeleteDialog(ChatSession session, MouseEventArgs _)
 	{
 		_sessionToDelete = session;
 		_showDeleteDialog = true;

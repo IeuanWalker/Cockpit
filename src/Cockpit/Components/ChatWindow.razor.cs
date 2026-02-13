@@ -25,6 +25,7 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	string? _pendingWorkingDirectory = null;
 	List<ModelInfo> _availableModels = [];
 	bool _shouldScrollToBottom = false;
+	bool _shouldScrollThinkingPanel = false;
 	bool _isModelDropdownOpen = false;
 	bool _isReasoningEffortDropdownOpen = false;
 
@@ -72,6 +73,12 @@ public partial class ChatWindow : ComponentBase, IDisposable
 			_shouldScrollToBottom = false;
 			await ScrollToBottom();
 		}
+
+		if(_shouldScrollThinkingPanel)
+		{
+			_shouldScrollThinkingPanel = false;
+			await ScrollThinkingPanelToBottom();
+		}
 	}
 
 	void OnUIStateChangedHandler()
@@ -98,6 +105,11 @@ public partial class ChatWindow : ComponentBase, IDisposable
 	void OnMessagesChanged()
 	{
 		_shouldScrollToBottom = true;
+		// Also scroll thinking panel if it's visible and has content
+		if(ChatService.IsThinking && ChatService.ActiveThinkingGroup?.Tools.Any() == true)
+		{
+			_shouldScrollThinkingPanel = true;
+		}
 		InvokeAsync(StateHasChanged);
 	}
 
@@ -106,6 +118,18 @@ public partial class ChatWindow : ComponentBase, IDisposable
 		try
 		{
 			await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "chatMessages");
+		}
+		catch
+		{
+			// Handle error silently
+		}
+	}
+
+	async Task ScrollThinkingPanelToBottom()
+	{
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "workingContent");
 		}
 		catch
 		{

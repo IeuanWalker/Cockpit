@@ -79,6 +79,7 @@ html, body {
 
 .scrollbar-thin::-webkit-scrollbar {
     width: 8px;
+    height: 8px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
@@ -636,4 +637,326 @@ input[type="color"] {
 
 .session-item:hover .session-delete-btn {
     opacity: 1;
+}
+
+/* ================================
+   working Panel & Activity Groups
+   ================================ */
+
+/* working Panel (Live, above input) */
+.working-panel {
+    border-top: 2px solid #fbbf24;
+    background: rgba(251, 191, 36, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.working-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: rgba(251, 191, 36, 0.1);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.working-title {
+    font-weight: 600;
+    color: #fbbf24;
+    animation: pulse-glow 1.5s ease-in-out infinite;
+    font-size: 0.875rem;
+}
+
+.working-time {
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--secondary-text);
+    font-family: monospace;
+}
+
+.working-summary {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--secondary-text);
+}
+
+.working-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.5rem 1rem;
+    min-height: 0;
+}
+
+.working-message {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+    .working-message p:last-child {
+        margin-bottom: 0;
+    }
+
+/* Apply same scrollbar styling to working panel */
+.working-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.working-content::-webkit-scrollbar-track {
+    background: var(--sidebar-color);
+}
+
+.working-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 0px;
+}
+
+    .working-content::-webkit-scrollbar-thumb:hover {
+        background: var(--hover-color);
+    }
+
+/* Activity Group (Cooper-inspired, for completed thinking in chat) */
+.activity-group {
+    margin: 0.25rem 0;
+    padding-left: 55px; /* align with message content (logo width + margin) */
+    overflow: hidden;
+    min-width: 0;
+}
+
+    .activity-group.running {
+        border-left: none;
+    }
+
+    .activity-group.complete {
+        border-left: none;
+    }
+
+    .activity-group.error {
+        border-left: none;
+    }
+
+.group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.875rem;
+    color: var(--secondary-text);
+}
+
+    .group-header:hover {
+        color: var(--text-color);
+    }
+
+.expand-arrow {
+    transition: transform 0.2s;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.status-icon {
+    flex-shrink: 0;
+}
+
+.group-summary {
+    flex: 1;
+}
+
+.group-content {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 2px solid var(--border-color);
+    margin-left: 0.25rem;
+    overflow: hidden;
+}
+
+.thinking-message {
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.thinking-message pre {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.thinking-message table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.thinking-message pre::-webkit-scrollbar,
+.thinking-message table::-webkit-scrollbar {
+    height: 8px;
+}
+
+.thinking-message pre::-webkit-scrollbar-track,
+.thinking-message table::-webkit-scrollbar-track {
+    background: var(--sidebar-color);
+}
+
+.thinking-message pre::-webkit-scrollbar-thumb,
+.thinking-message table::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 0px;
+}
+
+.thinking-message pre::-webkit-scrollbar-thumb:hover,
+.thinking-message table::-webkit-scrollbar-thumb:hover {
+    background: var(--hover-color);
+}
+
+/* Tool Execution (PolyPilot-inspired clickable) */
+.tool-execution {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.25rem 0.4rem;
+    margin: 0.1rem 0;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+    .tool-execution:hover {
+        background: var(--hover-color);
+    }
+
+.tool-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    width: 100%;
+}
+
+.tool-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+    .tool-dot.running {
+        background: #f59e0b;
+        box-shadow: 0 0 6px rgba(245,158,11,0.5);
+        animation: pulse-dot 1.5s ease-in-out infinite;
+    }
+
+    .tool-dot.success {
+        background: #22c55e;
+    }
+
+    .tool-dot.error {
+        background: #f56565;
+    }
+
+@keyframes pulse-dot {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.tool-label {
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+}
+
+.tool-description {
+    color: var(--secondary-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.7rem;
+    flex: 1;
+}
+
+.tool-duration {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--secondary-text);
+    flex-shrink: 0;
+}
+
+.expand-indicator {
+    font-size: 0.7rem;
+    color: var(--secondary-text);
+    flex-shrink: 0;
+}
+
+.tool-details {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.detail-section {
+    margin: 0.5rem 0;
+}
+
+    .detail-section h4 {
+        font-size: 0.75rem;
+        color: var(--secondary-text);
+        margin-bottom: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+.detail-code {
+    font-size: 0.7rem;
+    background: var(--sidebar-color);
+    padding: 0.5rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 0;
+    color: var(--text-color);
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.detail-code::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.detail-code::-webkit-scrollbar-track {
+    background: var(--sidebar-color);
+}
+
+.detail-code::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 0px;
+}
+
+    .detail-code::-webkit-scrollbar-thumb:hover {
+        background: var(--hover-color);
+    }
+
+.detail-text {
+    font-size: 0.75rem;
+    color: var(--text-color);
+    line-height: 1.5;
 }

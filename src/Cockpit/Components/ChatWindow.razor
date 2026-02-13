@@ -58,24 +58,12 @@ else
         {
             @foreach(var message in ChatService.CurrentSession.Messages)
             {
-                if(message.Type == MessageType.Typing)
+                if(message.Type == MessageType.ActivityGroup && message.ActivityGroup != null)
                 {
-                    <!-- Typing Indicator -->
-                    <div class="flex justify-start">
-                        <div class="max-w-2xl">
-                            <div class="flex items-start">
-                                <img src="/images/logo.png" style="max-height:45px; margin: 0 5px 0 0" />
-                                <div class="bg-vscode-sidebar border border-vscode-border rounded-lg px-4 py-3">
-                                    <div class="flex space-x-1">
-                                        <div class="w-2 h-2 rounded-full animate-bounce secondary-text" style="background-color: currentColor;"></div>
-                                        <div class="w-2 h-2 rounded-full animate-bounce secondary-text" style="background-color: currentColor; animation-delay: 0.1s"></div>
-                                        <div class="w-2 h-2 rounded-full animate-bounce secondary-text" style="background-color: currentColor; animation-delay: 0.2s"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Activity Group (completed thinking) - plain inline expander -->
+                    <ActivityGroup Group="message.ActivityGroup" />
                 }
+                @* Typing indicator removed - using thinking panel instead *@
                 else if(message.IsUser)
                 {
                     <!-- User Message -->
@@ -104,6 +92,11 @@ else
             }
         }
     </div>
+
+    <!-- Working Panel (appears above input when agent is working) -->
+    <WorkingPanel Group="@ChatService.ActiveThinkingGroup"
+                  IsVisible="@ChatService.IsThinking"
+                  MaxHeight="35%" />
 
     <!-- Input Area -->
     <div class="border-t border-vscode-border bg-vscode-sidebar p-3">
