@@ -1,3 +1,4 @@
+using Cockpit.Components.Popups;
 using Cockpit.Models;
 using Cockpit.Services;
 using Humanizer;
@@ -17,6 +18,7 @@ public partial class SessionPannel : ComponentBase, IDisposable
 	DotNetObjectReference<SessionPannel>? _dotNetHelper;
 	bool _showDeleteDialog = false;
 	ChatSession? _sessionToDelete;
+	CreateSessionPopup? _createSessionPopup;
 
 	protected override void OnInitialized()
 	{
@@ -72,7 +74,14 @@ public partial class SessionPannel : ComponentBase, IDisposable
 
 	void CreateNewSession()
 	{
-		ChatService.RequestNewSession();
+		try
+		{
+			_createSessionPopup?.Open();
+		}
+		catch(Exception ex)
+		{
+			Console.Error.WriteLine($"Failed to open directory dialog: {ex.Message}");
+		}
 	}
 
 	static string GetSessionStatusClass(ChatSession session)

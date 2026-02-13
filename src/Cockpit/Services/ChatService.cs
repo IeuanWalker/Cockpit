@@ -15,7 +15,6 @@ public class ChatService
 	public event Action? OnSessionsChanged;
 	public event Action? OnMessagesChanged;
 	public event Action<string>? OnError;
-	public event Action? OnNewSessionRequested;
 
 	public List<ChatSession> Sessions { get; private set; } = [];
 	public ChatSession? CurrentSession { get; private set; }
@@ -773,11 +772,6 @@ public class ChatService
 
 		OnError?.Invoke(evt.Data.Message ?? "Unknown error");
 		NotifyStateChanged();
-	}
-
-	public void RequestNewSession()
-	{
-		OnNewSessionRequested?.Invoke();
 	}
 
 	public async Task LoadExistingSessionsAsync()

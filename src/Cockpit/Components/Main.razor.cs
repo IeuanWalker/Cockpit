@@ -32,7 +32,6 @@ public partial class Main : ComponentBase, IDisposable
 	protected override async Task OnInitializedAsync()
 	{
 		ChatService.OnMessagesChanged += OnMessagesChanged;
-		ChatService.OnNewSessionRequested += OnNewSessionRequested;
 		TimestampService.OnTick += OnTimestampTick;
 
 		_availableModels = await ModelService.GetModels();
@@ -180,23 +179,6 @@ public partial class Main : ComponentBase, IDisposable
 		}
 	}
 
-	async Task OnWorkingDirectorySelected(string? directory)
-	{
-		if(string.IsNullOrEmpty(directory))
-		{
-			return;
-		}
-
-		try
-		{
-			await ChatService.CreateNewSessionAsync(_selectedModel, _selectedReasoningEffort, directory);
-		}
-		catch(Exception ex)
-		{
-			Console.Error.WriteLine($"Failed to create session: {ex.Message}");
-		}
-	}
-
 	async Task HandleKeyDown(KeyboardEventArgs e)
 	{
 		if(e.Key == "Enter" && !e.ShiftKey && UIState.SendOnEnter)
@@ -286,7 +268,6 @@ public partial class Main : ComponentBase, IDisposable
 		if(disposing)
 		{
 			ChatService.OnMessagesChanged -= OnMessagesChanged;
-			ChatService.OnNewSessionRequested -= OnNewSessionRequested;
 			UIState.OnStateChanged -= OnUIStateChangedHandler;
 			TimestampService.OnTick -= OnTimestampTick;
 		}

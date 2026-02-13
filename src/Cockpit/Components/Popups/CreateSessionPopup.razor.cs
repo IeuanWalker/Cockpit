@@ -1,3 +1,4 @@
+using Cockpit.Services;
 using CommunityToolkit.Maui.Storage;
 using Microsoft.AspNetCore.Components;
 
@@ -6,7 +7,7 @@ namespace Cockpit.Components.Popups;
 
 public partial class CreateSessionPopup : ComponentBase, IDisposable
 {
-	[Parameter] public EventCallback<string?> OnDirectorySelected { get; set; }
+	[Inject] ChatService ChatService { get; set; } = default!;
 
 	bool _isOpen = false;
 	string _selectedPath = string.Empty;
@@ -91,7 +92,15 @@ public partial class CreateSessionPopup : ComponentBase, IDisposable
 			return;
 		}
 
-		await OnDirectorySelected.InvokeAsync(_selectedPath);
+		try
+		{
+			await ChatService.CreateNewSessionAsync(null, null, _selectedPath);
+		}
+		catch(Exception ex)
+		{
+			Console.Error.WriteLine($"Failed to create session: {ex.Message}");
+		}
+
 		Close();
 
 		// Save to recent directories

@@ -1,0 +1,29 @@
+﻿@using Cockpit.Components.Popups
+<div class="flex flex-col items-center justify-center h-full bg-vscode-bg">
+    <div class="text-center max-w-md px-6">
+        <img src="/images/logo.png" style="max-height:350px; margin: 0 auto" />
+        <h1 class="text-2xl font-semibold text-vscode-title mb-3">Welcome to Cockpit</h1>
+        <p class="text-vscode-secondary mb-8">Get started by selecting a previous session or creating a new one.</p>
+
+        <!-- Actions -->
+        <div class="space-y-3">
+            <button @onclick="CreateNewSession"
+                    class="w-full px-6 py-3 rounded-lg font-medium text-white flex items-center justify-center space-x-2"
+                    style="background-color: var(--accent-color);">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Create New Session</span>
+            </button>
+
+            @if(ChatService.Sessions.Count > 0)
+            {
+                <p class="text-xs text-vscode-secondary">
+                    Or select from <strong>@ChatService.Sessions.Count</strong> existing session@(ChatService.Sessions.Count == 1 ? "" : "s") in the sidebar
+                </p>
+            }
+        </div>
+    </div>
+</div>
+
+<CreateSessionPopup @ref="_createSessionPopup" />
