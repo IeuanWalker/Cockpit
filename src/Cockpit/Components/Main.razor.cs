@@ -173,16 +173,42 @@ public partial class Main : ComponentBase, IDisposable
 
 	void SelectModel(ModelInfo model)
 	{
-		ChatService.CurrentSession?.Model = model;
+		if(ChatService.CurrentSession is null)
+		{
+			return;
+		}
+
+		// Check if model actually changed
+		if(ChatService.CurrentSession.Model.Id == model.Id)
+		{
+			_isModelDropdownOpen = false;
+			return;
+		}
+
+		// Update model and mark session for restart
+		ChatService.CurrentSession.Model = model;
+		ChatService.CurrentSession.RequiresRestart = true;
+
 		_isModelDropdownOpen = false;
+
+		// Update reasoning effort based on new model's defaults
 		UpdateReasoningEffortForSelectedModel();
 	}
 
 	void UpdateReasoningEffortForSelectedModel()
 	{
-		if(ChatService.CurrentSession?.Model is not null)
+		if(ChatService.CurrentSession?.Model is null)
 		{
-			ChatService.CurrentSession?.ReasoningEffort = ChatService.CurrentSession?.Model.DefaultReasoningEffort ?? string.Empty;
+			return;
+		}
+
+		string newEffort = ChatService.CurrentSession.Model.DefaultReasoningEffort ?? string.Empty;
+
+		// Only mark for restart if reasoning effort actually changed
+		if(ChatService.CurrentSession.ReasoningEffort != newEffort)
+		{
+			ChatService.CurrentSession.ReasoningEffort = newEffort;
+			ChatService.CurrentSession.RequiresRestart = true;
 		}
 	}
 
@@ -193,7 +219,22 @@ public partial class Main : ComponentBase, IDisposable
 
 	void SelectReasoningEffort(string effort)
 	{
-		ChatService.CurrentSession?.ReasoningEffort = effort;
+		if(ChatService.CurrentSession is null)
+		{
+			return;
+		}
+
+		// Check if reasoning effort actually changed
+		if(ChatService.CurrentSession.ReasoningEffort == effort)
+		{
+			_isReasoningEffortDropdownOpen = false;
+			return;
+		}
+
+		// Update reasoning effort and mark session for restart
+		ChatService.CurrentSession.ReasoningEffort = effort;
+		ChatService.CurrentSession.RequiresRestart = true;
+
 		_isReasoningEffortDropdownOpen = false;
 	}
 
@@ -205,6 +246,26 @@ public partial class Main : ComponentBase, IDisposable
 		}
 
 		return char.ToUpper(ChatService.CurrentSession.ReasoningEffort[0]) + ChatService.CurrentSession.ReasoningEffort[1..];
+	}
+
+	string GetDisplayModelName()
+	{
+		if(ChatService.CurrentSession is null)
+		{
+			return "No Model";
+		}
+
+		return ChatService.CurrentSession.Model.Name;
+	}
+
+	double GetDisplayModelMultiplier()
+	{
+		if(ChatService.CurrentSession is null)
+		{
+			return 1.0;
+		}
+
+		return ChatService.CurrentSession.Model.Billing?.Multiplier ?? 1.0;
 	}
 
 	string GetMultiplierColor(double multiplier)

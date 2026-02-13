@@ -476,6 +476,12 @@ public partial class ChatService
 
 		try
 		{
+			// Check if session needs restart before sending message
+			if(CurrentSession.RequiresRestart)
+			{
+				await RestartSessionWithPendingConfigAsync();
+			}
+
 			CurrentSession.Status = SessionStatus.AgentRunning;
 			await _sessionManager.SendMessageAsync(CurrentSession.Id, content, attachments);
 		}
@@ -485,6 +491,43 @@ public partial class ChatService
 			// TODO: Dipslay toest to user
 			CurrentSession.Status = SessionStatus.Error;
 			NotifyStateChanged();
+		}
+	}
+
+	async Task RestartSessionWithPendingConfigAsync()
+	{
+		if(CurrentSession is null || !CurrentSession.RequiresRestart)
+		{
+			return;
+		}
+
+		try
+		{
+			_logger.LogInformation(
+				"Restarting session {SessionId} with model {Model} and reasoning effort {ReasoningEffort}",
+				CurrentSession.Id,
+				CurrentSession.Model.Id,
+				CurrentSession.ReasoningEffort ?? "default"
+			);
+
+			// Perform restart (destroy + resume with new config)
+			await _sessionManager.RestartSessionAsync(
+				CurrentSession.Id,
+				CurrentSession.Model.Id,
+				CurrentSession.ReasoningEffort
+			);
+
+			// Clear restart flag
+			CurrentSession.RequiresRestart = false;
+
+			_logger.LogInformation("Session {SessionId} restarted successfully", CurrentSession.Id);
+			NotifyStateChanged();
+		}
+		catch(Exception ex)
+		{
+			_logger.LogError(ex, "Failed to restart session {SessionId}", CurrentSession.Id);
+			// Keep RequiresRestart = true so user can retry
+			throw;
 		}
 	}
 

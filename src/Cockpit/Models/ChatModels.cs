@@ -20,6 +20,11 @@ public class ChatSession
 	/// Whether this session has an active SDK connection
 	/// </summary>
 	public bool IsResumed { get; set; }
+
+	/// <summary>
+	/// Whether this session requires a restart to apply configuration changes (model/reasoning effort)
+	/// </summary>
+	public bool RequiresRestart { get; set; }
 }
 
 public enum SessionStatus

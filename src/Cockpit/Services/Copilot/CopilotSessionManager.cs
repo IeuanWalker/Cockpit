@@ -161,6 +161,51 @@ public class CopilotSessionManager
 		}
 	}
 
+	public async Task RestartSessionAsync(string sessionId, string newModelId, string? newReasoningEffort = null, CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			// 1. Get existing session from dictionary
+			if(!_sessions.TryRemove(sessionId, out CopilotSession? existingSession))
+			{
+				throw new InvalidOperationException($"Session {sessionId} not found");
+			}
+
+			// 2. Destroy the in-memory session object
+			await existingSession.DisposeAsync();
+			_logger.LogInformation("Destroyed session {SessionId} for restart", sessionId);
+
+			// 3. Create ResumeSessionConfig with new model/reasoning
+			ResumeSessionConfig resumeConfig = new()
+			{
+				Model = newModelId,
+				ReasoningEffort = newReasoningEffort,
+				Streaming = true
+			};
+
+			// 4. Resume session with same ID but new config
+			CopilotClient client = await _clientService.GetClientAsync(cancellationToken);
+			CopilotSession resumedSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
+
+			// 5. Re-subscribe to session events
+			resumedSession.On(evt =>
+			{
+				_logger.LogDebug("Session {SessionId} event: {EventType}", resumedSession.SessionId, evt.Type);
+				OnSessionEvent?.Invoke(resumedSession.SessionId, evt);
+			});
+
+			// 6. Update dictionary with resumed session
+			_sessions.TryAdd(resumedSession.SessionId, resumedSession);
+
+			_logger.LogInformation("Restarted session {SessionId} with model {Model}", sessionId, newModelId);
+		}
+		catch(Exception ex)
+		{
+			_logger.LogError(ex, "Failed to restart session {SessionId}", sessionId);
+			throw;
+		}
+	}
+
 	public async Task<IReadOnlyList<SessionEvent>> GetMessagesAsync(string sessionId, CancellationToken cancellationToken = default)
 	{
 		if(!_sessions.TryGetValue(sessionId, out CopilotSession? session))
