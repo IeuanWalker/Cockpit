@@ -14,7 +14,7 @@ public class ChatSession
 	public string? WorkingDirectory { get; set; }
 	public required ModelInfo Model { get; set; }
 	public string? ReasoningEffort { get; set; }
-	public ActivityGroup? ActiveThinkingGroup { get; set; }
+	public ActivityGroup? ActiveWorkingGroup { get; set; }
 	public Dictionary<string, ChatMessage> StreamingMessages { get; } = [];
 	/// <summary>
 	/// Whether this session has an active SDK connection

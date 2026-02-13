@@ -27,9 +27,9 @@ public partial class UnifiedSessionManager
 	// The ONE session currently visible in UI
 	public ChatSession? CurrentSession { get; private set; }
 
-	// Activity grouping for thinking panel (per-session)
-	public ActivityGroup? ActiveThinkingGroup => CurrentSession?.ActiveThinkingGroup;
-	public bool IsThinking => CurrentSession?.ActiveThinkingGroup is not null && CurrentSession.ActiveThinkingGroup.Status == GroupStatus.Running;
+	// Activity grouping for working panel (per-session)
+	public ActivityGroup? ActiveWorkingGroup => CurrentSession?.ActiveWorkingGroup;
+	public bool IsWorking => CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatus.Running;
 
 	public UnifiedSessionManager(
 		CopilotClientService clientService,
@@ -374,7 +374,7 @@ public partial class UnifiedSessionManager
 			IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
 			session.Messages.Clear();
 			session.StreamingMessages.Clear();
-			session.ActiveThinkingGroup = null;
+			session.ActiveWorkingGroup = null;
 
 			_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 

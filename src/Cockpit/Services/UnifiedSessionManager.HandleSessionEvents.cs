@@ -129,7 +129,7 @@ public partial class UnifiedSessionManager
 		string messageId = evt.Data.MessageId ?? "streaming";
 
 		// Don't add to chat if we have an active thinking group
-		if(session.ActiveThinkingGroup is not null && session.ActiveThinkingGroup.Status == GroupStatus.Running)
+		if(session.ActiveWorkingGroup is not null && session.ActiveWorkingGroup.Status == GroupStatus.Running)
 		{
 			// Just update the streaming message tracker, don't add to chat
 			if(!session.StreamingMessages.TryGetValue(messageId, out ChatMessage? message))
@@ -206,7 +206,7 @@ public partial class UnifiedSessionManager
 		bool isInChat = session.Messages.Any(m => m.Id == messageId);
 
 		// Check if we have an active thinking group
-		if(session.ActiveThinkingGroup is not null && session.ActiveThinkingGroup.Status == GroupStatus.Running)
+		if(session.ActiveWorkingGroup is not null && session.ActiveWorkingGroup.Status == GroupStatus.Running)
 		{
 			// If this message is already in chat, it's the initial message - keep it there
 			if(isInChat)
@@ -221,9 +221,9 @@ public partial class UnifiedSessionManager
 				}
 
 				// Track this as the initial message
-				if(session.ActiveThinkingGroup.InitialMessageId is null)
+				if(session.ActiveWorkingGroup.InitialMessageId is null)
 				{
-					session.ActiveThinkingGroup.InitialMessageId = messageId;
+					session.ActiveWorkingGroup.InitialMessageId = messageId;
 				}
 
 				session.LastActivity = DateTime.Now;
@@ -240,7 +240,7 @@ public partial class UnifiedSessionManager
 			// The last one will be extracted as the summary when SessionIdle fires
 			if(!string.IsNullOrWhiteSpace(content))
 			{
-				session.ActiveThinkingGroup.AddEvent(new ThinkingEvent
+				session.ActiveWorkingGroup.AddEvent(new ThinkingEvent
 				{
 					Id = messageId,
 					Type = ThinkingEventType.Message,
@@ -372,9 +372,9 @@ public partial class UnifiedSessionManager
 		}
 
 		// Ensure we have an active thinking group
-		if(session.ActiveThinkingGroup is null)
+		if(session.ActiveWorkingGroup is null)
 		{
-			session.ActiveThinkingGroup = new ActivityGroup
+			session.ActiveWorkingGroup = new ActivityGroup
 			{
 				StartTime = DateTime.Now,
 				Status = GroupStatus.Running,
@@ -404,7 +404,7 @@ public partial class UnifiedSessionManager
 
 			if(lastAssistantMessage is not null)
 			{
-				session.ActiveThinkingGroup.InitialMessageId = lastAssistantMessage.Id;
+				session.ActiveWorkingGroup.InitialMessageId = lastAssistantMessage.Id;
 				Debug.WriteLine($"Tracked initial message: {lastAssistantMessage.Id}");
 			}
 		}
@@ -420,7 +420,7 @@ public partial class UnifiedSessionManager
 		};
 
 		// Add as a thinking event (chronologically ordered with messages)
-		session.ActiveThinkingGroup.AddEvent(new ThinkingEvent
+		session.ActiveWorkingGroup.AddEvent(new ThinkingEvent
 		{
 			Type = ThinkingEventType.Tool,
 			Tool = toolExec,
@@ -441,13 +441,13 @@ public partial class UnifiedSessionManager
 		Debug.WriteLine("HandleToolComplete");
 		Debug.WriteLine(evt);
 
-		if(evt.Data is null || session.ActiveThinkingGroup is null)
+		if(evt.Data is null || session.ActiveWorkingGroup is null)
 		{
 			return;
 		}
 
 		// Find the tool execution in the active group (thread-safe)
-		List<ThinkingEvent> events = session.ActiveThinkingGroup.GetEventsSnapshot();
+		List<ThinkingEvent> events = session.ActiveWorkingGroup.GetEventsSnapshot();
 		ToolExecution? toolExec = events
 			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool != null)
 			.Select(e => e.Tool!)
@@ -474,9 +474,9 @@ public partial class UnifiedSessionManager
 	{
 		Debug.WriteLine("HandleSessionIdle - Finalizing activity group");
 
-		if(session.ActiveThinkingGroup is not null && session.ActiveThinkingGroup.Tools.Any())
+		if(session.ActiveWorkingGroup is not null && session.ActiveWorkingGroup.Tools.Any())
 		{
-			ActivityGroup group = session.ActiveThinkingGroup;
+			ActivityGroup group = session.ActiveWorkingGroup;
 			Debug.WriteLine($"Finalizing thinking group. Has {group.Tools.Count()} tools");
 
 			// Check if activity message already exists for this group
@@ -486,7 +486,7 @@ public partial class UnifiedSessionManager
 			if(activityMessageExists)
 			{
 				Debug.WriteLine($"Activity message already exists for group {group.Id}, skipping insertion");
-				session.ActiveThinkingGroup = null;
+				session.ActiveWorkingGroup = null;
 
 				// Only notify if this is the current visible session
 				if(session == CurrentSession)
@@ -626,12 +626,12 @@ public partial class UnifiedSessionManager
 			}
 
 			// Clear the thinking group
-			session.ActiveThinkingGroup = null;
+			session.ActiveWorkingGroup = null;
 		}
-		else if(session.ActiveThinkingGroup is not null)
+		else if(session.ActiveWorkingGroup is not null)
 		{
 			Debug.WriteLine("Clearing empty thinking group");
-			session.ActiveThinkingGroup = null;
+			session.ActiveWorkingGroup = null;
 		}
 		else
 		{

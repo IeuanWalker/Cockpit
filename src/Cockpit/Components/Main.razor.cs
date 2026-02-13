@@ -96,7 +96,7 @@ public partial class Main : ComponentBase, IDisposable
 	{
 		_shouldScrollToBottom = true;
 		// Also scroll thinking panel if it's visible and has content
-		if(SessionManager.IsThinking && SessionManager.ActiveThinkingGroup?.Tools.Any() == true)
+		if(SessionManager.IsWorking && SessionManager.ActiveWorkingGroup?.Tools.Any() == true)
 		{
 			_shouldScrollThinkingPanel = true;
 		}
