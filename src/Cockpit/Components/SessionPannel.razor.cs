@@ -88,8 +88,8 @@ public partial class SessionPannel : ComponentBase, IDisposable
 	{
 		return session.Status switch
 		{
-			SessionStatus.AgentRunning => "",
-			SessionStatus.AgentFinished => "",
+			SessionStatus.Running => "",
+			SessionStatus.Finished => "",
 			_ => "secondary-text"
 		};
 	}
@@ -98,8 +98,8 @@ public partial class SessionPannel : ComponentBase, IDisposable
 	{
 		return session.Status switch
 		{
-			SessionStatus.AgentRunning => "color: #FFB900;",
-			SessionStatus.AgentFinished => "color: #10893E;",
+			SessionStatus.Running => "color: #FFB900;",
+			SessionStatus.Finished => "color: #10893E;",
 			_ => ""
 		};
 	}

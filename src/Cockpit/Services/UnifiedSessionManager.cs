@@ -556,7 +556,7 @@ public partial class UnifiedSessionManager
 				throw new InvalidOperationException($"Session {CurrentSession.Id} not found in SDK sessions");
 			}
 
-			CurrentSession.Status = SessionStatus.AgentRunning;
+			CurrentSession.Status = SessionStatus.Running;
 
 			await sdkSession.SendAsync(new MessageOptions
 			{

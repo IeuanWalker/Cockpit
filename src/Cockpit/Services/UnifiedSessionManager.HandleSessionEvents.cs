@@ -107,7 +107,7 @@ public partial class UnifiedSessionManager
 
 		session.Messages.Add(message);
 		session.LastActivity = DateTime.Now;
-		session.Status = SessionStatus.AgentRunning;
+		session.Status = SessionStatus.Running;
 
 		// Only notify if this is the current visible session
 		if(session == CurrentSession)
@@ -352,7 +352,7 @@ public partial class UnifiedSessionManager
 	{
 		Debug.WriteLine("HandleAssistantTurnStart");
 
-		session.Status = SessionStatus.AgentRunning;
+		session.Status = SessionStatus.Running;
 
 		// Only notify if this is the current visible session
 		if(session == CurrentSession)

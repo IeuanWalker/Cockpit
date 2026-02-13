@@ -31,8 +31,8 @@ public enum SessionStatus
 {
 	Idle,
 	Active,
-	AgentRunning,
-	AgentFinished,
+	Running,
+	Finished,
 	Error,
 	Archived
 }
