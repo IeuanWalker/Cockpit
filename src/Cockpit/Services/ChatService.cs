@@ -38,7 +38,7 @@ public class ChatService
 	void HandleSessionEvent(string sessionId, SessionEvent evt)
 	{
 		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if(session == null)
+		if(session is null)
 		{
 			return;
 		}
@@ -113,7 +113,7 @@ public class ChatService
 		Debug.WriteLine("HandleUserMessage");
 		Debug.WriteLine(evt);
 
-		if(evt.Data == null)
+		if(evt.Data is null)
 		{
 			return;
 		}
@@ -139,7 +139,7 @@ public class ChatService
 		Debug.WriteLine("HandleAssistantMessageDelta");
 		Debug.WriteLine(evt);
 
-		if(evt.Data == null)
+		if(evt.Data is null)
 		{
 			return;
 		}
@@ -147,7 +147,7 @@ public class ChatService
 		string messageId = evt.Data.MessageId ?? "streaming";
 
 		// Don't add to chat if we have an active thinking group
-		if(session.ActiveThinkingGroup != null && session.ActiveThinkingGroup.Status == GroupStatus.Running)
+		if(session.ActiveThinkingGroup is not null && session.ActiveThinkingGroup.Status == GroupStatus.Running)
 		{
 			// Just update the streaming message tracker, don't add to chat
 			if(!session.StreamingMessages.TryGetValue(messageId, out ChatMessage? message))
@@ -201,7 +201,7 @@ public class ChatService
 		Debug.WriteLine("HandleAssistantMessage");
 		Debug.WriteLine(evt);
 
-		if(evt.Data == null)
+		if(evt.Data is null)
 		{
 			return;
 		}
@@ -214,13 +214,13 @@ public class ChatService
 		bool isInChat = session.Messages.Any(m => m.Id == messageId);
 
 		// Check if we have an active thinking group
-		if(session.ActiveThinkingGroup != null && session.ActiveThinkingGroup.Status == GroupStatus.Running)
+		if(session.ActiveThinkingGroup is not null && session.ActiveThinkingGroup.Status == GroupStatus.Running)
 		{
 			// If this message is already in chat, it's the initial message - keep it there
 			if(isInChat)
 			{
 				// This is the initial message - update it in chat and track it
-				if(streamingMsg != null)
+				if(streamingMsg is not null)
 				{
 					streamingMsg.Content = content;
 					streamingMsg.IsStreaming = false;
@@ -229,7 +229,7 @@ public class ChatService
 				}
 
 				// Track this as the initial message
-				if(session.ActiveThinkingGroup.InitialMessageId == null)
+				if(session.ActiveThinkingGroup.InitialMessageId is null)
 				{
 					session.ActiveThinkingGroup.InitialMessageId = messageId;
 				}
@@ -254,7 +254,7 @@ public class ChatService
 			}
 
 			// Clean up streaming tracker
-			if(streamingMsg != null)
+			if(streamingMsg is not null)
 			{
 				session.StreamingMessages.Remove(messageId);
 			}
@@ -265,7 +265,7 @@ public class ChatService
 		}
 
 		// If this was a streaming message, update it
-		if(streamingMsg != null)
+		if(streamingMsg is not null)
 		{
 			streamingMsg.Content = content;
 			streamingMsg.IsStreaming = false;
@@ -296,7 +296,7 @@ public class ChatService
 		Debug.WriteLine("HandleReasoningDelta");
 		Debug.WriteLine(evt);
 
-		if(evt.Data == null)
+		if(evt.Data is null)
 		{
 			return;
 		}
@@ -312,7 +312,7 @@ public class ChatService
 		Debug.WriteLine("HandleReasoning");
 		Debug.WriteLine(evt);
 
-		if(evt.Data == null)
+		if(evt.Data is null)
 		{
 			return;
 		}
@@ -344,13 +344,13 @@ public class ChatService
 		Debug.WriteLine("HandleToolStart");
 		Debug.WriteLine(evt);
 
-		if(evt.Data == null)
+		if(evt.Data is null)
 		{
 			return;
 		}
 
 		// Ensure we have an active thinking group
-		if(session.ActiveThinkingGroup == null)
+		if(session.ActiveThinkingGroup is null)
 		{
 			session.ActiveThinkingGroup = new ActivityGroup
 			{
@@ -417,7 +417,7 @@ public class ChatService
 		Debug.WriteLine("HandleToolComplete");
 		Debug.WriteLine(evt);
 
-		if(evt.Data == null || session.ActiveThinkingGroup == null)
+		if(evt.Data is null || session.ActiveThinkingGroup is null)
 		{
 			return;
 		}
@@ -445,13 +445,13 @@ public class ChatService
 	{
 		Debug.WriteLine("HandleSessionIdle - Finalizing activity group");
 
-		if(session.ActiveThinkingGroup != null && session.ActiveThinkingGroup.Tools.Any())
+		if(session.ActiveThinkingGroup is not null && session.ActiveThinkingGroup.Tools.Any())
 		{
 			ActivityGroup group = session.ActiveThinkingGroup;
 			Debug.WriteLine($"Finalizing thinking group. Has {group.Tools.Count()} tools");
-			
+
 			// Check if activity message already exists for this group
-			bool activityMessageExists = session.Messages.Any(m => 
+			bool activityMessageExists = session.Messages.Any(m =>
 				m.Type == MessageType.ActivityGroup && m.ActivityGroup?.Id == group.Id);
 
 			if(activityMessageExists)
@@ -474,7 +474,7 @@ public class ChatService
 					hasStoppedTools = true;
 				}
 			}
-			
+
 			group.Status = GroupStatus.Complete;
 			group.EndTime = DateTime.Now;
 			group.IsExpanded = false;
@@ -484,7 +484,7 @@ public class ChatService
 			ThinkingEvent? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventType.Message);
 
 			bool hasSummary = false;
-			if(lastMessage != null && !string.IsNullOrWhiteSpace(lastMessage.Message))
+			if(lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
 			{
 				// Remove the summary from thinking events
 				group.RemoveEvent(lastMessage);
@@ -584,7 +584,7 @@ public class ChatService
 			// Clear the thinking group
 			session.ActiveThinkingGroup = null;
 		}
-		else if(session.ActiveThinkingGroup != null)
+		else if(session.ActiveThinkingGroup is not null)
 		{
 			Debug.WriteLine("Clearing empty thinking group");
 			session.ActiveThinkingGroup = null;
@@ -598,7 +598,7 @@ public class ChatService
 		NotifyStateChanged();
 	}
 
-	async Task StreamSummaryTextAsync(ChatSession session, ChatMessage message, string fullText)
+	async Task StreamSummaryTextAsync(ChatSession _, ChatMessage message, string fullText)
 	{
 		const int chunkSize = 3; // Characters per tick
 		const int delayMs = 8; // Milliseconds between chunks
@@ -632,7 +632,7 @@ public class ChatService
 	// Finalize an activity group built during history replay and insert it into the message list
 	void FinalizeHistoryGroup(ChatSession session, ref ActivityGroup? group, ref ChatMessage? initialMessage)
 	{
-		if(group == null || !group.Tools.Any())
+		if(group is null || !group.Tools.Any())
 		{
 			group = null;
 			return;
@@ -659,7 +659,7 @@ public class ChatService
 		// Extract the last message as the summary (same logic as HandleSessionIdle)
 		List<ThinkingEvent> events = g.GetEventsSnapshot();
 		ThinkingEvent? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventType.Message);
-		
+
 		bool hasSummary = false;
 		if(lastMessage != null && !string.IsNullOrWhiteSpace(lastMessage.Message))
 		{
@@ -755,7 +755,7 @@ public class ChatService
 		Debug.WriteLine("HandleSessionError");
 		Debug.WriteLine(evt);
 
-		if(evt.Data == null)
+		if(evt.Data is null)
 		{
 			return;
 		}
@@ -891,7 +891,7 @@ public class ChatService
 		try
 		{
 			ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
-			if(session == null)
+			if(session is null)
 			{
 				_logger.LogWarning("Session {SessionId} not found", sessionId);
 				return false;
@@ -930,7 +930,7 @@ public class ChatService
 
 			foreach(SessionEvent evt in events)
 			{
-				if(evt is UserMessageEvent userMsg && userMsg.Data != null)
+				if(evt is UserMessageEvent userMsg && userMsg.Data is not null)
 				{
 					// Finalize any pending activity group before user message
 					FinalizeHistoryGroup(session, ref currentGroup, ref initialMessage);
@@ -947,7 +947,7 @@ public class ChatService
 						Type = MessageType.Text
 					});
 				}
-				else if(evt is AssistantMessageEvent assistantMsg && assistantMsg.Data != null)
+				else if(evt is AssistantMessageEvent assistantMsg && assistantMsg.Data is not null)
 				{
 					string content = assistantMsg.Data.Content ?? string.Empty;
 					if(string.IsNullOrWhiteSpace(content))
@@ -955,7 +955,7 @@ public class ChatService
 						continue;
 					}
 
-					if(currentGroup != null)
+					if(currentGroup is not null)
 					{
 						// During an active group, messages go to thinking events
 						currentGroup.AddEvent(new ThinkingEvent
@@ -1051,8 +1051,7 @@ public class ChatService
 			}
 
 			NotifyStateChanged();
-			_logger.LogInformation("Successfully resumed session {SessionId} with {MessageCount} messages",
-				sessionId, session.Messages.Count);
+			_logger.LogInformation("Successfully resumed session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
 			return true;
 		}
 		catch(Exception ex)
@@ -1083,7 +1082,7 @@ public class ChatService
 
 	public async Task SendMessageAsync(string content, List<UserMessageDataAttachmentsItem>? attachments = null)
 	{
-		if(CurrentSession == null)
+		if(CurrentSession is null)
 		{
 			return;
 		}
@@ -1097,7 +1096,6 @@ public class ChatService
 		{
 			_logger.LogError(ex, "Failed to send message");
 			OnError?.Invoke($"Failed to send message: {ex.Message}");
-			RemoveTypingIndicator(CurrentSession);
 			CurrentSession.Status = SessionStatus.Error;
 			NotifyStateChanged();
 		}
@@ -1110,7 +1108,7 @@ public class ChatService
 			await _sessionManager.DeleteSessionAsync(sessionId);
 
 			ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
-			if(session != null)
+			if(session is not null)
 			{
 				Sessions.Remove(session);
 				if(CurrentSession?.Id == sessionId)
@@ -1129,7 +1127,7 @@ public class ChatService
 
 	public async Task AbortCurrentSessionAsync()
 	{
-		if(CurrentSession == null)
+		if(CurrentSession is null)
 		{
 			return;
 		}
@@ -1137,37 +1135,12 @@ public class ChatService
 		try
 		{
 			await _sessionManager.AbortSessionAsync(CurrentSession.Id);
-			RemoveTypingIndicator(CurrentSession);
 			// Don't call HandleSessionIdle here - the SDK will send SessionIdleEvent which will call it
 		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to abort session");
 			OnError?.Invoke($"Failed to abort: {ex.Message}");
-		}
-	}
-
-	void AddTypingIndicator(ChatSession session)
-	{
-		ChatMessage typingMessage = new()
-		{
-			Content = string.Empty,
-			IsUser = false,
-			Type = MessageType.Typing,
-			Timestamp = DateTime.Now
-		};
-
-		session.Messages.Add(typingMessage);
-		NotifyMessagesChanged();
-	}
-
-	void RemoveTypingIndicator(ChatSession session)
-	{
-		ChatMessage? typingMessage = session.Messages.FirstOrDefault(m => m.Type == MessageType.Typing);
-		if(typingMessage != null)
-		{
-			session.Messages.Remove(typingMessage);
-			NotifyMessagesChanged();
 		}
 	}
 
