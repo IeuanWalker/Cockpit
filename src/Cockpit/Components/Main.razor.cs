@@ -1,5 +1,4 @@
 using System.Globalization;
-using Cockpit.Components.Popups;
 using Cockpit.Services;
 using Cockpit.Services.Copilot.Models;
 using CommunityToolkit.Maui.Media;
@@ -19,7 +18,6 @@ public partial class Main : ComponentBase, IDisposable
 	[Inject] ChatService ChatService { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
-	CreateSessionPopup? _createSessionPopup;
 	string _chatInput = string.Empty;
 	ModelInfo? _selectedModel;
 	string _selectedReasoningEffort = string.Empty;
@@ -46,11 +44,6 @@ public partial class Main : ComponentBase, IDisposable
 		await ChatService.LoadExistingSessionsAsync();
 
 		SpeechToText.RecognitionResultCompleted += HandleRecognitionResultCompleted;
-	}
-
-	void OnNewSessionRequested()
-	{
-		InvokeAsync(CreateNewSession);
 	}
 
 	void OnTimestampTick()
@@ -164,19 +157,6 @@ public partial class Main : ComponentBase, IDisposable
 
 		// Send via SDK
 		await ChatService.SendMessageAsync(message);
-	}
-
-	async Task CreateNewSession()
-	{
-		try
-		{
-			// Open directory selection dialog
-			_createSessionPopup?.Open();
-		}
-		catch(Exception ex)
-		{
-			Console.Error.WriteLine($"Failed to open directory dialog: {ex.Message}");
-		}
 	}
 
 	async Task HandleKeyDown(KeyboardEventArgs e)
