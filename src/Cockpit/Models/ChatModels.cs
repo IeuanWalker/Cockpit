@@ -1,3 +1,5 @@
+using GitHub.Copilot.SDK;
+
 namespace Cockpit.Models;
 
 public class ChatSession
@@ -10,11 +12,14 @@ public class ChatSession
 	public List<ChatMessage> Messages { get; set; } = [];
 	public string? WorkspacePath { get; set; }
 	public string? WorkingDirectory { get; set; }
-	public string? Model { get; set; }
+	public required ModelInfo Model { get; set; }
 	public string? ReasoningEffort { get; set; }
-	public ActivityGroup? ActiveThinkingGroup { get; set; } // Per-session thinking state
-	public Dictionary<string, ChatMessage> StreamingMessages { get; } = []; // Per-session streaming state
-	public bool IsResumed { get; set; } // Whether this session has an active SDK connection
+	public ActivityGroup? ActiveThinkingGroup { get; set; }
+	public Dictionary<string, ChatMessage> StreamingMessages { get; } = [];
+	/// <summary>
+	/// Whether this session has an active SDK connection
+	/// </summary>
+	public bool IsResumed { get; set; }
 }
 
 public enum SessionStatus

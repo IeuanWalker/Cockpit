@@ -2,7 +2,6 @@
 using Blazor.Sonner.Services;
 using Cockpit.Services;
 using Cockpit.Services.Copilot;
-using Cockpit.Services.Copilot.Models;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.DependencyInjection.Extensions;

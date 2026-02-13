@@ -94,7 +94,7 @@ public partial class CreateSessionPopup : ComponentBase, IDisposable
 
 		try
 		{
-			await ChatService.CreateNewSessionAsync(null, null, _selectedPath);
+			await ChatService.CreateNewSessionAsync(_selectedPath);
 		}
 		catch(Exception ex)
 		{

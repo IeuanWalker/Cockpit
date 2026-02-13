@@ -1,6 +1,6 @@
 ﻿using GitHub.Copilot.SDK;
 
-namespace Cockpit.Services.Copilot.Models;
+namespace Cockpit.Services.Copilot;
 
 public class CopilotModelService
 {
@@ -17,5 +17,17 @@ public class CopilotModelService
 		_models = await client.ListModelsAsync();
 
 		return _models;
+	}
+
+	public async ValueTask<ModelInfo> GetDefaultModel()
+	{
+		List<ModelInfo>? models = _models;
+
+		if(_models is null)
+		{
+			models = await GetModels();
+		}
+
+		return models!.First();
 	}
 }

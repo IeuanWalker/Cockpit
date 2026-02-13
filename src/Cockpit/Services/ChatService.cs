@@ -11,6 +11,7 @@ public class ChatService
 	readonly CopilotSessionManager _sessionManager;
 	readonly ILogger<ChatService> _logger;
 	readonly ContextService _contextService;
+	readonly CopilotModelService _copilotModelService;
 
 	public event Action? OnSessionsChanged;
 	public event Action? OnMessagesChanged;
@@ -21,14 +22,18 @@ public class ChatService
 
 	// Activity grouping for thinking panel (per-session)
 	public ActivityGroup? ActiveThinkingGroup => CurrentSession?.ActiveThinkingGroup;
-	public bool IsThinking => CurrentSession?.ActiveThinkingGroup != null &&
-							   CurrentSession.ActiveThinkingGroup.Status == GroupStatus.Running;
+	public bool IsThinking => CurrentSession?.ActiveThinkingGroup is not null && CurrentSession.ActiveThinkingGroup.Status == GroupStatus.Running;
 
-	public ChatService(CopilotSessionManager sessionManager, ILogger<ChatService> logger, ContextService contextService)
+	public ChatService(
+		CopilotSessionManager sessionManager,
+		ILogger<ChatService> logger,
+		ContextService contextService,
+		CopilotModelService copilotModelService)
 	{
 		_sessionManager = sessionManager;
 		_logger = logger;
 		_contextService = contextService;
+		_copilotModelService = copilotModelService;
 
 		// Subscribe to session events
 		_sessionManager.OnSessionEvent += HandleSessionEvent;
@@ -790,6 +795,8 @@ public class ChatService
 
 			_logger.LogInformation("Found {Count} existing sessions", sessionMetadataList.Count);
 
+			ModelInfo defaultModel = await _copilotModelService.GetDefaultModel();
+
 			// Load each session that isn't already in our list
 			foreach(SessionMetadata metadata in sessionMetadataList)
 			{
@@ -803,7 +810,9 @@ public class ChatService
 							Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
 							CreatedAt = metadata.StartTime,
 							LastActivity = metadata.ModifiedTime,
-							Status = SessionStatus.Idle
+							Status = SessionStatus.Idle,
+							Model = defaultModel,
+							ReasoningEffort = defaultModel.DefaultReasoningEffort,
 						};
 
 						Sessions.Add(chatSession);
@@ -826,14 +835,16 @@ public class ChatService
 		}
 	}
 
-	public async Task<ChatSession> CreateNewSessionAsync(ModelInfo? model = null, string? reasoningEffort = null, string? workingDirectory = null)
+	public async Task<ChatSession> CreateNewSessionAsync(string? workingDirectory = null)
 	{
 		try
 		{
+			ModelInfo defaultModel = await _copilotModelService.GetDefaultModel();
+
 			SessionConfig config = new()
 			{
-				Model = model?.Id,
-				ReasoningEffort = reasoningEffort,
+				Model = defaultModel.Id,
+				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				Streaming = true,
 				InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
 				WorkingDirectory = workingDirectory
@@ -852,8 +863,8 @@ public class ChatService
 				Status = SessionStatus.Idle,
 				WorkspacePath = sdkSession.WorkspacePath,
 				WorkingDirectory = workingDirectory,
-				Model = model?.Id,
-				ReasoningEffort = reasoningEffort,
+				Model = defaultModel,
+				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				IsResumed = true
 			};
 
@@ -900,7 +911,7 @@ public class ChatService
 
 			ResumeSessionConfig config = new()
 			{
-				Model = session.Model,
+				Model = session.Model.Id,
 				ReasoningEffort = session.ReasoningEffort,
 				Streaming = true
 			};

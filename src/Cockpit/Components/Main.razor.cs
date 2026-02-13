@@ -1,6 +1,6 @@
 using System.Globalization;
 using Cockpit.Services;
-using Cockpit.Services.Copilot.Models;
+using Cockpit.Services.Copilot;
 using CommunityToolkit.Maui.Media;
 using GitHub.Copilot.SDK;
 using Microsoft.AspNetCore.Components;
@@ -19,8 +19,6 @@ public partial class Main : ComponentBase, IDisposable
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
 	string _chatInput = string.Empty;
-	ModelInfo? _selectedModel;
-	string _selectedReasoningEffort = string.Empty;
 	List<ModelInfo> _availableModels = [];
 	bool _shouldScrollToBottom = false;
 	bool _shouldScrollThinkingPanel = false;
@@ -36,7 +34,7 @@ public partial class Main : ComponentBase, IDisposable
 		if(_availableModels.Count > 0)
 		{
 			// TODO: Default model logic
-			_selectedModel = _availableModels[0];
+			ChatService.CurrentSession?.Model = _availableModels[0];
 			UpdateReasoningEffortForSelectedModel();
 		}
 
@@ -175,16 +173,16 @@ public partial class Main : ComponentBase, IDisposable
 
 	void SelectModel(ModelInfo model)
 	{
-		_selectedModel = model;
+		ChatService.CurrentSession?.Model = model;
 		_isModelDropdownOpen = false;
 		UpdateReasoningEffortForSelectedModel();
 	}
 
 	void UpdateReasoningEffortForSelectedModel()
 	{
-		if(_selectedModel is not null)
+		if(ChatService.CurrentSession?.Model is not null)
 		{
-			_selectedReasoningEffort = _selectedModel.DefaultReasoningEffort ?? string.Empty;
+			ChatService.CurrentSession?.ReasoningEffort = ChatService.CurrentSession?.Model.DefaultReasoningEffort ?? string.Empty;
 		}
 	}
 
@@ -195,18 +193,18 @@ public partial class Main : ComponentBase, IDisposable
 
 	void SelectReasoningEffort(string effort)
 	{
-		_selectedReasoningEffort = effort;
+		ChatService.CurrentSession?.ReasoningEffort = effort;
 		_isReasoningEffortDropdownOpen = false;
 	}
 
 	string GetSelectedReasoningEffortDisplay()
 	{
-		if(string.IsNullOrEmpty(_selectedReasoningEffort))
+		if(string.IsNullOrEmpty(ChatService.CurrentSession?.ReasoningEffort))
 		{
 			return "Default";
 		}
 
-		return char.ToUpper(_selectedReasoningEffort[0]) + _selectedReasoningEffort[1..];
+		return char.ToUpper(ChatService.CurrentSession.ReasoningEffort[0]) + ChatService.CurrentSession.ReasoningEffort[1..];
 	}
 
 	string GetMultiplierColor(double multiplier)
