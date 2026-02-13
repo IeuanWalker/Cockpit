@@ -47,7 +47,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<CopilotClientService>();
 		builder.Services.AddSingleton<CopilotSessionManager>();
 		builder.Services.AddSingleton<ChatService>();
-		builder.Services.AddSingleton<ICopilotModelService, CopilotModelService>();
+		builder.Services.AddSingleton<CopilotModelService>();
 
 		return builder.Build();
 	}

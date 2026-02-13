@@ -2,7 +2,7 @@
 
 namespace Cockpit.Services.Copilot.Models;
 
-public class CopilotModelService : ICopilotModelService
+public class CopilotModelService
 {
 	List<ModelInfo>? _models;
 	public async ValueTask<List<ModelInfo>> GetModels()

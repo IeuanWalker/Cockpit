@@ -12,7 +12,7 @@ namespace Cockpit.Components;
 public partial class ChatWindow : ComponentBase, IDisposable
 {
 	[Inject] TimestampService TimestampService { get; set; } = default!;
-	[Inject] ICopilotModelService ModelService { get; set; } = default!;
+	[Inject] CopilotModelService ModelService { get; set; } = default!;
 	[Inject] UIStateService UIState { get; set; } = default!;
 	[Inject] ISpeechToText SpeechToText { get; set; } = default!;
 	[Inject] ChatService ChatService { get; set; } = default!;
