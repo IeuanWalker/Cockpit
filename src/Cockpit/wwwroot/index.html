@@ -46,8 +46,14 @@
         }
 
         // Register XtermBlazor addons
-        if (window.XtermBlazor) {
-            XtermBlazor.registerAddons({ "addon-fit": new FitAddon.FitAddon() });
+        if (window.XtermBlazor && window.FitAddon && typeof window.FitAddon.FitAddon === 'function') {
+            try {
+                XtermBlazor.registerAddons({ "addon-fit": new FitAddon.FitAddon() });
+            } catch (e) {
+                console.error("Failed to register XtermBlazor addon-fit:", e);
+            }
+        } else if (window.XtermBlazor) {
+            console.warn("XtermBlazor addon-fit not registered: FitAddon is unavailable or invalid.");
         }
     </script>
 
