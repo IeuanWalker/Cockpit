@@ -8,6 +8,7 @@ namespace Cockpit.Components;
 
 public partial class TerminalPanel : IDisposable
 {
+	const int DomLayoutSettleDelayMs = 100; // Delay to allow DOM layout to settle after resize
 	bool _disposed;
 	Xterm? _terminal;
 	string _terminalId = string.Empty;
@@ -134,7 +135,7 @@ public partial class TerminalPanel : IDisposable
 		try
 		{
 			// Wait briefly for the DOM/container layout to settle after a resize
-			await Task.Delay(100);
+			await Task.Delay(DomLayoutSettleDelayMs);
 
 			// IMPORTANT: Call fit() once to resize the terminal to match the container
 			await _terminal.Addon("addon-fit").InvokeVoidAsync("fit");
