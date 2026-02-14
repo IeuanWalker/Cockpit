@@ -234,6 +234,12 @@ public class PermissionService
 				AddSessionPermission(sessionId, permission);
 			}
 			// PermissionScope.Once doesn't save anything
+
+			// Check if other pending requests for this session can now be auto-approved
+			if(decision.Scope == PermissionScope.Global || decision.Scope == PermissionScope.Session)
+			{
+				AutoResolveMatchingRequests(sessionId, permission);
+			}
 		}
 
 		// Complete the TaskCompletionSource
@@ -353,6 +359,51 @@ public class PermissionService
 			PatternType.Regex => Regex.IsMatch(command, permission.Pattern, RegexOptions.IgnoreCase),
 			_ => false
 		};
+	}
+
+	/// <summary>
+	/// Auto-resolve pending requests that match a newly added permission
+	/// </summary>
+	void AutoResolveMatchingRequests(string sessionId, ToolPermission newPermission)
+	{
+		// Get all pending requests for this session
+		List<PermissionRequest> pendingForSession = GetPendingRequestsForSession(sessionId);
+
+		_logger.LogInformation("Checking {Count} pending requests for auto-approval with pattern: {Pattern}", 
+			pendingForSession.Count, newPermission.Pattern);
+
+		foreach(PermissionRequest pendingRequest in pendingForSession)
+		{
+			// Skip if already removed (in case of concurrent processing)
+			if(!_pendingRequests.ContainsKey(pendingRequest.Id))
+			{
+				continue;
+			}
+
+			// Normalize this request's identifier
+			string normalizedId = NormalizePermissionIdentifier(pendingRequest.Kind, pendingRequest.ToolName, pendingRequest.Command);
+
+			// Check if it matches the new permission
+			if(MatchesPattern(normalizedId, newPermission))
+			{
+				_logger.LogInformation("Auto-approving pending request {RequestId} ({Command}) - matches pattern {Pattern}", 
+					pendingRequest.Id, pendingRequest.Command, newPermission.Pattern);
+
+				// Auto-approve with the same scope as the permission that matched
+				PermissionDecision autoDecision = new()
+				{
+					IsApproved = true,
+					Scope = newPermission.Scope
+				};
+
+				// Complete the TaskCompletionSource to unblock the waiting permission check
+				if(pendingRequest.CompletionSource.TrySetResult(autoDecision))
+				{
+					// Notify UI that this request was resolved
+					OnPermissionResolved?.Invoke(sessionId, pendingRequest.Id, autoDecision);
+				}
+			}
+		}
 	}
 
 	/// <summary>
