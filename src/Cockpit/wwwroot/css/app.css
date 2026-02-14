@@ -702,6 +702,19 @@ input[type="color"] {
     flex-shrink: 0;
 }
 
+.terminal-panel, .terminal-panel * {
+    box-sizing: border-box !important;
+}
+.terminal-panel {
+    padding: 0 !important;
+    border: none !important;
+}
+.xterm {
+    box-sizing: border-box !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
 @keyframes pulse-glow {
     0%, 100% {
         opacity: 1;

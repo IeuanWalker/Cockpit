@@ -7,6 +7,7 @@
     <base href="/" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="_content/Blazor.Sonner/styles.css" />
+    <link rel="stylesheet" href="_content/XtermBlazor/XtermBlazor.min.css" />
     <link rel="stylesheet" href="css/app.css" />
     <link rel="stylesheet" href="Cockpit.styles.css" />
 </head>
@@ -31,7 +32,10 @@
 
     <script src="_framework/blazor.webview.js" autostart="false"></script>
     <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.11.0/lib/addon-fit.min.js"></script>
+    <script src="_content/XtermBlazor/XtermBlazor.min.js"></script>
     <script src="js/interop.js"></script>
+    <script src="js/xtermInterop.js"></script>
     <script>
         // Initialize highlight.js when ready
         if (window.hljs) {
@@ -39,6 +43,11 @@
                 ignoreUnescapedHTML: true,
                 languages: ['csharp', 'javascript', 'typescript', 'python', 'java', 'json', 'xml', 'bash', 'sql', 'css', 'html']
             });
+        }
+
+        // Register XtermBlazor addons
+        if (window.XtermBlazor) {
+            XtermBlazor.registerAddons({ "addon-fit": new FitAddon.FitAddon() });
         }
     </script>
 
