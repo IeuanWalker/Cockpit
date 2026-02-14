@@ -46,7 +46,8 @@ else
 
     @if(SessionManager.CurrentSession?.IsTerminalOpen == true)
     {
-        <TerminalPanel IsOpen="true"
+        <TerminalPanel @key="@SessionManager.CurrentSession.Id"
+                       IsOpen="true"
                        SessionId="@SessionManager.CurrentSession.Id"
                        WorkingDirectory="@SessionManager.CurrentSession.WorkingDirectory"
                        OnClose="CloseTerminalPanel" />
