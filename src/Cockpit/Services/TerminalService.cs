@@ -4,7 +4,7 @@ using Porta.Pty;
 
 namespace Cockpit.Services;
 
-public sealed class TerminalService : IDisposable
+public sealed partial class TerminalService : IDisposable
 {
 	readonly ConcurrentDictionary<string, TerminalSession> _sessions = new();
 
@@ -34,7 +34,7 @@ public sealed class TerminalService : IDisposable
 				{
 					while(true)
 					{
-						int bytesRead = await ptyConnection.ReaderStream.ReadAsync(buffer, 0, buffer.Length);
+						int bytesRead = await ptyConnection.ReaderStream.ReadAsync(buffer);
 						if(bytesRead <= 0)
 						{
 							break;

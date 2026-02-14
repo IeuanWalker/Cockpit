@@ -40,7 +40,7 @@ public class PermissionService
 	/// <summary>
 	/// Normalize a permission identifier similar to Cooper's approach
 	/// </summary>
-	static string NormalizePermissionIdentifier(string? kind, string toolName, string command, PermissionScope scope = PermissionScope.Once)
+	static string NormalizePermissionIdentifier(string? kind, string toolName, string command)
 	{
 		// For write kind: always just "write" (applies to all file edits)
 		if(kind == "write")
@@ -206,7 +206,7 @@ public class PermissionService
 		{
 			// Normalize the identifier before storing (similar to Cooper)
 			// Pass the scope so normalization can be scope-aware (e.g., global read vs session read)
-			string normalizedId = NormalizePermissionIdentifier(request.Kind, request.ToolName, request.Command, decision.Scope);
+			string normalizedId = NormalizePermissionIdentifier(request.Kind, request.ToolName, request.Command);
 
 			ToolPermission permission = new()
 			{
@@ -385,7 +385,7 @@ public class PermissionService
 				{
 					Version = "1.0",
 					// Only save allowlist - denylist removed
-					GlobalAllowlist = _globalPermissions.Where(p => p.IsAllowed).ToList()
+					GlobalAllowlist = [.. _globalPermissions.Where(p => p.IsAllowed)]
 				};
 
 				string json = JsonSerializer.Serialize(file, new JsonSerializerOptions

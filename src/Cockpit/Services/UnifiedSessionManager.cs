@@ -726,7 +726,7 @@ public partial class UnifiedSessionManager
 	void NotifyStateChanged() => OnStateChanged?.Invoke();
 
 	// Handle permission requested event from PermissionService
-	void HandlePermissionRequested(string sessionId, Cockpit.Models.PermissionRequest request)
+	void HandlePermissionRequested(string sessionId, Models.PermissionRequest request)
 	{
 		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
@@ -831,12 +831,12 @@ public partial class UnifiedSessionManager
 			string cmdStr = cmdObj?.ToString() ?? "";
 
 			// If it's a JSON object with fullCommandText, extract that
-			if(cmdStr.StartsWith("{") && cmdStr.Contains("fullCommandText"))
+			if(cmdStr.StartsWith('{') && cmdStr.Contains("fullCommandText"))
 			{
 				try
 				{
-					using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(cmdStr);
-					if(doc.RootElement.TryGetProperty("fullCommandText", out System.Text.Json.JsonElement fullCmd))
+					using JsonDocument doc = JsonDocument.Parse(cmdStr);
+					if(doc.RootElement.TryGetProperty("fullCommandText", out JsonElement fullCmd))
 					{
 						return fullCmd.GetString() ?? request.Kind;
 					}
