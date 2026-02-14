@@ -33,15 +33,19 @@ public sealed partial class TerminalService : IDisposable
 			IPtyConnection ptyConnection = await PtyProvider.SpawnAsync(options, CancellationToken.None);
 			TerminalSession session = new(sessionId, ptyConnection);
 
+			// Create cancellation token for the background read task
+			CancellationTokenSource cts = new();
+			session.ReadTaskCancellation = cts;
+
 			// Start background task to read output
-			_ = Task.Run(async () =>
+			session.ReadTask = Task.Run(async () =>
 			{
 				byte[] buffer = new byte[4096];
 				try
 				{
-					while(true)
+					while(!cts.Token.IsCancellationRequested)
 					{
-						int bytesRead = await ptyConnection.ReaderStream.ReadAsync(buffer);
+						int bytesRead = await ptyConnection.ReaderStream.ReadAsync(buffer, cts.Token);
 						if(bytesRead <= 0)
 						{
 							break;
@@ -52,24 +56,28 @@ public sealed partial class TerminalService : IDisposable
 						OnDataReceived?.Invoke(sessionId, data);
 					}
 				}
+				catch(OperationCanceledException) { }
 				catch(ObjectDisposedException) { }
 				catch(Exception ex)
 				{
 					_logger.LogError(ex, "Terminal session {SessionId} background task failed", sessionId);
 				}
-			});
+			}, cts.Token);
 
 			// Try to add the session; if it already exists, dispose the new connection
 			if(!_sessions.TryAdd(sessionId, session))
 			{
+				cts.Cancel();
+				cts.Dispose();
 				ptyConnection.Dispose();
 				return false;
 			}
 
 			return true;
 		}
-		catch
+		catch(Exception ex)
 		{
+			_logger.LogError(ex, "Failed to create terminal session {SessionId}", sessionId);
 			return false;
 		}
 	}
@@ -108,6 +116,21 @@ public sealed partial class TerminalService : IDisposable
 	{
 		foreach(TerminalSession session in _sessions.Values)
 		{
+			// Cancel the background read task
+			session.ReadTaskCancellation?.Cancel();
+
+			try
+			{
+				// Wait for the task to complete (it should exit quickly due to cancellation)
+				session.ReadTask?.Wait(TimeSpan.FromSeconds(2));
+			}
+			catch(Exception ex)
+			{
+				_logger.LogDebug(ex, "Failed to wait for read task to complete for session {SessionId}", session.Id);
+			}
+
+			session.ReadTaskCancellation?.Dispose();
+
 			try
 			{
 				session.Connection.Dispose();
@@ -136,6 +159,9 @@ public sealed partial class TerminalService : IDisposable
 
 		public int Cols { get; set; } = 120;
 		public int Rows { get; set; } = 30;
+
+		public CancellationTokenSource? ReadTaskCancellation { get; set; }
+		public Task? ReadTask { get; set; }
 
 		public TerminalSession(string id, IPtyConnection connection)
 		{
@@ -190,6 +216,24 @@ public sealed partial class TerminalService : IDisposable
 		// Dispose existing session if present
 		if(_sessions.TryRemove(sessionId, out TerminalSession? existing))
 		{
+			// Cancel the background read task
+			existing.ReadTaskCancellation?.Cancel();
+
+			try
+			{
+				// Wait for the task to complete
+				if(existing.ReadTask is not null)
+				{
+					await existing.ReadTask.WaitAsync(TimeSpan.FromSeconds(2));
+				}
+			}
+			catch(Exception ex)
+			{
+				_logger.LogDebug(ex, "Failed to wait for read task to complete during restart for session {SessionId}", sessionId);
+			}
+
+			existing.ReadTaskCancellation?.Dispose();
+
 			// Prevent old output from reappearing after restart
 			existing.ClearBuffer();
 			try
@@ -218,6 +262,21 @@ public sealed partial class TerminalService : IDisposable
 	{
 		if(_sessions.TryRemove(sessionId, out TerminalSession? session))
 		{
+			// Cancel the background read task
+			session.ReadTaskCancellation?.Cancel();
+
+			try
+			{
+				// Wait for the task to complete
+				session.ReadTask?.Wait(TimeSpan.FromSeconds(2));
+			}
+			catch(Exception ex)
+			{
+				_logger.LogDebug(ex, "Failed to wait for read task to complete during close for session {SessionId}", sessionId);
+			}
+
+			session.ReadTaskCancellation?.Dispose();
+
 			try
 			{
 				session.Connection.Dispose();
