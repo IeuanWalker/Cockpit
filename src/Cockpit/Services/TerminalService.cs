@@ -19,6 +19,7 @@ public sealed class TerminalService : IDisposable
 				Cols = 120,
 				Rows = 30,
 				Cwd = workingDirectory,
+				// TODO: Allow user overide
 				App = OperatingSystem.IsWindows() ? "powershell.exe" : "/bin/bash",
 			};
 
@@ -28,7 +29,7 @@ public sealed class TerminalService : IDisposable
 			// Start background task to read output
 			_ = Task.Run(async () =>
 			{
-				var buffer = new byte[4096];
+				byte[] buffer = new byte[4096];
 				try
 				{
 					while(true)
@@ -111,7 +112,7 @@ public sealed class TerminalService : IDisposable
 
 	class TerminalSession
 	{
-		const int MaxBufferSize = 1024 * 1024; // 1MB limit
+		const int maxBufferSize = 1024 * 1024; // 1MB limit
 		public string Id { get; }
 		public IPtyConnection Connection { get; }
 		readonly StringBuilder _outputBuffer = new();
@@ -131,11 +132,11 @@ public sealed class TerminalService : IDisposable
 			lock(_bufferLock)
 			{
 				_outputBuffer.Append(data);
-				
+
 				// Trim buffer if it exceeds max size
-				if(_outputBuffer.Length > MaxBufferSize)
+				if(_outputBuffer.Length > maxBufferSize)
 				{
-					int excessLength = _outputBuffer.Length - MaxBufferSize;
+					int excessLength = _outputBuffer.Length - maxBufferSize;
 					_outputBuffer.Remove(0, excessLength);
 				}
 			}
@@ -160,7 +161,7 @@ public sealed class TerminalService : IDisposable
 
 	public void ResizePty(string sessionId, int cols, int rows)
 	{
-		if (_sessions.TryGetValue(sessionId, out TerminalSession? session))
+		if(_sessions.TryGetValue(sessionId, out TerminalSession? session))
 		{
 			session.Cols = cols;
 			session.Rows = rows;
@@ -171,7 +172,7 @@ public sealed class TerminalService : IDisposable
 	public async Task RestartSession(string sessionId, string workingDirectory)
 	{
 		// Dispose existing session if present
-		if (_sessions.TryRemove(sessionId, out var existing))
+		if(_sessions.TryRemove(sessionId, out TerminalSession? existing))
 		{
 			// Prevent old output from reappearing after restart
 			existing.ClearBuffer();
@@ -184,7 +185,7 @@ public sealed class TerminalService : IDisposable
 
 	public void SoftClear(string sessionId)
 	{
-		if (_sessions.TryGetValue(sessionId, out var session))
+		if(_sessions.TryGetValue(sessionId, out TerminalSession? session))
 		{
 			session.ClearBuffer();
 		}
@@ -192,7 +193,7 @@ public sealed class TerminalService : IDisposable
 
 	public void CloseSession(string sessionId)
 	{
-		if (_sessions.TryRemove(sessionId, out var session))
+		if(_sessions.TryRemove(sessionId, out TerminalSession? session))
 		{
 			try
 			{
