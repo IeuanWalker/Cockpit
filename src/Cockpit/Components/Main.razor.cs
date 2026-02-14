@@ -320,15 +320,6 @@ public partial class Main : ComponentBase, IDisposable
 		}
 	}
 
-	void CloseTerminalPanel()
-	{
-		if(SessionManager.CurrentSession != null)
-		{
-			SessionManager.CurrentSession.IsTerminalOpen = false;
-			StateHasChanged();
-		}
-	}
-
 	public void Dispose()
 	{
 		Dispose(true);

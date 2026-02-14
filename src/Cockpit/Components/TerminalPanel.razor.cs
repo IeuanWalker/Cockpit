@@ -8,7 +8,7 @@ namespace Cockpit.Components;
 
 public partial class TerminalPanel : IDisposable
 {
-	const int DomLayoutSettleDelayMs = 100; // Delay to allow DOM layout to settle after resize
+	const int domLayoutSettleDelayMs = 100; // Delay to allow DOM layout to settle after resize
 	bool _disposed;
 	Xterm? _terminal;
 	string _terminalId = string.Empty;
@@ -32,7 +32,6 @@ public partial class TerminalPanel : IDisposable
 	[Parameter] public bool IsOpen { get; set; }
 	[Parameter] public string SessionId { get; set; } = string.Empty;
 	[Parameter] public string? WorkingDirectory { get; set; }
-	[Parameter] public EventCallback OnClose { get; set; }
 
 	[Inject] UIStateService UIState { get; set; } = default!;
 
@@ -96,7 +95,7 @@ public partial class TerminalPanel : IDisposable
 					await _terminal.Write(bufferedOutput);
 					_hasRestoredBuffer = true;
 				}
-				catch (Exception ex)
+				catch(Exception ex)
 				{
 					Logger.LogDebug(ex, "Failed to restore buffered output for session {SessionId}", SessionId);
 				}
@@ -135,7 +134,7 @@ public partial class TerminalPanel : IDisposable
 		try
 		{
 			// Wait briefly for the DOM/container layout to settle after a resize
-			await Task.Delay(DomLayoutSettleDelayMs);
+			await Task.Delay(domLayoutSettleDelayMs);
 
 			// IMPORTANT: Call fit() once to resize the terminal to match the container
 			await _terminal.Addon("addon-fit").InvokeVoidAsync("fit");
@@ -148,7 +147,7 @@ public partial class TerminalPanel : IDisposable
 				TerminalService.ResizePty(SessionId, size.Cols, size.Rows);
 			}
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			Logger.LogDebug(ex, "Failed to resize terminal for session {SessionId}", SessionId);
 		}
@@ -182,13 +181,13 @@ public partial class TerminalPanel : IDisposable
 				{
 					await _terminal.Write(data);
 				}
-				catch (Exception ex)
+				catch(Exception ex)
 				{
 					Logger.LogDebug(ex, "Failed to write data to terminal for session {SessionId}", sessionId);
 				}
 			});
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			// Log unhandled exceptions from async void to prevent app crash
 			Logger.LogError(ex, "Unhandled exception in terminal data event handler for session {SessionId}", sessionId);
@@ -204,7 +203,7 @@ public partial class TerminalPanel : IDisposable
 						{
 							await _terminal.Write("\r\n[Error] Failed to deliver terminal output. See logs for details.\r\n");
 						}
-						catch (Exception writeEx)
+						catch(Exception writeEx)
 						{
 							// Swallow any secondary errors while reporting the failure
 							Logger.LogDebug(writeEx, "Failed to write error message to terminal for session {SessionId}", sessionId);
@@ -212,7 +211,7 @@ public partial class TerminalPanel : IDisposable
 					});
 				}
 			}
-			catch (Exception notifyEx)
+			catch(Exception notifyEx)
 			{
 				// As a final safeguard, ignore any errors while attempting to notify the user
 				Logger.LogDebug(notifyEx, "Failed to notify user of terminal error for session {SessionId}", sessionId);
