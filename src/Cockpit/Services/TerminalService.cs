@@ -12,11 +12,6 @@ public sealed class TerminalService : IDisposable
 
 	public async Task<bool> CreateSession(string sessionId, string workingDirectory)
 	{
-		if(_sessions.ContainsKey(sessionId))
-		{
-			return false;
-		}
-
 		try
 		{
 			PtyOptions options = new()
@@ -56,7 +51,12 @@ public sealed class TerminalService : IDisposable
 				}
 			});
 
-			_sessions.TryAdd(sessionId, session);
+			// Try to add the session; if it already exists, dispose the new connection
+			if(!_sessions.TryAdd(sessionId, session))
+			{
+				ptyConnection.Dispose();
+				return false;
+			}
 
 			return true;
 		}
@@ -187,6 +187,18 @@ public sealed class TerminalService : IDisposable
 		if (_sessions.TryGetValue(sessionId, out var session))
 		{
 			session.ClearBuffer();
+		}
+	}
+
+	public void CloseSession(string sessionId)
+	{
+		if (_sessions.TryRemove(sessionId, out var session))
+		{
+			try
+			{
+				session.Connection.Dispose();
+			}
+			catch { }
 		}
 	}
 }

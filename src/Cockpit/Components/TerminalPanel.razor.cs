@@ -1,5 +1,6 @@
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using XtermBlazor;
 
@@ -26,6 +27,7 @@ public partial class TerminalPanel : IDisposable
 
 	[Inject] TerminalService TerminalService { get; set; } = default!;
 	[Inject] IJSRuntime JS { get; set; } = default!;
+	[Inject] ILogger<TerminalPanel> Logger { get; set; } = default!;
 	[Parameter] public bool IsOpen { get; set; }
 	[Parameter] public string SessionId { get; set; } = string.Empty;
 	[Parameter] public string? WorkingDirectory { get; set; }
@@ -162,6 +164,8 @@ public partial class TerminalPanel : IDisposable
 		await TerminalService.WriteAsync(SessionId, data);
 	}
 
+	// Event handler must be async void to match event signature
+	// Top-level exception handling ensures app doesn't crash
 	async void OnTerminalData(string sessionId, string data)
 	{
 		if(sessionId != SessionId || _terminal is null || !_isSessionActive)
@@ -180,7 +184,11 @@ public partial class TerminalPanel : IDisposable
 				catch { }
 			});
 		}
-		catch { }
+		catch(Exception ex)
+		{
+			// Log unhandled exceptions from async void to prevent app crash
+			Logger.LogError(ex, "Unhandled exception in terminal data event handler for session {SessionId}", sessionId);
+		}
 	}
 
 	protected virtual void Dispose(bool disposing)

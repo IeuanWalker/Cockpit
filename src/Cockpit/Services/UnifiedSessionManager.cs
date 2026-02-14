@@ -15,6 +15,7 @@ public partial class UnifiedSessionManager
 	readonly ContextService _contextService;
 	readonly CopilotModelService _copilotModelService;
 	readonly PermissionService _permissionService;
+	readonly TerminalService _terminalService;
 
 	// Internal: Maps sessionId -> SDK CopilotSession (for ALL resumed sessions)
 	readonly ConcurrentDictionary<string, CopilotSession> _sdkSessions = new();
@@ -37,7 +38,8 @@ public partial class UnifiedSessionManager
 		ToastService toastService,
 		ContextService contextService,
 		CopilotModelService copilotModelService,
-		PermissionService permissionService)
+		PermissionService permissionService,
+		TerminalService terminalService)
 	{
 		_clientService = clientService;
 		_logger = logger;
@@ -45,6 +47,7 @@ public partial class UnifiedSessionManager
 		_contextService = contextService;
 		_copilotModelService = copilotModelService;
 		_permissionService = permissionService;
+		_terminalService = terminalService;
 
 		// Subscribe to permission events
 		_permissionService.OnPermissionRequested += HandlePermissionRequested;
@@ -673,6 +676,9 @@ public partial class UnifiedSessionManager
 			{
 				await sdkSession.DisposeAsync();
 			}
+
+			// Clean up terminal session
+			_terminalService.CloseSession(sessionId);
 
 			// Delete from Copilot CLI
 			CopilotClient client = await _clientService.GetClientAsync();
