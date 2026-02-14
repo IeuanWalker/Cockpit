@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using Porta.Pty;
 
@@ -5,7 +6,7 @@ namespace Cockpit.Services;
 
 public sealed class TerminalService : IDisposable
 {
-	readonly Dictionary<string, TerminalSession> _sessions = [];
+	readonly ConcurrentDictionary<string, TerminalSession> _sessions = new();
 
 	public event Action<string, string>? OnDataReceived;
 
@@ -49,10 +50,13 @@ public sealed class TerminalService : IDisposable
 					}
 				}
 				catch(ObjectDisposedException) { }
-				catch(Exception) { }
+				catch(Exception ex)
+				{
+					System.Diagnostics.Debug.WriteLine($"Terminal session {sessionId} background task failed: {ex.Message}");
+				}
 			});
 
-			_sessions[sessionId] = session;
+			_sessions.TryAdd(sessionId, session);
 
 			return true;
 		}
@@ -107,6 +111,7 @@ public sealed class TerminalService : IDisposable
 
 	class TerminalSession
 	{
+		const int MaxBufferSize = 1024 * 1024; // 1MB limit
 		public string Id { get; }
 		public IPtyConnection Connection { get; }
 		readonly StringBuilder _outputBuffer = new();
@@ -126,6 +131,13 @@ public sealed class TerminalService : IDisposable
 			lock(_bufferLock)
 			{
 				_outputBuffer.Append(data);
+				
+				// Trim buffer if it exceeds max size
+				if(_outputBuffer.Length > MaxBufferSize)
+				{
+					int excessLength = _outputBuffer.Length - MaxBufferSize;
+					_outputBuffer.Remove(0, excessLength);
+				}
 			}
 		}
 
@@ -159,12 +171,11 @@ public sealed class TerminalService : IDisposable
 	public async Task RestartSession(string sessionId, string workingDirectory)
 	{
 		// Dispose existing session if present
-		if (_sessions.TryGetValue(sessionId, out var existing))
+		if (_sessions.TryRemove(sessionId, out var existing))
 		{
 			// Prevent old output from reappearing after restart
 			existing.ClearBuffer();
 			try { existing.Connection.Dispose(); } catch { }
-			_sessions.Remove(sessionId);
 		}
 
 		// Create a fresh session

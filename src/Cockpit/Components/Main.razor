@@ -44,7 +44,7 @@ else
         </div>
     </div>
 
-    @if(SessionManager.CurrentSession.IsTerminalOpen)
+    @if(SessionManager.CurrentSession?.IsTerminalOpen == true)
     {
         <TerminalPanel IsOpen="true"
                        SessionId="@SessionManager.CurrentSession.Id"

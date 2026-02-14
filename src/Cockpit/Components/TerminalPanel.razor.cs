@@ -169,14 +169,18 @@ public partial class TerminalPanel : IDisposable
 			return;
 		}
 
-		await InvokeAsync(async () =>
+		try
 		{
-			try
+			await InvokeAsync(async () =>
 			{
-				await _terminal.Write(data);
-			}
-			catch { }
-		});
+				try
+				{
+					await _terminal.Write(data);
+				}
+				catch { }
+			});
+		}
+		catch { }
 	}
 
 	protected virtual void Dispose(bool disposing)
