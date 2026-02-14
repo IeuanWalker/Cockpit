@@ -1,19 +1,19 @@
 window.xtermInterop = window.xtermInterop || {};
 console.log('[xtermInterop] script loaded');
 
-window.xtermInterop.triggerResize = function(terminalElementId) {
+window.xtermInterop.triggerResize = function (terminalElementId) {
     console.log('[xtermInterop] triggerResize CALLED', terminalElementId);
     const termEl = document.getElementById(terminalElementId);
     if (!termEl || !termEl.xterm) {
         return;
     }
-    
+
     // Call fit to resize the terminal - this handles the reflow
     const fitAddon = termEl.xterm._fitAddon;
     if (fitAddon && fitAddon.fit) {
         fitAddon.fit();
     }
-    
+
     // Force a complete repaint by clearing the texture atlas
     // This ensures no stale rendering artifacts remain
     if (termEl.xterm.clearTextureAtlas) {
@@ -52,11 +52,11 @@ window.xtermInterop.getTerminalSize = function (terminalElementId) {
     };
 };
 
-window.xtermInterop.observeElementResize = function(terminalElementId, dotnetHelper) {
+window.xtermInterop.observeElementResize = function (terminalElementId, dotnetHelper) {
     const termEl = document.getElementById(terminalElementId);
     if (!termEl) {
         console.warn('[xtermInterop] observeElementResize missing terminal element', terminalElementId);
-        return { dispose: () => {} };
+        return { dispose: () => { } };
     }
     console.log('[xtermInterop] observeElementResize CALLED', terminalElementId);
     const observer = new ResizeObserver(entries => {
@@ -77,14 +77,14 @@ window.xtermInterop.observeElementResize = function(terminalElementId, dotnetHel
     };
 };
 
-window.xtermInterop.clearTerminal = function(terminalElementId) {
+window.xtermInterop.clearTerminal = function (terminalElementId) {
     const termEl = document.getElementById(terminalElementId);
     if (termEl && termEl.xterm && termEl.xterm.clear) {
         termEl.xterm.clear();
     }
 };
 
-window.xtermInterop.registerWindowResize = function(terminalElementId, dotnetHelper) {
+window.xtermInterop.registerWindowResize = function (terminalElementId, dotnetHelper) {
     console.log('[xtermInterop] registerWindowResize CALLED', terminalElementId);
     function onResize() {
         console.log('[xtermInterop] onResize CALLED', {

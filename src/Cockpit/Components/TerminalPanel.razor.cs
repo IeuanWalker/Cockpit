@@ -14,7 +14,7 @@ public partial class TerminalPanel : IDisposable
 	bool _isSessionActive = false;
 	bool _hasRestoredBuffer = false;
 	bool _isFullscreen = false;
-	string _containerStyle = "height: 30%; display: flex; flex-direction: column;";
+	string _containerStyle = "height: 30%; display: flex; flex-direction: column; z-index: 50;";
 	string _containerClasses = string.Empty;
 	readonly HashSet<string> _addons = ["addon-fit"];
 	readonly TerminalOptions _options = new()
@@ -52,7 +52,7 @@ public partial class TerminalPanel : IDisposable
 		_isFullscreen = !_isFullscreen;
 		_containerStyle = _isFullscreen
 			? "position: fixed; inset: 0; z-index: 50; height: 100vh; width: 100vw; display: flex; flex-direction: column;"
-			: "height: 30%; display: flex; flex-direction: column;";
+			: "height: 30%; display: flex; flex-direction: column; z-index: 50;";
 		_containerClasses = _isFullscreen ? "bg-vscode-sidebar" : string.Empty;
 
 		// Trigger re-render
@@ -82,7 +82,7 @@ public partial class TerminalPanel : IDisposable
 
 		// Try to create session (returns true if new, false if already exists)
 		string workDir = !string.IsNullOrEmpty(WorkingDirectory) ? WorkingDirectory : Directory.GetCurrentDirectory();
-		bool isNewSession = await TerminalService.CreateSession(SessionId, workDir);
+		await TerminalService.CreateSession(SessionId, workDir);
 
 		// Restore buffered output (works for both new and existing sessions)
 		if(!_hasRestoredBuffer)
@@ -101,6 +101,7 @@ public partial class TerminalPanel : IDisposable
 
 		_isSessionActive = true;
 
+		await _terminal.Focus();
 		await Resize();
 	}
 
@@ -116,11 +117,6 @@ public partial class TerminalPanel : IDisposable
 
 	[JSInvokable]
 	public async Task OnTerminalWindowResize()
-	{
-		await Resize();
-	}
-
-	async Task OnTerminalResize()
 	{
 		await Resize();
 	}
@@ -143,8 +139,8 @@ public partial class TerminalPanel : IDisposable
 			await _terminal.Addon("addon-fit").InvokeVoidAsync("fit");
 
 			// Query the actual cols/rows after fit
-			var size = await JS.InvokeAsync<TerminalSize?>("xtermInterop.getTerminalSize", _terminalId);
-			if(size != null && size.cols > 0 && size.rows > 0)
+			TerminalSize? size = await JS.InvokeAsync<TerminalSize?>("xtermInterop.getTerminalSize", _terminalId);
+			if(size is not null && size.cols > 0 && size.rows > 0)
 			{
 				// Resize the PTY to match the terminal's new dimensions
 				TerminalService.ResizePty(SessionId, size.cols, size.rows);
@@ -235,5 +231,4 @@ public partial class TerminalPanel : IDisposable
 		Dispose(true);
 		GC.SuppressFinalize(this);
 	}
-
 }
