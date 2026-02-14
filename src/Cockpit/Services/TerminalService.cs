@@ -56,9 +56,9 @@ public sealed partial class TerminalService : IDisposable
 						OnDataReceived?.Invoke(sessionId, data);
 					}
 				}
-				catch(OperationCanceledException) { }
-				catch(ObjectDisposedException) { }
-				catch(Exception ex)
+				catch (OperationCanceledException) { }
+				catch (ObjectDisposedException) { }
+				catch (Exception ex)
 				{
 					_logger.LogError(ex, "Terminal session {SessionId} background task failed", sessionId);
 				}
@@ -75,7 +75,7 @@ public sealed partial class TerminalService : IDisposable
 
 			return true;
 		}
-		catch(Exception ex)
+		catch (Exception ex)
 		{
 			_logger.LogError(ex, "Failed to create terminal session {SessionId}", sessionId);
 			return false;
@@ -105,7 +105,7 @@ public sealed partial class TerminalService : IDisposable
 			await session.Connection.WriterStream.FlushAsync();
 			return true;
 		}
-		catch(Exception ex)
+		catch (Exception ex)
 		{
 			_logger.LogDebug(ex, "Failed to write to terminal session {SessionId}", sessionId);
 			return false;
@@ -122,9 +122,12 @@ public sealed partial class TerminalService : IDisposable
 			try
 			{
 				// Wait for the task to complete (it should exit quickly due to cancellation)
-				session.ReadTask?.GetAwaiter().GetResult();
+				if(session.ReadTask is not null)
+				{
+					session.ReadTask.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
+				}
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				_logger.LogDebug(ex, "Failed to wait for read task to complete for session {SessionId}", session.Id);
 			}
@@ -135,7 +138,7 @@ public sealed partial class TerminalService : IDisposable
 			{
 				session.Connection.Dispose();
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				_logger.LogDebug(ex, "Failed to dispose terminal session {SessionId} during cleanup", session.Id);
 			}
@@ -227,7 +230,7 @@ public sealed partial class TerminalService : IDisposable
 					await existing.ReadTask.WaitAsync(TimeSpan.FromSeconds(2));
 				}
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				_logger.LogDebug(ex, "Failed to wait for read task to complete during restart for session {SessionId}", sessionId);
 			}
@@ -240,7 +243,7 @@ public sealed partial class TerminalService : IDisposable
 			{
 				existing.Connection.Dispose();
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				_logger.LogDebug(ex, "Failed to dispose existing terminal connection during restart for session {SessionId}", sessionId);
 			}
@@ -268,9 +271,12 @@ public sealed partial class TerminalService : IDisposable
 			try
 			{
 				// Wait for the task to complete
-				session.ReadTask?.GetAwaiter().GetResult();
+				if(session.ReadTask is not null)
+				{
+					session.ReadTask.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
+				}
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				_logger.LogDebug(ex, "Failed to wait for read task to complete during close for session {SessionId}", sessionId);
 			}
@@ -281,7 +287,7 @@ public sealed partial class TerminalService : IDisposable
 			{
 				session.Connection.Dispose();
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				_logger.LogDebug(ex, "Failed to dispose terminal session {SessionId} during close", sessionId);
 			}
