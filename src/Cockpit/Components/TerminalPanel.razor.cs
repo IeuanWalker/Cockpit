@@ -203,16 +203,18 @@ public partial class TerminalPanel : IDisposable
 						{
 							await _terminal.Write("\r\n[Error] Failed to deliver terminal output. See logs for details.\r\n");
 						}
-						catch
+						catch(Exception writeEx)
 						{
 							// Swallow any secondary errors while reporting the failure
+							Logger.LogDebug(writeEx, "Failed to write error message to terminal for session {SessionId}", sessionId);
 						}
 					});
 				}
 			}
-			catch
+			catch(Exception notifyEx)
 			{
 				// As a final safeguard, ignore any errors while attempting to notify the user
+				Logger.LogDebug(notifyEx, "Failed to notify user of terminal error for session {SessionId}", sessionId);
 			}
 		}
 	}
