@@ -3,7 +3,7 @@ using Porta.Pty;
 
 namespace Cockpit.Services;
 
-public sealed partial class TerminalService : IDisposable
+public sealed class TerminalService : IDisposable
 {
 	readonly Dictionary<string, TerminalSession> _sessions = [];
 
@@ -153,6 +153,29 @@ public sealed partial class TerminalService : IDisposable
 			session.Cols = cols;
 			session.Rows = rows;
 			session.Connection.Resize(cols, rows);
+		}
+	}
+
+	public async Task RestartSession(string sessionId, string workingDirectory)
+	{
+		// Dispose existing session if present
+		if (_sessions.TryGetValue(sessionId, out var existing))
+		{
+			// Prevent old output from reappearing after restart
+			existing.ClearBuffer();
+			try { existing.Connection.Dispose(); } catch { }
+			_sessions.Remove(sessionId);
+		}
+
+		// Create a fresh session
+		await CreateSession(sessionId, workingDirectory);
+	}
+
+	public void SoftClear(string sessionId)
+	{
+		if (_sessions.TryGetValue(sessionId, out var session))
+		{
+			session.ClearBuffer();
 		}
 	}
 }

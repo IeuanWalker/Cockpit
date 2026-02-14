@@ -12,6 +12,9 @@ public partial class TerminalPanel : IDisposable
 	string _terminalId = string.Empty;
 	bool _isSessionActive = false;
 	bool _hasRestoredBuffer = false;
+	bool _isFullscreen = false;
+	string _containerStyle = "height: 30%; display: flex; flex-direction: column;";
+	string _containerClasses = string.Empty;
 	readonly HashSet<string> _addons = ["addon-fit"];
 	readonly TerminalOptions _options = new()
 	{
@@ -37,9 +40,33 @@ public partial class TerminalPanel : IDisposable
 		UIState.OnStateChanged += OnUIStateChanged;
 	}
 
-	private void OnUIStateChanged()
+	void OnUIStateChanged()
 	{
-		_ = InvokeAsync(Resize);
+		_ = InvokeAsync(async () => await Resize());
+	}
+
+	async Task ToggleFullscreen()
+	{
+		_isFullscreen = !_isFullscreen;
+		_containerStyle = _isFullscreen
+			? "position: fixed; inset: 0; z-index: 50; height: 100vh; width: 100vw; display: flex; flex-direction: column;"
+			: "height: 30%; display: flex; flex-direction: column;";
+		_containerClasses = _isFullscreen ? "bg-vscode-sidebar" : string.Empty;
+
+		// Trigger re-render
+		await InvokeAsync(StateHasChanged);
+
+		// Wait for DOM to update with new size
+		await Task.Delay(150);
+
+		// Resize terminal to fit new container (this reflows content)
+		await Resize();
+
+		// Focus the terminal
+		if(_terminal is not null)
+		{
+			await _terminal.Focus();
+		}
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -55,8 +82,8 @@ public partial class TerminalPanel : IDisposable
 		string workDir = !string.IsNullOrEmpty(WorkingDirectory) ? WorkingDirectory : Directory.GetCurrentDirectory();
 		bool isNewSession = await TerminalService.CreateSession(SessionId, workDir);
 
-		// If session already existed, restore the buffered output
-		if(!isNewSession && !_hasRestoredBuffer)
+		// Restore buffered output (works for both new and existing sessions)
+		if(!_hasRestoredBuffer)
 		{
 			string bufferedOutput = TerminalService.GetBufferedOutput(SessionId);
 			if(!string.IsNullOrEmpty(bufferedOutput))
@@ -77,13 +104,13 @@ public partial class TerminalPanel : IDisposable
 
 	DotNetObjectReference<TerminalPanel>? _dotNetRef;
 
-async Task OnTerminalFirstRender()
-{
-	_dotNetRef = DotNetObjectReference.Create(this);
-	await JS.InvokeVoidAsync("xtermInterop.registerWindowResize", _terminalId, _dotNetRef);
-	await JS.InvokeVoidAsync("xtermInterop.observeElementResize", _terminalId, _dotNetRef);
-	await Resize();
-}
+	async Task OnTerminalFirstRender()
+	{
+		_dotNetRef = DotNetObjectReference.Create(this);
+		await JS.InvokeVoidAsync("xtermInterop.registerWindowResize", _terminalId, _dotNetRef);
+		await JS.InvokeVoidAsync("xtermInterop.observeElementResize", _terminalId, _dotNetRef);
+		await Resize();
+	}
 
 	[JSInvokable]
 	public async Task OnTerminalWindowResize()
@@ -105,25 +132,26 @@ async Task OnTerminalFirstRender()
 
 		try
 		{
-			// Fit terminal to container
+			// IMPORTANT: Call fit() which will resize the terminal to match container
 			await _terminal.Addon("addon-fit").InvokeVoidAsync("fit");
 
-			// Give time for fit to apply
-			await Task.Delay(10);
+			// Small delay to let the fit operation complete
+			await Task.Delay(100);
 
-			// Query cols/rows from JS interop
+			await _terminal.Addon("addon-fit").InvokeVoidAsync("fit");
+
+			// Query the actual cols/rows after fit
 			var size = await JS.InvokeAsync<TerminalSize?>("xtermInterop.getTerminalSize", _terminalId);
-			if (size != null && size.cols > 0 && size.rows > 0)
+			if(size != null && size.cols > 0 && size.rows > 0)
 			{
-				// Subtract 4 from cols to avoid wrapping due to rounding/padding/scrollbar
-				int safeCols = size.cols > 1 ? size.cols - 1 : size.cols;
-				TerminalService.ResizePty(SessionId, safeCols, size.rows);
+				// Resize the PTY to match the terminal's new dimensions
+				TerminalService.ResizePty(SessionId, size.cols, size.rows);
 			}
 		}
 		catch { }
 	}
 
-	private class TerminalSize
+	class TerminalSize
 	{
 		public int cols { get; set; }
 		public int rows { get; set; }
@@ -175,7 +203,19 @@ async Task OnTerminalFirstRender()
 			return;
 		}
 
+		// Clear buffered output and restart PTY
+		TerminalService.SoftClear(SessionId);
+		await TerminalService.RestartSession(SessionId, WorkingDirectory ?? Directory.GetCurrentDirectory());
+		_hasRestoredBuffer = false;
+		_isSessionActive = true;
+
+		// Reset frontend terminal view and focus
 		await _terminal.Reset();
+		await _terminal.Focus();
+
+		// Small delay then resize to current container
+		await Task.Delay(50);
+		await Resize();
 	}
 
 	public void Dispose()

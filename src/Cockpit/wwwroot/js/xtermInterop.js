@@ -4,12 +4,20 @@ console.log('[xtermInterop] script loaded');
 window.xtermInterop.triggerResize = function(terminalElementId) {
     console.log('[xtermInterop] triggerResize CALLED', terminalElementId);
     const termEl = document.getElementById(terminalElementId);
-    if (termEl && termEl.xterm && termEl.xterm._core && termEl.xterm._core._onResize) {
-        // Try to trigger a resize event if possible
-        termEl.xterm.resize(termEl.offsetWidth, termEl.offsetHeight);
+    if (!termEl || !termEl.xterm) {
+        return;
     }
-    if (termEl && termEl.xterm && termEl.xterm.fit) {
-        termEl.xterm.fit();
+    
+    // Call fit to resize the terminal - this handles the reflow
+    const fitAddon = termEl.xterm._fitAddon;
+    if (fitAddon && fitAddon.fit) {
+        fitAddon.fit();
+    }
+    
+    // Force a complete repaint by clearing the texture atlas
+    // This ensures no stale rendering artifacts remain
+    if (termEl.xterm.clearTextureAtlas) {
+        termEl.xterm.clearTextureAtlas();
     }
 };
 
@@ -30,19 +38,11 @@ window.xtermInterop.getTerminalSize = function (terminalElementId) {
     const cellHeight = termEl.xterm._core._renderService.dimensions.actualCellHeight;
     let cols = Math.floor(containerWidth / cellWidth);
     let rows = Math.floor(termEl.offsetHeight / cellHeight);
-    console.log('[xtermInterop] getTerminalSize', {
-        terminalElementId,
-        containerWidth,
-        cellWidth,
-        cellHeight,
-        cols,
-        rows,
-        offsetWidth: termEl.offsetWidth,
-        offsetHeight: termEl.offsetHeight,
-        scrollHeight: termEl.scrollHeight,
-        clientHeight: termEl.clientHeight,
-        hasVScroll
-    });
+    // Snap to xterm's internal cols/rows to avoid drift
+    if (termEl.xterm.cols && termEl.xterm.rows) {
+        cols = termEl.xterm.cols;
+        rows = termEl.xterm.rows;
+    }
     // Fallback to xterm's own cols/rows if calculation fails
     if (!isFinite(cols) || cols <= 0) cols = termEl.xterm.cols;
     if (!isFinite(rows) || rows <= 0) rows = termEl.xterm.rows;
@@ -75,6 +75,13 @@ window.xtermInterop.observeElementResize = function(terminalElementId, dotnetHel
     return {
         dispose: () => observer.disconnect()
     };
+};
+
+window.xtermInterop.clearTerminal = function(terminalElementId) {
+    const termEl = document.getElementById(terminalElementId);
+    if (termEl && termEl.xterm && termEl.xterm.clear) {
+        termEl.xterm.clear();
+    }
 };
 
 window.xtermInterop.registerWindowResize = function(terminalElementId, dotnetHelper) {
