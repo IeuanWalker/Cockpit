@@ -94,10 +94,12 @@ else
     </div>
 
     <!-- Permission Request Panel (appears above working panel when permission needed) -->
-    @if(SessionManager.CurrentSession?.PendingPermissionRequest is not null)
+    @if(SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)
     {
-        <PermissionRequestPanel Request="@SessionManager.CurrentSession.PendingPermissionRequest"
-                                OnPermissionDecision="HandlePermissionDecision" />
+        <PermissionRequestPanel Request="@SessionManager.CurrentSession.PendingPermissionRequests[0]"
+                                OnPermissionDecision="HandlePermissionDecision"
+                                QueuePosition="1"
+                                QueueTotal="@SessionManager.CurrentSession.PendingPermissionRequests.Count" />
     }
 
     <!-- Working Panel (appears above input when agent is working) -->
@@ -106,7 +108,7 @@ else
     <!-- Input Area -->
     <div class="border-t border-vscode-border bg-vscode-sidebar p-3">
         <div class="relative">
-            @if(SessionManager.CurrentSession?.PendingPermissionRequest is not null)
+            @if(SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)
             {
                 <div class="absolute inset-0 bg-black bg-opacity-30 z-10 rounded-lg cursor-not-allowed"></div>
             }
@@ -115,10 +117,10 @@ else
                     <div class="flex-1">
                         <textarea id="chatInput" @bind="_chatInput" @bind:event="oninput" @bind:after="OnTextareaInput" @onkeydown="HandleKeyDown"
                                   class="w-full bg-transparent text-vscode-text px-3 py-2 resize-none focus:outline-none scrollbar-thin"
-                                  rows="1" placeholder="Ask Copilot anything..." disabled="@(SessionManager.CurrentSession?.PendingPermissionRequest is not null)"></textarea>
+                                  rows="1" placeholder="Ask Copilot anything..." disabled="@(SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)"></textarea>
                     </div>
                     <div class="flex items-end space-x-1 p-2 border-l border-vscode-border self-stretch">
-                        <button @onclick="async () => await VoiceRecording()" class="p-1.5 @(UIState.IsRecording ? "animate-pulse" : "hover:bg-vscode-hover") rounded" title="@(UIState.IsRecording ? "Stop recording" : "Voice input")" style="@(UIState.IsRecording ? "background-color: #E74856;" : "")" disabled="@(SessionManager.CurrentSession?.PendingPermissionRequest != null)">
+                        <button @onclick="async () => await VoiceRecording()" class="p-1.5 @(UIState.IsRecording ? "animate-pulse" : "hover:bg-vscode-hover") rounded" title="@(UIState.IsRecording ? "Stop recording" : "Voice input")" style="@(UIState.IsRecording ? "background-color: #E74856;" : "")" disabled="@(SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
                             <svg class="icon-sm @(UIState.IsRecording ? "text-white" : "secondary-text")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 @if(UIState.IsRecording)
                                 {
@@ -131,7 +133,7 @@ else
                                 }
                             </svg>
                         </button>
-                        <button @onclick="SendMessage" class="btn-primary p-1.5 rounded" title="Send" disabled="@(SessionManager.CurrentSession?.PendingPermissionRequest is not null)">
+                        <button @onclick="SendMessage" class="btn-primary p-1.5 rounded" title="Send" disabled="@(SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
                             <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
@@ -140,12 +142,12 @@ else
                 </div>
                 <div class="flex items-center justify-between px-3 py-1.5 border-t border-vscode-border">
                     <div class="flex items-center space-x-2">
-                        <button class="p-1 hover:bg-vscode-hover rounded" title="Attach file" disabled="@(SessionManager.CurrentSession?.PendingPermissionRequest is not null)">
+                        <button class="p-1 hover:bg-vscode-hover rounded" title="Attach file" disabled="@(SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
                             <svg class="icon-xs secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                             </svg>
                         </button>
-                        <button class="p-1 hover:bg-vscode-hover rounded" title="Code snippet" disabled="@(SessionManager.CurrentSession?.PendingPermissionRequest is not null)">
+                        <button class="p-1 hover:bg-vscode-hover rounded" title="Code snippet" disabled="@(SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
                             <svg class="icon-xs secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                             </svg>
@@ -157,9 +159,9 @@ else
                             <div class="relative">
                                 <div class="relative group">
                                     <button @onclick="ToggleModelDropdown"
-                                            class="rounded px-2 py-0.5 text-xs focus:outline-none flex items-center space-x-1 transition-opacity duration-200 @(SessionManager.CurrentSession?.Status == SessionStatus.Running || SessionManager.CurrentSession?.PendingPermissionRequest is not null ? "opacity-50 cursor-not-allowed" : "")"
+                                            class="rounded px-2 py-0.5 text-xs focus:outline-none flex items-center space-x-1 transition-opacity duration-200 @(SessionManager.CurrentSession?.Status == SessionStatus.Running || SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0 ? "opacity-50 cursor-not-allowed" : "")"
                                             style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color); min-width: 150px;"
-                                            disabled="@(SessionManager.CurrentSession?.Status == SessionStatus.Running || SessionManager.CurrentSession?.PendingPermissionRequest is not null)"
+                                            disabled="@(SessionManager.CurrentSession?.Status == SessionStatus.Running || SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)"
                                             onmouseover="if(SessionManager.IsWorking) { var tooltip = document.getElementById('model-switcher-tooltip'); tooltip.style.display = 'block'; }"
                                             onmouseout="if(SessionManager.IsWorking) { var tooltip = document.getElementById('model-switcher-tooltip'); tooltip.style.display = 'none'; }">
                                         <span class="flex-1 text-left">@GetDisplayModelName() (<span style="color: @GetMultiplierColor(GetDisplayModelMultiplier())">@(GetDisplayModelMultiplier().ToString("0.0"))x</span>)</span>
@@ -192,10 +194,10 @@ else
                             </div>
                         </div>
                         <button @onclick="ToggleYoloMode"
-                                class="px-3 py-0.5 text-xs font-medium rounded transition-colors duration-200 @(SessionManager.CurrentSession?.Status == SessionStatus.Running || SessionManager.CurrentSession?.PendingPermissionRequest is not null ? "opacity-50 cursor-not-allowed" : "hover:bg-vscode-hover")"
+                                class="px-3 py-0.5 text-xs font-medium rounded transition-colors duration-200 @(SessionManager.CurrentSession?.Status == SessionStatus.Running || SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-vscode-hover")"
                                 style="@GetYoloButtonStyle()"
                                 title="@(SessionManager.CurrentSession?.IsYolo == true ? "ENABLED: YOLO mode automatically approves all permission requests, use with caution!" : "Disabled: YOLO mode automatically approves all permission requests, use with caution!")"
-                                disabled="@(SessionManager.CurrentSession?.Status == SessionStatus.Running || SessionManager.CurrentSession?.PendingPermissionRequest is not null)">
+                                disabled="@(SessionManager.CurrentSession?.Status == SessionStatus.Running || SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
                             YOLO
                         </button>
                         @if(@SessionManager.CurrentSession?.Model?.SupportedReasoningEfforts?.Count > 0)

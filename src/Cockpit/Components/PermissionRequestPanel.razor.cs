@@ -11,6 +11,12 @@ public partial class PermissionRequestPanel
 	[Parameter]
 	public EventCallback<PermissionDecision> OnPermissionDecision { get; set; }
 
+	[Parameter]
+	public int QueuePosition { get; set; } = 1;
+
+	[Parameter]
+	public int QueueTotal { get; set; } = 1;
+
 	bool _showDetailsPopup = false;
 
 	string GetNormalizedPattern()
@@ -96,12 +102,21 @@ public partial class PermissionRequestPanel
 
 	async Task OnDecision(bool isApproved, PermissionScope scope)
 	{
-		PermissionDecision decision = new()
+		try
 		{
-			IsApproved = isApproved,
-			Scope = scope
-		};
+			PermissionDecision decision = new()
+			{
+				IsApproved = isApproved,
+				Scope = scope
+			};
 
-		await OnPermissionDecision.InvokeAsync(decision);
+			await OnPermissionDecision.InvokeAsync(decision);
+		}
+		catch(Exception ex)
+		{
+			// Log or handle the exception - buttons might be failing silently
+			Console.WriteLine($"Error in OnDecision: {ex.Message}");
+			throw;
+		}
 	}
 }

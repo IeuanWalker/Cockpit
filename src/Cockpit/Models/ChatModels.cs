@@ -18,12 +18,12 @@ public class ChatSession
 	public Dictionary<string, ChatMessage> StreamingMessages { get; } = [];
 
 	/// <summary>
-	/// Pending permission request for this session (if any)
+	/// Pending permission requests for this session (supports multiple concurrent requests)
 	/// </summary>
-	public PermissionRequest? PendingPermissionRequest { get; set; }
+	public List<PermissionRequest> PendingPermissionRequests { get; set; } = [];
 
 	/// <summary>
-	/// Previous status before permission request (to restore after decision)
+	/// Previous status before permission request (to restore after all decisions)
 	/// </summary>
 	public SessionStatus? PreviousStatus { get; set; }
 

@@ -435,12 +435,14 @@ public partial class Main : ComponentBase, IDisposable
 	// Handle permission decision from the PermissionRequestPanel
 	void HandlePermissionDecision(PermissionDecision decision)
 	{
-		if(SessionManager.CurrentSession is null)
+		if(SessionManager.CurrentSession is null || SessionManager.CurrentSession.PendingPermissionRequests.Count == 0)
 		{
 			return;
 		}
 
-		// Pass decision to PermissionService for resolution
-		PermissionService.ResolvePermissionRequest(SessionManager.CurrentSession.Id, decision);
+		// Get the first pending request (the one being displayed) and pass its ID
+		Models.PermissionRequest currentRequest = SessionManager.CurrentSession.PendingPermissionRequests[0];
+		System.Diagnostics.Debug.WriteLine($"HandlePermissionDecision - Request ID: {currentRequest.Id}, Session ID: {SessionManager.CurrentSession.Id}");
+		PermissionService.ResolvePermissionRequest(currentRequest.Id, decision);
 	}
 }

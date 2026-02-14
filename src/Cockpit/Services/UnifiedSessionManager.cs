@@ -734,17 +734,24 @@ public partial class UnifiedSessionManager
 			return;
 		}
 
-		// Update session state
-		session.PreviousStatus = session.Status;
-		session.Status = SessionStatus.NeedsPermission;
-		session.PendingPermissionRequest = request;
+		_logger.LogInformation("HandlePermissionRequested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
+
+		// Add to pending requests list
+		session.PendingPermissionRequests.Add(request);
+
+		// Set status to NeedsPermission on first request
+		if(session.PendingPermissionRequests.Count == 1)
+		{
+			session.PreviousStatus = session.Status;
+			session.Status = SessionStatus.NeedsPermission;
+		}
 
 		// Notify UI
 		NotifyStateChanged();
 	}
 
 	// Handle permission resolved event from PermissionService
-	void HandlePermissionResolved(string sessionId, PermissionDecision decision)
+	void HandlePermissionResolved(string sessionId, string requestId, PermissionDecision decision)
 	{
 		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
@@ -752,9 +759,16 @@ public partial class UnifiedSessionManager
 			return;
 		}
 
-		// Restore previous status
-		session.Status = session.PreviousStatus ?? SessionStatus.Idle;
-		session.PendingPermissionRequest = null;
+		_logger.LogInformation("HandlePermissionResolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
+
+		// Remove the specific resolved request from the list
+		session.PendingPermissionRequests.RemoveAll(r => r.Id == requestId);
+
+		// Restore previous status only when all permissions are resolved
+		if(session.PendingPermissionRequests.Count == 0)
+		{
+			session.Status = session.PreviousStatus ?? SessionStatus.Idle;
+		}
 
 		// Notify UI
 		NotifyStateChanged();
