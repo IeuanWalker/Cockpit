@@ -66,10 +66,10 @@
     <PackageReference Include="Humanizer" Version="3.0.1" />
     <PackageReference Include="Markdig" Version="0.45.0" />
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.3.0" />
-    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.31" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="10.0.31" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.40" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="10.0.40" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.3" />
-    <PackageReference Include="Porta.Pty" Version="0.1.1" />
+    <PackageReference Include="Porta.Pty" Version="1.0.7" />
     <PackageReference Include="XtermBlazor" Version="2.3.0" />
   </ItemGroup>
 </Project>

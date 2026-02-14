@@ -5,12 +5,6 @@
     <div class="terminal-panel bg-vscode-sidebar @(_isFullscreen ? "shadow-2xl" : string.Empty) @_containerClasses" style="@_containerStyle">
         <!-- Chat Header -->
         <div class="h-10 bg-vscode-sidebar border-b border-vscode-border px-3 flex items-center">
-            <div class="flex items-center flex-1">
-                <h1 class="text-vscode-title font-semibold text-sm flex items-center">
-                    Terminal
-                </h1>
-            </div>
-
             <div class="flex items-center ml-auto">
                 <!-- Fullscreen toggle -->
                 <button @onclick="async () => await ToggleFullscreen()" class="p-1.5 hover:bg-vscode-hover rounded" title="Toggle Fullscreen">
