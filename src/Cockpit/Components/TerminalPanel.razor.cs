@@ -77,12 +77,13 @@ public partial class TerminalPanel : IDisposable
 
 	DotNetObjectReference<TerminalPanel>? _dotNetRef;
 
-	async Task OnTerminalFirstRender()
-	{
-		_dotNetRef = DotNetObjectReference.Create(this);
-		await JS.InvokeVoidAsync("xtermInterop.registerWindowResize", _terminalId, _dotNetRef);
-		await Resize();
-	}
+async Task OnTerminalFirstRender()
+{
+	_dotNetRef = DotNetObjectReference.Create(this);
+	await JS.InvokeVoidAsync("xtermInterop.registerWindowResize", _terminalId, _dotNetRef);
+	await JS.InvokeVoidAsync("xtermInterop.observeElementResize", _terminalId, _dotNetRef);
+	await Resize();
+}
 
 	[JSInvokable]
 	public async Task OnTerminalWindowResize()
