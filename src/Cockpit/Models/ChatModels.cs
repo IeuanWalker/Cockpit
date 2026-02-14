@@ -41,6 +41,11 @@ public class ChatSession
 	/// YOLO mode - automatically accept all permissions without prompting
 	/// </summary>
 	public bool IsYolo { get; set; }
+
+	/// <summary>
+	/// Terminal state for this session
+	/// </summary>
+	public bool IsTerminalOpen { get; set; }
 }
 
 public enum SessionStatus

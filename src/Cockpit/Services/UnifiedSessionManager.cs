@@ -15,6 +15,7 @@ public partial class UnifiedSessionManager
 	readonly ContextService _contextService;
 	readonly CopilotModelService _copilotModelService;
 	readonly PermissionService _permissionService;
+	readonly TerminalService _terminalService;
 
 	// Internal: Maps sessionId -> SDK CopilotSession (for ALL resumed sessions)
 	readonly ConcurrentDictionary<string, CopilotSession> _sdkSessions = new();
@@ -37,7 +38,8 @@ public partial class UnifiedSessionManager
 		ToastService toastService,
 		ContextService contextService,
 		CopilotModelService copilotModelService,
-		PermissionService permissionService)
+		PermissionService permissionService,
+		TerminalService terminalService)
 	{
 		_clientService = clientService;
 		_logger = logger;
@@ -45,6 +47,7 @@ public partial class UnifiedSessionManager
 		_contextService = contextService;
 		_copilotModelService = copilotModelService;
 		_permissionService = permissionService;
+		_terminalService = terminalService;
 
 		// Subscribe to permission events
 		_permissionService.OnPermissionRequested += HandlePermissionRequested;
@@ -674,6 +677,9 @@ public partial class UnifiedSessionManager
 				await sdkSession.DisposeAsync();
 			}
 
+			// Clean up terminal session
+			_terminalService.CloseSession(sessionId);
+
 			// Delete from Copilot CLI
 			CopilotClient client = await _clientService.GetClientAsync();
 			await client.DeleteSessionAsync(sessionId);
@@ -720,7 +726,7 @@ public partial class UnifiedSessionManager
 	void NotifyStateChanged() => OnStateChanged?.Invoke();
 
 	// Handle permission requested event from PermissionService
-	void HandlePermissionRequested(string sessionId, Cockpit.Models.PermissionRequest request)
+	void HandlePermissionRequested(string sessionId, Models.PermissionRequest request)
 	{
 		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
@@ -825,12 +831,12 @@ public partial class UnifiedSessionManager
 			string cmdStr = cmdObj?.ToString() ?? "";
 
 			// If it's a JSON object with fullCommandText, extract that
-			if(cmdStr.StartsWith("{") && cmdStr.Contains("fullCommandText"))
+			if(cmdStr.StartsWith('{') && cmdStr.Contains("fullCommandText"))
 			{
 				try
 				{
-					using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(cmdStr);
-					if(doc.RootElement.TryGetProperty("fullCommandText", out System.Text.Json.JsonElement fullCmd))
+					using JsonDocument doc = JsonDocument.Parse(cmdStr);
+					if(doc.RootElement.TryGetProperty("fullCommandText", out JsonElement fullCmd))
 					{
 						return fullCmd.GetString() ?? request.Kind;
 					}

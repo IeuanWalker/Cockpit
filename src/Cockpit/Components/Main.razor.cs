@@ -311,6 +311,15 @@ public partial class Main : ComponentBase, IDisposable
 		return "color: var(--text-color); border: 1px solid var(--input-border); background-color: var(--input-bg);";
 	}
 
+	void ToggleTerminalPanel()
+	{
+		if(SessionManager.CurrentSession != null)
+		{
+			SessionManager.CurrentSession.IsTerminalOpen = !SessionManager.CurrentSession.IsTerminalOpen;
+			StateHasChanged();
+		}
+	}
+
 	public void Dispose()
 	{
 		Dispose(true);
