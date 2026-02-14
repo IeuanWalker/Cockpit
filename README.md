@@ -3,3 +3,7 @@
 </p>
 <h1 align="center">Cockpit</h1>
 <h3 align="center">A GUI for GitHub Copilot</h3>
+
+### Features
+- Integrated terminal
+- Manage multiple sessions simultaneously
