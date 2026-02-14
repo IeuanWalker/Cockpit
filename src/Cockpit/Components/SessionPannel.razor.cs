@@ -40,11 +40,25 @@ public partial class SessionPannel : ComponentBase, IDisposable
 		_isLoadingSessions = false;
 	}
 
+	bool _isRefreshingSessions = false;
 	async Task RefreshSessions()
 	{
-		_isLoadingSessions = true;
-		await SessionManager.LoadExistingSessionsAsync();
-		_isLoadingSessions = false;
+		if(_isRefreshingSessions)
+		{
+			return;
+		}
+
+		_isRefreshingSessions = true;
+		try
+		{
+			Task loadTask = SessionManager.LoadExistingSessionsAsync();
+			Task delayTask = Task.Delay(1000);
+			await Task.WhenAll(loadTask, delayTask);
+		}
+		finally
+		{
+			_isRefreshingSessions = false;
+		}
 	}
 
 	void OnTimestampTick()
