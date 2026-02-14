@@ -120,10 +120,7 @@ public sealed partial class TerminalService : IDisposable
 			try
 			{
 				// Wait for the task to complete (it should exit quickly due to cancellation)
-				if(session.ReadTask is not null)
-				{
-					session.ReadTask.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
-				}
+				session.ReadTask?.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
 			}
 			catch(Exception ex)
 			{
@@ -269,10 +266,7 @@ public sealed partial class TerminalService : IDisposable
 			try
 			{
 				// Wait for the task to complete
-				if(session.ReadTask is not null)
-				{
-					session.ReadTask.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
-				}
+				session.ReadTask?.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
 			}
 			catch(Exception ex)
 			{
