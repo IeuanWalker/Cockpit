@@ -22,9 +22,11 @@ public partial class Main : ComponentBase, IDisposable
 	string _chatInput = string.Empty;
 	List<ModelInfo> _availableModels = [];
 	bool _shouldScrollToBottom = false;
-	bool _shouldScrollThinkingPanel = false;
 	bool _isModelDropdownOpen = false;
 	bool _isReasoningEffortDropdownOpen = false;
+	bool _isUserScrolledUpFromChat = false;
+	int _lastMessageCount = 0;
+	DotNetObjectReference<Main>? _dotNetRef;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -57,18 +59,19 @@ public partial class Main : ComponentBase, IDisposable
 			await UpdateInputBehavior();
 			// Subscribe to UIState changes after first render to update input behavior
 			UIState.OnStateChanged += OnUIStateChangedHandler;
+			
+			// Setup smart scroll tracking
+			_dotNetRef = DotNetObjectReference.Create(this);
+			await SetupSmartScroll();
+			
+			// Initialize message count
+			_lastMessageCount = SessionManager.CurrentSession?.Messages?.Count ?? 0;
 		}
 
-		if(_shouldScrollToBottom)
+		if(_shouldScrollToBottom && !_isUserScrolledUpFromChat)
 		{
 			_shouldScrollToBottom = false;
 			await ScrollToBottom();
-		}
-
-		if(_shouldScrollThinkingPanel)
-		{
-			_shouldScrollThinkingPanel = false;
-			await ScrollThinkingPanelToBottom();
 		}
 	}
 
@@ -95,12 +98,14 @@ public partial class Main : ComponentBase, IDisposable
 
 	void OnStateChanged()
 	{
-		_shouldScrollToBottom = true;
-		// Also scroll thinking panel if it's visible and has content
-		if(SessionManager.IsWorking && SessionManager.ActiveWorkingGroup?.Tools.Any() == true)
+		// Only scroll chat if there's a new message
+		int currentMessageCount = SessionManager.CurrentSession?.Messages?.Count ?? 0;
+		if(currentMessageCount > _lastMessageCount)
 		{
-			_shouldScrollThinkingPanel = true;
+			_shouldScrollToBottom = true;
+			_lastMessageCount = currentMessageCount;
 		}
+		
 		InvokeAsync(StateHasChanged);
 	}
 
@@ -116,16 +121,22 @@ public partial class Main : ComponentBase, IDisposable
 		}
 	}
 
-	async Task ScrollThinkingPanelToBottom()
+	async Task SetupSmartScroll()
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "workingContent");
+			await JSRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged");
 		}
 		catch
 		{
 			// Handle error silently
 		}
+	}
+
+	[JSInvokable]
+	public void OnChatScrollPositionChanged(bool isNearBottom)
+	{
+		_isUserScrolledUpFromChat = !isNearBottom;
 	}
 
 	async Task OnTextareaInput()
@@ -153,6 +164,10 @@ public partial class Main : ComponentBase, IDisposable
 		// Reset textarea height after clearing
 		await Task.Delay(10);
 		await OnTextareaInput();
+
+		// Reset scroll state when user sends a message - we want to auto-scroll
+		_isUserScrolledUpFromChat = false;
+		_shouldScrollToBottom = true; // Force immediate scroll
 
 		// Send via SDK
 		await SessionManager.SendMessageAsync(message);
@@ -333,6 +348,18 @@ public partial class Main : ComponentBase, IDisposable
 			SessionManager.OnStateChanged -= OnStateChanged;
 			UIState.OnStateChanged -= OnUIStateChangedHandler;
 			TimestampService.OnTick -= OnTimestampTick;
+
+			// Cleanup smart scroll
+			try
+			{
+				JSRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
+			}
+			catch
+			{
+				// Handle error silently
+			}
+
+			_dotNetRef?.Dispose();
 		}
 	}
 
