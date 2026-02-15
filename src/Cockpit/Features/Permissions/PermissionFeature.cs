@@ -154,10 +154,10 @@ public class PermissionFeature
 				request.Kind, permissionRequest.Command, session.Id);
 
 			// Check permission through our service
-			PermissionDecisionModel decision = await CheckPermissionAsync(permissionRequest, session.IsYolo);
+			PermissionDecisionEnum decision = await CheckPermissionAsync(permissionRequest, session.IsYolo);
 
 			// Convert our decision to SDK format
-			string resultKind = decision.IsApproved ? "approved" : "denied-interactively-by-user";
+			string resultKind = decision.Equals(PermissionDecisionEnum.Denied) ? "denied-interactively-by-user" : "approved";
 
 			_logger.LogInformation("Permission decision: {Decision} for {Command}", resultKind, permissionRequest.Command);
 
@@ -235,17 +235,13 @@ public class PermissionFeature
 	/// <param name="request">Permission request</param>
 	/// <param name="isYolo">If true, auto-approve all requests</param>
 	/// <returns>Permission decision</returns>
-	public async Task<PermissionDecisionModel> CheckPermissionAsync(PermissionRequestModel request, bool isYolo = false)
+	public async Task<PermissionDecisionEnum> CheckPermissionAsync(PermissionRequestModel request, bool isYolo = false)
 	{
 		// YOLO mode - auto-approve everything
 		if(isYolo)
 		{
 			_logger.LogInformation("YOLO mode enabled - auto-approving: {Command}", request.Command);
-			return new PermissionDecisionModel
-			{
-				IsApproved = true,
-				Scope = PermissionScope.Once
-			};
+			return PermissionDecisionEnum.Once;
 		}
 
 		lock(_permissionsLock)
@@ -254,22 +250,14 @@ public class PermissionFeature
 			if(_sessionPermissionFeature.HasPermission(request.SessionId, request.Command))
 			{
 				_logger.LogDebug("Command approved by session permission: {Command}", request.Command);
-				return new PermissionDecisionModel
-				{
-					IsApproved = true,
-					Scope = PermissionScope.Session
-				};
+				return PermissionDecisionEnum.Session;
 			}
 
 			// Priority 2: Check global allowlist
 			if(_globalPermissionFeature.HasPermission(request.Command))
 			{
 				_logger.LogDebug("Command approved by global permission: {Command}", request.Command);
-				return new PermissionDecisionModel
-				{
-					IsApproved = true,
-					Scope = PermissionScope.Global
-				};
+				return PermissionDecisionEnum.Global;
 			}
 		}
 
@@ -281,7 +269,7 @@ public class PermissionFeature
 	/// <summary>
 	/// Request user approval for a tool execution
 	/// </summary>
-	async Task<PermissionDecisionModel> RequestUserApprovalAsync(PermissionRequestModel request)
+	async Task<PermissionDecisionEnum> RequestUserApprovalAsync(PermissionRequestModel request)
 	{
 		// Store pending request using unique request ID
 		_pendingRequests[request.Id] = request;
@@ -292,13 +280,13 @@ public class PermissionFeature
 		// Wait for user decision
 		try
 		{
-			PermissionDecisionModel decision = await request.GetDecisionAsync();
+			PermissionDecisionEnum decision = await request.GetDecisionAsync();
 			return decision;
 		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Error waiting for permission decision");
-			return new PermissionDecisionModel { IsApproved = false };
+			return PermissionDecisionEnum.Denied;
 		}
 		finally
 		{
@@ -310,9 +298,9 @@ public class PermissionFeature
 	/// <summary>
 	/// Resolve a pending permission request with user decision
 	/// </summary>
-	public void ResolvePermissionRequest(string requestId, PermissionDecisionModel decision)
+	public void ResolvePermissionRequest(string requestId, PermissionDecisionEnum decision)
 	{
-		_logger.LogInformation("ResolvePermissionRequest called with requestId: {RequestId}, IsApproved: {IsApproved}", requestId, decision.IsApproved);
+		_logger.LogInformation("ResolvePermissionRequest called with requestId: {RequestId}, IsApproved: {IsApproved}", requestId, !decision.Equals(PermissionDecisionEnum.Denied));
 
 		if(!_pendingRequests.TryGetValue(requestId, out PermissionRequestModel? request))
 		{
@@ -327,21 +315,21 @@ public class PermissionFeature
 
 		_logger.LogInformation(
 			"Permission {Decision} for session {SessionId}: {Command}",
-			decision.IsApproved ? "granted" : "denied",
+			decision.Equals(PermissionDecisionEnum.Denied) ? "denied" : "granted",
 			request.SessionId,
 			request.Command);
 
 		// If approved, save permission based on scope
-		if(decision.IsApproved)
+		if(!decision.Equals(PermissionDecisionEnum.Denied))
 		{
-			_logger.LogDebug("Saving permission with scope: {Scope}, command: {Command}", decision.Scope, request.Command);
+			_logger.LogDebug("Saving permission with scope: {Scope}, command: {Command}", decision, request.Command);
 
-			if(decision.Scope == PermissionScope.Global)
+			if(decision.Equals(PermissionDecisionEnum.Global))
 			{
 				_globalPermissionFeature.Add(request.Command);
 				_logger.LogDebug("Added global permission");
 			}
-			else if(decision.Scope == PermissionScope.Session)
+			else if(decision.Equals(PermissionDecisionEnum.Session))
 			{
 				_sessionPermissionFeature.Add(request.SessionId, request.Command);
 				_logger.LogDebug("Added session permission");
@@ -349,9 +337,9 @@ public class PermissionFeature
 			// PermissionScope.Once doesn't save anything
 
 			// Check if other pending requests for this session can now be auto-approved
-			if(decision.Scope == PermissionScope.Global || decision.Scope == PermissionScope.Session)
+			if(decision.Equals(PermissionDecisionEnum.Global) || decision.Equals(PermissionDecisionEnum.Session))
 			{
-				AutoResolveMatchingRequests(request.SessionId, request.Command, decision.Scope);
+				AutoResolveMatchingRequests(request.SessionId, request.Command, decision);
 			}
 		}
 
@@ -367,8 +355,13 @@ public class PermissionFeature
 	/// <summary>
 	/// Auto-resolve pending requests that match a newly added permission
 	/// </summary>
-	void AutoResolveMatchingRequests(string sessionId, string command, PermissionScope scope)
+	void AutoResolveMatchingRequests(string sessionId, string command, PermissionDecisionEnum decision)
 	{
+		if(decision.Equals(PermissionDecisionEnum.Denied))
+		{
+			return;
+		}
+
 		List<PermissionRequestModel> pendingForSession = [.. _pendingRequests.Values.OrderBy(r => r.Requested)];
 
 		_logger.LogInformation("Checking {Count} pending requests for auto-approval with pattern: {Pattern}", pendingForSession.Count, command);
@@ -386,7 +379,7 @@ public class PermissionFeature
 				continue;
 			}
 
-			if(scope.Equals(PermissionScope.Session) && pendingRequest.SessionId != sessionId)
+			if(decision.Equals(PermissionDecisionEnum.Session) && pendingRequest.SessionId != sessionId)
 			{
 				continue;
 			}
@@ -394,18 +387,11 @@ public class PermissionFeature
 			_logger.LogInformation("Auto-approving pending request {RequestId} ({Command}) - matches {command}",
 				pendingRequest.Id, pendingRequest.Command, command);
 
-			// Auto-approve with the same scope as the permission that matched
-			PermissionDecisionModel autoDecision = new()
-			{
-				IsApproved = true,
-				Scope = scope
-			};
-
 			// Remove from pending requests atomically before completing
 			if(_pendingRequests.TryRemove(pendingRequest.Id, out _))
 			{
 				// Complete the TaskCompletionSource to unblock the waiting permission check
-				pendingRequest.CompletionSource.TrySetResult(autoDecision);
+				pendingRequest.CompletionSource.TrySetResult(decision);
 
 				// Notify UI that this request was resolved
 				OnPermissionResolved?.Invoke(sessionId, pendingRequest.Id);

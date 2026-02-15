@@ -40,7 +40,7 @@ public class ToolExecutionLog
 	/// <summary>
 	/// How the permission was granted (if approved)
 	/// </summary>
-	public PermissionScope? ApprovalScope { get; set; }
+	public PermissionDecisionEnum? ApprovalScope { get; set; }
 
 	/// <summary>
 	/// When this execution occurred

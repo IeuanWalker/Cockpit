@@ -430,7 +430,7 @@ public partial class Main : ComponentBase, IAsyncDisposable
 	}
 
 	// Handle permission decision from the PermissionRequestPanel
-	void HandlePermissionDecision(PermissionDecisionModel decision)
+	void HandlePermissionDecision(PermissionDecisionEnum decision)
 	{
 		PermissionRequestModel? currentRequest = FirstPendingRequest;
 		if(currentRequest is null)

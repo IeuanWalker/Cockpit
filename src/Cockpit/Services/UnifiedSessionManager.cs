@@ -52,9 +52,6 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	public void SetPermissionFeature(PermissionFeature permissionFeature)
 	{
 		_permissionFeature = permissionFeature;
-
-		_permissionFeature.OnPermissionRequested += _permissionFeature.HandlePermissionRequested;
-		_permissionFeature.OnPermissionResolved += _permissionFeature.HandlePermissionResolved;
 	}
 
 	// Deserialize JsonElement arguments to Dictionary<string, object>

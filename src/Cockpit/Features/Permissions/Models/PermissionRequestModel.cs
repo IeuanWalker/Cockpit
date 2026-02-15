@@ -15,10 +15,10 @@ public class PermissionRequestModel
 	/// <summary>
 	/// TaskCompletionSource to await user decision
 	/// </summary>
-	public TaskCompletionSource<PermissionDecisionModel> CompletionSource { get; } = new();
+	public TaskCompletionSource<PermissionDecisionEnum> CompletionSource { get; } = new();
 
 	/// <summary>
 	/// Get the awaitable task for user decision
 	/// </summary>
-	public Task<PermissionDecisionModel> GetDecisionAsync() => CompletionSource.Task;
+	public Task<PermissionDecisionEnum> GetDecisionAsync() => CompletionSource.Task;
 }

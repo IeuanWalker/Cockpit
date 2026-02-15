@@ -11,24 +11,24 @@
             More info
         </button>
         <div class="permission-actions">
-            <button class="btn btn-deny" @onclick="() => OnDecision(false, PermissionScope.Once)">
+            <button class="btn btn-deny" @onclick="() => OnDecision(PermissionDecisionEnum.Denied)">
                 Deny
             </button>
 
-            <button class="btn btn-allow-once" @onclick="() => OnDecision(true, PermissionScope.Once)">
+            <button class="btn btn-allow-once" @onclick="() => OnDecision(PermissionDecisionEnum.Once)">
                 Allow Once
             </button>
 
             @if(Request.CanApproveForSession)
             {
-                <button class="btn btn-allow-session" @onclick="() => OnDecision(true, PermissionScope.Session)">
+                <button class="btn btn-allow-session" @onclick="() => OnDecision(PermissionDecisionEnum.Session)">
                     Allow for this Session
                 </button>
             }
 
             @if(Request.CanApproveGlobally)
             {
-                <button class="btn btn-allow-always" @onclick="() => OnDecision(true, PermissionScope.Global)">
+                <button class="btn btn-allow-always" @onclick="() => OnDecision(PermissionDecisionEnum.Global)">
                     Allow globally
                 </button>
             }
