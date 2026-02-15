@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Cockpit.Features.Permissions.Models;
 using GitHub.Copilot.SDK;
 
 namespace Cockpit.Models;
@@ -22,7 +23,7 @@ public class ChatSession
 	/// Pending permission requests for this session (supports multiple concurrent requests)
 	/// Key: request.Id, Value: PermissionRequest
 	/// </summary>
-	public ConcurrentDictionary<string, PermissionRequest> PendingPermissionRequests { get; set; } = new();
+	public ConcurrentDictionary<string, PermissionRequestModel> PendingPermissionRequests { get; set; } = new();
 
 	/// <summary>
 	/// Lock for coordinating permission request status changes

@@ -21,30 +21,9 @@
 
         <!-- Dialog Content -->
         <div class="p-4 space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin">
-            @if(Request is not null)
-            {
-                <div class="detail-section">
-                    <div class="detail-label">Tool</div>
-                    <div class="detail-value">@Request.ToolName</div>
-                </div>
-
-                <div class="detail-section">
-                    <div class="detail-label">Command</div>
-                    <div class="detail-value code-json">
-                        <pre>@FormatAsJson(Request.Command)</pre>
-                    </div>
-                </div>
-
-                @if(Request.Arguments is not null && Request.Arguments.Count > 0)
-                {
-                    <div class="detail-section">
-                        <div class="detail-label">Arguments</div>
-                        <div class="detail-value code-json">
-                            <pre>@FormatArgumentsAsJson(Request.Arguments)</pre>
-                        </div>
-                    </div>
-                }
-            }
+            <div class="detail-value code-json">
+                <pre>@FormatAsJson(Request?.FullRequestJson ?? string.Empty)</pre>
+            </div>
         </div>
     </div>
 </div>

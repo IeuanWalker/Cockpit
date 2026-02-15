@@ -1,3 +1,5 @@
+using Cockpit.Features.Permissions.Models;
+
 namespace Cockpit.Models;
 
 /// <summary>

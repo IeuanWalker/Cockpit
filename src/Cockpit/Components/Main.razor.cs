@@ -1,6 +1,6 @@
 using System.Globalization;
 using Cockpit.Features.Permissions;
-using Cockpit.Models;
+using Cockpit.Features.Permissions.Models;
 using Cockpit.Services;
 using CommunityToolkit.Maui.Media;
 using GitHub.Copilot.SDK;
@@ -32,7 +32,7 @@ public partial class Main : ComponentBase, IAsyncDisposable
 	DotNetObjectReference<Main>? _dotNetRef;
 
 	// Helper property to safely get the first pending request
-	Models.PermissionRequest? FirstPendingRequest => SessionManager.CurrentSession?.PendingPermissionRequests?.Values.FirstOrDefault();
+	PermissionRequestModel? FirstPendingRequest => SessionManager.CurrentSession?.PendingPermissionRequests?.Values.FirstOrDefault();
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -430,9 +430,9 @@ public partial class Main : ComponentBase, IAsyncDisposable
 	}
 
 	// Handle permission decision from the PermissionRequestPanel
-	void HandlePermissionDecision(PermissionDecision decision)
+	void HandlePermissionDecision(PermissionDecisionModel decision)
 	{
-		Models.PermissionRequest? currentRequest = FirstPendingRequest;
+		PermissionRequestModel? currentRequest = FirstPendingRequest;
 		if(currentRequest is null)
 		{
 			Logger.LogWarning("HandlePermissionDecision called but CurrentSession is null");

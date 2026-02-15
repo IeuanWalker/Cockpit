@@ -198,7 +198,7 @@ else
                                 disabled="@(SessionManager.CurrentSession?.Status == SessionStatus.Running || SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
                             YOLO
                         </button>
-                        @if(@SessionManager.CurrentSession?.Model?.SupportedReasoningEfforts?.Count > 0)
+                        @if(@SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)
                         {
                             <div class="flex items-center space-x-2">
                                 <label class="text-xs secondary-text">Reasoning:</label>

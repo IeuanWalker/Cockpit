@@ -1,4 +1,4 @@
-namespace Cockpit.Models;
+namespace Cockpit.Features.Permissions.Models;
 
 /// <summary>
 /// Defines the scope of a permission decision
