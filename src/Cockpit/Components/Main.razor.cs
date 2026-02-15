@@ -19,7 +19,7 @@ public partial class Main : ComponentBase, IAsyncDisposable
 	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
 	[Inject] PermissionService PermissionService { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
-	[Inject] ILogger<Main> Logger { get; set; } = default!;;
+	[Inject] ILogger<Main> Logger { get; set; } = default!;
 
 	string _chatInput = string.Empty;
 	List<ModelInfo> _availableModels = [];
