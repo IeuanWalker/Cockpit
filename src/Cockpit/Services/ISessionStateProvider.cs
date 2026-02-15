@@ -1,6 +1,6 @@
 using Cockpit.Models;
 
-namespace Cockpit.Features.Permissions;
+namespace Cockpit.Services;
 
 /// <summary>
 /// Provides access to session state for permission handling

@@ -2,6 +2,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Cockpit.Models;
+using Cockpit.Services;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
