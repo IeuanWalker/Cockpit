@@ -744,6 +744,8 @@ public partial class UnifiedSessionManager
 		}
 
 		// Set status to NeedsPermission on first request
+		// Note: Count check may race with concurrent adds, but this is acceptable - if we miss
+		// setting the status because another thread added concurrently, that thread will set it
 		if(session.PendingPermissionRequests.Count == 1)
 		{
 			session.PreviousStatus = session.Status;
