@@ -5,6 +5,7 @@ using CommunityToolkit.Maui.Media;
 using GitHub.Copilot.SDK;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components;
@@ -18,6 +19,7 @@ public partial class Main : ComponentBase, IDisposable
 	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
 	[Inject] PermissionService PermissionService { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
+	[Inject] ILogger<Main> Logger { get; set; } = default!;
 
 	string _chatInput = string.Empty;
 	List<ModelInfo> _availableModels = [];
@@ -437,10 +439,16 @@ public partial class Main : ComponentBase, IDisposable
 	{
 		if(SessionManager.CurrentSession is null)
 		{
+			Logger.LogWarning("HandlePermissionDecision called but CurrentSession is null");
 			return;
 		}
 
+		Logger.LogInformation("HandlePermissionDecision called for session {SessionId} with scope {Scope}", 
+			SessionManager.CurrentSession.Id, decision.Scope);
+
 		// Pass decision to PermissionService for resolution
 		PermissionService.ResolvePermissionRequest(SessionManager.CurrentSession.Id, decision);
+		
+		Logger.LogInformation("ResolvePermissionRequest completed");
 	}
 }

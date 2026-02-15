@@ -1,5 +1,6 @@
 using Blazor.Sonner.Extensions;
 using Blazor.Sonner.Services;
+using Cockpit.Features;
 using Cockpit.Services;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
@@ -45,6 +46,7 @@ public static class MauiProgram
 		// Register Copilot SDK services
 		builder.Services.AddSingleton<CopilotClientService>();
 		builder.Services.AddSingleton<UnifiedSessionManager>();
+		builder.Services.AddSingleton<GlobalPermissionFeature>();
 		builder.Services.AddSingleton<PermissionService>();
 		builder.Services.AddSingleton<CopilotModelService>();
 

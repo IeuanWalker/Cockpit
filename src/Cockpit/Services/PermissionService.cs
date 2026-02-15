@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
 using System.Text.RegularExpressions;
+using Cockpit.Features;
 using Cockpit.Models;
 using Microsoft.Extensions.Logging;
 
@@ -11,11 +11,11 @@ namespace Cockpit.Services;
 /// </summary>
 public class PermissionService
 {
+	readonly GlobalPermissionFeature _globalPermissionFeature;
 	readonly ILogger<PermissionService> _logger;
-	readonly string _permissionsFilePath;
+
 
 	// In-memory cache of permissions
-	readonly List<ToolPermission> _globalPermissions = [];
 	readonly ConcurrentDictionary<string, List<ToolPermission>> _sessionPermissions = new();
 	readonly ConcurrentDictionary<string, PermissionRequest> _pendingRequests = new();
 	readonly Lock _permissionsLock = new();
@@ -23,18 +23,12 @@ public class PermissionService
 	// Events for UI updates
 	public event Action<string, PermissionRequest>? OnPermissionRequested;
 	public event Action<string, PermissionDecision>? OnPermissionResolved;
-	public event Action? OnPermissionsChanged;
 
-	public PermissionService(ILogger<PermissionService> logger)
+	public PermissionService(GlobalPermissionFeature globalPermissionFeature, ILogger<PermissionService> logger)
 	{
+		_globalPermissionFeature = globalPermissionFeature;
 		_logger = logger;
 
-		// Store permissions in app data folder
-		string appDataFolder = FileSystem.AppDataDirectory;
-		_permissionsFilePath = Path.Combine(appDataFolder, "permissions.json");
-
-		// Load existing permissions
-		LoadPermissions();
 	}
 
 	/// <summary>
@@ -121,17 +115,14 @@ public class PermissionService
 			}
 
 			// Priority 2: Check global allowlist
-			foreach(ToolPermission permission in _globalPermissions.Where(p => p.IsAllowed))
+			if(_globalPermissionFeature.HasPermission(normalizedId))
 			{
-				if(MatchesPattern(normalizedId, permission))
+				_logger.LogDebug("Command approved by global permission: {NormalizedId}", normalizedId);
+				return new PermissionDecision
 				{
-					_logger.LogDebug("Command approved by global permission: {NormalizedId}", normalizedId);
-					return new PermissionDecision
-					{
-						IsApproved = true,
-						Scope = PermissionScope.Global
-					};
-				}
+					IsApproved = true,
+					Scope = PermissionScope.Global
+				};
 			}
 		}
 
@@ -216,60 +207,29 @@ public class PermissionService
 				Scope = decision.Scope
 			};
 
+			_logger.LogDebug("Saving permission with scope: {Scope}, normalized ID: {NormalizedId}", decision.Scope, normalizedId);
+
 			if(decision.Scope == PermissionScope.Global)
 			{
-				AddGlobalPermission(permission);
+				_globalPermissionFeature.Add(normalizedId);
+				_logger.LogDebug("Added global permission");
 			}
 			else if(decision.Scope == PermissionScope.Session)
 			{
 				AddSessionPermission(sessionId, permission);
+				_logger.LogDebug("Added session permission");
 			}
 			// PermissionScope.Once doesn't save anything
 		}
 
+		_logger.LogDebug("Completing TaskCompletionSource for session {SessionId}", sessionId);
 		// Complete the TaskCompletionSource
-		request.CompletionSource.TrySetResult(decision);
+		bool completed = request.CompletionSource.TrySetResult(decision);
+		_logger.LogDebug("TaskCompletionSource completed: {Completed}", completed);
 
 		// Notify UI
 		OnPermissionResolved?.Invoke(sessionId, decision);
-	}
-
-	/// <summary>
-	/// Get pending permission request for a session
-	/// </summary>
-	public PermissionRequest? GetPendingRequest(string sessionId)
-	{
-		_pendingRequests.TryGetValue(sessionId, out PermissionRequest? request);
-		return request;
-	}
-
-	/// <summary>
-	/// Add a global permission
-	/// </summary>
-	public void AddGlobalPermission(ToolPermission permission)
-	{
-		lock(_permissionsLock)
-		{
-			permission.Scope = PermissionScope.Global;
-			_globalPermissions.Add(permission);
-			SavePermissions();
-		}
-
-		OnPermissionsChanged?.Invoke();
-	}
-
-	/// <summary>
-	/// Remove a global permission
-	/// </summary>
-	public void RemoveGlobalPermission(ToolPermission permission)
-	{
-		lock(_permissionsLock)
-		{
-			_globalPermissions.Remove(permission);
-			SavePermissions();
-		}
-
-		OnPermissionsChanged?.Invoke();
+		_logger.LogDebug("OnPermissionResolved event fired");
 	}
 
 	/// <summary>
@@ -286,41 +246,6 @@ public class PermissionService
 	}
 
 	/// <summary>
-	/// Clear session permissions when session ends
-	/// </summary>
-	public void ClearSessionPermissions(string sessionId)
-	{
-		if(_sessionPermissions.TryRemove(sessionId, out _))
-		{
-			_logger.LogDebug("Cleared session permissions for {SessionId}", sessionId);
-		}
-	}
-
-	/// <summary>
-	/// Get all global permissions
-	/// </summary>
-	public List<ToolPermission> GetGlobalPermissions()
-	{
-		lock(_permissionsLock)
-		{
-			return [.. _globalPermissions];
-		}
-	}
-
-	/// <summary>
-	/// Get session permissions
-	/// </summary>
-	public List<ToolPermission> GetSessionPermissions(string sessionId)
-	{
-		if(_sessionPermissions.TryGetValue(sessionId, out List<ToolPermission>? perms))
-		{
-			return [.. perms];
-		}
-
-		return [];
-	}
-
-	/// <summary>
 	/// Check if a command matches a permission pattern
 	/// </summary>
 	static bool MatchesPattern(string command, ToolPermission permission)
@@ -333,83 +258,5 @@ public class PermissionService
 			PatternType.Regex => Regex.IsMatch(command, permission.Pattern, RegexOptions.IgnoreCase),
 			_ => false
 		};
-	}
-
-	/// <summary>
-	/// Load permissions from file
-	/// </summary>
-	void LoadPermissions()
-	{
-		try
-		{
-			if(!File.Exists(_permissionsFilePath))
-			{
-				_logger.LogInformation("No permissions file found, starting with empty permissions");
-				return;
-			}
-
-			string json = File.ReadAllText(_permissionsFilePath);
-			PermissionsFile? file = JsonSerializer.Deserialize<PermissionsFile>(json);
-
-			if(file is not null)
-			{
-				lock(_permissionsLock)
-				{
-					_globalPermissions.Clear();
-					// Only load allowlist - denylist removed as per Cooper's approach
-					_globalPermissions.AddRange(file.GlobalAllowlist ?? []);
-				}
-
-				_logger.LogInformation(
-					"Loaded {Count} global permissions from {Path}",
-					_globalPermissions.Count,
-					_permissionsFilePath);
-			}
-		}
-		catch(Exception ex)
-		{
-			_logger.LogError(ex, "Failed to load permissions from {Path}", _permissionsFilePath);
-		}
-	}
-
-	/// <summary>
-	/// Save permissions to file
-	/// </summary>
-	void SavePermissions()
-	{
-		try
-		{
-			lock(_permissionsLock)
-			{
-				PermissionsFile file = new()
-				{
-					Version = "1.0",
-					// Only save allowlist - denylist removed
-					GlobalAllowlist = [.. _globalPermissions.Where(p => p.IsAllowed)]
-				};
-
-				string json = JsonSerializer.Serialize(file, new JsonSerializerOptions
-				{
-					WriteIndented = true
-				});
-
-				File.WriteAllText(_permissionsFilePath, json);
-
-				_logger.LogDebug("Saved permissions to {Path}", _permissionsFilePath);
-			}
-		}
-		catch(Exception ex)
-		{
-			_logger.LogError(ex, "Failed to save permissions to {Path}", _permissionsFilePath);
-		}
-	}
-
-	/// <summary>
-	/// File format for storing permissions
-	/// </summary>
-	class PermissionsFile
-	{
-		public string Version { get; set; } = "1.0";
-		public List<ToolPermission>? GlobalAllowlist { get; set; }
 	}
 }
