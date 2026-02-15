@@ -763,10 +763,10 @@ public partial class UnifiedSessionManager
 
 		// Remove the specific resolved request from the collection
 		// ConcurrentBag doesn't support direct removal, so we need to recreate it
-		List<PermissionRequest> remaining = session.PendingPermissionRequests
+		List<Models.PermissionRequest> remaining = session.PendingPermissionRequests
 			.Where(r => r.Id != requestId)
 			.ToList();
-		session.PendingPermissionRequests = new ConcurrentBag<PermissionRequest>(remaining);
+		session.PendingPermissionRequests = new ConcurrentBag<Models.PermissionRequest>(remaining);
 
 		// Restore previous status only when all permissions are resolved
 		if(session.PendingPermissionRequests.Count == 0)
