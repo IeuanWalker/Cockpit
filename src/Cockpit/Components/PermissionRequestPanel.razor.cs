@@ -1,5 +1,6 @@
 using Cockpit.Models;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Components;
 
@@ -10,6 +11,9 @@ public partial class PermissionRequestPanel
 
 	[Parameter]
 	public EventCallback<PermissionDecision> OnPermissionDecision { get; set; }
+
+	[Inject]
+	ILogger<PermissionRequestPanel> Logger { get; set; } = default!;
 
 	bool _showDetailsPopup = false;
 

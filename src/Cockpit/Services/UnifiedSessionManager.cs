@@ -734,17 +734,32 @@ public partial class UnifiedSessionManager
 			return;
 		}
 
-		// Update session state
-		session.PreviousStatus = session.Status;
-		session.Status = SessionStatus.NeedsPermission;
-		session.PendingPermissionRequest = request;
+		_logger.LogInformation("HandlePermissionRequested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
 
-		// Notify UI
+		// Use lock to ensure atomic check-add-set operation
+		lock(session.PermissionRequestsLock)
+		{
+			// Add to pending requests collection atomically
+			if(!session.PendingPermissionRequests.TryAdd(request.Id, request))
+			{
+				_logger.LogWarning("Permission request {RequestId} already exists for session {SessionId}", request.Id, sessionId);
+				return;
+			}
+
+			// Set status to NeedsPermission if this was the first request
+			if(session.PendingPermissionRequests.Count == 1)
+			{
+				session.PreviousStatus = session.Status;
+				session.Status = SessionStatus.NeedsPermission;
+			}
+		}
+
+		// Notify UI (outside lock to avoid potential deadlocks)
 		NotifyStateChanged();
 	}
 
 	// Handle permission resolved event from PermissionService
-	void HandlePermissionResolved(string sessionId, PermissionDecision decision)
+	void HandlePermissionResolved(string sessionId, string requestId, PermissionDecision decision)
 	{
 		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
@@ -752,11 +767,22 @@ public partial class UnifiedSessionManager
 			return;
 		}
 
-		// Restore previous status
-		session.Status = session.PreviousStatus ?? SessionStatus.Idle;
-		session.PendingPermissionRequest = null;
+		_logger.LogInformation("HandlePermissionResolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
 
-		// Notify UI
+		// Use lock to ensure atomic remove-check-restore operation
+		lock(session.PermissionRequestsLock)
+		{
+			// Remove the specific resolved request from the collection atomically
+			session.PendingPermissionRequests.TryRemove(requestId, out _);
+
+			// Restore previous status only when all permissions are resolved
+			if(session.PendingPermissionRequests.IsEmpty)
+			{
+				session.Status = session.PreviousStatus ?? SessionStatus.Idle;
+			}
+		}
+
+		// Notify UI (outside lock to avoid potential deadlocks)
 		NotifyStateChanged();
 	}
 

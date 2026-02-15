@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using GitHub.Copilot.SDK;
 
 namespace Cockpit.Models;
@@ -18,12 +19,18 @@ public class ChatSession
 	public Dictionary<string, ChatMessage> StreamingMessages { get; } = [];
 
 	/// <summary>
-	/// Pending permission request for this session (if any)
+	/// Pending permission requests for this session (supports multiple concurrent requests)
+	/// Key: request.Id, Value: PermissionRequest
 	/// </summary>
-	public PermissionRequest? PendingPermissionRequest { get; set; }
+	public ConcurrentDictionary<string, PermissionRequest> PendingPermissionRequests { get; set; } = new();
 
 	/// <summary>
-	/// Previous status before permission request (to restore after decision)
+	/// Lock for coordinating permission request status changes
+	/// </summary>
+	public readonly Lock PermissionRequestsLock = new();
+
+	/// <summary>
+	/// Previous status before permission request (to restore after all decisions)
 	/// </summary>
 	public SessionStatus? PreviousStatus { get; set; }
 

@@ -17,12 +17,12 @@ public class PermissionService
 	// In-memory cache of permissions
 	readonly List<ToolPermission> _globalPermissions = [];
 	readonly ConcurrentDictionary<string, List<ToolPermission>> _sessionPermissions = new();
-	readonly ConcurrentDictionary<string, PermissionRequest> _pendingRequests = new();
+	readonly ConcurrentDictionary<string, PermissionRequest> _pendingRequests = new(); // Key: request.Id
 	readonly Lock _permissionsLock = new();
 
 	// Events for UI updates
 	public event Action<string, PermissionRequest>? OnPermissionRequested;
-	public event Action<string, PermissionDecision>? OnPermissionResolved;
+	public event Action<string, string, PermissionDecision>? OnPermissionResolved; // sessionId, requestId, decision
 	public event Action? OnPermissionsChanged;
 
 	public PermissionService(ILogger<PermissionService> logger)
@@ -160,8 +160,8 @@ public class PermissionService
 			Kind = kind
 		};
 
-		// Store pending request
-		_pendingRequests[sessionId] = request;
+		// Store pending request using unique request ID
+		_pendingRequests[request.Id] = request;
 
 		// Notify UI
 		OnPermissionRequested?.Invoke(sessionId, request);
@@ -179,21 +179,30 @@ public class PermissionService
 		}
 		finally
 		{
-			// Clean up pending request
-			_pendingRequests.TryRemove(sessionId, out _);
+			// Clean up pending request using request ID
+			_pendingRequests.TryRemove(request.Id, out _);
 		}
 	}
 
 	/// <summary>
 	/// Resolve a pending permission request with user decision
 	/// </summary>
-	public void ResolvePermissionRequest(string sessionId, PermissionDecision decision)
+	public void ResolvePermissionRequest(string requestId, PermissionDecision decision)
 	{
-		if(!_pendingRequests.TryGetValue(sessionId, out PermissionRequest? request))
+		_logger.LogInformation("ResolvePermissionRequest called with requestId: {RequestId}, IsApproved: {IsApproved}", requestId, decision.IsApproved);
+
+		if(!_pendingRequests.TryGetValue(requestId, out PermissionRequest? request))
 		{
-			_logger.LogWarning("No pending permission request found for session {SessionId}", sessionId);
+			_logger.LogWarning("No pending permission request found for request ID {RequestId}. Current pending count: {Count}", requestId, _pendingRequests.Count);
+			// Log all pending request IDs for debugging
+			foreach(var kvp in _pendingRequests)
+			{
+				_logger.LogDebug("Pending request ID: {Id}, SessionId: {SessionId}", kvp.Key, kvp.Value.SessionId);
+			}
 			return;
 		}
+
+		string sessionId = request.SessionId;
 
 		_logger.LogInformation(
 			"Permission {Decision} for session {SessionId}: {Command}",
@@ -225,22 +234,39 @@ public class PermissionService
 				AddSessionPermission(sessionId, permission);
 			}
 			// PermissionScope.Once doesn't save anything
+
+			// Check if other pending requests for this session can now be auto-approved
+			if(decision.Scope == PermissionScope.Global || decision.Scope == PermissionScope.Session)
+			{
+				AutoResolveMatchingRequests(sessionId, permission);
+			}
 		}
 
 		// Complete the TaskCompletionSource
 		request.CompletionSource.TrySetResult(decision);
 
-		// Notify UI
-		OnPermissionResolved?.Invoke(sessionId, decision);
+		// Notify UI with requestId so it can be removed from session list
+		OnPermissionResolved?.Invoke(sessionId, request.Id, decision);
 	}
 
 	/// <summary>
-	/// Get pending permission request for a session
+	/// Get pending permission request by request ID
 	/// </summary>
-	public PermissionRequest? GetPendingRequest(string sessionId)
+	public PermissionRequest? GetPendingRequest(string requestId)
 	{
-		_pendingRequests.TryGetValue(sessionId, out PermissionRequest? request);
+		_pendingRequests.TryGetValue(requestId, out PermissionRequest? request);
 		return request;
+	}
+
+	/// <summary>
+	/// Get all pending permission requests for a specific session (for UI isolation)
+	/// </summary>
+	public List<PermissionRequest> GetPendingRequestsForSession(string sessionId)
+	{
+		return _pendingRequests.Values
+			.Where(r => r.SessionId == sessionId)
+			.OrderBy(r => r.Timestamp)
+			.ToList();
 	}
 
 	/// <summary>
@@ -333,6 +359,54 @@ public class PermissionService
 			PatternType.Regex => Regex.IsMatch(command, permission.Pattern, RegexOptions.IgnoreCase),
 			_ => false
 		};
+	}
+
+	/// <summary>
+	/// Auto-resolve pending requests that match a newly added permission
+	/// </summary>
+	void AutoResolveMatchingRequests(string sessionId, ToolPermission newPermission)
+	{
+		// Get all pending requests for this session
+		List<PermissionRequest> pendingForSession = GetPendingRequestsForSession(sessionId);
+
+		_logger.LogInformation("Checking {Count} pending requests for auto-approval with pattern: {Pattern}", 
+			pendingForSession.Count, newPermission.Pattern);
+
+		foreach(PermissionRequest pendingRequest in pendingForSession)
+		{
+			// Skip if already removed (in case of concurrent processing)
+			if(!_pendingRequests.ContainsKey(pendingRequest.Id))
+			{
+				continue;
+			}
+
+			// Normalize this request's identifier
+			string normalizedId = NormalizePermissionIdentifier(pendingRequest.Kind, pendingRequest.ToolName, pendingRequest.Command);
+
+			// Check if it matches the new permission
+			if(MatchesPattern(normalizedId, newPermission))
+			{
+				_logger.LogInformation("Auto-approving pending request {RequestId} ({Command}) - matches pattern {Pattern}", 
+					pendingRequest.Id, pendingRequest.Command, newPermission.Pattern);
+
+				// Auto-approve with the same scope as the permission that matched
+				PermissionDecision autoDecision = new()
+				{
+					IsApproved = true,
+					Scope = newPermission.Scope
+				};
+
+				// Remove from pending requests atomically before completing
+				if(_pendingRequests.TryRemove(pendingRequest.Id, out _))
+				{
+					// Complete the TaskCompletionSource to unblock the waiting permission check
+					pendingRequest.CompletionSource.TrySetResult(autoDecision);
+					
+					// Notify UI that this request was resolved
+					OnPermissionResolved?.Invoke(sessionId, pendingRequest.Id, autoDecision);
+				}
+			}
+		}
 	}
 
 	/// <summary>

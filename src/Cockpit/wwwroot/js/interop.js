@@ -59,6 +59,39 @@ window.cockpit = {
             element.scrollTop = element.scrollHeight;
         }
     },
+    setupSmartScroll: function (elementId, dotnetHelper, methodName) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+
+        // Remove existing listener if any
+        if (element._smartScrollHandler) {
+            element.removeEventListener('scroll', element._smartScrollHandler);
+        }
+
+        element._smartScrollHandler = function () {
+            const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
+
+            // Only notify if scroll state changed
+            if (element._wasNearBottom !== isNearBottom) {
+                element._wasNearBottom = isNearBottom;
+                dotnetHelper.invokeMethodAsync(methodName, isNearBottom);
+            }
+        };
+
+        element.addEventListener('scroll', element._smartScrollHandler);
+
+        // Initialize state
+        const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
+        element._wasNearBottom = isNearBottom;
+    },
+    cleanupSmartScroll: function (elementId) {
+        const element = document.getElementById(elementId);
+        if (element && element._smartScrollHandler) {
+            element.removeEventListener('scroll', element._smartScrollHandler);
+            delete element._smartScrollHandler;
+            delete element._wasNearBottom;
+        }
+    },
     highlightCodeBlocks: function (containerId) {
         if (!window.hljs) {
             return;

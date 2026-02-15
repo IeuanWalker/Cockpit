@@ -5,11 +5,12 @@ using CommunityToolkit.Maui.Media;
 using GitHub.Copilot.SDK;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components;
 
-public partial class Main : ComponentBase, IDisposable
+public partial class Main : ComponentBase, IAsyncDisposable
 {
 	[Inject] TimestampService TimestampService { get; set; } = default!;
 	[Inject] CopilotModelService ModelService { get; set; } = default!;
@@ -18,13 +19,19 @@ public partial class Main : ComponentBase, IDisposable
 	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
 	[Inject] PermissionService PermissionService { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
+	[Inject] ILogger<Main> Logger { get; set; } = default!;
 
 	string _chatInput = string.Empty;
 	List<ModelInfo> _availableModels = [];
 	bool _shouldScrollToBottom = false;
-	bool _shouldScrollThinkingPanel = false;
 	bool _isModelDropdownOpen = false;
 	bool _isReasoningEffortDropdownOpen = false;
+	bool _isUserScrolledUpFromChat = false;
+	int _lastMessageCount = 0;
+	DotNetObjectReference<Main>? _dotNetRef;
+
+	// Helper property to safely get the first pending request
+	Models.PermissionRequest? FirstPendingRequest => SessionManager.CurrentSession?.PendingPermissionRequests?.Values.FirstOrDefault();
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -57,18 +64,19 @@ public partial class Main : ComponentBase, IDisposable
 			await UpdateInputBehavior();
 			// Subscribe to UIState changes after first render to update input behavior
 			UIState.OnStateChanged += OnUIStateChangedHandler;
+			
+			// Setup smart scroll tracking
+			_dotNetRef = DotNetObjectReference.Create(this);
+			await SetupSmartScroll();
+			
+			// Initialize message count
+			_lastMessageCount = SessionManager.CurrentSession?.Messages?.Count ?? 0;
 		}
 
-		if(_shouldScrollToBottom)
+		if(_shouldScrollToBottom && !_isUserScrolledUpFromChat)
 		{
 			_shouldScrollToBottom = false;
 			await ScrollToBottom();
-		}
-
-		if(_shouldScrollThinkingPanel)
-		{
-			_shouldScrollThinkingPanel = false;
-			await ScrollThinkingPanelToBottom();
 		}
 	}
 
@@ -95,12 +103,14 @@ public partial class Main : ComponentBase, IDisposable
 
 	void OnStateChanged()
 	{
-		_shouldScrollToBottom = true;
-		// Also scroll thinking panel if it's visible and has content
-		if(SessionManager.IsWorking && SessionManager.ActiveWorkingGroup?.Tools.Any() == true)
+		// Only scroll chat if there's a new message
+		int currentMessageCount = SessionManager.CurrentSession?.Messages?.Count ?? 0;
+		if(currentMessageCount > _lastMessageCount)
 		{
-			_shouldScrollThinkingPanel = true;
+			_shouldScrollToBottom = true;
+			_lastMessageCount = currentMessageCount;
 		}
+		
 		InvokeAsync(StateHasChanged);
 	}
 
@@ -116,16 +126,22 @@ public partial class Main : ComponentBase, IDisposable
 		}
 	}
 
-	async Task ScrollThinkingPanelToBottom()
+	async Task SetupSmartScroll()
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "workingContent");
+			await JSRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged");
 		}
 		catch
 		{
 			// Handle error silently
 		}
+	}
+
+	[JSInvokable]
+	public void OnChatScrollPositionChanged(bool isNearBottom)
+	{
+		_isUserScrolledUpFromChat = !isNearBottom;
 	}
 
 	async Task OnTextareaInput()
@@ -153,6 +169,10 @@ public partial class Main : ComponentBase, IDisposable
 		// Reset textarea height after clearing
 		await Task.Delay(10);
 		await OnTextareaInput();
+
+		// Reset scroll state when user sends a message - we want to auto-scroll
+		_isUserScrolledUpFromChat = false;
+		_shouldScrollToBottom = true; // Force immediate scroll
 
 		// Send via SDK
 		await SessionManager.SendMessageAsync(message);
@@ -320,20 +340,23 @@ public partial class Main : ComponentBase, IDisposable
 		}
 	}
 
-	public void Dispose()
+	public async ValueTask DisposeAsync()
 	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
-	}
+		SessionManager.OnStateChanged -= OnStateChanged;
+		UIState.OnStateChanged -= OnUIStateChangedHandler;
+		TimestampService.OnTick -= OnTimestampTick;
 
-	protected virtual void Dispose(bool disposing)
-	{
-		if(disposing)
+		// Cleanup smart scroll
+		try
 		{
-			SessionManager.OnStateChanged -= OnStateChanged;
-			UIState.OnStateChanged -= OnUIStateChangedHandler;
-			TimestampService.OnTick -= OnTimestampTick;
+			await JSRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
 		}
+		catch(Exception ex)
+		{
+			Logger.LogDebug(ex, "Failed to cleanup smart scroll for chat messages");
+		}
+
+		_dotNetRef?.Dispose();
 	}
 
 	public async Task VoiceRecording()
@@ -408,12 +431,12 @@ public partial class Main : ComponentBase, IDisposable
 	// Handle permission decision from the PermissionRequestPanel
 	void HandlePermissionDecision(PermissionDecision decision)
 	{
-		if(SessionManager.CurrentSession is null)
+		Models.PermissionRequest? currentRequest = FirstPendingRequest;
+		if(currentRequest is null)
 		{
 			return;
 		}
 
-		// Pass decision to PermissionService for resolution
-		PermissionService.ResolvePermissionRequest(SessionManager.CurrentSession.Id, decision);
+		PermissionService.ResolvePermissionRequest(currentRequest.Id, decision);
 	}
 }
