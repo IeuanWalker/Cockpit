@@ -737,11 +737,14 @@ public partial class UnifiedSessionManager
 		_logger.LogInformation("HandlePermissionRequested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
 
 		// Add to pending requests collection atomically
-		bool wasFirst = session.PendingPermissionRequests.IsEmpty;
-		session.PendingPermissionRequests.TryAdd(request.Id, request);
+		if(!session.PendingPermissionRequests.TryAdd(request.Id, request))
+		{
+			_logger.LogWarning("Permission request {RequestId} already exists for session {SessionId}", request.Id, sessionId);
+			return;
+		}
 
 		// Set status to NeedsPermission on first request
-		if(wasFirst)
+		if(session.PendingPermissionRequests.Count == 1)
 		{
 			session.PreviousStatus = session.Status;
 			session.Status = SessionStatus.NeedsPermission;
