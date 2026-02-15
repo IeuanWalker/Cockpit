@@ -20,8 +20,14 @@ public class ChatSession
 
 	/// <summary>
 	/// Pending permission requests for this session (supports multiple concurrent requests)
+	/// Key: request.Id, Value: PermissionRequest
 	/// </summary>
-	public ConcurrentBag<PermissionRequest> PendingPermissionRequests { get; set; } = [];
+	public ConcurrentDictionary<string, PermissionRequest> PendingPermissionRequests { get; set; } = new();
+
+	/// <summary>
+	/// Lock for coordinating permission request status changes
+	/// </summary>
+	public readonly Lock PermissionRequestsLock = new();
 
 	/// <summary>
 	/// Previous status before permission request (to restore after all decisions)

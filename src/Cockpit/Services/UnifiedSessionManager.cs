@@ -736,17 +736,25 @@ public partial class UnifiedSessionManager
 
 		_logger.LogInformation("HandlePermissionRequested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
 
-		// Add to pending requests collection
-		session.PendingPermissionRequests.Add(request);
-
-		// Set status to NeedsPermission on first request
-		if(session.PendingPermissionRequests.Count == 1)
+		// Use lock to ensure atomic check-add-set operation
+		lock(session.PermissionRequestsLock)
 		{
-			session.PreviousStatus = session.Status;
-			session.Status = SessionStatus.NeedsPermission;
+			// Add to pending requests collection atomically
+			if(!session.PendingPermissionRequests.TryAdd(request.Id, request))
+			{
+				_logger.LogWarning("Permission request {RequestId} already exists for session {SessionId}", request.Id, sessionId);
+				return;
+			}
+
+			// Set status to NeedsPermission if this was the first request
+			if(session.PendingPermissionRequests.Count == 1)
+			{
+				session.PreviousStatus = session.Status;
+				session.Status = SessionStatus.NeedsPermission;
+			}
 		}
 
-		// Notify UI
+		// Notify UI (outside lock to avoid potential deadlocks)
 		NotifyStateChanged();
 	}
 
@@ -761,21 +769,20 @@ public partial class UnifiedSessionManager
 
 		_logger.LogInformation("HandlePermissionResolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
 
-		// Remove the specific resolved request from the collection
-		// ConcurrentBag doesn't support direct removal, so we need to recreate it
-		List<Models.PermissionRequest> remaining = session.PendingPermissionRequests
-			.Where(r => r.Id != requestId)
-			.ToList();
-		bool shouldRestoreStatus = remaining.Count == 0;
-		session.PendingPermissionRequests = new ConcurrentBag<Models.PermissionRequest>(remaining);
-
-		// Restore previous status only when all permissions are resolved
-		if(shouldRestoreStatus)
+		// Use lock to ensure atomic remove-check-restore operation
+		lock(session.PermissionRequestsLock)
 		{
-			session.Status = session.PreviousStatus ?? SessionStatus.Idle;
+			// Remove the specific resolved request from the collection atomically
+			session.PendingPermissionRequests.TryRemove(requestId, out _);
+
+			// Restore previous status only when all permissions are resolved
+			if(session.PendingPermissionRequests.IsEmpty)
+			{
+				session.Status = session.PreviousStatus ?? SessionStatus.Idle;
+			}
 		}
 
-		// Notify UI
+		// Notify UI (outside lock to avoid potential deadlocks)
 		NotifyStateChanged();
 	}
 
