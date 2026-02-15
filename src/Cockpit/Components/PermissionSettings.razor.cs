@@ -5,9 +5,9 @@ namespace Cockpit.Components;
 public partial class PermissionSettings
 {
 	readonly GlobalPermissionFeature _globalPermissionFeature;
-	private List<string> _commands = [];
-	private bool _showAddDialog;
-	private string _newCommand = string.Empty;
+	List<string> _commands = [];
+	bool _showAddDialog;
+	string _newCommand = string.Empty;
 
 	public PermissionSettings(GlobalPermissionFeature globalPermissionFeature)
 	{
@@ -20,24 +20,24 @@ public partial class PermissionSettings
 		_globalPermissionFeature.OnPermissionsChanged += LoadPermissions;
 	}
 
-	private void LoadPermissions()
+	void LoadPermissions()
 	{
 		_commands = [.. _globalPermissionFeature.GetAll()];
 		StateHasChanged();
 	}
 
-	private void ShowAddDialog()
+	void ShowAddDialog()
 	{
 		_showAddDialog = true;
 		_newCommand = string.Empty;
 	}
 
-	private void HideAddDialog()
+	void HideAddDialog()
 	{
 		_showAddDialog = false;
 	}
 
-	private void AddPermission()
+	void AddPermission()
 	{
 		if(string.IsNullOrWhiteSpace(_newCommand))
 		{
@@ -49,7 +49,7 @@ public partial class PermissionSettings
 		HideAddDialog();
 	}
 
-	private void RemovePermission(string command)
+	void RemovePermission(string command)
 	{
 		_globalPermissionFeature.Remove(command);
 	}
