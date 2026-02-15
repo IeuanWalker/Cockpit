@@ -396,9 +396,12 @@ public class PermissionService
 					Scope = newPermission.Scope
 				};
 
-				// Complete the TaskCompletionSource to unblock the waiting permission check
-				if(pendingRequest.CompletionSource.TrySetResult(autoDecision))
+				// Remove from pending requests atomically before completing
+				if(_pendingRequests.TryRemove(pendingRequest.Id, out _))
 				{
+					// Complete the TaskCompletionSource to unblock the waiting permission check
+					pendingRequest.CompletionSource.TrySetResult(autoDecision);
+					
 					// Notify UI that this request was resolved
 					OnPermissionResolved?.Invoke(sessionId, pendingRequest.Id, autoDecision);
 				}

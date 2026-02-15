@@ -1,5 +1,6 @@
 using Cockpit.Models;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Components;
 
@@ -11,11 +12,8 @@ public partial class PermissionRequestPanel
 	[Parameter]
 	public EventCallback<PermissionDecision> OnPermissionDecision { get; set; }
 
-	[Parameter]
-	public int QueuePosition { get; set; } = 1;
-
-	[Parameter]
-	public int QueueTotal { get; set; } = 1;
+	[Inject]
+	ILogger<PermissionRequestPanel> Logger { get; set; } = default!;
 
 	bool _showDetailsPopup = false;
 
@@ -102,21 +100,12 @@ public partial class PermissionRequestPanel
 
 	async Task OnDecision(bool isApproved, PermissionScope scope)
 	{
-		try
+		PermissionDecision decision = new()
 		{
-			PermissionDecision decision = new()
-			{
-				IsApproved = isApproved,
-				Scope = scope
-			};
+			IsApproved = isApproved,
+			Scope = scope
+		};
 
-			await OnPermissionDecision.InvokeAsync(decision);
-		}
-		catch(Exception ex)
-		{
-			// Log or handle the exception - buttons might be failing silently
-			Console.WriteLine($"Error in OnDecision: {ex.Message}");
-			throw;
-		}
+		await OnPermissionDecision.InvokeAsync(decision);
 	}
 }

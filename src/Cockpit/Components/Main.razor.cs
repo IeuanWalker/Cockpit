@@ -5,11 +5,12 @@ using CommunityToolkit.Maui.Media;
 using GitHub.Copilot.SDK;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components;
 
-public partial class Main : ComponentBase, IDisposable
+public partial class Main : ComponentBase, IAsyncDisposable
 {
 	[Inject] TimestampService TimestampService { get; set; } = default!;
 	[Inject] CopilotModelService ModelService { get; set; } = default!;
@@ -18,6 +19,7 @@ public partial class Main : ComponentBase, IDisposable
 	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
 	[Inject] PermissionService PermissionService { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
+	[Inject] ILogger<Main> Logger { get; set; } = default!;;
 
 	string _chatInput = string.Empty;
 	List<ModelInfo> _availableModels = [];
@@ -27,6 +29,9 @@ public partial class Main : ComponentBase, IDisposable
 	bool _isUserScrolledUpFromChat = false;
 	int _lastMessageCount = 0;
 	DotNetObjectReference<Main>? _dotNetRef;
+
+	// Helper property to safely get the first pending request
+	PermissionRequest? FirstPendingRequest => SessionManager.CurrentSession?.PendingPermissionRequests?.FirstOrDefault();
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -335,32 +340,23 @@ public partial class Main : ComponentBase, IDisposable
 		}
 	}
 
-	public void Dispose()
+	public async ValueTask DisposeAsync()
 	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
-	}
+		SessionManager.OnStateChanged -= OnStateChanged;
+		UIState.OnStateChanged -= OnUIStateChangedHandler;
+		TimestampService.OnTick -= OnTimestampTick;
 
-	protected virtual void Dispose(bool disposing)
-	{
-		if(disposing)
+		// Cleanup smart scroll
+		try
 		{
-			SessionManager.OnStateChanged -= OnStateChanged;
-			UIState.OnStateChanged -= OnUIStateChangedHandler;
-			TimestampService.OnTick -= OnTimestampTick;
-
-			// Cleanup smart scroll
-			try
-			{
-				JSRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
-			}
-			catch
-			{
-				// Handle error silently
-			}
-
-			_dotNetRef?.Dispose();
+			await JSRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
 		}
+		catch(Exception ex)
+		{
+			Logger.LogDebug(ex, "Failed to cleanup smart scroll for chat messages");
+		}
+
+		_dotNetRef?.Dispose();
 	}
 
 	public async Task VoiceRecording()
@@ -435,14 +431,12 @@ public partial class Main : ComponentBase, IDisposable
 	// Handle permission decision from the PermissionRequestPanel
 	void HandlePermissionDecision(PermissionDecision decision)
 	{
-		if(SessionManager.CurrentSession is null || SessionManager.CurrentSession.PendingPermissionRequests.Count == 0)
+		PermissionRequest? currentRequest = FirstPendingRequest;
+		if(currentRequest is null)
 		{
 			return;
 		}
 
-		// Get the first pending request (the one being displayed) and pass its ID
-		Models.PermissionRequest currentRequest = SessionManager.CurrentSession.PendingPermissionRequests[0];
-		System.Diagnostics.Debug.WriteLine($"HandlePermissionDecision - Request ID: {currentRequest.Id}, Session ID: {SessionManager.CurrentSession.Id}");
 		PermissionService.ResolvePermissionRequest(currentRequest.Id, decision);
 	}
 }
