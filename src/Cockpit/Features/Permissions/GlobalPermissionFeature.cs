@@ -1,15 +1,14 @@
 ﻿using System.Text.Json;
-using Cockpit.Services;
 using Microsoft.Extensions.Logging;
 
-namespace Cockpit.Features;
+namespace Cockpit.Features.Permissions;
 
 public sealed class GlobalPermissionFeature
 {
-	readonly ILogger<PermissionService> _logger;
+	readonly ILogger<GlobalPermissionFeature> _logger;
 	readonly string _permissionsFilePath;
 
-	public GlobalPermissionFeature(ILogger<PermissionService> logger)
+	public GlobalPermissionFeature(ILogger<GlobalPermissionFeature> logger)
 	{
 		_logger = logger;
 

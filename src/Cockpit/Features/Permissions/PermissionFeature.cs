@@ -1,36 +1,198 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
+using System.Text.Json;
 using System.Text.RegularExpressions;
-using Cockpit.Features;
 using Cockpit.Models;
+using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
-namespace Cockpit.Services;
+namespace Cockpit.Features.Permissions;
 
 /// <summary>
 /// Service for managing tool execution permissions
 /// </summary>
-public class PermissionService
+public class PermissionFeature
 {
 	readonly GlobalPermissionFeature _globalPermissionFeature;
-	readonly ILogger<PermissionService> _logger;
-
+	readonly ISessionStateProvider _sessionStateProvider;
+	readonly ILogger<PermissionFeature> _logger;
 
 	// In-memory cache of permissions
 	readonly ConcurrentDictionary<string, List<ToolPermission>> _sessionPermissions = new();
-	readonly ConcurrentDictionary<string, PermissionRequest> _pendingRequests = new(); // Key: request.Id
+	readonly ConcurrentDictionary<string, Models.PermissionRequest> _pendingRequests = new(); // Key: request.Id
 	readonly Lock _permissionsLock = new();
 
 	// Events for UI updates
-	public event Action<string, PermissionRequest>? OnPermissionRequested;
+	public event Action<string, Models.PermissionRequest>? OnPermissionRequested;
 	public event Action<string, string, PermissionDecision>? OnPermissionResolved; // sessionId, requestId, decision
-	public event Action? OnPermissionsChanged;
 
-	public PermissionService(GlobalPermissionFeature globalPermissionFeature, ILogger<PermissionService> logger)
+	public PermissionFeature(GlobalPermissionFeature globalPermissionFeature, ISessionStateProvider sessionStateProvider, ILogger<PermissionFeature> logger)
 	{
 		_globalPermissionFeature = globalPermissionFeature;
+		_sessionStateProvider = sessionStateProvider;
 		_logger = logger;
-
 	}
+
+	public async Task<PermissionRequestResult> HandlePermissionRequest(GitHub.Copilot.SDK.PermissionRequest request, PermissionInvocation invocation)
+	{
+		try
+		{
+			ChatSession? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == invocation.SessionId);
+			if(session is null)
+			{
+				_logger.LogWarning("ChatSession not found for SDK session {SessionId}", invocation.SessionId);
+				return new PermissionRequestResult
+				{
+					Kind = "denied"
+				};
+			}
+
+			// Extract tool information from the permission request
+			// The SDK sends different "kinds" of permission requests (e.g., "write", "execute", etc.)
+			string toolName = request.Kind; // e.g., "write", "execute", etc.
+			string command = ExtractCommandFromRequest(request);
+
+			// Pass ExtensionData as arguments for detailed message generation
+			Dictionary<string, object>? arguments = request.ExtensionData != null
+				? new Dictionary<string, object>(request.ExtensionData)
+				: null;
+
+
+			_logger.LogInformation("Permission request: Kind={Kind}, Command={Command}, SessionId={SessionId}",
+				toolName, command, session.Id);
+
+			// Check permission through our service
+			PermissionDecision decision = await CheckPermissionAsync(
+				session.Id,
+				toolName,
+				command,
+				arguments: arguments,
+				kind: request.Kind,
+				isYolo: session.IsYolo);
+
+			// Convert our decision to SDK format
+			string resultKind = decision.IsApproved ? "approved" : "denied-interactively-by-user";
+
+			_logger.LogInformation("Permission decision: {Decision} for {Command}", resultKind, command);
+
+			return new PermissionRequestResult { Kind = resultKind };
+		}
+		catch(Exception ex)
+		{
+			_logger.LogError(ex, "Error in permission handler");
+			return new PermissionRequestResult { Kind = "denied" };
+		}
+
+
+
+
+
+		static string ExtractCommandFromRequest(GitHub.Copilot.SDK.PermissionRequest request)
+		{
+			// The SDK puts additional context in ExtensionData
+			if(request.ExtensionData is null)
+			{
+				return request.Kind;
+			}
+
+			// Try to extract command from various possible fields
+			if(request.ExtensionData.TryGetValue("command", out object? cmdObj))
+			{
+				string cmdStr = cmdObj?.ToString() ?? "";
+
+				// If it's a JSON object with fullCommandText, extract that
+				if(cmdStr.StartsWith('{') && cmdStr.Contains("fullCommandText"))
+				{
+					try
+					{
+						using JsonDocument doc = JsonDocument.Parse(cmdStr);
+						if(doc.RootElement.TryGetProperty("fullCommandText", out JsonElement fullCmd))
+						{
+							return fullCmd.GetString() ?? request.Kind;
+						}
+					}
+					catch
+					{
+						// Fall through to return as-is
+					}
+				}
+
+				return cmdStr;
+			}
+
+			if(request.ExtensionData.TryGetValue("path", out object? pathObj))
+			{
+				return pathObj?.ToString() ?? request.Kind;
+			}
+
+			if(request.ExtensionData.TryGetValue("args", out object? argsObj))
+			{
+				return argsObj?.ToString() ?? request.Kind;
+			}
+
+			// Fallback: return kind
+			return request.Kind;
+		}
+	}
+
+	public void HandlePermissionResolved(string sessionId, string requestId, PermissionDecision decision)
+	{
+		ChatSession? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
+		if(session is null)
+		{
+			return;
+		}
+
+		_logger.LogInformation("HandlePermissionResolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
+
+		// Use lock to ensure atomic remove-check-restore operation
+		lock(session.PermissionRequestsLock)
+		{
+			// Remove the specific resolved request from the collection atomically
+			session.PendingPermissionRequests.TryRemove(requestId, out _);
+
+			// Restore previous status only when all permissions are resolved
+			if(session.PendingPermissionRequests.IsEmpty)
+			{
+				session.Status = session.PreviousStatus ?? SessionStatus.Idle;
+			}
+		}
+
+		// Notify UI (outside lock to avoid potential deadlocks)
+		_sessionStateProvider.NotifyStateChanged();
+	}
+
+	public void HandlePermissionRequested(string sessionId, Models.PermissionRequest request)
+	{
+		ChatSession? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
+		if(session is null)
+		{
+			return;
+		}
+
+		_logger.LogInformation("HandlePermissionRequested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
+
+		// Use lock to ensure atomic check-add-set operation
+		lock(session.PermissionRequestsLock)
+		{
+			// Add to pending requests collection atomically
+			if(!session.PendingPermissionRequests.TryAdd(request.Id, request))
+			{
+				_logger.LogWarning("Permission request {RequestId} already exists for session {SessionId}", request.Id, sessionId);
+				return;
+			}
+
+			// Set status to NeedsPermission if this was the first request
+			if(session.PendingPermissionRequests.Count == 1)
+			{
+				session.PreviousStatus = session.Status;
+				session.Status = SessionStatus.NeedsPermission;
+			}
+		}
+
+		// Notify UI (outside lock to avoid potential deadlocks)
+		_sessionStateProvider.NotifyStateChanged();
+	}
+
 
 	/// <summary>
 	/// Normalize a permission identifier similar to Cooper's approach
@@ -143,7 +305,7 @@ public class PermissionService
 		string? kind)
 	{
 		// Create pending request
-		PermissionRequest request = new()
+		Models.PermissionRequest request = new()
 		{
 			SessionId = sessionId,
 			ToolName = toolName,
@@ -183,7 +345,7 @@ public class PermissionService
 	{
 		_logger.LogInformation("ResolvePermissionRequest called with requestId: {RequestId}, IsApproved: {IsApproved}", requestId, decision.IsApproved);
 
-		if(!_pendingRequests.TryGetValue(requestId, out PermissionRequest? request))
+		if(!_pendingRequests.TryGetValue(requestId, out Models.PermissionRequest? request))
 		{
 			_logger.LogWarning("No pending permission request found for request ID {RequestId}. Current pending count: {Count}", requestId, _pendingRequests.Count);
 			// Log all pending request IDs for debugging
@@ -234,7 +396,7 @@ public class PermissionService
 			// Check if other pending requests for this session can now be auto-approved
 			if(decision.Scope == PermissionScope.Global || decision.Scope == PermissionScope.Session)
 			{
-				AutoResolveMatchingRequests(sessionId, permission);
+				AutoResolveMatchingRequests(sessionId, permission.Pattern, decision.Scope);
 			}
 		}
 
@@ -245,17 +407,6 @@ public class PermissionService
 
 		// Notify UI with requestId so it can be removed from session list
 		OnPermissionResolved?.Invoke(sessionId, request.Id, decision);
-	}
-
-	/// <summary>
-	/// Get all pending permission requests for a specific session (for UI isolation)
-	/// </summary>
-	public List<PermissionRequest> GetPendingRequestsForSession(string sessionId)
-	{
-		return _pendingRequests.Values
-			.Where(r => r.SessionId == sessionId)
-			.OrderBy(r => r.Timestamp)
-			.ToList();
 	}
 
 	/// <summary>
@@ -289,15 +440,13 @@ public class PermissionService
 	/// <summary>
 	/// Auto-resolve pending requests that match a newly added permission
 	/// </summary>
-	void AutoResolveMatchingRequests(string sessionId, ToolPermission newPermission)
+	void AutoResolveMatchingRequests(string sessionId, string command, PermissionScope scope)
 	{
-		// Get all pending requests for this session
-		List<PermissionRequest> pendingForSession = GetPendingRequestsForSession(sessionId);
+		List<Models.PermissionRequest> pendingForSession = [.. _pendingRequests.Values.OrderBy(r => r.Timestamp)];
 
-		_logger.LogInformation("Checking {Count} pending requests for auto-approval with pattern: {Pattern}",
-			pendingForSession.Count, newPermission.Pattern);
+		_logger.LogInformation("Checking {Count} pending requests for auto-approval with pattern: {Pattern}", pendingForSession.Count, command);
 
-		foreach(PermissionRequest pendingRequest in pendingForSession)
+		foreach(Models.PermissionRequest pendingRequest in pendingForSession)
 		{
 			// Skip if already removed (in case of concurrent processing)
 			if(!_pendingRequests.ContainsKey(pendingRequest.Id))
@@ -305,31 +454,36 @@ public class PermissionService
 				continue;
 			}
 
-			// Normalize this request's identifier
 			string normalizedId = NormalizePermissionIdentifier(pendingRequest.Kind, pendingRequest.ToolName, pendingRequest.Command);
 
-			// Check if it matches the new permission
-			if(MatchesPattern(normalizedId, newPermission))
+			if(!normalizedId.Equals(command))
 			{
-				_logger.LogInformation("Auto-approving pending request {RequestId} ({Command}) - matches pattern {Pattern}",
-					pendingRequest.Id, pendingRequest.Command, newPermission.Pattern);
+				continue;
+			}
 
-				// Auto-approve with the same scope as the permission that matched
-				PermissionDecision autoDecision = new()
-				{
-					IsApproved = true,
-					Scope = newPermission.Scope
-				};
+			if(scope.Equals(PermissionScope.Session) && pendingRequest.SessionId != sessionId)
+			{
+				continue;
+			}
 
-				// Remove from pending requests atomically before completing
-				if(_pendingRequests.TryRemove(pendingRequest.Id, out _))
-				{
-					// Complete the TaskCompletionSource to unblock the waiting permission check
-					pendingRequest.CompletionSource.TrySetResult(autoDecision);
+			_logger.LogInformation("Auto-approving pending request {RequestId} ({Command}) - matches {command}",
+				pendingRequest.Id, pendingRequest.Command, command);
 
-					// Notify UI that this request was resolved
-					OnPermissionResolved?.Invoke(sessionId, pendingRequest.Id, autoDecision);
-				}
+			// Auto-approve with the same scope as the permission that matched
+			PermissionDecision autoDecision = new()
+			{
+				IsApproved = true,
+				Scope = scope
+			};
+
+			// Remove from pending requests atomically before completing
+			if(_pendingRequests.TryRemove(pendingRequest.Id, out _))
+			{
+				// Complete the TaskCompletionSource to unblock the waiting permission check
+				pendingRequest.CompletionSource.TrySetResult(autoDecision);
+
+				// Notify UI that this request was resolved
+				OnPermissionResolved?.Invoke(sessionId, pendingRequest.Id, autoDecision);
 			}
 		}
 	}

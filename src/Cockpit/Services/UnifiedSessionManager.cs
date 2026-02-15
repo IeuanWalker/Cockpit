@@ -1,20 +1,21 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Blazor.Sonner.Services;
+using Cockpit.Features.Permissions;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Services;
 
-public partial class UnifiedSessionManager
+public partial class UnifiedSessionManager : ISessionStateProvider
 {
 	readonly CopilotClientService _clientService;
 	readonly ILogger<UnifiedSessionManager> _logger;
 	readonly ToastService _toastService;
 	readonly ContextService _contextService;
 	readonly CopilotModelService _copilotModelService;
-	readonly PermissionService _permissionService;
+	PermissionFeature? _permissionFeature;
 	readonly TerminalService _terminalService;
 
 	// Internal: Maps sessionId -> SDK CopilotSession (for ALL resumed sessions)
@@ -38,7 +39,6 @@ public partial class UnifiedSessionManager
 		ToastService toastService,
 		ContextService contextService,
 		CopilotModelService copilotModelService,
-		PermissionService permissionService,
 		TerminalService terminalService)
 	{
 		_clientService = clientService;
@@ -46,12 +46,16 @@ public partial class UnifiedSessionManager
 		_toastService = toastService;
 		_contextService = contextService;
 		_copilotModelService = copilotModelService;
-		_permissionService = permissionService;
 		_terminalService = terminalService;
+	}
 
+	public void SetPermissionFeature(PermissionFeature permissionFeature)
+	{
+		_permissionFeature = permissionFeature;
+		
 		// Subscribe to permission events
-		_permissionService.OnPermissionRequested += HandlePermissionRequested;
-		_permissionService.OnPermissionResolved += HandlePermissionResolved;
+		_permissionFeature.OnPermissionRequested += _permissionFeature.HandlePermissionRequested;
+		_permissionFeature.OnPermissionResolved += _permissionFeature.HandlePermissionResolved;
 	}
 
 	// Deserialize JsonElement arguments to Dictionary<string, object>
@@ -288,7 +292,7 @@ public partial class UnifiedSessionManager
 				Streaming = true,
 				InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
 				WorkingDirectory = workingDirectory,
-				OnPermissionRequest = HandlePermissionRequest
+				OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
 			};
 
 			CopilotClient client = await _clientService.GetClientAsync();
@@ -365,7 +369,7 @@ public partial class UnifiedSessionManager
 				Model = session.Model.Id,
 				ReasoningEffort = session.ReasoningEffort,
 				Streaming = true,
-				OnPermissionRequest = HandlePermissionRequest
+				OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
 			};
 
 			CopilotClient client = await _clientService.GetClientAsync();
@@ -641,7 +645,7 @@ public partial class UnifiedSessionManager
 				Model = newModelId,
 				ReasoningEffort = newReasoningEffort,
 				Streaming = true,
-				OnPermissionRequest = HandlePermissionRequest
+				OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
 			};
 
 			// 4. Resume session with same ID but new config
@@ -723,170 +727,8 @@ public partial class UnifiedSessionManager
 		}
 	}
 
-	void NotifyStateChanged() => OnStateChanged?.Invoke();
+	public void NotifyStateChanged() => OnStateChanged?.Invoke();
 
-	// Handle permission requested event from PermissionService
-	void HandlePermissionRequested(string sessionId, Models.PermissionRequest request)
-	{
-		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if(session is null)
-		{
-			return;
-		}
-
-		_logger.LogInformation("HandlePermissionRequested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
-
-		// Use lock to ensure atomic check-add-set operation
-		lock(session.PermissionRequestsLock)
-		{
-			// Add to pending requests collection atomically
-			if(!session.PendingPermissionRequests.TryAdd(request.Id, request))
-			{
-				_logger.LogWarning("Permission request {RequestId} already exists for session {SessionId}", request.Id, sessionId);
-				return;
-			}
-
-			// Set status to NeedsPermission if this was the first request
-			if(session.PendingPermissionRequests.Count == 1)
-			{
-				session.PreviousStatus = session.Status;
-				session.Status = SessionStatus.NeedsPermission;
-			}
-		}
-
-		// Notify UI (outside lock to avoid potential deadlocks)
-		NotifyStateChanged();
-	}
-
-	// Handle permission resolved event from PermissionService
-	void HandlePermissionResolved(string sessionId, string requestId, PermissionDecision decision)
-	{
-		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if(session is null)
-		{
-			return;
-		}
-
-		_logger.LogInformation("HandlePermissionResolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
-
-		// Use lock to ensure atomic remove-check-restore operation
-		lock(session.PermissionRequestsLock)
-		{
-			// Remove the specific resolved request from the collection atomically
-			session.PendingPermissionRequests.TryRemove(requestId, out _);
-
-			// Restore previous status only when all permissions are resolved
-			if(session.PendingPermissionRequests.IsEmpty)
-			{
-				session.Status = session.PreviousStatus ?? SessionStatus.Idle;
-			}
-		}
-
-		// Notify UI (outside lock to avoid potential deadlocks)
-		NotifyStateChanged();
-	}
-
-	// Permission handler for SDK tool execution requests
-	async Task<PermissionRequestResult> HandlePermissionRequest(GitHub.Copilot.SDK.PermissionRequest request, PermissionInvocation invocation)
-	{
-		try
-		{
-			// Get the session this permission request is for
-			if(!_sdkSessions.TryGetValue(invocation.SessionId, out CopilotSession? sdkSession))
-			{
-				_logger.LogWarning("Permission request for unknown session {SessionId}", invocation.SessionId);
-				return new PermissionRequestResult { Kind = "denied" };
-			}
-
-			ChatSession? session = Sessions.FirstOrDefault(s => s.Id == invocation.SessionId);
-			if(session is null)
-			{
-				_logger.LogWarning("ChatSession not found for SDK session {SessionId}", invocation.SessionId);
-				return new PermissionRequestResult { Kind = "denied" };
-			}
-
-			// Extract tool information from the permission request
-			// The SDK sends different "kinds" of permission requests (e.g., "write", "execute", etc.)
-			string toolName = request.Kind; // e.g., "write", "execute", etc.
-			string command = ExtractCommandFromRequest(request);
-
-			// Pass ExtensionData as arguments for detailed message generation
-			Dictionary<string, object>? arguments = request.ExtensionData != null
-				? new Dictionary<string, object>(request.ExtensionData)
-				: null;
-
-
-			_logger.LogInformation("Permission request: Kind={Kind}, Command={Command}, SessionId={SessionId}",
-				toolName, command, session.Id);
-
-			// Check permission through our service
-			PermissionDecision decision = await _permissionService.CheckPermissionAsync(
-				session.Id,
-				toolName,
-				command,
-				arguments: arguments,
-				kind: request.Kind,
-				isYolo: session.IsYolo);
-
-			// Convert our decision to SDK format
-			string resultKind = decision.IsApproved ? "approved" : "denied-interactively-by-user";
-
-			_logger.LogInformation("Permission decision: {Decision} for {Command}", resultKind, command);
-
-			return new PermissionRequestResult { Kind = resultKind };
-		}
-		catch(Exception ex)
-		{
-			_logger.LogError(ex, "Error in permission handler");
-			return new PermissionRequestResult { Kind = "denied" };
-		}
-	}
-
-	// Extract command string from SDK permission request
-	static string ExtractCommandFromRequest(GitHub.Copilot.SDK.PermissionRequest request)
-	{
-		// The SDK puts additional context in ExtensionData
-		if(request.ExtensionData is null)
-		{
-			return request.Kind;
-		}
-
-		// Try to extract command from various possible fields
-		if(request.ExtensionData.TryGetValue("command", out object? cmdObj))
-		{
-			string cmdStr = cmdObj?.ToString() ?? "";
-
-			// If it's a JSON object with fullCommandText, extract that
-			if(cmdStr.StartsWith('{') && cmdStr.Contains("fullCommandText"))
-			{
-				try
-				{
-					using JsonDocument doc = JsonDocument.Parse(cmdStr);
-					if(doc.RootElement.TryGetProperty("fullCommandText", out JsonElement fullCmd))
-					{
-						return fullCmd.GetString() ?? request.Kind;
-					}
-				}
-				catch
-				{
-					// Fall through to return as-is
-				}
-			}
-
-			return cmdStr;
-		}
-
-		if(request.ExtensionData.TryGetValue("path", out object? pathObj))
-		{
-			return pathObj?.ToString() ?? request.Kind;
-		}
-
-		if(request.ExtensionData.TryGetValue("args", out object? argsObj))
-		{
-			return argsObj?.ToString() ?? request.Kind;
-		}
-
-		// Fallback: return kind
-		return request.Kind;
-	}
+	// ISessionStateProvider implementation
+	IReadOnlyList<ChatSession> ISessionStateProvider.GetSessions() => Sessions;
 }

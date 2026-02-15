@@ -1,6 +1,6 @@
 using Blazor.Sonner.Extensions;
 using Blazor.Sonner.Services;
-using Cockpit.Features;
+using Cockpit.Features.Permissions;
 using Cockpit.Services;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
@@ -45,9 +45,26 @@ public static class MauiProgram
 
 		// Register Copilot SDK services
 		builder.Services.AddSingleton<CopilotClientService>();
-		builder.Services.AddSingleton<UnifiedSessionManager>();
 		builder.Services.AddSingleton<GlobalPermissionFeature>();
-		builder.Services.AddSingleton<PermissionService>();
+		
+		// Register UnifiedSessionManager first (no PermissionFeature dependency in constructor)
+		builder.Services.AddSingleton<UnifiedSessionManager>();
+		builder.Services.AddSingleton<ISessionStateProvider>(sp => sp.GetRequiredService<UnifiedSessionManager>());
+		
+		// Register PermissionFeature (depends on ISessionStateProvider)
+		builder.Services.AddSingleton<PermissionFeature>(sp =>
+		{
+			var permissionFeature = new PermissionFeature(
+				sp.GetRequiredService<GlobalPermissionFeature>(),
+				sp.GetRequiredService<ISessionStateProvider>(),
+				sp.GetRequiredService<ILogger<PermissionFeature>>());
+				
+			// Wire up the circular reference
+			sp.GetRequiredService<UnifiedSessionManager>().SetPermissionFeature(permissionFeature);
+			
+			return permissionFeature;
+		});
+		
 		builder.Services.AddSingleton<CopilotModelService>();
 
 		return builder.Build();
