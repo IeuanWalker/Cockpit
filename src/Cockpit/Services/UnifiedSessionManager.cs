@@ -736,6 +736,9 @@ public partial class UnifiedSessionManager
 
 		_logger.LogInformation("HandlePermissionRequested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
 
+		// Check if this will be the first request before adding
+		bool wasEmpty = session.PendingPermissionRequests.IsEmpty;
+
 		// Add to pending requests collection atomically
 		if(!session.PendingPermissionRequests.TryAdd(request.Id, request))
 		{
@@ -744,9 +747,9 @@ public partial class UnifiedSessionManager
 		}
 
 		// Set status to NeedsPermission on first request
-		// Note: Count check may race with concurrent adds, but this is acceptable - if we miss
-		// setting the status because another thread added concurrently, that thread will set it
-		if(session.PendingPermissionRequests.Count == 1)
+		// We check wasEmpty before the add - if it was empty and we successfully added,
+		// we are guaranteed to be adding the first request
+		if(wasEmpty)
 		{
 			session.PreviousStatus = session.Status;
 			session.Status = SessionStatus.NeedsPermission;
