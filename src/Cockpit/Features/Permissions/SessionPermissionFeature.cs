@@ -4,19 +4,20 @@ namespace Cockpit.Features.Permissions;
 
 public class SessionPermissionFeature
 {
-	readonly ConcurrentDictionary<string, List<string>> _commands = new();
+	readonly ConcurrentDictionary<string, ConcurrentBag<string>> _commands = new();
 
 	public bool HasPermission(string sessionId, string command)
 	{
-		if(_commands.TryGetValue(sessionId, out List<string>? sessionPerms))
+		if(_commands.TryGetValue(sessionId, out ConcurrentBag<string>? sessionPerms))
 		{
 			return sessionPerms.Contains(command);
 		}
 		return false;
 	}
+
 	public void Add(string sessionId, string command)
 	{
-		List<string> sessionPerms = _commands.GetOrAdd(sessionId, _ => []);
+		ConcurrentBag<string> sessionPerms = _commands.GetOrAdd(sessionId, _ => []);
 		sessionPerms.Add(command);
 	}
 }
