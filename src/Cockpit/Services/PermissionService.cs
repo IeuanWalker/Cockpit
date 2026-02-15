@@ -248,15 +248,6 @@ public class PermissionService
 	}
 
 	/// <summary>
-	/// Get pending permission request by request ID
-	/// </summary>
-	public PermissionRequest? GetPendingRequest(string requestId)
-	{
-		_pendingRequests.TryGetValue(requestId, out PermissionRequest? request);
-		return request;
-	}
-
-	/// <summary>
 	/// Get all pending permission requests for a specific session (for UI isolation)
 	/// </summary>
 	public List<PermissionRequest> GetPendingRequestsForSession(string sessionId)
@@ -265,35 +256,6 @@ public class PermissionService
 			.Where(r => r.SessionId == sessionId)
 			.OrderBy(r => r.Timestamp)
 			.ToList();
-	}
-
-	/// <summary>
-	/// Add a global permission
-	/// </summary>
-	public void AddGlobalPermission(ToolPermission permission)
-	{
-		lock(_permissionsLock)
-		{
-			permission.Scope = PermissionScope.Global;
-			_globalPermissions.Add(permission);
-			SavePermissions();
-		}
-
-		OnPermissionsChanged?.Invoke();
-	}
-
-	/// <summary>
-	/// Remove a global permission
-	/// </summary>
-	public void RemoveGlobalPermission(ToolPermission permission)
-	{
-		lock(_permissionsLock)
-		{
-			_globalPermissions.Remove(permission);
-			SavePermissions();
-		}
-
-		OnPermissionsChanged?.Invoke();
 	}
 
 	/// <summary>
@@ -332,7 +294,7 @@ public class PermissionService
 		// Get all pending requests for this session
 		List<PermissionRequest> pendingForSession = GetPendingRequestsForSession(sessionId);
 
-		_logger.LogInformation("Checking {Count} pending requests for auto-approval with pattern: {Pattern}", 
+		_logger.LogInformation("Checking {Count} pending requests for auto-approval with pattern: {Pattern}",
 			pendingForSession.Count, newPermission.Pattern);
 
 		foreach(PermissionRequest pendingRequest in pendingForSession)
@@ -349,7 +311,7 @@ public class PermissionService
 			// Check if it matches the new permission
 			if(MatchesPattern(normalizedId, newPermission))
 			{
-				_logger.LogInformation("Auto-approving pending request {RequestId} ({Command}) - matches pattern {Pattern}", 
+				_logger.LogInformation("Auto-approving pending request {RequestId} ({Command}) - matches pattern {Pattern}",
 					pendingRequest.Id, pendingRequest.Command, newPermission.Pattern);
 
 				// Auto-approve with the same scope as the permission that matched
@@ -364,89 +326,11 @@ public class PermissionService
 				{
 					// Complete the TaskCompletionSource to unblock the waiting permission check
 					pendingRequest.CompletionSource.TrySetResult(autoDecision);
-					
+
 					// Notify UI that this request was resolved
 					OnPermissionResolved?.Invoke(sessionId, pendingRequest.Id, autoDecision);
 				}
 			}
 		}
-	}
-
-	/// <summary>
-	/// Load permissions from file
-	/// </summary>
-	void LoadPermissions()
-	{
-		try
-		{
-			if(!File.Exists(_permissionsFilePath))
-			{
-				_logger.LogInformation("No permissions file found, starting with empty permissions");
-				return;
-			}
-
-			string json = File.ReadAllText(_permissionsFilePath);
-			PermissionsFile? file = JsonSerializer.Deserialize<PermissionsFile>(json);
-
-			if(file is not null)
-			{
-				lock(_permissionsLock)
-				{
-					_globalPermissions.Clear();
-					// Only load allowlist - denylist removed as per Cooper's approach
-					_globalPermissions.AddRange(file.GlobalAllowlist ?? []);
-				}
-
-				_logger.LogInformation(
-					"Loaded {Count} global permissions from {Path}",
-					_globalPermissions.Count,
-					_permissionsFilePath);
-			}
-		}
-		catch(Exception ex)
-		{
-			_logger.LogError(ex, "Failed to load permissions from {Path}", _permissionsFilePath);
-		}
-	}
-
-	/// <summary>
-	/// Save permissions to file
-	/// </summary>
-	void SavePermissions()
-	{
-		try
-		{
-			lock(_permissionsLock)
-			{
-				PermissionsFile file = new()
-				{
-					Version = "1.0",
-					// Only save allowlist - denylist removed
-					GlobalAllowlist = [.. _globalPermissions.Where(p => p.IsAllowed)]
-				};
-
-				string json = JsonSerializer.Serialize(file, new JsonSerializerOptions
-				{
-					WriteIndented = true
-				});
-
-				File.WriteAllText(_permissionsFilePath, json);
-
-				_logger.LogDebug("Saved permissions to {Path}", _permissionsFilePath);
-			}
-		}
-		catch(Exception ex)
-		{
-			_logger.LogError(ex, "Failed to save permissions to {Path}", _permissionsFilePath);
-		}
-	}
-
-	/// <summary>
-	/// File format for storing permissions
-	/// </summary>
-	class PermissionsFile
-	{
-		public string Version { get; set; } = "1.0";
-		public List<ToolPermission>? GlobalAllowlist { get; set; }
 	}
 }
