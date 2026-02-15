@@ -25,6 +25,11 @@ public class ChatSession
 	public ConcurrentDictionary<string, PermissionRequest> PendingPermissionRequests { get; set; } = new();
 
 	/// <summary>
+	/// Lock for coordinating permission request status changes
+	/// </summary>
+	public readonly Lock PermissionRequestsLock = new();
+
+	/// <summary>
 	/// Previous status before permission request (to restore after all decisions)
 	/// </summary>
 	public SessionStatus? PreviousStatus { get; set; }
