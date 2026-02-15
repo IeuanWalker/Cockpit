@@ -766,10 +766,11 @@ public partial class UnifiedSessionManager
 		List<Models.PermissionRequest> remaining = session.PendingPermissionRequests
 			.Where(r => r.Id != requestId)
 			.ToList();
+		bool shouldRestoreStatus = remaining.Count == 0;
 		session.PendingPermissionRequests = new ConcurrentBag<Models.PermissionRequest>(remaining);
 
 		// Restore previous status only when all permissions are resolved
-		if(session.PendingPermissionRequests.Count == 0)
+		if(shouldRestoreStatus)
 		{
 			session.Status = session.PreviousStatus ?? SessionStatus.Idle;
 		}
