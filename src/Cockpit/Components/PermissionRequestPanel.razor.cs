@@ -13,7 +13,7 @@ public partial class PermissionRequestPanel
 	public EventCallback<PermissionDecision> OnPermissionDecision { get; set; }
 
 	[Inject]
-	public required ILogger<PermissionRequestPanel> Logger { get; set; }
+	ILogger<PermissionRequestPanel> Logger { get; set; } = default!;
 
 	bool _showDetailsPopup = false;
 

@@ -2,11 +2,12 @@ using Cockpit.Models;
 using Cockpit.Services;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components;
 
-public sealed partial class WorkingPanel : IDisposable
+public sealed partial class WorkingPanel : IAsyncDisposable
 {
 	[Parameter]
 	public ActivityGroup? Group { get; set; }
@@ -19,6 +20,9 @@ public sealed partial class WorkingPanel : IDisposable
 
 	[Inject]
 	IJSRuntime JSRuntime { get; set; } = default!;
+
+	[Inject]
+	ILogger<WorkingPanel> Logger { get; set; } = default!;
 
 	Timer? _timer;
 	bool _isUserScrolledUpFromWorking = false;
@@ -50,6 +54,12 @@ public sealed partial class WorkingPanel : IDisposable
 			_timer?.Dispose();
 			_timer = null;
 		}
+
+		// Reset scroll tracking when panel becomes invisible
+		if(!IsVisible && _scrollTrackingSetup)
+		{
+			_scrollTrackingSetup = false;
+		}
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -80,9 +90,9 @@ public sealed partial class WorkingPanel : IDisposable
 		{
 			await JSRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "workingContent", _dotNetRef, "OnWorkingPanelScrollPositionChanged");
 		}
-		catch
+		catch(Exception ex)
 		{
-			// Handle error silently
+			Logger.LogDebug(ex, "Failed to setup smart scroll for working panel");
 		}
 	}
 
@@ -98,13 +108,13 @@ public sealed partial class WorkingPanel : IDisposable
 		{
 			await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "workingContent");
 		}
-		catch
+		catch(Exception ex)
 		{
-			// Handle error silently
+			Logger.LogDebug(ex, "Failed to scroll working panel to bottom");
 		}
 	}
 
-	public void Dispose()
+	public async ValueTask DisposeAsync()
 	{
 		_timer?.Dispose();
 
@@ -112,16 +122,15 @@ public sealed partial class WorkingPanel : IDisposable
 		{
 			try
 			{
-				JSRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "workingContent");
+				await JSRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "workingContent");
 			}
-			catch
+			catch(Exception ex)
 			{
-				// Handle error silently
+				Logger.LogDebug(ex, "Failed to cleanup smart scroll for working panel");
 			}
 		}
 
 		_dotNetRef?.Dispose();
-		GC.SuppressFinalize(this);
 	}
 
 	string GetElapsedTime()

@@ -10,7 +10,7 @@ using Microsoft.JSInterop;
 
 namespace Cockpit.Components;
 
-public partial class Main : ComponentBase, IDisposable
+public partial class Main : ComponentBase, IAsyncDisposable
 {
 	[Inject] TimestampService TimestampService { get; set; } = default!;
 	[Inject] CopilotModelService ModelService { get; set; } = default!;
@@ -29,6 +29,9 @@ public partial class Main : ComponentBase, IDisposable
 	bool _isUserScrolledUpFromChat = false;
 	int _lastMessageCount = 0;
 	DotNetObjectReference<Main>? _dotNetRef;
+
+	// Helper property to safely get the first pending request
+	Models.PermissionRequest? FirstPendingRequest => SessionManager.CurrentSession?.PendingPermissionRequests?.Values.FirstOrDefault();
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -337,32 +340,23 @@ public partial class Main : ComponentBase, IDisposable
 		}
 	}
 
-	public void Dispose()
+	public async ValueTask DisposeAsync()
 	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
-	}
+		SessionManager.OnStateChanged -= OnStateChanged;
+		UIState.OnStateChanged -= OnUIStateChangedHandler;
+		TimestampService.OnTick -= OnTimestampTick;
 
-	protected virtual void Dispose(bool disposing)
-	{
-		if(disposing)
+		// Cleanup smart scroll
+		try
 		{
-			SessionManager.OnStateChanged -= OnStateChanged;
-			UIState.OnStateChanged -= OnUIStateChangedHandler;
-			TimestampService.OnTick -= OnTimestampTick;
-
-			// Cleanup smart scroll
-			try
-			{
-				JSRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
-			}
-			catch
-			{
-				// Handle error silently
-			}
-
-			_dotNetRef?.Dispose();
+			await JSRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
 		}
+		catch(Exception ex)
+		{
+			Logger.LogDebug(ex, "Failed to cleanup smart scroll for chat messages");
+		}
+
+		_dotNetRef?.Dispose();
 	}
 
 	public async Task VoiceRecording()
@@ -437,18 +431,13 @@ public partial class Main : ComponentBase, IDisposable
 	// Handle permission decision from the PermissionRequestPanel
 	void HandlePermissionDecision(PermissionDecision decision)
 	{
-		if(SessionManager.CurrentSession is null)
+		Models.PermissionRequest? currentRequest = FirstPendingRequest;
+		if(currentRequest is null)
 		{
 			Logger.LogWarning("HandlePermissionDecision called but CurrentSession is null");
 			return;
 		}
 
-		Logger.LogInformation("HandlePermissionDecision called for session {SessionId} with scope {Scope}", 
-			SessionManager.CurrentSession.Id, decision.Scope);
-
-		// Pass decision to PermissionService for resolution
-		PermissionService.ResolvePermissionRequest(SessionManager.CurrentSession.Id, decision);
-		
-		Logger.LogInformation("ResolvePermissionRequest completed");
+		PermissionService.ResolvePermissionRequest(currentRequest.Id, decision);
 	}
 }
