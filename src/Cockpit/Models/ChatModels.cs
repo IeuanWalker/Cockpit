@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using GitHub.Copilot.SDK;
 
 namespace Cockpit.Models;
@@ -20,7 +21,7 @@ public class ChatSession
 	/// <summary>
 	/// Pending permission requests for this session (supports multiple concurrent requests)
 	/// </summary>
-	public List<PermissionRequest> PendingPermissionRequests { get; set; } = [];
+	public ConcurrentBag<PermissionRequest> PendingPermissionRequests { get; set; } = [];
 
 	/// <summary>
 	/// Previous status before permission request (to restore after all decisions)

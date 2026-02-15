@@ -94,12 +94,10 @@ else
     </div>
 
     <!-- Permission Request Panel (appears above working panel when permission needed) -->
-    @if(SessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)
+    @if(FirstPendingRequest is not null)
     {
-        <PermissionRequestPanel Request="@SessionManager.CurrentSession.PendingPermissionRequests[0]"
-                                OnPermissionDecision="HandlePermissionDecision"
-                                QueuePosition="1"
-                                QueueTotal="@SessionManager.CurrentSession.PendingPermissionRequests.Count" />
+        <PermissionRequestPanel Request="@FirstPendingRequest"
+                                OnPermissionDecision="HandlePermissionDecision" />
     }
 
     <!-- Working Panel (appears above input when agent is working) -->

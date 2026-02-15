@@ -90,7 +90,6 @@ window.cockpit = {
             element.removeEventListener('scroll', element._smartScrollHandler);
             delete element._smartScrollHandler;
             delete element._wasNearBottom;
-            delete element._isProgrammaticScroll;
         }
     },
     highlightCodeBlocks: function (containerId) {
