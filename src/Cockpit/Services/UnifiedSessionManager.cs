@@ -736,11 +736,12 @@ public partial class UnifiedSessionManager
 
 		_logger.LogInformation("HandlePermissionRequested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
 
-		// Add to pending requests collection
-		session.PendingPermissionRequests.Add(request);
+		// Add to pending requests collection atomically
+		bool wasFirst = session.PendingPermissionRequests.IsEmpty;
+		session.PendingPermissionRequests.TryAdd(request.Id, request);
 
 		// Set status to NeedsPermission on first request
-		if(session.PendingPermissionRequests.Count == 1)
+		if(wasFirst)
 		{
 			session.PreviousStatus = session.Status;
 			session.Status = SessionStatus.NeedsPermission;
@@ -761,16 +762,11 @@ public partial class UnifiedSessionManager
 
 		_logger.LogInformation("HandlePermissionResolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
 
-		// Remove the specific resolved request from the collection
-		// ConcurrentBag doesn't support direct removal, so we need to recreate it
-		List<Models.PermissionRequest> remaining = session.PendingPermissionRequests
-			.Where(r => r.Id != requestId)
-			.ToList();
-		bool shouldRestoreStatus = remaining.Count == 0;
-		session.PendingPermissionRequests = new ConcurrentBag<Models.PermissionRequest>(remaining);
+		// Remove the specific resolved request from the collection atomically
+		session.PendingPermissionRequests.TryRemove(requestId, out _);
 
 		// Restore previous status only when all permissions are resolved
-		if(shouldRestoreStatus)
+		if(session.PendingPermissionRequests.IsEmpty)
 		{
 			session.Status = session.PreviousStatus ?? SessionStatus.Idle;
 		}

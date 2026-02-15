@@ -31,7 +31,7 @@ public partial class Main : ComponentBase, IAsyncDisposable
 	DotNetObjectReference<Main>? _dotNetRef;
 
 	// Helper property to safely get the first pending request
-	Models.PermissionRequest? FirstPendingRequest => SessionManager.CurrentSession?.PendingPermissionRequests?.FirstOrDefault();
+	Models.PermissionRequest? FirstPendingRequest => SessionManager.CurrentSession?.PendingPermissionRequests?.Values.FirstOrDefault();
 
 	protected override async Task OnInitializedAsync()
 	{
