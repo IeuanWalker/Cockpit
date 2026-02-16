@@ -70,6 +70,18 @@ public static partial class CommandExtractor
 	// Navigation/setup commands that don't need permission (informational only)
 	static readonly HashSet<string> navigationCommands = ["cd", "pushd", "popd", "pwd"];
 
+	// PowerShell cmdlets where we keep scriptblock content
+	static readonly HashSet<string> cmdletsKeepContent = new(StringComparer.OrdinalIgnoreCase)
+	{
+		"ForEach-Object", "Where-Object", "Measure-Command"
+	};
+
+	// PowerShell cmdlets where we remove entire scriptblock
+	static readonly HashSet<string> cmdletsRemoveContent = new(StringComparer.OrdinalIgnoreCase)
+	{
+		"Invoke-Command"
+	};
+
 	/// <summary>
 	/// Decode Unicode escape sequences and common escape sequences in a string (e.g., \u0027 -> ', \n -> newline)
 	/// </summary>
@@ -156,17 +168,6 @@ public static partial class CommandExtractor
 	/// </summary>
 	static string RemoveScriptblocks(string input)
 	{
-		// Common cmdlets that take scriptblocks as their primary parameter
-		HashSet<string> cmdletsKeepContent = new(StringComparer.OrdinalIgnoreCase)
-		{
-			"ForEach-Object", "Where-Object", "Measure-Command"
-		};
-
-		HashSet<string> cmdletsRemoveContent = new(StringComparer.OrdinalIgnoreCase)
-		{
-			"Invoke-Command"
-		};
-
 		StringBuilder result = new(input.Length);
 		int i = 0;
 
@@ -222,13 +223,10 @@ public static partial class CommandExtractor
 						{
 							depth++;
 						}
-						else if(c == '}')
+						else if(c == '}' && --depth == 0)
 						{
-							if(--depth == 0)
-							{
-								i++;
-								break;
-							}
+							i++;
+							break;
 						}
 
 						if(keepContent && depth > 0)
@@ -257,178 +255,204 @@ public static partial class CommandExtractor
 	{
 		HashSet<string> executables = [];
 
-		// Decode Unicode escape sequences first (e.g., \u0027 -> ')
-		command = DecodeUnicodeEscapes(command);
-
-		// Remove heredocs first (<<'MARKER' ... MARKER or <<MARKER ... MARKER)
-		string cleaned = HeredocWithMarkerPattern().Replace(command, "");
-		cleaned = HeredocEndPattern().Replace(cleaned, "");
-
-		// Remove string literals first to avoid false positives
-		cleaned = StringLiteralsPattern().Replace(cleaned, m => new string(m.Value[0], 2));
-
-		// Process command substitutions like $(...)
-		cleaned = ProcessCommandSubstitutions(cleaned);
-
-		// Then remove PowerShell scriptblocks { ... } passed as parameters
-		cleaned = RemoveScriptblocks(cleaned);
-
-		// Expand parentheses to extract commands from subexpressions like (Get-Item ...)
-		cleaned = ExpandParentheses(cleaned);
-
-		// Remove shell comments and redirections
-		cleaned = CommentsAndRedirectionsPattern().Replace(cleaned, "");
+		// Clean and normalize the command
+		string cleaned = CleanCommand(command);
 
 		// Split on shell operators, separators, and newlines
-		string[] segments = cleaned.Split([';', '&', '|', '\n'], StringSplitOptions.RemoveEmptyEntries);
-
-		foreach(string segment in segments)
+		foreach(string segment in cleaned.Split([';', '&', '|', '\n'], StringSplitOptions.RemoveEmptyEntries))
 		{
 			string trimmed = segment.Trim();
-			// Skip if empty or looks like a heredoc marker line
 			if(string.IsNullOrWhiteSpace(trimmed) || HeredocMarkerPattern().IsMatch(trimmed))
 			{
 				continue;
 			}
 
-			// Get parts of segment
 			string[] parts = trimmed.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-
-			string? foundExec = null;
-			string? subcommand = null;
-			bool skipNextAsLoopVar = false;
-			bool inForValueList = false;
-			bool skipNextAsFlagValue = false;
-
-			for(int i = 0; i < parts.Length; i++)
+			if(TryExtractExecutable(parts, out string? exec, out string? subcommand) && exec is not null)
 			{
-				string part = parts[i];
-
-				// If we're in a "for VAR in VALUE_LIST" context, skip until we hit 'do'
-				if(inForValueList)
-				{
-					if(part == "do")
-					{
-						inForValueList = false;
-					}
-
-					continue;
-				}
-
-				// Skip value after a flag that takes one
-				if(skipNextAsFlagValue)
-				{
-					skipNextAsFlagValue = false;
-					continue;
-				}
-
-				// Skip the loop variable after 'for' or 'select'
-				if(skipNextAsLoopVar)
-				{
-					skipNextAsLoopVar = false;
-					continue;
-				}
-
-				// Skip environment variable assignments, flags, prefixes, builtins, and keywords
-				if((part.Contains('=') && !part.StartsWith('-')) ||
-				   part.StartsWith('-') ||
-				   part.StartsWith('>') ||
-				   part.StartsWith('<') ||
-				   string.IsNullOrEmpty(part))
-				{
-					if(part.StartsWith('-') && flagsWithValues.Contains(part))
-					{
-						skipNextAsFlagValue = true;
-					}
-					continue;
-				}
-
-				// Check prefixes, builtins, and keywords
-				if(prefixes.Contains(part) || shellBuiltinsToSkip.Contains(part))
-				{
-					continue;
-				}
-
-				if(shellKeywordsToSkip.Contains(part))
-				{
-					if(part is "for" or "select")
-					{
-						skipNextAsLoopVar = true;
-					}
-					else if(part == "in" && !skipNextAsLoopVar)
-					{
-						inForValueList = true;
-					}
-					continue;
-				}
-
-				// Skip punctuation-only tokens
-				if(PunctuationPattern().IsMatch(part))
-				{
-					continue;
-				}
-
-				// Found potential executable - extract filename from path
-				int lastSlash = part.LastIndexOf('/');
-				int lastBackslash = part.LastIndexOf('\\');
-				int pathSepIndex = Math.Max(lastSlash, lastBackslash);
-				string exec = pathSepIndex >= 0 ? part[(pathSepIndex + 1)..] : part;
-
-				// Validate it looks like a command with at least one letter
-				if(!string.IsNullOrEmpty(exec) && CommandValidationPattern().IsMatch(exec))
-				{
-					if(foundExec == null)
-					{
-						foundExec = exec;
-
-						// Check if this needs subcommand handling
-						if(subcommandExecutables.Contains(exec))
-						{
-							// Look for subcommand in next non-flag part
-							bool skipNextSubValue = false;
-							for(int j = i + 1; j < parts.Length; j++)
-							{
-								string nextPart = parts[j];
-								if(skipNextSubValue)
-								{
-									skipNextSubValue = false;
-									continue;
-								}
-								if(nextPart.StartsWith('-'))
-								{
-									if(flagsWithValues.Contains(nextPart))
-									{
-										skipNextSubValue = true;
-									}
-
-									continue;
-								}
-								if(nextPart.Contains('='))
-								{
-									continue;
-								}
-								// Found potential subcommand
-								if(SubcommandValidationPattern().IsMatch(nextPart))
-								{
-									subcommand = nextPart;
-									break;
-								}
-								break;
-							}
-						}
-					}
-					break;
-				}
-			}
-
-			if(foundExec != null)
-			{
-				// Combine executable with subcommand for granular control
-				executables.Add(subcommand != null ? $"{foundExec} {subcommand}" : foundExec);
+				executables.Add(subcommand is not null ? $"{exec} {subcommand}" : exec);
 			}
 		}
 
 		return [.. executables];
+	}
+
+	/// <summary>
+	/// Clean command by removing strings, substitutions, comments, etc.
+	/// </summary>
+	static string CleanCommand(string command)
+	{
+		command = DecodeUnicodeEscapes(command);
+		command = HeredocWithMarkerPattern().Replace(command, "");
+		command = HeredocEndPattern().Replace(command, "");
+		command = StringLiteralsPattern().Replace(command, m => new string(m.Value[0], 2));
+		command = ProcessCommandSubstitutions(command);
+		command = RemoveScriptblocks(command);
+		command = ExpandParentheses(command);
+		return CommentsAndRedirectionsPattern().Replace(command, "");
+	}
+
+	/// <summary>
+	/// Try to extract the first executable and optional subcommand from parts.
+	/// </summary>
+	static bool TryExtractExecutable(string[] parts, out string? exec, out string? subcommand)
+	{
+		exec = null;
+		subcommand = null;
+
+		bool skipNextAsLoopVar = false;
+		bool inForValueList = false;
+		bool skipNextAsFlagValue = false;
+
+		for(int i = 0; i < parts.Length; i++)
+		{
+			string part = parts[i];
+
+			// State-based skipping
+			if(inForValueList)
+			{
+				if(part == "do")
+				{
+					inForValueList = false;
+				}
+
+				continue;
+			}
+			if(skipNextAsFlagValue)
+			{
+				skipNextAsFlagValue = false;
+				continue;
+			}
+			if(skipNextAsLoopVar)
+			{
+				skipNextAsLoopVar = false;
+				continue;
+			}
+
+			// Quick rejection checks
+			if(ShouldSkipPart(part, ref skipNextAsFlagValue))
+			{
+				continue;
+			}
+
+			// Handle shell keywords
+			if(shellKeywordsToSkip.Contains(part))
+			{
+				if(part is "for" or "select")
+				{
+					skipNextAsLoopVar = true;
+				}
+				else if(part == "in" && !skipNextAsLoopVar)
+				{
+					inForValueList = true;
+				}
+
+				continue;
+			}
+
+			// Skip punctuation-only
+			if(PunctuationPattern().IsMatch(part))
+			{
+				continue;
+			}
+
+			// Extract and validate executable
+			exec = GetExecutableFromPath(part);
+			if(string.IsNullOrEmpty(exec) || !CommandValidationPattern().IsMatch(exec))
+			{
+				continue;
+			}
+
+			// Find subcommand if needed
+			if(subcommandExecutables.Contains(exec))
+			{
+				subcommand = FindSubcommand(parts, i + 1);
+			}
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// Check if a part should be skipped (env vars, flags, redirects, prefixes, builtins).
+	/// </summary>
+	static bool ShouldSkipPart(string part, ref bool skipNextAsFlagValue)
+	{
+		if(string.IsNullOrEmpty(part))
+		{
+			return true;
+		}
+
+		if(part.Contains('=') && !part.StartsWith('-'))
+		{
+			return true;
+		}
+
+		if(part.StartsWith('>') || part.StartsWith('<'))
+		{
+			return true;
+		}
+
+		if(part.StartsWith('-'))
+		{
+			if(flagsWithValues.Contains(part))
+			{
+				skipNextAsFlagValue = true;
+			}
+
+			return true;
+		}
+
+		return prefixes.Contains(part) || shellBuiltinsToSkip.Contains(part);
+	}
+
+	/// <summary>
+	/// Extract executable name from a path (handles / and \\ separators).
+	/// </summary>
+	static string GetExecutableFromPath(string part)
+	{
+		int lastSep = Math.Max(part.LastIndexOf('/'), part.LastIndexOf('\\'));
+		return lastSep >= 0 ? part[(lastSep + 1)..] : part;
+	}
+
+	/// <summary>
+	/// Find the first valid subcommand in parts starting from startIndex.
+	/// </summary>
+	static string? FindSubcommand(string[] parts, int startIndex)
+	{
+		bool skipNext = false;
+		for(int j = startIndex; j < parts.Length; j++)
+		{
+			string part = parts[j];
+			if(skipNext)
+			{
+				skipNext = false;
+				continue;
+			}
+
+			if(part.StartsWith('-'))
+			{
+				if(flagsWithValues.Contains(part))
+				{
+					skipNext = true;
+				}
+
+				continue;
+			}
+			if(part.Contains('='))
+			{
+				continue;
+			}
+
+			if(SubcommandValidationPattern().IsMatch(part))
+			{
+				return part;
+			}
+
+			break;
+		}
+		return null;
 	}
 
 	/// <summary>
@@ -455,44 +479,36 @@ public static partial class CommandExtractor
 	/// </summary>
 	public static bool ContainsDestructiveCommand(string command)
 	{
-		List<string> executables = ExtractExecutables(command);
-
-		// Check if any executable is destructive
-		foreach(string exec in executables)
-		{
-			if(IsDestructiveExecutable(exec))
-			{
-				return true;
-			}
-		}
-
-		// Special case: git push with --force or -f flag
-		string commandLower = command.ToLowerInvariant();
-		if(commandLower.Contains("git push") &&
-			(commandLower.Contains("--force") || commandLower.Contains(" -f")))
+		// Check extracted executables first
+		if(ExtractExecutables(command).Any(IsDestructiveExecutable))
 		{
 			return true;
 		}
 
-		// Special case: 'find' with -delete flag or -exec rm
-		if(commandLower.Contains("find ") &&
-			(commandLower.Contains("-delete") ||
-			 commandLower.Contains("-exec rm") ||
-			 commandLower.Contains("-exec /bin/rm") ||
-			 commandLower.Contains("-exec /usr/bin/rm")))
+		// Check for special destructive patterns
+		ReadOnlySpan<char> lower = command.ToLowerInvariant().AsSpan();
+
+		// git push with --force or -f
+		if(lower.Contains("git push", StringComparison.Ordinal) &&
+		   (lower.Contains("--force", StringComparison.Ordinal) || lower.Contains(" -f", StringComparison.Ordinal)))
 		{
 			return true;
 		}
 
-		// Special case: xargs with rm
-		if(commandLower.Contains("xargs rm") ||
-			commandLower.Contains("xargs /bin/rm") ||
-			commandLower.Contains("xargs /usr/bin/rm"))
+		// find with -delete or -exec rm
+		if(lower.Contains("find ", StringComparison.Ordinal) &&
+		   (lower.Contains("-delete", StringComparison.Ordinal) ||
+			lower.Contains("-exec rm", StringComparison.Ordinal) ||
+			lower.Contains("-exec /bin/rm", StringComparison.Ordinal) ||
+			lower.Contains("-exec /usr/bin/rm", StringComparison.Ordinal)))
 		{
 			return true;
 		}
 
-		return false;
+		// xargs with rm
+		return lower.Contains("xargs rm", StringComparison.Ordinal) ||
+			   lower.Contains("xargs /bin/rm", StringComparison.Ordinal) ||
+			   lower.Contains("xargs /usr/bin/rm", StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -500,40 +516,28 @@ public static partial class CommandExtractor
 	/// </summary>
 	public static List<string> GetDestructiveExecutables(string command)
 	{
-		List<string> executables = ExtractExecutables(command);
-		List<string> destructive = [];
+		List<string> destructive = [.. ExtractExecutables(command).Where(IsDestructiveExecutable)];
 
-		foreach(string exec in executables)
-		{
-			if(IsDestructiveExecutable(exec))
-			{
-				destructive.Add(exec);
-			}
-		}
+		ReadOnlySpan<char> lower = command.ToLowerInvariant().AsSpan();
 
 		// Special case: find with -delete/-exec rm
-		string commandLower = command.ToLowerInvariant();
-		if(commandLower.Contains("find ") &&
-			(commandLower.Contains("-delete") ||
-			 commandLower.Contains("-exec rm") ||
-			 commandLower.Contains("-exec /bin/rm") ||
-			 commandLower.Contains("-exec /usr/bin/rm")))
+		if(lower.Contains("find ", StringComparison.Ordinal) &&
+		   (lower.Contains("-delete", StringComparison.Ordinal) ||
+			lower.Contains("-exec rm", StringComparison.Ordinal) ||
+			lower.Contains("-exec /bin/rm", StringComparison.Ordinal) ||
+			lower.Contains("-exec /usr/bin/rm", StringComparison.Ordinal)) &&
+		   !destructive.Contains("find -delete"))
 		{
-			if(!destructive.Contains("find -delete"))
-			{
-				destructive.Add("find -delete");
-			}
+			destructive.Add("find -delete");
 		}
 
 		// Special case: xargs with rm
-		if(commandLower.Contains("xargs rm") ||
-			commandLower.Contains("xargs /bin/rm") ||
-			commandLower.Contains("xargs /usr/bin/rm"))
+		if((lower.Contains("xargs rm", StringComparison.Ordinal) ||
+			lower.Contains("xargs /bin/rm", StringComparison.Ordinal) ||
+			lower.Contains("xargs /usr/bin/rm", StringComparison.Ordinal)) &&
+		   !destructive.Contains("xargs rm"))
 		{
-			if(!destructive.Contains("xargs rm"))
-			{
-				destructive.Add("xargs rm");
-			}
+			destructive.Add("xargs rm");
 		}
 
 		return destructive;
@@ -546,10 +550,7 @@ public static partial class CommandExtractor
 	{
 		List<string> files = [];
 
-		// Split command by shell operators
-		string[] segments = command.Split([';', '&', '|', '\n'], StringSplitOptions.RemoveEmptyEntries);
-
-		foreach(string segment in segments)
+		foreach(string segment in command.Split([';', '&', '|', '\n'], StringSplitOptions.RemoveEmptyEntries))
 		{
 			string trimmed = segment.Trim();
 			if(string.IsNullOrWhiteSpace(trimmed))
@@ -557,7 +558,6 @@ public static partial class CommandExtractor
 				continue;
 			}
 
-			// Parse rm, rmdir, unlink, shred commands
 			Match rmMatch = RmCommandPattern().Match(trimmed);
 			if(!rmMatch.Success)
 			{
@@ -571,22 +571,12 @@ public static partial class CommandExtractor
 			}
 
 			// Parse the arguments, handling quoted strings and flags
-			List<string> tokens = TokenizeShellArgs(args);
-
-			foreach(string token in tokens)
+			foreach(string token in TokenizeShellArgs(args))
 			{
-				// Skip flags (anything starting with -)
-				if(token.StartsWith('-'))
+				if(!token.StartsWith('-') && !string.IsNullOrWhiteSpace(token))
 				{
-					continue;
+					files.Add(token);
 				}
-				// Skip empty tokens
-				if(string.IsNullOrWhiteSpace(token))
-				{
-					continue;
-				}
-				// This is a file/directory path
-				files.Add(token);
 			}
 		}
 
