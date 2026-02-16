@@ -15,23 +15,28 @@
                 Deny
             </button>
 
-            <button class="btn btn-allow-once" @onclick="() => OnDecision(PermissionDecisionEnum.Once)">
-                Allow Once
-            </button>
-
-            @if(Request.CanApproveForSession)
-            {
-                <button class="btn btn-allow-session" @onclick="() => OnDecision(PermissionDecisionEnum.Session)">
-                    Allow for this Session
+            <div class="btn-allow-dropdown">
+                <button class="btn-allow-main" @onclick="() => OnDecision(_selectedAllowOption)">
+                    @GetAllowLabel(_selectedAllowOption)
                 </button>
-            }
-
-            @if(Request.CanApproveGlobally)
-            {
-                <button class="btn btn-allow-always" @onclick="() => OnDecision(PermissionDecisionEnum.Global)">
-                    Allow globally
+                <button class="btn-allow-arrow" @onclick="ToggleDropdown" aria-label="Show allow options">
+                    <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
-            }
+                @if(_showDropdown)
+                {
+                    <div class="allow-dropdown-menu">
+                        <button type="button" class="allow-dropdown-item" @onclick="() => SelectAllowOption(PermissionDecisionEnum.Once)">Allow Once</button>
+                        @if(Request.CanApproveForSession)
+                        {
+                            <button type="button" class="allow-dropdown-item" @onclick="() => SelectAllowOption(PermissionDecisionEnum.Session)">Allow for this Session</button>
+                        }
+                        @if(Request.CanApproveGlobally)
+                        {
+                            <button type="button" class="allow-dropdown-item" @onclick="() => SelectAllowOption(PermissionDecisionEnum.Global)">Allow globally</button>
+                        }
+                    </div>
+                }
+            </div>
         </div>
     </div>
 

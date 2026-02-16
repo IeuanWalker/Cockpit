@@ -6,16 +6,40 @@ namespace Cockpit.Components;
 
 public partial class PermissionRequestPanel
 {
-	[Parameter, EditorRequired]
-	public required PermissionRequestModel Request { get; set; }
+    bool _showDropdown = false;
+    PermissionDecisionEnum _selectedAllowOption = PermissionDecisionEnum.Once;
 
-	[Parameter]
-	public EventCallback<PermissionDecisionEnum> OnPermissionDecision { get; set; }
+    string GetAllowLabel(PermissionDecisionEnum option) => option switch
+    {
+        PermissionDecisionEnum.Once => "Allow Once",
+        PermissionDecisionEnum.Session => "Allow for this Session",
+        PermissionDecisionEnum.Global => "Allow globally",
+        _ => "Allow"
+    };
 
-	[Inject]
-	ILogger<PermissionRequestPanel> Logger { get; set; } = default!;
+    void ToggleDropdown()
+    {
+        _showDropdown = !_showDropdown;
+        StateHasChanged();
+    }
 
-	bool _showDetailsPopup = false;
+    void SelectAllowOption(PermissionDecisionEnum option)
+    {
+        _selectedAllowOption = option;
+        _showDropdown = false;
+        StateHasChanged();
+    }
+
+    [Parameter, EditorRequired]
+    public required PermissionRequestModel Request { get; set; }
+
+    [Parameter]
+    public EventCallback<PermissionDecisionEnum> OnPermissionDecision { get; set; }
+
+    [Inject]
+    ILogger<PermissionRequestPanel> Logger { get; set; } = default!;
+
+    bool _showDetailsPopup = false;
 
 	async Task OnDecision(PermissionDecisionEnum decision)
 	{

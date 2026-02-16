@@ -36,6 +36,9 @@ public class PermissionFeature
 		_sessionPermissionFeature = sessionPermissionFeature;
 		_sessionStateProvider = sessionStateProvider;
 		_logger = logger;
+
+		OnPermissionRequested += HandlePermissionRequested;
+		OnPermissionResolved += HandlePermissionResolved;
 	}
 
 	PermissionRequestModel ToRequestModel(PermissionRequest request, string sessionId)
