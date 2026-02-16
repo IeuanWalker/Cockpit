@@ -1,0 +1,4 @@
+﻿[
+  Set-Content,
+  Get-Item
+]

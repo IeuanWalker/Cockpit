@@ -1,0 +1,6 @@
+﻿[
+  Remove-Item,
+  Get-ChildItem,
+  Measure-Object,
+  Select-Object
+]

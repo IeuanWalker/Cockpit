@@ -21,15 +21,15 @@ public class CommandExtractorTests
 		TheoryData<int, string> commands = [];
 
 		commands.Add(1,
-			"""
-			$file = "D:\WS\Github-Mine\Cockpit\Cockpit.UnitTests.cs\CommandExtractorTests.cs"
-			$lines = Get-Content $file
-			for ($i = 0; $i -lt $lines.Count - 1; $i++) {
-			    if ($lines[$i].Trim() -eq '{' -and $lines[$i+1].Trim() -eq '{') {
-			        Write-Host "Duplicate opening brace found at lines $($i+1) and $($i+2)"
-			    }
+		"""
+		$file = "D:\WS\Github-Mine\Cockpit\Cockpit.UnitTests.cs\CommandExtractorTests.cs"
+		$lines = Get-Content $file
+		for ($i = 0; $i -lt $lines.Count - 1; $i++) {
+			if ($lines[$i].Trim() -eq '{' -and $lines[$i+1].Trim() -eq '{') {
+			    Write-Host "Duplicate opening brace found at lines $($i+1) and $($i+2)"
 			}
-			""");
+		}
+		""");
 
 		commands.Add(2,
 		"""
@@ -109,6 +109,32 @@ public class CommandExtractorTests
 		commands.Add(9,
 		"""
 		dotnet build src\\Cockpit\\Cockpit.csproj
+		""");
+
+		commands.Add(10,
+		"""
+		Get-Content "D:\WS\Github-Mine\Cockpit\Tests\Cockpit.UnitTests\Features\Permissions\CommandExtractorTests.ExtractExecutables_CorrectCommands_id=2.verified.txt" | Format-Hex
+		""");
+
+		commands.Add(11,
+		"""
+		Get-ChildItem "D:\WS\Github-Mine\Cockpit\Tests\Cockpit.UnitTests\Features\Permissions\CommandExtractorTests.ExtractExecutables_CorrectCommands_*.verified.txt" | ForEach-Object {
+		    $content = Get-Content $_.FullName -Raw
+		    "$($_.Name): Length=$($content.Length)"
+		}
+		""");
+
+		commands.Add(12,
+		"""
+		# Create a truly empty file (like the verified one)
+		Set-Content "D:\WS\Github-Mine\Cockpit\Tests\Cockpit.UnitTests\Features\Permissions\CommandExtractorTests.ExtractExecutables_CorrectCommands_id=2.verified.txt" -Value $null -NoNewline
+		# Check the new size
+		(Get-Item "D:\WS\Github-Mine\Cockpit\Tests\Cockpit.UnitTests\Features\Permissions\CommandExtractorTests.ExtractExecutables_CorrectCommands_id=2.verified.txt").Length
+		""");
+
+		commands.Add(13,
+		"""
+		Remove-Item "D:\WS\Github-Mine\Cockpit\Tests\Cockpit.UnitTests\Features\Permissions\*.received.txt" -ErrorAction SilentlyContinue; Get-ChildItem "D:\WS\Github-Mine\Cockpit\Tests\Cockpit.UnitTests\Features\Permissions\*.received.txt" -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count
 		""");
 
 		return commands;
