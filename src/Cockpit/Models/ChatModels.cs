@@ -160,7 +160,7 @@ public class ActivityGroup
 			lock(_eventsLock)
 			{
 				return Events
-					.Where(e => e.Type == ThinkingEventType.Tool && e.Tool != null)
+					.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
 					.Select(e => e.Tool!)
 					.ToList(); // Return a list to avoid deferred execution issues
 			}

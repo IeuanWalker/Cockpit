@@ -17,7 +17,7 @@ else
             </button>
             <h1 class="text-vscode-title font-semibold text-sm flex items-center">
                 @(SessionManager.CurrentSession?.Title ?? "No Session")
-                @if(SessionManager.CurrentSession != null)
+                @if(SessionManager.CurrentSession is not null)
                 {
                     <span class="ml-2 status-badge @(SessionManager.CurrentSession.Status.ToString().ToLower())">
                         @SessionManager.CurrentSession.Status
@@ -54,11 +54,11 @@ else
 
     <!-- Chat Messages -->
     <div id="chatMessages" class="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin p-3 space-y-3">
-        @if(SessionManager.CurrentSession?.Messages != null)
+        @if(SessionManager.CurrentSession?.Messages is not null)
         {
             @foreach(var message in SessionManager.CurrentSession.Messages)
             {
-                if(message.Type == MessageType.ActivityGroup && message.ActivityGroup != null)
+                if(message.Type == MessageType.ActivityGroup && message.ActivityGroup is not null)
                 {
                     <!-- Activity Group (completed thinking) - plain inline expander -->
                     <Opperations Group="message.ActivityGroup" />

@@ -334,7 +334,7 @@ public partial class Main : ComponentBase, IAsyncDisposable
 
 	void ToggleTerminalPanel()
 	{
-		if(SessionManager.CurrentSession != null)
+		if(SessionManager.CurrentSession is not null)
 		{
 			SessionManager.CurrentSession.IsTerminalOpen = !SessionManager.CurrentSession.IsTerminalOpen;
 			StateHasChanged();

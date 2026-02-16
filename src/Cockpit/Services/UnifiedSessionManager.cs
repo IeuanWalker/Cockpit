@@ -446,7 +446,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 						initialMessage = msg;
 					}
 				}
-				else if(evt is ToolExecutionStartEvent toolStart && toolStart.Data != null)
+				else if(evt is ToolExecutionStartEvent toolStart && toolStart.Data is not null)
 				{
 					// Create group on first tool
 					currentGroup ??= new ActivityGroup
@@ -473,16 +473,16 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 						Timestamp = toolStart.Timestamp.LocalDateTime
 					});
 				}
-				else if(evt is ToolExecutionCompleteEvent toolComplete && toolComplete.Data != null)
+				else if(evt is ToolExecutionCompleteEvent toolComplete && toolComplete.Data is not null)
 				{
-					if(currentGroup != null)
+					if(currentGroup is not null)
 					{
 						List<ThinkingEvent> toolEvents = currentGroup.GetEventsSnapshot();
 						ToolExecution? tool = toolEvents
-							.Where(e => e.Type == ThinkingEventType.Tool && e.Tool != null)
+							.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
 							.Select(e => e.Tool!)
 							.FirstOrDefault(t => t.ToolCallId == toolComplete.Data.ToolCallId);
-						if(tool != null)
+						if(tool is not null)
 						{
 							tool.Status = ToolStatus.Success;
 							tool.EndTime = toolComplete.Timestamp.LocalDateTime;
