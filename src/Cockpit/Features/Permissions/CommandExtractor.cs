@@ -7,8 +7,42 @@ namespace Cockpit.Features.Permissions;
 /// Utility for extracting executables from shell commands.
 /// Based on Cooper's extractExecutables.ts implementation.
 /// </summary>
-public static class CommandExtractor
+public static partial class CommandExtractor
 {
+	// Generated regex patterns for performance
+	[GeneratedRegex(@"\\u([0-9A-Fa-f]{4})")]
+	private static partial Regex UnicodeEscapePattern();
+	
+	[GeneratedRegex(@"<<\s*['""']?(\w+)['""']?[\s\S]*?\n\1\s*(?=\n|$)")]
+	private static partial Regex HeredocWithMarkerPattern();
+	
+	[GeneratedRegex(@"<<\s*['""']?\w+['""']?[\s\S]*$")]
+	private static partial Regex HeredocEndPattern();
+	
+	[GeneratedRegex(@"""[^""]*""|'[^']*'|`[^`]*`")]
+	private static partial Regex StringLiteralsPattern();
+	
+	[GeneratedRegex(@"#[^\n]*|\d*>&?\d+|\d+>>\S+|\d+>\S+")]
+	private static partial Regex CommentsAndRedirectionsPattern();
+	
+	[GeneratedRegex(@"^[A-Z]+$")]
+	private static partial Regex HeredocMarkerPattern();
+	
+	[GeneratedRegex(@"^[<>|&;()]+$")]
+	private static partial Regex PunctuationPattern();
+	
+	[GeneratedRegex(@"^(?=.*[a-zA-Z])[a-zA-Z0-9_\-\.]+$")]
+	private static partial Regex CommandValidationPattern();
+	
+	[GeneratedRegex(@"^[a-zA-Z0-9_\-]+$")]
+	private static partial Regex SubcommandValidationPattern();
+	
+	[GeneratedRegex(@"^(basename|dirname)\s+\$\(")]
+	private static partial Regex UtilityCommandPattern();
+	
+	[GeneratedRegex(@"(?:^|(?:sudo|env|nohup|nice|time|command)\s+)*(rm|rmdir|unlink|shred)(?:\s|$)(.*)")]
+	private static partial Regex RmCommandPattern();
+	
 	// Commands that should include their subcommand for granular permission control
 	static readonly HashSet<string> subcommandExecutables = ["git", "npm", "yarn", "pnpm", "docker", "kubectl", "gh", "dotnet", "cargo"];
 
@@ -42,10 +76,10 @@ public static class CommandExtractor
 	static string DecodeUnicodeEscapes(string input)
 	{
 		// Decode Unicode escapes and common escape sequences
-		return Regex.Replace(input, @"\\u([0-9A-Fa-f]{4})", m => ((char)Convert.ToInt32(m.Groups[1].Value, 16)).ToString())
-					.Replace("\\n", "\n")
-					.Replace("\\r", "\r")
-					.Replace("\\t", "\t");
+		return UnicodeEscapePattern().Replace(input, m => ((char)Convert.ToInt32(m.Groups[1].Value, 16)).ToString())
+		                             .Replace("\\n", "\n")
+		                             .Replace("\\r", "\r")
+		                             .Replace("\\t", "\t");
 	}
 
 	/// <summary>
@@ -79,7 +113,7 @@ public static class CommandExtractor
 							string content = input.Substring(start, i - start);
 
 							// Check if this is a simple utility command that wraps another substitution
-							if(!Regex.IsMatch(content.Trim(), @"^(basename|dirname)\s+\$\("))
+							if(!UtilityCommandPattern().IsMatch(content.Trim()))
 							{
 								// Keep the content (remove the $() wrapper)
 								result.Append(' ').Append(content).Append(' ');
@@ -214,11 +248,11 @@ public static class CommandExtractor
 		command = DecodeUnicodeEscapes(command);
 
 		// Remove heredocs first (<<'MARKER' ... MARKER or <<MARKER ... MARKER)
-		string cleaned = Regex.Replace(command, @"<<\s*['""']?(\w+)['""']?[\s\S]*?\n\1\s*(?=\n|$)", "");
-		cleaned = Regex.Replace(cleaned, @"<<\s*['""']?\w+['""']?[\s\S]*$", "");
+		string cleaned = HeredocWithMarkerPattern().Replace(command, "");
+		cleaned = HeredocEndPattern().Replace(cleaned, "");
 
 		// Remove string literals first to avoid false positives
-		cleaned = Regex.Replace(cleaned, @"""[^""]*""|'[^']*'|`[^`]*`", m => new string(m.Value[0], 2));
+		cleaned = StringLiteralsPattern().Replace(cleaned, m => new string(m.Value[0], 2));
 
 		// Process command substitutions like $(...)
 		cleaned = ProcessCommandSubstitutions(cleaned);
@@ -230,7 +264,7 @@ public static class CommandExtractor
 		cleaned = ExpandParentheses(cleaned);
 
 		// Remove shell comments and redirections
-		cleaned = Regex.Replace(cleaned, @"#[^\n]*|\d*>&?\d+|\d+>>\S+|\d+>\S+", "");
+		cleaned = CommentsAndRedirectionsPattern().Replace(cleaned, "");
 
 		// Split on shell operators, separators, and newlines
 		string[] segments = cleaned.Split([';', '&', '|', '\n'], StringSplitOptions.RemoveEmptyEntries);
@@ -239,7 +273,7 @@ public static class CommandExtractor
 		{
 			string trimmed = segment.Trim();
 			// Skip if empty or looks like a heredoc marker line
-			if(string.IsNullOrWhiteSpace(trimmed) || Regex.IsMatch(trimmed, @"^[A-Z]+$"))
+			if(string.IsNullOrWhiteSpace(trimmed) || HeredocMarkerPattern().IsMatch(trimmed))
 			{
 				continue;
 			}
@@ -312,7 +346,7 @@ public static class CommandExtractor
 				}
 
 				// Skip punctuation-only tokens
-				if(Regex.IsMatch(part, @"^[<>|&;()]+$"))
+				if(PunctuationPattern().IsMatch(part))
 				{
 					continue;
 				}
@@ -324,7 +358,7 @@ public static class CommandExtractor
 				string exec = pathSepIndex >= 0 ? part[(pathSepIndex + 1)..] : part;
 
 				// Validate it looks like a command with at least one letter
-				if(!string.IsNullOrEmpty(exec) && Regex.IsMatch(exec, @"^(?=.*[a-zA-Z])[a-zA-Z0-9_\-\.]+$"))
+				if(!string.IsNullOrEmpty(exec) && CommandValidationPattern().IsMatch(exec))
 				{
 					if(foundExec == null)
 					{
@@ -353,7 +387,7 @@ public static class CommandExtractor
 									continue;
 								}
 								// Found potential subcommand
-								if(Regex.IsMatch(nextPart, @"^[a-zA-Z0-9_\-]+$"))
+								if(SubcommandValidationPattern().IsMatch(nextPart))
 								{
 									subcommand = nextPart;
 									break;
@@ -503,7 +537,7 @@ public static class CommandExtractor
 			}
 
 			// Parse rm, rmdir, unlink, shred commands
-			Match rmMatch = Regex.Match(trimmed, @"(?:^|(?:sudo|env|nohup|nice|time|command)\s+)*(rm|rmdir|unlink|shred)(?:\s|$)(.*)");
+			Match rmMatch = RmCommandPattern().Match(trimmed);
 			if(!rmMatch.Success)
 			{
 				continue;
