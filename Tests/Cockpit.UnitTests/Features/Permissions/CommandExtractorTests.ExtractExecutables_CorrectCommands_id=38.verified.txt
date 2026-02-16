@@ -1,0 +1,6 @@
+﻿[
+  export,
+  cd,
+  cat,
+  node
+]
