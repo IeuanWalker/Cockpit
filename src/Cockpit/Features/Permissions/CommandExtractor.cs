@@ -49,6 +49,66 @@ public static class CommandExtractor
 	}
 
 	/// <summary>
+	/// Remove PowerShell scriptblocks passed as parameters (e.g., in [regex]::Replace), 
+	/// but keep control flow braces (for, if, while, etc.)
+	/// </summary>
+	static string RemoveScriptblocks(string input)
+	{
+		// Pattern: match scriptblocks passed as arguments/parameters
+		// Look for: , { ... } or ( { ... } but not "for/if/while (...) {"
+		// This is tricky, so we'll use a simpler approach:
+		// Only remove braces that follow specific patterns like [regex]::Replace(..., {...})
+		
+		StringBuilder result = new();
+		int i = 0;
+		
+		while(i < input.Length)
+		{
+			// Check if we're at a position where a scriptblock parameter might start
+			// Look for patterns: ", {" or "( {" or "(\r\n{" with whitespace variations
+			if(i < input.Length && input[i] == '{')
+			{
+				// Look back to see if this is a scriptblock parameter
+				// Skip whitespace backwards
+				int lookback = i - 1;
+				while(lookback >= 0 && char.IsWhiteSpace(input[lookback]))
+				{
+					lookback--;
+				}
+				
+				// Check if preceded by comma or opening paren (scriptblock parameter)
+				bool isScriptblockParam = lookback >= 0 && (input[lookback] == ',' || input[lookback] == '(');
+				
+				if(isScriptblockParam)
+				{
+					// This is a scriptblock - skip it entirely
+					int depth = 1;
+					i++; // skip opening brace
+					while(i < input.Length && depth > 0)
+					{
+						if(input[i] == '{')
+						{
+							depth++;
+						}
+						else if(input[i] == '}')
+						{
+							depth--;
+						}
+						i++;
+					}
+					continue;
+				}
+			}
+			
+			// Not a scriptblock, keep the character
+			result.Append(input[i]);
+			i++;
+		}
+		
+		return result.ToString();
+	}
+
+	/// <summary>
 	/// Extract all executables from a shell command.
 	/// Handles heredocs, string literals, redirections, and common shell patterns.
 	/// </summary>
@@ -63,10 +123,13 @@ public static class CommandExtractor
 		string cleaned = Regex.Replace(command, @"<<\s*['""']?(\w+)['""']?[\s\S]*?\n\1\s*(?=\n|$)", "");
 		cleaned = Regex.Replace(cleaned, @"<<\s*['""']?\w+['""']?[\s\S]*$", "");
 
-		// Remove string literals to avoid false positives
+		// Remove string literals first to avoid false positives
 		cleaned = Regex.Replace(cleaned, @"""[^""]*""", @"""""");
 		cleaned = Regex.Replace(cleaned, @"'[^']*'", @"''");
 		cleaned = Regex.Replace(cleaned, @"`[^`]*`", @"``");
+
+		// Then remove PowerShell scriptblocks { ... } passed as parameters
+		cleaned = RemoveScriptblocks(cleaned);
 
 		// Remove shell comments (# to end of line)
 		cleaned = Regex.Replace(cleaned, @"#[^\n]*", "");
@@ -190,7 +253,8 @@ public static class CommandExtractor
 				exec = exec.Contains('\\') ? exec[(exec.LastIndexOf('\\') + 1)..] : exec;
 
 				// Validate it looks like a command (alphanumeric, dashes, underscores)
-				if(!string.IsNullOrEmpty(exec) && Regex.IsMatch(exec, @"^[a-zA-Z0-9_\-\.]+$"))
+				// Must contain at least one letter (not just numbers) to be a valid command
+				if(!string.IsNullOrEmpty(exec) && Regex.IsMatch(exec, @"^[a-zA-Z0-9_\-\.]+$") && Regex.IsMatch(exec, @"[a-zA-Z]"))
 				{
 					if(foundExec == null)
 					{
