@@ -53,8 +53,34 @@ public static partial class CommandExtractor
 	static readonly HashSet<string> shellKeywordsToSkip = ["for", "in", "do", "done", "while", "until", "if", "then", "else", "elif", "fi", "case", "esac", "select"];
 
 	// Flags that are commonly followed by values that might look like commands
-	// Only the most common cases - keeps the list minimal
-	static readonly HashSet<string> flagsWithValues = ["-n", "-f", "-C", "-t"];
+	// Must be comprehensive to avoid false positives where flag values are treated as commands
+	static readonly HashSet<string> flagsWithValues =
+	[
+		// HTTP/curl flags
+		"-X", "--request",      // HTTP method (GET, POST, PUT, etc.)
+		"-H", "--header",       // HTTP header
+		"-d", "--data",         // POST data
+		"-o", "--output",       // Output file/format
+		"-u", "--user",         // Username
+		"-T", "--upload-file",  // Upload file
+		"-A", "--user-agent",   // User agent
+		"-e", "--referer",      // Referer
+		"-b", "--cookie",       // Cookie
+		"-c", "--cookie-jar",   // Cookie jar file
+		"-F", "--form",         // Form data
+		// Azure CLI flags
+		"--name", "--resource-group", "-g", "--subscription", "-s",
+		"--location", "-l", "--query", "--sku", "--image", "--size",
+		// Docker flags
+		"--network", "--volume", "-v", "--env", "--publish", "-p",
+		"--workdir", "-w", "--entrypoint",
+		// Git flags
+		"-m", "--message", "-b", "--branch", "-C",
+		// kubectl flags
+		"-n", "--namespace", "-f", "--filename", "--context",
+		// General flags
+		"-t", "--tag", "-i", "--input", "--type", "--format", "--filter"
+	];
 
 	// Destructive executables that should NEVER be auto-approved
 	static readonly HashSet<string> destructiveExecutables =

@@ -492,8 +492,135 @@ public class CommandExtractorTests
 		""");
 
 		commands.Add(68,
-"""
+		"""
 		echo "hello world"
+		""");
+
+		// curl commands with flags that take arguments
+		commands.Add(69,
+		"""
+		curl -X POST https://api.example.com/data
+		""");
+
+		commands.Add(70,
+		"""
+		curl -H "Content-Type: application/json" -d '{"key":"value"}' https://api.example.com
+		""");
+
+		commands.Add(71,
+		"""
+		curl -o output.txt -u username:password https://example.com
+		""");
+
+		commands.Add(72,
+		"""
+		curl -A "MyUserAgent" -e https://referer.com -b cookies.txt https://example.com
+		""");
+
+		// Docker commands with flags that take arguments
+		commands.Add(73,
+		"""
+		docker run --name myapp -p 8080:80 nginx
+		""");
+
+		commands.Add(74,
+		"""
+		docker run -e NODE_ENV=production -v /data:/app/data myimage
+		""");
+
+		commands.Add(75,
+		"""
+		docker run --network mynetwork --workdir /app -w /app node:latest
+		""");
+
+		commands.Add(76,
+		"""
+		docker exec -it mycontainer bash
+		""");
+
+		// kubectl commands with flags that take arguments
+		commands.Add(77,
+		"""
+		kubectl get pods -n production
+		""");
+
+		commands.Add(78,
+		"""
+		kubectl apply -f deployment.yaml --context prod-cluster
+		""");
+
+		commands.Add(79,
+		"""
+		kubectl logs pod-name --namespace default
+		""");
+
+		// Azure CLI commands with flags that take arguments
+		commands.Add(80,
+		"""
+		az webapp create --name myapp --resource-group mygroup --subscription mysub
+		""");
+
+		commands.Add(81,
+		"""
+		az vm create --name myvm -g resource-group -l eastus --image UbuntuLTS --size Standard_B1s
+		""");
+
+		commands.Add(82,
+		"""
+		az storage account create --name mystorageaccount --sku Standard_LRS --query id
+		""");
+
+		// Git commands with flags that take arguments
+		commands.Add(83,
+		"""
+		git commit -m "Initial commit"
+		""");
+
+		commands.Add(84,
+		"""
+		git checkout -b feature-branch
+		""");
+
+		commands.Add(85,
+		"""
+		git clone -b main https://github.com/user/repo.git
+		""");
+
+		// Mixed complex commands
+		commands.Add(86,
+		"""
+		docker run --name webapp --env PORT=3000 --publish 3000:3000 --volume $(pwd):/app node:18 npm start
+		""");
+
+		commands.Add(87,
+		"""
+		kubectl create deployment nginx --image nginx:latest -n production && kubectl expose deployment nginx --port 80 --type LoadBalancer -n production
+		""");
+
+		commands.Add(88,
+		"""
+		curl -X POST -H "Authorization: Bearer token123" -H "Content-Type: application/json" -d @payload.json https://api.example.com/v1/resource
+		""");
+
+		// Commands with flags that should NOT be treated as executables
+		commands.Add(89,
+		"""
+		npm install --save express
+		""");
+
+		commands.Add(90,
+		"""
+		yarn add --dev typescript
+		""");
+
+		commands.Add(91,
+		"""
+		dotnet build --configuration Release
+		""");
+
+		commands.Add(92,
+		"""
+		cargo build --release --target x86_64-unknown-linux-gnu
 		""");
 
 		return commands;
