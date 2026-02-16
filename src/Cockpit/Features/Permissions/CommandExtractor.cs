@@ -37,15 +37,86 @@ public static class CommandExtractor
 	static readonly HashSet<string> navigationCommands = ["cd", "pushd", "popd", "pwd"];
 
 	/// <summary>
-	/// Decode Unicode escape sequences in a string (e.g., \u0027 -> ')
+	/// Decode Unicode escape sequences and common escape sequences in a string (e.g., \u0027 -> ', \n -> newline)
 	/// </summary>
 	static string DecodeUnicodeEscapes(string input)
 	{
-		return Regex.Replace(input, @"\\u([0-9A-Fa-f]{4})", m =>
+		// First decode Unicode escapes
+		string result = Regex.Replace(input, @"\\u([0-9A-Fa-f]{4})", m =>
 		{
 			int codePoint = Convert.ToInt32(m.Groups[1].Value, 16);
 			return ((char)codePoint).ToString();
 		});
+		
+		// Then decode common escape sequences
+		result = result.Replace("\\n", "\n")
+		               .Replace("\\r", "\r")
+		               .Replace("\\t", "\t");
+		
+		return result;
+	}
+
+	/// <summary>
+	/// Process command substitutions $(...)  - remove the wrapper but keep content for pipeline commands
+	/// Standalone utility commands like basename/dirname in nested substitutions are removed
+	/// </summary>
+	static string ProcessCommandSubstitutions(string input)
+	{
+		StringBuilder result = new();
+		int i = 0;
+		
+		while(i < input.Length)
+		{
+			// Check for $(...) command substitution
+			if(i < input.Length - 1 && input[i] == '$' && input[i + 1] == '(')
+			{
+				// Skip the $(
+				i += 2;
+				int start = i;
+				int depth = 1;
+				
+				// Find the matching )
+				while(i < input.Length && depth > 0)
+				{
+					if(input[i] == '(')
+					{
+						depth++;
+					}
+					else if(input[i] == ')')
+					{
+						depth--;
+						if(depth == 0)
+						{
+							// Extract the content between $( and )
+							string content = input.Substring(start, i - start);
+							
+							// Check if this is a simple utility command that wraps another substitution
+							// Pattern: basename $(...)  or dirname $(...)
+							if(Regex.IsMatch(content.Trim(), @"^(basename|dirname)\s+\$\("))
+							{
+								// Skip this substitution entirely - don't extract basename/dirname
+								i++;
+								continue;
+							}
+							
+							// Otherwise, keep the content (remove the $() wrapper)
+							result.Append(' '); // Add space as separator
+							result.Append(content);
+							result.Append(' ');
+							i++;
+							continue;
+						}
+					}
+					i++;
+				}
+				continue;
+			}
+			
+			result.Append(input[i]);
+			i++;
+		}
+		
+		return result.ToString();
 	}
 
 	/// <summary>
@@ -209,6 +280,9 @@ public static class CommandExtractor
 		cleaned = Regex.Replace(cleaned, @"""[^""]*""", @"""""");
 		cleaned = Regex.Replace(cleaned, @"'[^']*'", @"''");
 		cleaned = Regex.Replace(cleaned, @"`[^`]*`", @"``");
+
+		// Process command substitutions like $(...)
+		cleaned = ProcessCommandSubstitutions(cleaned);
 
 		// Then remove PowerShell scriptblocks { ... } passed as parameters
 		cleaned = RemoveScriptblocks(cleaned);
