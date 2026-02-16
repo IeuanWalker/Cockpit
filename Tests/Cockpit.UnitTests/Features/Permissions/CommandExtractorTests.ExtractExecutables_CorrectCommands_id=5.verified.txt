@@ -1,0 +1,4 @@
+﻿[
+  csc,
+  Select-Object
+]

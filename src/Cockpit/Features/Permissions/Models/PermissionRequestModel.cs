@@ -11,6 +11,8 @@ public class PermissionRequestModel
 	public required bool CanApproveGlobally { get; init; }
 	public required bool CanApproveForSession { get; init; }
 	public required string FullRequestJson { get; init; }
+	public bool IsDestructive { get; init; }
+	public List<string> FilesToDelete { get; init; } = [];
 
 	/// <summary>
 	/// TaskCompletionSource to await user decision

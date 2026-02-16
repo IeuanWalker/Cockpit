@@ -6,4 +6,5 @@
   <Project Path="src/Cockpit/Cockpit.csproj">
     <Deploy />
   </Project>
+  <Project Path="Tests/Cockpit.UnitTests/Cockpit.UnitTests.csproj" />
 </Solution>

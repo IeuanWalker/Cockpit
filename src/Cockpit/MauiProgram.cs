@@ -72,3 +72,13 @@ public static class MauiProgram
 		return builder.Build();
 	}
 }
+
+#if NET10_0 && !MACCATALYST && !WINDOWS
+public class Program
+{
+	public static void Main(string[] args)
+	{
+
+	}
+}
+#endif

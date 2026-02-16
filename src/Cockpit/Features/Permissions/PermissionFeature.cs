@@ -95,21 +95,46 @@ public class PermissionFeature
 
 			if(!string.IsNullOrEmpty(cmdStr))
 			{
-				// TODO: Get first and second command parts for better intention generation (e.g., "git" and "git push" for "git push origin main")
-				string[] cmdParts = cmdStr.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-				cmdParts = [.. cmdParts.Take(2)]; // Take only first two parts for intention generation
+				// Extract meaningful executables (filters out cd, pwd, etc.)
+				List<string> meaningfulExecutables = CommandExtractor.ExtractMeaningfulExecutables(cmdStr);
+				
+				// Use the first meaningful executable, or fall back to all executables if only navigation commands
+				string shortCmd;
+				if(meaningfulExecutables.Count > 0)
+				{
+					shortCmd = meaningfulExecutables[0];
+				}
+				else
+				{
+					// Only navigation commands - use the first one
+					List<string> allExecutables = CommandExtractor.ExtractExecutables(cmdStr);
+					shortCmd = allExecutables.Count > 0 ? allExecutables[0] : cmdStr.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? cmdStr;
+				}
 
-				string shortCmd = string.Join(' ', cmdParts);
+				// Check if this is a destructive command
+				bool isDestructive = CommandExtractor.ContainsDestructiveCommand(cmdStr);
+				List<string> filesToDelete = isDestructive ? CommandExtractor.ExtractFilesToDelete(cmdStr) : [];
+
+				string requestTitle = isDestructive 
+					? $"⚠️ Allow destructive command `{shortCmd}`"
+					: $"Allow running `{shortCmd}`";
+
+				if(filesToDelete.Count > 0)
+				{
+					requestTitle += $" (deletes {filesToDelete.Count} file(s))";
+				}
 
 				return new PermissionRequestModel
 				{
 					SessionId = sessionId,
 					Command = shortCmd,
-					RequestTitle = $"Allow running `{shortCmd}`",
+					RequestTitle = requestTitle,
 					Intention = intention,
-					CanApproveGlobally = true,
-					CanApproveForSession = true,
-					FullRequestJson = JsonSerializer.Serialize(request)
+					CanApproveGlobally = !isDestructive, // Destructive commands can't be globally approved
+					CanApproveForSession = !isDestructive, // Destructive commands require approval each time
+					FullRequestJson = JsonSerializer.Serialize(request),
+					IsDestructive = isDestructive,
+					FilesToDelete = [.. filesToDelete]
 				};
 			}
 		}
