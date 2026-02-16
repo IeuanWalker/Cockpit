@@ -12,37 +12,37 @@ public static partial class CommandExtractor
 	// Generated regex patterns for performance
 	[GeneratedRegex(@"\\u([0-9A-Fa-f]{4})")]
 	private static partial Regex UnicodeEscapePattern();
-	
+
 	[GeneratedRegex(@"<<\s*['""']?(\w+)['""']?[\s\S]*?\n\1\s*(?=\n|$)")]
 	private static partial Regex HeredocWithMarkerPattern();
-	
+
 	[GeneratedRegex(@"<<\s*['""']?\w+['""']?[\s\S]*$")]
 	private static partial Regex HeredocEndPattern();
-	
+
 	[GeneratedRegex(@"""[^""]*""|'[^']*'|`[^`]*`")]
 	private static partial Regex StringLiteralsPattern();
-	
+
 	[GeneratedRegex(@"#[^\n]*|\d*>&?\d+|\d+>>\S+|\d+>\S+")]
 	private static partial Regex CommentsAndRedirectionsPattern();
-	
+
 	[GeneratedRegex(@"^[A-Z]+$")]
 	private static partial Regex HeredocMarkerPattern();
-	
+
 	[GeneratedRegex(@"^[<>|&;()]+$")]
 	private static partial Regex PunctuationPattern();
-	
+
 	[GeneratedRegex(@"^(?=.*[a-zA-Z])[a-zA-Z0-9_\-\.]+$")]
 	private static partial Regex CommandValidationPattern();
-	
+
 	[GeneratedRegex(@"^[a-zA-Z0-9_\-]+$")]
 	private static partial Regex SubcommandValidationPattern();
-	
+
 	[GeneratedRegex(@"^(basename|dirname)\s+\$\(")]
 	private static partial Regex UtilityCommandPattern();
-	
+
 	[GeneratedRegex(@"(?:^|(?:sudo|env|nohup|nice|time|command)\s+)*(rm|rmdir|unlink|shred)(?:\s|$)(.*)")]
 	private static partial Regex RmCommandPattern();
-	
+
 	// Commands that should include their subcommand for granular permission control
 	static readonly HashSet<string> subcommandExecutables = ["git", "npm", "yarn", "pnpm", "docker", "kubectl", "gh", "dotnet", "cargo"];
 
@@ -77,9 +77,9 @@ public static partial class CommandExtractor
 	{
 		// Decode Unicode escapes and common escape sequences
 		return UnicodeEscapePattern().Replace(input, m => ((char)Convert.ToInt32(m.Groups[1].Value, 16)).ToString())
-		                             .Replace("\\n", "\n")
-		                             .Replace("\\r", "\r")
-		                             .Replace("\\t", "\t");
+									 .Replace("\\n", "\n")
+									 .Replace("\\r", "\r")
+									 .Replace("\\t", "\t");
 	}
 
 	/// <summary>
@@ -104,13 +104,16 @@ public static partial class CommandExtractor
 				while(i < input.Length && depth > 0)
 				{
 					char c = input[i];
-					if(c == '(') depth++;
+					if(c == '(')
+					{
+						depth++;
+					}
 					else if(c == ')')
 					{
 						if(--depth == 0)
 						{
 							// Extract the content between $( and )
-							string content = input.Substring(start, i - start);
+							string content = input[start..i];
 
 							// Check if this is a simple utility command that wraps another substitution
 							if(!UtilityCommandPattern().IsMatch(content.Trim()))
@@ -173,7 +176,10 @@ public static partial class CommandExtractor
 			{
 				// Look back to see if this is a scriptblock parameter
 				int lookback = i - 1;
-				while(lookback >= 0 && char.IsWhiteSpace(input[lookback])) lookback--;
+				while(lookback >= 0 && char.IsWhiteSpace(input[lookback]))
+				{
+					lookback--;
+				}
 
 				bool isScriptblockParam = lookback >= 0 && (input[lookback] == ',' || input[lookback] == '(');
 				bool keepContent = false;
@@ -190,7 +196,7 @@ public static partial class CommandExtractor
 
 					if(wordStart < wordEnd)
 					{
-						string word = input.Substring(wordStart, wordEnd - wordStart);
+						string word = input[wordStart..wordEnd];
 						if(cmdletsKeepContent.Contains(word))
 						{
 							isScriptblockParam = keepContent = true;
@@ -212,7 +218,10 @@ public static partial class CommandExtractor
 					while(i < input.Length && depth > 0)
 					{
 						char c = input[i];
-						if(c == '{') depth++;
+						if(c == '{')
+						{
+							depth++;
+						}
 						else if(c == '}')
 						{
 							if(--depth == 0)
@@ -222,7 +231,11 @@ public static partial class CommandExtractor
 							}
 						}
 
-						if(keepContent && depth > 0) result.Append(c);
+						if(keepContent && depth > 0)
+						{
+							result.Append(c);
+						}
+
 						i++;
 					}
 					continue;
@@ -294,7 +307,11 @@ public static partial class CommandExtractor
 				// If we're in a "for VAR in VALUE_LIST" context, skip until we hit 'do'
 				if(inForValueList)
 				{
-					if(part == "do") inForValueList = false;
+					if(part == "do")
+					{
+						inForValueList = false;
+					}
+
 					continue;
 				}
 
@@ -379,7 +396,11 @@ public static partial class CommandExtractor
 								}
 								if(nextPart.StartsWith('-'))
 								{
-									if(flagsWithValues.Contains(nextPart)) skipNextSubValue = true;
+									if(flagsWithValues.Contains(nextPart))
+									{
+										skipNextSubValue = true;
+									}
+
 									continue;
 								}
 								if(nextPart.Contains('='))
@@ -417,7 +438,7 @@ public static partial class CommandExtractor
 	public static List<string> ExtractMeaningfulExecutables(string command)
 	{
 		List<string> all = ExtractExecutables(command);
-		return all.Where(cmd => !navigationCommands.Contains(cmd)).ToList();
+		return [.. all.Where(cmd => !navigationCommands.Contains(cmd))];
 	}
 
 	/// <summary>
