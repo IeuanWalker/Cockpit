@@ -359,22 +359,12 @@ public class CommandExtractorTests
 
 		commands.Add(45,
 		"""
-		echo "test #123"
-		""");
-
-		commands.Add(45,
-		"""
 		git commit -m "fix #456"
 		""");
 
 		commands.Add(46,
 		"""
 		echo '#hashtag'
-		""");
-
-		commands.Add(46,
-		"""
-		echo "hello world"
 		""");
 
 		commands.Add(47,
@@ -496,9 +486,14 @@ public class CommandExtractorTests
 		az webapp delete --name no-humans-allowed-app --resource-group no-humans-allowed-rg --subscription 74226166-2d6e-48b3-9194-6d3ef0c7bdff
 		""");
 
-		commands.Add(66,
+		commands.Add(67,
 		"""
-		az webapp delete --name no-humans-allowed-app --resource-group no-humans-allowed-rg --subscription 74226166-2d6e-48b3-9194-6d3ef0c7bdff
+		echo "test #123"
+		""");
+
+		commands.Add(68,
+"""
+		echo "hello world"
 		""");
 
 		return commands;
