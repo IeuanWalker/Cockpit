@@ -49,15 +49,36 @@ public static class CommandExtractor
 	}
 
 	/// <summary>
-	/// Remove PowerShell scriptblocks passed as parameters (e.g., in [regex]::Replace), 
-	/// but keep control flow braces (for, if, while, etc.)
+	/// Extract commands from inside parenthesized subexpressions like (Get-Item ...)
+	/// Returns the input with parentheses converted to spaces so commands inside can be extracted
+	/// </summary>
+	static string ExpandParentheses(string input)
+	{
+		// Replace parentheses with spaces to allow extraction of commands inside them
+		// But keep the content so commands can be found
+		return input.Replace('(', ' ').Replace(')', ' ');
+	}
+
+	/// <summary>
+	/// Remove PowerShell scriptblocks passed as parameters (e.g., in [regex]::Replace or ForEach-Object),
+	/// but keep control flow braces (for, if, while, etc.).
+	/// For cmdlets like ForEach-Object, removes the cmdlet name and braces but keeps the content
+	/// For other scriptblocks (like in [regex]::Replace), removes everything
 	/// </summary>
 	static string RemoveScriptblocks(string input)
 	{
-		// Pattern: match scriptblocks passed as arguments/parameters
-		// Look for: , { ... } or ( { ... } but not "for/if/while (...) {"
-		// This is tricky, so we'll use a simpler approach:
-		// Only remove braces that follow specific patterns like [regex]::Replace(..., {...})
+		// Common cmdlets that take scriptblocks as their primary parameter
+		// For these, we want to keep the scriptblock CONTENT to extract commands from it
+		HashSet<string> cmdletsWithScriptblocksKeepContent = new(StringComparer.OrdinalIgnoreCase)
+		{
+			"ForEach-Object", "Where-Object", "Measure-Command"
+		};
+		
+		// Cmdlets where we should remove the entire scriptblock
+		HashSet<string> cmdletsWithScriptblocksRemoveContent = new(StringComparer.OrdinalIgnoreCase)
+		{
+			"Invoke-Command"
+		};
 		
 		StringBuilder result = new();
 		int i = 0;
@@ -65,11 +86,9 @@ public static class CommandExtractor
 		while(i < input.Length)
 		{
 			// Check if we're at a position where a scriptblock parameter might start
-			// Look for patterns: ", {" or "( {" or "(\r\n{" with whitespace variations
 			if(i < input.Length && input[i] == '{')
 			{
 				// Look back to see if this is a scriptblock parameter
-				// Skip whitespace backwards
 				int lookback = i - 1;
 				while(lookback >= 0 && char.IsWhiteSpace(input[lookback]))
 				{
@@ -78,23 +97,86 @@ public static class CommandExtractor
 				
 				// Check if preceded by comma or opening paren (scriptblock parameter)
 				bool isScriptblockParam = lookback >= 0 && (input[lookback] == ',' || input[lookback] == '(');
+				bool keepContent = false;
+				
+				// Also check if preceded by a cmdlet name that takes scriptblocks
+				if(!isScriptblockParam && lookback >= 0)
+				{
+					// Extract the word before the brace
+					int wordEnd = lookback + 1;
+					int wordStart = lookback;
+					while(wordStart > 0 && (char.IsLetterOrDigit(input[wordStart - 1]) || input[wordStart - 1] == '-'))
+					{
+						wordStart--;
+					}
+					
+					if(wordStart < wordEnd)
+					{
+						string word = input.Substring(wordStart, wordEnd - wordStart);
+						if(cmdletsWithScriptblocksKeepContent.Contains(word))
+						{
+							// This is a cmdlet with scriptblock - remove the cmdlet name and braces but keep content
+							isScriptblockParam = true;
+							keepContent = true;
+							// Remove the cmdlet name from result
+							result.Length = Math.Max(0, result.Length - (wordEnd - wordStart));
+						}
+						else if(cmdletsWithScriptblocksRemoveContent.Contains(word))
+						{
+							// Remove cmdlet name and entire scriptblock
+							isScriptblockParam = true;
+							keepContent = false;
+							result.Length = Math.Max(0, result.Length - (wordEnd - wordStart));
+						}
+					}
+				}
 				
 				if(isScriptblockParam)
 				{
-					// This is a scriptblock - skip it entirely
+					// This is a scriptblock parameter
 					int depth = 1;
 					i++; // skip opening brace
-					while(i < input.Length && depth > 0)
+					
+					if(keepContent)
 					{
-						if(input[i] == '{')
+						// Keep the scriptblock content but remove the braces
+						while(i < input.Length && depth > 0)
 						{
-							depth++;
+							if(input[i] == '{')
+							{
+								depth++;
+							}
+							else if(input[i] == '}')
+							{
+								depth--;
+								if(depth == 0)
+								{
+									// Skip the closing brace
+									i++;
+									break;
+								}
+							}
+							
+							// Keep the content
+							result.Append(input[i]);
+							i++;
 						}
-						else if(input[i] == '}')
+					}
+					else
+					{
+						// Remove the entire scriptblock
+						while(i < input.Length && depth > 0)
 						{
-							depth--;
+							if(input[i] == '{')
+							{
+								depth++;
+							}
+							else if(input[i] == '}')
+							{
+								depth--;
+							}
+							i++;
 						}
-						i++;
 					}
 					continue;
 				}
@@ -130,6 +212,9 @@ public static class CommandExtractor
 
 		// Then remove PowerShell scriptblocks { ... } passed as parameters
 		cleaned = RemoveScriptblocks(cleaned);
+
+		// Expand parentheses to extract commands from subexpressions like (Get-Item ...)
+		cleaned = ExpandParentheses(cleaned);
 
 		// Remove shell comments (# to end of line)
 		cleaned = Regex.Replace(cleaned, @"#[^\n]*", "");
