@@ -41,19 +41,11 @@ public static class CommandExtractor
 	/// </summary>
 	static string DecodeUnicodeEscapes(string input)
 	{
-		// First decode Unicode escapes
-		string result = Regex.Replace(input, @"\\u([0-9A-Fa-f]{4})", m =>
-		{
-			int codePoint = Convert.ToInt32(m.Groups[1].Value, 16);
-			return ((char)codePoint).ToString();
-		});
-		
-		// Then decode common escape sequences
-		result = result.Replace("\\n", "\n")
-		               .Replace("\\r", "\r")
-		               .Replace("\\t", "\t");
-		
-		return result;
+		// Decode Unicode escapes and common escape sequences
+		return Regex.Replace(input, @"\\u([0-9A-Fa-f]{4})", m => ((char)Convert.ToInt32(m.Groups[1].Value, 16)).ToString())
+					.Replace("\\n", "\n")
+					.Replace("\\r", "\r")
+					.Replace("\\t", "\t");
 	}
 
 	/// <summary>
@@ -62,60 +54,49 @@ public static class CommandExtractor
 	/// </summary>
 	static string ProcessCommandSubstitutions(string input)
 	{
-		StringBuilder result = new();
+		StringBuilder result = new(input.Length);
 		int i = 0;
-		
+
 		while(i < input.Length)
 		{
 			// Check for $(...) command substitution
 			if(i < input.Length - 1 && input[i] == '$' && input[i + 1] == '(')
 			{
-				// Skip the $(
 				i += 2;
 				int start = i;
 				int depth = 1;
-				
+
 				// Find the matching )
 				while(i < input.Length && depth > 0)
 				{
-					if(input[i] == '(')
+					char c = input[i];
+					if(c == '(') depth++;
+					else if(c == ')')
 					{
-						depth++;
-					}
-					else if(input[i] == ')')
-					{
-						depth--;
-						if(depth == 0)
+						if(--depth == 0)
 						{
 							// Extract the content between $( and )
 							string content = input.Substring(start, i - start);
-							
+
 							// Check if this is a simple utility command that wraps another substitution
-							// Pattern: basename $(...)  or dirname $(...)
-							if(Regex.IsMatch(content.Trim(), @"^(basename|dirname)\s+\$\("))
+							if(!Regex.IsMatch(content.Trim(), @"^(basename|dirname)\s+\$\("))
 							{
-								// Skip this substitution entirely - don't extract basename/dirname
-								i++;
-								continue;
+								// Keep the content (remove the $() wrapper)
+								result.Append(' ').Append(content).Append(' ');
 							}
-							
-							// Otherwise, keep the content (remove the $() wrapper)
-							result.Append(' '); // Add space as separator
-							result.Append(content);
-							result.Append(' ');
 							i++;
-							continue;
+							break;
 						}
 					}
 					i++;
 				}
 				continue;
 			}
-			
+
 			result.Append(input[i]);
 			i++;
 		}
-		
+
 		return result.ToString();
 	}
 
@@ -139,125 +120,85 @@ public static class CommandExtractor
 	static string RemoveScriptblocks(string input)
 	{
 		// Common cmdlets that take scriptblocks as their primary parameter
-		// For these, we want to keep the scriptblock CONTENT to extract commands from it
-		HashSet<string> cmdletsWithScriptblocksKeepContent = new(StringComparer.OrdinalIgnoreCase)
+		HashSet<string> cmdletsKeepContent = new(StringComparer.OrdinalIgnoreCase)
 		{
 			"ForEach-Object", "Where-Object", "Measure-Command"
 		};
-		
-		// Cmdlets where we should remove the entire scriptblock
-		HashSet<string> cmdletsWithScriptblocksRemoveContent = new(StringComparer.OrdinalIgnoreCase)
+
+		HashSet<string> cmdletsRemoveContent = new(StringComparer.OrdinalIgnoreCase)
 		{
 			"Invoke-Command"
 		};
-		
-		StringBuilder result = new();
+
+		StringBuilder result = new(input.Length);
 		int i = 0;
-		
+
 		while(i < input.Length)
 		{
-			// Check if we're at a position where a scriptblock parameter might start
-			if(i < input.Length && input[i] == '{')
+			if(input[i] == '{')
 			{
 				// Look back to see if this is a scriptblock parameter
 				int lookback = i - 1;
-				while(lookback >= 0 && char.IsWhiteSpace(input[lookback]))
-				{
-					lookback--;
-				}
-				
-				// Check if preceded by comma or opening paren (scriptblock parameter)
+				while(lookback >= 0 && char.IsWhiteSpace(input[lookback])) lookback--;
+
 				bool isScriptblockParam = lookback >= 0 && (input[lookback] == ',' || input[lookback] == '(');
 				bool keepContent = false;
-				
+
 				// Also check if preceded by a cmdlet name that takes scriptblocks
 				if(!isScriptblockParam && lookback >= 0)
 				{
-					// Extract the word before the brace
 					int wordEnd = lookback + 1;
 					int wordStart = lookback;
 					while(wordStart > 0 && (char.IsLetterOrDigit(input[wordStart - 1]) || input[wordStart - 1] == '-'))
 					{
 						wordStart--;
 					}
-					
+
 					if(wordStart < wordEnd)
 					{
 						string word = input.Substring(wordStart, wordEnd - wordStart);
-						if(cmdletsWithScriptblocksKeepContent.Contains(word))
+						if(cmdletsKeepContent.Contains(word))
 						{
-							// This is a cmdlet with scriptblock - remove the cmdlet name and braces but keep content
-							isScriptblockParam = true;
-							keepContent = true;
-							// Remove the cmdlet name from result
+							isScriptblockParam = keepContent = true;
 							result.Length = Math.Max(0, result.Length - (wordEnd - wordStart));
 						}
-						else if(cmdletsWithScriptblocksRemoveContent.Contains(word))
+						else if(cmdletsRemoveContent.Contains(word))
 						{
-							// Remove cmdlet name and entire scriptblock
 							isScriptblockParam = true;
-							keepContent = false;
 							result.Length = Math.Max(0, result.Length - (wordEnd - wordStart));
 						}
 					}
 				}
-				
+
 				if(isScriptblockParam)
 				{
-					// This is a scriptblock parameter
 					int depth = 1;
 					i++; // skip opening brace
-					
-					if(keepContent)
+
+					while(i < input.Length && depth > 0)
 					{
-						// Keep the scriptblock content but remove the braces
-						while(i < input.Length && depth > 0)
+						char c = input[i];
+						if(c == '{') depth++;
+						else if(c == '}')
 						{
-							if(input[i] == '{')
+							if(--depth == 0)
 							{
-								depth++;
+								i++;
+								break;
 							}
-							else if(input[i] == '}')
-							{
-								depth--;
-								if(depth == 0)
-								{
-									// Skip the closing brace
-									i++;
-									break;
-								}
-							}
-							
-							// Keep the content
-							result.Append(input[i]);
-							i++;
 						}
-					}
-					else
-					{
-						// Remove the entire scriptblock
-						while(i < input.Length && depth > 0)
-						{
-							if(input[i] == '{')
-							{
-								depth++;
-							}
-							else if(input[i] == '}')
-							{
-								depth--;
-							}
-							i++;
-						}
+
+						if(keepContent && depth > 0) result.Append(c);
+						i++;
 					}
 					continue;
 				}
 			}
-			
-			// Not a scriptblock, keep the character
+
 			result.Append(input[i]);
 			i++;
 		}
-		
+
 		return result.ToString();
 	}
 
@@ -267,7 +208,7 @@ public static class CommandExtractor
 	/// </summary>
 	public static List<string> ExtractExecutables(string command)
 	{
-		List<string> executables = [];
+		HashSet<string> executables = [];
 
 		// Decode Unicode escape sequences first (e.g., \u0027 -> ')
 		command = DecodeUnicodeEscapes(command);
@@ -277,9 +218,7 @@ public static class CommandExtractor
 		cleaned = Regex.Replace(cleaned, @"<<\s*['""']?\w+['""']?[\s\S]*$", "");
 
 		// Remove string literals first to avoid false positives
-		cleaned = Regex.Replace(cleaned, @"""[^""]*""", @"""""");
-		cleaned = Regex.Replace(cleaned, @"'[^']*'", @"''");
-		cleaned = Regex.Replace(cleaned, @"`[^`]*`", @"``");
+		cleaned = Regex.Replace(cleaned, @"""[^""]*""|'[^']*'|`[^`]*`", m => new string(m.Value[0], 2));
 
 		// Process command substitutions like $(...)
 		cleaned = ProcessCommandSubstitutions(cleaned);
@@ -290,13 +229,8 @@ public static class CommandExtractor
 		// Expand parentheses to extract commands from subexpressions like (Get-Item ...)
 		cleaned = ExpandParentheses(cleaned);
 
-		// Remove shell comments (# to end of line)
-		cleaned = Regex.Replace(cleaned, @"#[^\n]*", "");
-
-		// Remove shell redirections like 2>&1, >&2, 2>/dev/null, etc.
-		cleaned = Regex.Replace(cleaned, @"\d*>&?\d+", "");
-		cleaned = Regex.Replace(cleaned, @"\d+>>\S+", "");
-		cleaned = Regex.Replace(cleaned, @"\d+>\S+", "");
+		// Remove shell comments and redirections
+		cleaned = Regex.Replace(cleaned, @"#[^\n]*|\d*>&?\d+|\d+>>\S+|\d+>\S+", "");
 
 		// Split on shell operators, separators, and newlines
 		string[] segments = cleaned.Split([';', '&', '|', '\n'], StringSplitOptions.RemoveEmptyEntries);
@@ -304,13 +238,8 @@ public static class CommandExtractor
 		foreach(string segment in segments)
 		{
 			string trimmed = segment.Trim();
-			if(string.IsNullOrWhiteSpace(trimmed))
-			{
-				continue;
-			}
-
-			// Skip if it looks like a heredoc marker line
-			if(Regex.IsMatch(trimmed, @"^[A-Z]+$"))
+			// Skip if empty or looks like a heredoc marker line
+			if(string.IsNullOrWhiteSpace(trimmed) || Regex.IsMatch(trimmed, @"^[A-Z]+$"))
 			{
 				continue;
 			}
@@ -331,10 +260,7 @@ public static class CommandExtractor
 				// If we're in a "for VAR in VALUE_LIST" context, skip until we hit 'do'
 				if(inForValueList)
 				{
-					if(part == "do")
-					{
-						inForValueList = false;
-					}
+					if(part == "do") inForValueList = false;
 					continue;
 				}
 
@@ -345,36 +271,33 @@ public static class CommandExtractor
 					continue;
 				}
 
-				// Skip environment variable assignments
-				if(part.Contains('=') && !part.StartsWith('-'))
+				// Skip the loop variable after 'for' or 'select'
+				if(skipNextAsLoopVar)
 				{
+					skipNextAsLoopVar = false;
 					continue;
 				}
 
-				// Skip flags - anything starting with hyphen
-				if(part.StartsWith('-'))
+				// Skip environment variable assignments, flags, prefixes, builtins, and keywords
+				if((part.Contains('=') && !part.StartsWith('-')) ||
+				   part.StartsWith('-') ||
+				   part.StartsWith('>') ||
+				   part.StartsWith('<') ||
+				   string.IsNullOrEmpty(part))
 				{
-					// Check if this is a flag that takes a value
-					if(flagsWithValues.Contains(part))
+					if(part.StartsWith('-') && flagsWithValues.Contains(part))
 					{
 						skipNextAsFlagValue = true;
 					}
 					continue;
 				}
 
-				// Skip common prefixes
-				if(prefixes.Contains(part))
+				// Check prefixes, builtins, and keywords
+				if(prefixes.Contains(part) || shellBuiltinsToSkip.Contains(part))
 				{
 					continue;
 				}
 
-				// Skip shell builtins
-				if(shellBuiltinsToSkip.Contains(part))
-				{
-					continue;
-				}
-
-				// Skip shell keywords
 				if(shellKeywordsToSkip.Contains(part))
 				{
 					if(part is "for" or "select")
@@ -388,32 +311,20 @@ public static class CommandExtractor
 					continue;
 				}
 
-				// Skip the loop variable after 'for' or 'select'
-				if(skipNextAsLoopVar)
-				{
-					skipNextAsLoopVar = false;
-					continue;
-				}
-
-				// Skip empty or punctuation
-				if(string.IsNullOrEmpty(part) || Regex.IsMatch(part, @"^[<>|&;()]+$"))
+				// Skip punctuation-only tokens
+				if(Regex.IsMatch(part, @"^[<>|&;()]+$"))
 				{
 					continue;
 				}
 
-				// Skip redirection targets
-				if(part.StartsWith('>') || part.StartsWith('<'))
-				{
-					continue;
-				}
+				// Found potential executable - extract filename from path
+				int lastSlash = part.LastIndexOf('/');
+				int lastBackslash = part.LastIndexOf('\\');
+				int pathSepIndex = Math.Max(lastSlash, lastBackslash);
+				string exec = pathSepIndex >= 0 ? part[(pathSepIndex + 1)..] : part;
 
-				// Found potential executable - remove path prefix
-				string exec = part.Contains('/') ? part[(part.LastIndexOf('/') + 1)..] : part;
-				exec = exec.Contains('\\') ? exec[(exec.LastIndexOf('\\') + 1)..] : exec;
-
-				// Validate it looks like a command (alphanumeric, dashes, underscores)
-				// Must contain at least one letter (not just numbers) to be a valid command
-				if(!string.IsNullOrEmpty(exec) && Regex.IsMatch(exec, @"^[a-zA-Z0-9_\-\.]+$") && Regex.IsMatch(exec, @"[a-zA-Z]"))
+				// Validate it looks like a command with at least one letter
+				if(!string.IsNullOrEmpty(exec) && Regex.IsMatch(exec, @"^(?=.*[a-zA-Z])[a-zA-Z0-9_\-\.]+$"))
 				{
 					if(foundExec == null)
 					{
@@ -427,22 +338,16 @@ public static class CommandExtractor
 							for(int j = i + 1; j < parts.Length; j++)
 							{
 								string nextPart = parts[j];
-								// Skip value after flag
 								if(skipNextSubValue)
 								{
 									skipNextSubValue = false;
 									continue;
 								}
-								// Skip flags
 								if(nextPart.StartsWith('-'))
 								{
-									if(flagsWithValues.Contains(nextPart))
-									{
-										skipNextSubValue = true;
-									}
+									if(flagsWithValues.Contains(nextPart)) skipNextSubValue = true;
 									continue;
 								}
-								// Skip environment variables
 								if(nextPart.Contains('='))
 								{
 									continue;
@@ -464,15 +369,11 @@ public static class CommandExtractor
 			if(foundExec != null)
 			{
 				// Combine executable with subcommand for granular control
-				string execId = subcommand != null ? $"{foundExec} {subcommand}" : foundExec;
-				if(!executables.Contains(execId))
-				{
-					executables.Add(execId);
-				}
+				executables.Add(subcommand != null ? $"{foundExec} {subcommand}" : foundExec);
 			}
 		}
 
-		return executables;
+		return [.. executables];
 	}
 
 	/// <summary>
