@@ -9,39 +9,57 @@ namespace Cockpit.Features.Permissions;
 /// </summary>
 public static partial class CommandExtractor
 {
-	// Generated regex patterns for performance
+	// ===============================
+	// Generated Regex Patterns
+	// ===============================
+
+	/// <summary>Unicode escape sequences like \u0027</summary>
 	[GeneratedRegex(@"\\u([0-9A-Fa-f]{4})")]
 	private static partial Regex UnicodeEscapePattern();
 
+	/// <summary>Heredoc with closing marker (e.g., &lt;&lt;EOF ... EOF)</summary>
 	[GeneratedRegex(@"<<\s*['""']?(\w+)['""']?[\s\S]*?\n\1\s*(?=\n|$)")]
 	private static partial Regex HeredocWithMarkerPattern();
 
+	/// <summary>Heredoc without closing marker (end of input)</summary>
 	[GeneratedRegex(@"<<\s*['""']?\w+['""']?[\s\S]*$")]
 	private static partial Regex HeredocEndPattern();
 
+	/// <summary>String literals (single, double, and backtick quotes)</summary>
 	[GeneratedRegex(@"""[^""]*""|'[^']*'|`[^`]*`")]
 	private static partial Regex StringLiteralsPattern();
 
+	/// <summary>Shell comments and I/O redirections</summary>
 	[GeneratedRegex(@"#[^\n]*|\d*>&?\d+|\d+>>\S+|\d+>\S+")]
 	private static partial Regex CommentsAndRedirectionsPattern();
 
+	/// <summary>All-uppercase heredoc markers</summary>
 	[GeneratedRegex(@"^[A-Z]+$")]
 	private static partial Regex HeredocMarkerPattern();
 
+	/// <summary>Shell punctuation and operators</summary>
 	[GeneratedRegex(@"^[<>|&;()]+$")]
 	private static partial Regex PunctuationPattern();
 
+	/// <summary>Valid command name pattern</summary>
 	[GeneratedRegex(@"^(?=.*[a-zA-Z])[a-zA-Z0-9_\-\.]+$")]
 	private static partial Regex CommandValidationPattern();
 
+	/// <summary>Valid subcommand pattern</summary>
 	[GeneratedRegex(@"^[a-zA-Z0-9_\-]+$")]
 	private static partial Regex SubcommandValidationPattern();
 
+	/// <summary>Utility commands like basename/dirname in command substitutions</summary>
 	[GeneratedRegex(@"^(basename|dirname)\s+\$\(")]
 	private static partial Regex UtilityCommandPattern();
 
+	/// <summary>rm/rmdir/unlink/shred commands with optional prefixes</summary>
 	[GeneratedRegex(@"(?:^|(?:sudo|env|nohup|nice|time|command)\s+)*(rm|rmdir|unlink|shred)(?:\s|$)(.*)")]
 	private static partial Regex RmCommandPattern();
+
+	// ===============================
+	// Command Classification Sets
+	// ===============================
 
 	// Commands that should include their subcommand for granular permission control
 	static readonly HashSet<string> subcommandExecutables = ["git", "npm", "yarn", "pnpm", "docker", "kubectl", "gh", "dotnet", "cargo"];

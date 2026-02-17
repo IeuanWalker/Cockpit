@@ -3,43 +3,54 @@ using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Permissions;
 
-public sealed class GlobalPermissionFeature
+public sealed class GlobalPermissionFeature : IDisposable
 {
 	readonly ILogger<GlobalPermissionFeature> _logger;
 	readonly string _permissionsFilePath;
 
-	public GlobalPermissionFeature(ILogger<GlobalPermissionFeature> logger)
+	public GlobalPermissionFeature(ILogger<GlobalPermissionFeature> logger, string? permissionsFilePath = null)
 	{
 		_logger = logger;
 
-		_permissionsFilePath = Path.Combine(FileSystem.AppDataDirectory, "global-commands.json");
+		_permissionsFilePath = permissionsFilePath ?? Path.Combine(FileSystem.AppDataDirectory, "global-commands.json");
 
 		Load();
 	}
 
 	readonly List<string> _commands = [];
-	readonly Lock _permissionsLock = new();
+	readonly ReaderWriterLockSlim _permissionsLock = new();
 	public event Action? OnPermissionsChanged;
 
 	public bool HasPermissions(List<string> commands)
 	{
-		lock(_permissionsLock)
+		_permissionsLock.EnterReadLock();
+		try
 		{
 			return commands.All(cmd => _commands.Contains(cmd));
+		}
+		finally
+		{
+			_permissionsLock.ExitReadLock();
 		}
 	}
 
 	public List<string> GetAll()
 	{
-		lock(_permissionsLock)
+		_permissionsLock.EnterReadLock();
+		try
 		{
 			return [.. _commands];
+		}
+		finally
+		{
+			_permissionsLock.ExitReadLock();
 		}
 	}
 
 	public void Add(string command)
 	{
-		lock(_permissionsLock)
+		_permissionsLock.EnterWriteLock();
+		try
 		{
 			if(!_commands.Contains(command))
 			{
@@ -48,13 +59,18 @@ public sealed class GlobalPermissionFeature
 				Save();
 			}
 		}
+		finally
+		{
+			_permissionsLock.ExitWriteLock();
+		}
 
 		OnPermissionsChanged?.Invoke();
 	}
 
 	public void Add(List<string> commands)
 	{
-		lock(_permissionsLock)
+		_permissionsLock.EnterWriteLock();
+		try
 		{
 			bool modified = false;
 			foreach(string command in commands)
@@ -71,17 +87,26 @@ public sealed class GlobalPermissionFeature
 				Save();
 			}
 		}
+		finally
+		{
+			_permissionsLock.ExitWriteLock();
+		}
 
 		OnPermissionsChanged?.Invoke();
 	}
 
 	public void Remove(string command)
 	{
-		lock(_permissionsLock)
+		_permissionsLock.EnterWriteLock();
+		try
 		{
 			_commands.Remove(command);
 
 			Save();
+		}
+		finally
+		{
+			_permissionsLock.ExitWriteLock();
 		}
 
 		OnPermissionsChanged?.Invoke();
@@ -105,11 +130,16 @@ public sealed class GlobalPermissionFeature
 
 			if(file is not null)
 			{
-				lock(_permissionsLock)
+				_permissionsLock.EnterWriteLock();
+				try
 				{
 					_commands.Clear();
 					// Only load allowlist - denylist removed as per Cooper's approach
 					_commands.AddRange(file);
+				}
+				finally
+				{
+					_permissionsLock.ExitWriteLock();
 				}
 
 				_logger.LogInformation("Loaded {Count} global permissions from {Path}", _commands.Count, _permissionsFilePath);
@@ -125,21 +155,25 @@ public sealed class GlobalPermissionFeature
 	{
 		try
 		{
-			lock(_permissionsLock)
+			// Lock is already held by caller (Add/Remove methods)
+			// This method should only be called from within a write lock
+			string json = JsonSerializer.Serialize(_commands, new JsonSerializerOptions
 			{
-				string json = JsonSerializer.Serialize(_commands, new JsonSerializerOptions
-				{
-					WriteIndented = true
-				});
+				WriteIndented = true
+			});
 
-				File.WriteAllText(_permissionsFilePath, json);
+			File.WriteAllText(_permissionsFilePath, json);
 
-				_logger.LogDebug("Saved permissions to {Path}", _permissionsFilePath);
-			}
+			_logger.LogDebug("Saved permissions to {Path}", _permissionsFilePath);
 		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to save permissions to {Path}", _permissionsFilePath);
 		}
+	}
+
+	public void Dispose()
+	{
+		_permissionsLock?.Dispose();
 	}
 }

@@ -20,7 +20,7 @@ public class PermissionFeature
 
 	// In-memory cache of permissions
 	readonly ConcurrentDictionary<string, PermissionRequestModel> _pendingRequests = new(); // Key: request.Id
-	readonly Lock _permissionsLock = new();
+	readonly ReaderWriterLockSlim _permissionsLock = new();
 
 	// Events for UI updates
 	public event Action<string, PermissionRequestModel>? OnPermissionRequested;
@@ -274,7 +274,11 @@ public class PermissionFeature
 			return PermissionDecisionEnum.Once;
 		}
 
-		lock(_permissionsLock)
+		_permissionsLock.EnterReadLock();
+		bool needsFiltering = false;
+		List<string> unapprovedCommands = [];
+
+		try
 		{
 			// Priority 1: Check session allowlist - all commands must be allowed
 			if(_sessionPermissionFeature.HasPermissions(request.SessionId, request.Commands))
@@ -291,7 +295,7 @@ public class PermissionFeature
 			}
 
 			// Filter out already-approved commands
-			List<string> unapprovedCommands = request.Commands
+			unapprovedCommands = request.Commands
 				.Where(cmd => !_sessionPermissionFeature.HasPermission(request.SessionId, cmd) &&
 							  !_globalPermissionFeature.HasPermissions([cmd]))
 				.ToList();
@@ -303,27 +307,34 @@ public class PermissionFeature
 				return PermissionDecisionEnum.Once;
 			}
 
-			// If some commands were filtered out, update the request
-			if(unapprovedCommands.Count < request.Commands.Count)
+			// If some commands were filtered out, we need to update the request
+			needsFiltering = unapprovedCommands.Count < request.Commands.Count;
+		}
+		finally
+		{
+			_permissionsLock.ExitReadLock();
+		}
+
+		// Update request to only show unapproved commands (outside lock)
+		if(needsFiltering)
+		{
+			_logger.LogInformation("Filtered approved commands. Original: {Original}, Unapproved: {Unapproved}",
+				string.Join(", ", request.Commands), string.Join(", ", unapprovedCommands));
+
+			// Update request to only show unapproved commands
+			request.Commands.Clear();
+			request.Commands.AddRange(unapprovedCommands);
+
+			// Update title using the same format as original
+			string commandList = string.Join("`, `", unapprovedCommands);
+			request.RequestTitle = request.IsDestructive
+				? $"⚠️ Allow destructive command `{commandList}`"
+				: $"Allow running `{commandList}`";
+
+			// Re-append file deletion info if present
+			if(request.FilesToDelete.Count > 0)
 			{
-				_logger.LogInformation("Filtered approved commands. Original: {Original}, Unapproved: {Unapproved}",
-					string.Join(", ", request.Commands), string.Join(", ", unapprovedCommands));
-
-				// Update request to only show unapproved commands
-				request.Commands.Clear();
-				request.Commands.AddRange(unapprovedCommands);
-
-				// Update title using the same format as original
-				string commandList = string.Join("`, `", unapprovedCommands);
-				request.RequestTitle = request.IsDestructive
-					? $"⚠️ Allow destructive command `{commandList}`"
-					: $"Allow running `{commandList}`";
-
-				// Re-append file deletion info if present
-				if(request.FilesToDelete.Count > 0)
-				{
-					request.RequestTitle += $" (deletes {request.FilesToDelete.Count} file(s))";
-				}
+				request.RequestTitle += $" (deletes {request.FilesToDelete.Count} file(s))";
 			}
 		}
 
@@ -440,8 +451,9 @@ public class PermissionFeature
 				continue;
 			}
 
-			// Check if ALL commands in the pending request are in the newly granted commands
-			if(!pendingRequest.Commands.All(cmd => commands.Contains(cmd)))
+			// Check if ANY command in the pending request is in the newly granted commands
+			bool hasMatchingCommand = pendingRequest.Commands.Any(cmd => commands.Contains(cmd));
+			if(!hasMatchingCommand)
 			{
 				continue;
 			}
@@ -451,7 +463,7 @@ public class PermissionFeature
 				continue;
 			}
 
-			_logger.LogInformation("Auto-approving pending request {RequestId} ({Commands}) - all commands match",
+			_logger.LogInformation("Auto-approving pending request {RequestId} ({Commands}) - commands match granted permissions",
 				pendingRequest.Id, string.Join(", ", pendingRequest.Commands));
 
 			// Remove from pending requests atomically before completing
