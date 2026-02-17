@@ -1,12 +1,13 @@
 @using Cockpit.Components.Popups
 @using Cockpit.Components.Popups.Settings
+@using Cockpit.Components.Pages.SessionsPanel
 @inherits LayoutComponentBase
 @implements IDisposable
 
 <!-- Main Container -->
 <div class="flex h-screen">
     <!-- Left Sidebar - Sessions -->
-    <SessionPannel />
+    <SessionPanel />
 
     <!-- Left Resize Handle -->
     <div id="leftResizeHandle" class="resize-handle @(UIState.LeftSidebarCollapsed ? "hidden" : "")"></div>
