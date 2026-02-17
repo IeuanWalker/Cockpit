@@ -623,6 +623,24 @@ public class CommandExtractorTests
 		cargo build --release --target x86_64-unknown-linux-gnu
 		""");
 
+		commands.Add(93,
+		"""
+		Get-ChildItem "D:\WS\Github-Mine\Cockpit\Tests\Cockpit.UnitTests\Features\Permissions\*.received.txt" | Sort-Object Name | ForEach-Object {
+		    $id = $_.Name -replace '.*id=(\d+)\.received\.txt', '$1'
+		    $content = Get-Content $_.FullName -Raw
+		    "Test $id : $content"
+		} | Select-Object -Last 24
+		""");
+
+		commands.Add(94,
+		"""
+		cd "D:\WS\Github-Mine\Cockpit\Tests\Cockpit.UnitTests\Features\Permissions"; Get-ChildItem "*.received.txt" | Where-Object { $_.Name -match 'id=(69|7\d|8\d|9\d)\.received\.txt' } | ForEach-Object {
+		    $verifiedName = $_.Name -replace '\.received\.', '.verified.'
+		    Copy-Item $_.FullName $verifiedName -Force
+		    Write-Host "Created $verifiedName"
+		}
+		""");
+
 		return commands;
 	}
 }
