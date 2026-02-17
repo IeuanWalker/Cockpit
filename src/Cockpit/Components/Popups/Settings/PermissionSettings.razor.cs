@@ -1,6 +1,6 @@
 using Cockpit.Features.Permissions;
 
-namespace Cockpit.Components.Popups;
+namespace Cockpit.Components.Popups.Settings;
 
 public partial class PermissionSettings
 {
