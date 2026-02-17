@@ -1,0 +1,6 @@
+﻿[
+  Get-ChildItem,
+  Sort-Object,
+  Get-Content,
+  Select-Object
+]

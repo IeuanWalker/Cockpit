@@ -134,7 +134,7 @@ public partial class SessionPannel : ComponentBase, IDisposable
 
 	async Task ConfirmDelete()
 	{
-		if(_sessionToDelete != null)
+		if(_sessionToDelete is not null)
 		{
 			await SessionManager.DeleteSessionAsync(_sessionToDelete.Id);
 		}

@@ -1,0 +1,8 @@
+﻿[
+  head,
+  grep,
+  echo,
+  jq,
+  sort,
+  uniq
+]

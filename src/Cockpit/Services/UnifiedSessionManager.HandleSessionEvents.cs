@@ -449,11 +449,11 @@ public partial class UnifiedSessionManager
 		// Find the tool execution in the active group (thread-safe)
 		List<ThinkingEvent> events = session.ActiveWorkingGroup.GetEventsSnapshot();
 		ToolExecution? toolExec = events
-			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool != null)
+			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
 			.Select(e => e.Tool!)
 			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
 
-		if(toolExec != null)
+		if(toolExec is not null)
 		{
 			toolExec.Status = ToolStatus.Success;
 			toolExec.IsSuccess = true;

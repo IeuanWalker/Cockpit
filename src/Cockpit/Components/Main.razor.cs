@@ -1,5 +1,6 @@
 using System.Globalization;
-using Cockpit.Models;
+using Cockpit.Features.Permissions;
+using Cockpit.Features.Permissions.Models;
 using Cockpit.Services;
 using CommunityToolkit.Maui.Media;
 using GitHub.Copilot.SDK;
@@ -17,7 +18,7 @@ public partial class Main : ComponentBase, IAsyncDisposable
 	[Inject] UIStateService UIState { get; set; } = default!;
 	[Inject] ISpeechToText SpeechToText { get; set; } = default!;
 	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
-	[Inject] PermissionService PermissionService { get; set; } = default!;
+	[Inject] PermissionFeature PermissionFeature { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 	[Inject] ILogger<Main> Logger { get; set; } = default!;
 
@@ -31,7 +32,7 @@ public partial class Main : ComponentBase, IAsyncDisposable
 	DotNetObjectReference<Main>? _dotNetRef;
 
 	// Helper property to safely get the first pending request
-	Models.PermissionRequest? FirstPendingRequest => SessionManager.CurrentSession?.PendingPermissionRequests?.Values.FirstOrDefault();
+	PermissionRequestModel? FirstPendingRequest => SessionManager.CurrentSession?.PendingPermissionRequests?.Values.FirstOrDefault();
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -64,11 +65,11 @@ public partial class Main : ComponentBase, IAsyncDisposable
 			await UpdateInputBehavior();
 			// Subscribe to UIState changes after first render to update input behavior
 			UIState.OnStateChanged += OnUIStateChangedHandler;
-			
+
 			// Setup smart scroll tracking
 			_dotNetRef = DotNetObjectReference.Create(this);
 			await SetupSmartScroll();
-			
+
 			// Initialize message count
 			_lastMessageCount = SessionManager.CurrentSession?.Messages?.Count ?? 0;
 		}
@@ -110,7 +111,7 @@ public partial class Main : ComponentBase, IAsyncDisposable
 			_shouldScrollToBottom = true;
 			_lastMessageCount = currentMessageCount;
 		}
-		
+
 		InvokeAsync(StateHasChanged);
 	}
 
@@ -333,7 +334,7 @@ public partial class Main : ComponentBase, IAsyncDisposable
 
 	void ToggleTerminalPanel()
 	{
-		if(SessionManager.CurrentSession != null)
+		if(SessionManager.CurrentSession is not null)
 		{
 			SessionManager.CurrentSession.IsTerminalOpen = !SessionManager.CurrentSession.IsTerminalOpen;
 			StateHasChanged();
@@ -429,14 +430,15 @@ public partial class Main : ComponentBase, IAsyncDisposable
 	}
 
 	// Handle permission decision from the PermissionRequestPanel
-	void HandlePermissionDecision(PermissionDecision decision)
+	void HandlePermissionDecision(PermissionDecisionEnum decision)
 	{
-		Models.PermissionRequest? currentRequest = FirstPendingRequest;
+		PermissionRequestModel? currentRequest = FirstPendingRequest;
 		if(currentRequest is null)
 		{
+			Logger.LogWarning("HandlePermissionDecision called but CurrentSession is null");
 			return;
 		}
 
-		PermissionService.ResolvePermissionRequest(currentRequest.Id, decision);
+		PermissionFeature.ResolvePermissionRequest(currentRequest.Id, decision);
 	}
 }

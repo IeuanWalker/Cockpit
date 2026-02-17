@@ -23,7 +23,7 @@
                         @((MarkupString)Markdig.Markdown.ToHtml(evt.Message))
                     </div>
                 }
-                else if(evt.Type == ThinkingEventType.Tool && evt.Tool != null)
+                else if(evt.Type == ThinkingEventType.Tool && evt.Tool is not null)
                 {
                     <ToolExecutionDetail Tool="evt.Tool" IsLive="true" />
                 }

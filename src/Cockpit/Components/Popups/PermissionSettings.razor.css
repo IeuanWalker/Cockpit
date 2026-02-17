@@ -1,0 +1,133 @@
+.permissions-list {
+    margin-top: 16px;
+}
+
+.permissions-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.permissions-table {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.permission-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--hover-color);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.permission-pattern code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+}
+
+.pattern-type {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-left: 8px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-secondary);
+}
+
+.add-permission-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    min-width: 400px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+    .form-group label {
+        display: block;
+        margin-bottom: 4px;
+    }
+
+.form-input, .form-select {
+    width: 100%;
+    padding: 8px;
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-color);
+    font-size: 0.875rem;
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+}
+
+    .btn-icon:hover {
+        color: var(--danger-color, #dc3545);
+    }
+
+.btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.btn-sm {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+}
+
+.btn-primary {
+    background: var(--button-bg);
+    color: white;
+    border-color: var(--button-bg);
+}
+
+    .btn-primary:hover {
+        background: var(--button-hover);
+        border-color: var(--button-hover);
+    }
+
+.btn-secondary {
+    background: var(--hover-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+    .btn-secondary:hover {
+        background: var(--active-color);
+        border-color: var(--border-color);
+    }

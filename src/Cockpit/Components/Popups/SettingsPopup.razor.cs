@@ -3,28 +3,46 @@ using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Popups;
 
+public enum SettingsSection
+{
+	Appearance,
+	Commands,
+	Input,
+	Voice,
+	Sounds,
+	Diagnostics
+}
+
 public partial class SettingsPopup : ComponentBase, IDisposable
 {
-	enum SettingsSection
-	{
-		Appearance,
-		Commands,
-		Input,
-		Voice,
-		Sounds,
-		Diagnostics
-	}
+
 
 	string _customColor = "#0078D4";
 	SettingsSection _activeSection = SettingsSection.Appearance;
 	[Inject] UIStateService UIState { get; set; } = default!;
 	[Inject] ThemeService ThemeService { get; set; } = default!;
 
+	public void OpenToSection(SettingsSection section)
+	{
+		_activeSection = section;
+		StateHasChanged();
+	}
+
 	protected override void OnInitialized()
 	{
 		UIState.OnStateChanged += OnStateChanged;
 		ThemeService.OnThemeChanged += OnStateChanged;
 		_customColor = ThemeService.AccentColor;
+	}
+
+	protected override void OnAfterRender(bool firstRender)
+	{
+		if(UIState.PendingSettingsSection.HasValue)
+		{
+			_activeSection = UIState.PendingSettingsSection.Value;
+			UIState.ClearPendingSettingsSection();
+			StateHasChanged();
+		}
 	}
 
 	void OnStateChanged()

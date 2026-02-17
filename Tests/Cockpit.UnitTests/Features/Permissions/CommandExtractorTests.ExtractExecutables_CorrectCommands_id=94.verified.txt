@@ -1,0 +1,6 @@
+﻿[
+  cd,
+  Get-ChildItem,
+  Copy-Item,
+  Write-Host
+]

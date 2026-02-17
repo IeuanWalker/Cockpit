@@ -1,0 +1,6 @@
+﻿[
+  head,
+  echo,
+  grep,
+  tail
+]

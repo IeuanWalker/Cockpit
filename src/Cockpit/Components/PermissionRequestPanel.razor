@@ -1,36 +1,65 @@
-@using Cockpit.Models
-@using Cockpit.Services
 @using Cockpit.Components.Popups
+@using Cockpit.Features.Permissions.Models
 
 <div class="permission-panel">
     <div class="permission-header">
         <svg class="permission-icon" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
         </svg>
-        <span class="permission-title">@GetPermissionMessage()</span>
+        <span class="permission-title">@Request.RequestTitle</span>
         <button class="btn-details" @onclick="() => _showDetailsPopup = true">
             More info
         </button>
         <div class="permission-actions">
-            <button class="btn btn-deny" @onclick="() => OnDecision(false, PermissionScope.Once)">
+            <button class="btn btn-deny" @onclick="() => OnDecision(PermissionDecisionEnum.Denied)">
                 Deny
             </button>
-            <button class="btn btn-allow-once" @onclick="() => OnDecision(true, PermissionScope.Once)">
-                Allow Once
-            </button>
-            <button class="btn btn-allow-session" @onclick="() => OnDecision(true, PermissionScope.Session)">
-                This Session
-            </button>
-            @* Hide "Always Allow" for write kind and destructive commands (Cooper's approach) *@
-            <button class="btn btn-allow-always" @onclick="() => OnDecision(true, PermissionScope.Global)">
-                Always Allow
-            </button>
+
+            <div class="btn-allow-dropdown">
+                <button class="btn-allow-main" @onclick="() => OnDecision(_selectedAllowOption)">
+                    @GetAllowLabel(_selectedAllowOption)
+                </button>
+                <button class="btn-allow-arrow" @onclick="ToggleDropdown" aria-label="Show allow options">
+                    <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                </button>
+                @if(_showDropdown)
+                {
+                    <div class="allow-dropdown-menu">
+                        <button type="button" class="allow-dropdown-item" @onclick="() => SelectAllowOption(PermissionDecisionEnum.Once)">Allow Once</button>
+                        @if(Request.CanApproveForSession)
+                        {
+                            <button type="button" class="allow-dropdown-item" @onclick="() => SelectAllowOption(PermissionDecisionEnum.Session)">Allow for this Session</button>
+                        }
+                        @if(Request.CanApproveGlobally)
+                        {
+                            <button type="button" class="allow-dropdown-item" @onclick="() => SelectAllowOption(PermissionDecisionEnum.Global)">Allow globally</button>
+                        }
+                    </div>
+                }
+            </div>
         </div>
     </div>
 
     <!-- Show what will be saved -->
     <div class="text-xs text-gray-400 mt-2 px-3 pb-2">
-        Saving for session or always, will add '<span class="text-blue-400 font-mono">@GetNormalizedPattern()</span>' to the allow list
+        <div class="mb-2">
+            <div>@Request.Intention</div>
+            <div class="text-blue-400 font-mono">@Request.FullCommand</div>
+        </div>
+        @if(Request.Commands.Count == 1)
+        {
+            <span>Saving for session or globally, will add '<span class="text-blue-400 font-mono">@Request.Commands[0]</span>' to the allow list</span>
+        }
+        else
+        {
+            <span>Saving for session or globally, will add these commands to the allow list:</span>
+            <div class="ml-4 mt-1">
+                @foreach(var cmd in Request.Commands)
+                {
+                    <div class="text-blue-400 font-mono">• @cmd</div>
+                }
+            </div>
+        }
     </div>
 </div>
 

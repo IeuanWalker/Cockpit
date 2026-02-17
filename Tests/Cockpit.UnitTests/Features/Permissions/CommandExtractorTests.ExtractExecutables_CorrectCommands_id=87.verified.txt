@@ -1,0 +1,4 @@
+﻿[
+  kubectl create,
+  kubectl expose
+]

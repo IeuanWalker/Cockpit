@@ -1,3 +1,4 @@
+using Cockpit.Components.Popups;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -11,6 +12,7 @@ public partial class MainLayout : IDisposable
 	[Inject] ThemeService ThemeService { get; set; } = default!;
 
 	static UIStateService? staticUIState;
+	SettingsPopup? _settingsPopup;
 
 	protected override async Task OnInitializedAsync()
 	{

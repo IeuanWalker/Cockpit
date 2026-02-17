@@ -1,3 +1,5 @@
+using Cockpit.Components.Popups;
+
 namespace Cockpit.Services;
 
 public class UIStateService
@@ -32,6 +34,8 @@ public class UIStateService
 	public bool SettingsPopupOpen { get; private set; } = false;
 
 	public bool IsRecording { get; private set; } = false;
+
+	public SettingsSection? PendingSettingsSection { get; private set; } = null;
 
 	bool _sendOnEnter = UserAppSettings.SendOnEnter;
 	public bool SendOnEnter
@@ -72,6 +76,30 @@ public class UIStateService
 	{
 		SettingsPopupOpen = !SettingsPopupOpen;
 		OnStateChanged?.Invoke();
+	}
+
+	public void OpenSettingsPopup()
+	{
+		if(!SettingsPopupOpen)
+		{
+			SettingsPopupOpen = true;
+			OnStateChanged?.Invoke();
+		}
+	}
+
+	public void OpenSettingsToSection(SettingsSection section)
+	{
+		PendingSettingsSection = section;
+		if(!SettingsPopupOpen)
+		{
+			SettingsPopupOpen = true;
+		}
+		OnStateChanged?.Invoke();
+	}
+
+	public void ClearPendingSettingsSection()
+	{
+		PendingSettingsSection = null;
 	}
 
 	public void CloseSettingsPopup()

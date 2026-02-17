@@ -1,0 +1,5 @@
+﻿[
+  which,
+  echo,
+  cat
+]

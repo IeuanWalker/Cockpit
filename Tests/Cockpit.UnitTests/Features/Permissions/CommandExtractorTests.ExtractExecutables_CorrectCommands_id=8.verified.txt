@@ -1,0 +1,5 @@
+﻿[
+  cd,
+  dotnet build,
+  tee
+]

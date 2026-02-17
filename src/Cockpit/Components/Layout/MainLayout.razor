@@ -26,7 +26,9 @@
 </div>
 
 <!-- Settings Popup -->
-<SettingsPopup />
+<CascadingValue Value="@_settingsPopup">
+    <SettingsPopup @ref="_settingsPopup" />
+</CascadingValue>
 
 <!-- Toast Notifications -->
 <Toaster Position="ToastPosition.BottomRight" RichColors="true" CloseButton="false" />
