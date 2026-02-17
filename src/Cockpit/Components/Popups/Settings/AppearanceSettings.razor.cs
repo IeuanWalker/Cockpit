@@ -55,11 +55,4 @@ public partial class AppearanceSettings : ComponentBase, IDisposable
 			_themeService.OnThemeChanged -= OnStateChanged;
 		}
 	}
-
-	class AccentColorOption
-	{
-		public string Name { get; set; } = string.Empty;
-		public string Color { get; set; } = string.Empty;
-		public string Hover { get; set; } = string.Empty;
-	}
 }
