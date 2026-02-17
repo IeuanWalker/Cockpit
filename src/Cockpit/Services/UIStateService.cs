@@ -1,4 +1,4 @@
-using Cockpit.Components.Popups;
+using Cockpit.Components.Popups.Settings;
 
 namespace Cockpit.Services;
 

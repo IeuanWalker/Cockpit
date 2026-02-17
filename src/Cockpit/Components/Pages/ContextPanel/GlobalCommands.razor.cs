@@ -1,4 +1,4 @@
-using Cockpit.Components.Popups;
+using Cockpit.Components.Popups.Settings;
 using Cockpit.Features.Permissions;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
