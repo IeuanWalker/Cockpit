@@ -554,17 +554,6 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		NotifyStateChanged();
 	}
 
-	public void SetCurrentSessionContextBranch(string branch)
-	{
-		if(CurrentSession is null || string.IsNullOrWhiteSpace(branch))
-		{
-			return;
-		}
-
-		CurrentSession.Context.CurrentBranch = branch;
-		NotifyStateChanged();
-	}
-
 	public void ToggleCurrentSessionContextSkill(string skill)
 	{
 		if(CurrentSession is null || string.IsNullOrWhiteSpace(skill))
