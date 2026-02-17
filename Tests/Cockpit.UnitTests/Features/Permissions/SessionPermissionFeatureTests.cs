@@ -1,17 +1,55 @@
 using Cockpit.Features.Permissions;
+using Cockpit.Models;
+using Cockpit.Services;
+using GitHub.Copilot.SDK;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Permissions;
 
 public class SessionPermissionFeatureTests
 {
+	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
+
+	class TestSessionStateProvider : ISessionStateProvider
+	{
+		readonly List<ChatSession> _sessions = [];
+
+		public void AddSession(string sessionId)
+		{
+			if(_sessions.Any(s => s.Id == sessionId))
+			{
+				return;
+			}
+
+			_sessions.Add(new ChatSession
+			{
+				Id = sessionId,
+				Model = testModel
+			});
+		}
+
+		public IReadOnlyList<ChatSession> GetSessions() => _sessions;
+		public void NotifyStateChanged() { }
+	}
+
+	static (SessionPermissionFeature Feature, TestSessionStateProvider StateProvider) CreateFeature(params string[] sessionIds)
+	{
+		TestSessionStateProvider stateProvider = new();
+		foreach(string sessionId in sessionIds)
+		{
+			stateProvider.AddSession(sessionId);
+		}
+
+		return (new SessionPermissionFeature(stateProvider), stateProvider);
+	}
+
 	[Fact]
 	public void Add_SingleCommand_CommandIsAdded()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
 		const string sessionId = "session1";
 		const string command = "npm";
+		(SessionPermissionFeature feature, _) = CreateFeature(sessionId);
 
 		// Act
 		feature.Add(sessionId, command);
@@ -24,9 +62,9 @@ public class SessionPermissionFeatureTests
 	public void Add_MultipleCommands_AllCommandsAreAdded()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
 		const string sessionId = "session1";
 		List<string> commands = ["npm", "yarn", "git"];
+		(SessionPermissionFeature feature, _) = CreateFeature(sessionId);
 
 		// Act
 		feature.Add(sessionId, commands);
@@ -39,9 +77,9 @@ public class SessionPermissionFeatureTests
 	public void Add_DuplicateCommand_NoDuplicatesCreated()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
 		const string sessionId = "session1";
 		const string command = "npm";
+		(SessionPermissionFeature feature, _) = CreateFeature(sessionId);
 
 		// Act
 		feature.Add(sessionId, command);
@@ -58,7 +96,7 @@ public class SessionPermissionFeatureTests
 	public void HasPermission_NonExistentSession_ReturnsFalse()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
+		(SessionPermissionFeature feature, _) = CreateFeature();
 
 		// Act & Assert
 		feature.HasPermission("nonexistent", "npm").ShouldBeFalse();
@@ -68,8 +106,8 @@ public class SessionPermissionFeatureTests
 	public void HasPermissions_PartialMatch_ReturnsFalse()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
 		const string sessionId = "session1";
+		(SessionPermissionFeature feature, _) = CreateFeature(sessionId);
 		feature.Add(sessionId, "npm");
 
 		// Act & Assert
@@ -80,8 +118,8 @@ public class SessionPermissionFeatureTests
 	public void Clear_RemovesAllSessionPermissions()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
 		const string sessionId = "session1";
+		(SessionPermissionFeature feature, _) = CreateFeature(sessionId);
 		feature.Add(sessionId, ["npm", "yarn", "git"]);
 
 		// Act
@@ -93,10 +131,38 @@ public class SessionPermissionFeatureTests
 	}
 
 	[Fact]
+	public void Remove_ExistingCommand_RemovesOnlyThatCommand()
+	{
+		// Arrange
+		const string sessionId = "session1";
+		(SessionPermissionFeature feature, _) = CreateFeature(sessionId);
+		feature.Add(sessionId, ["npm", "yarn"]);
+
+		// Act
+		feature.Remove(sessionId, "npm");
+
+		// Assert
+		feature.HasPermission(sessionId, "npm").ShouldBeFalse();
+		feature.HasPermission(sessionId, "yarn").ShouldBeTrue();
+	}
+
+	[Fact]
+	public void Remove_NonExistentCommand_DoesNotThrow()
+	{
+		// Arrange
+		const string sessionId = "session1";
+		(SessionPermissionFeature feature, _) = CreateFeature(sessionId);
+		feature.Add(sessionId, "npm");
+
+		// Act & Assert
+		Should.NotThrow(() => feature.Remove(sessionId, "yarn"));
+	}
+
+	[Fact]
 	public void Clear_NonExistentSession_DoesNotThrow()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
+		(SessionPermissionFeature feature, _) = CreateFeature();
 
 		// Act & Assert
 		Should.NotThrow(() => feature.Clear("nonexistent"));
@@ -106,7 +172,7 @@ public class SessionPermissionFeatureTests
 	public void GetAll_NonExistentSession_ReturnsEmptyList()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
+		(SessionPermissionFeature feature, _) = CreateFeature();
 
 		// Act
 		List<string> result = feature.GetAll("nonexistent");
@@ -119,10 +185,10 @@ public class SessionPermissionFeatureTests
 	public async Task ConcurrentAdd_SameSession_NoDuplicates()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
 		const string sessionId = "session1";
 		const string command = "npm";
 		const int threadCount = 100;
+		(SessionPermissionFeature feature, _) = CreateFeature(sessionId);
 
 		// Act
 		Task[] tasks = new Task[threadCount];
@@ -142,9 +208,9 @@ public class SessionPermissionFeatureTests
 	public async Task ConcurrentAdd_DifferentCommands_AllAdded()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
 		const string sessionId = "session1";
 		const int commandCount = 100;
+		(SessionPermissionFeature feature, _) = CreateFeature(sessionId);
 
 		// Act
 		Task[] tasks = new Task[commandCount];
@@ -168,9 +234,13 @@ public class SessionPermissionFeatureTests
 	public async Task ConcurrentAdd_MultipleSessions_IsolatedCorrectly()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
 		const int sessionCount = 10;
 		const int commandsPerSession = 10;
+		(SessionPermissionFeature feature, TestSessionStateProvider stateProvider) = CreateFeature();
+		for(int s = 0; s < sessionCount; s++)
+		{
+			stateProvider.AddSession($"session{s}");
+		}
 
 		// Act
 		List<Task> tasks = [];
@@ -202,10 +272,10 @@ public class SessionPermissionFeatureTests
 	public async Task ConcurrentReadWrite_NoRaceConditions()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
 		const string sessionId = "session1";
 		const int iterations = 1000;
 		List<string> commands = ["npm", "yarn", "git", "docker"];
+		(SessionPermissionFeature feature, _) = CreateFeature(sessionId);
 
 		// Act - Concurrent reads and writes
 		List<Task> tasks = [];
@@ -249,8 +319,8 @@ public class SessionPermissionFeatureTests
 	public async Task ConcurrentClear_NoExceptions()
 	{
 		// Arrange
-		SessionPermissionFeature feature = new();
 		const string sessionId = "session1";
+		(SessionPermissionFeature feature, _) = CreateFeature(sessionId);
 		feature.Add(sessionId, ["npm", "yarn", "git"]);
 
 		// Act - Multiple threads trying to clear simultaneously

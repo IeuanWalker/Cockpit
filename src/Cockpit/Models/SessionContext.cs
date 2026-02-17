@@ -7,6 +7,8 @@ public class SessionContext
 	public List<string> Branches { get; set; } = [];
 	public List<ContextFile> EditedFiles { get; set; } = [];
 	public List<string> AllowedCommands { get; set; } = [];
+	public List<string> SessionPermissionCommands { get; set; } = [];
+	public readonly Lock SessionPermissionCommandsLock = new();
 	public List<string> AgentSkills { get; set; } = [];
 	public string McpServerUrl { get; set; } = "localhost:8080";
 	public bool McpServerConnected { get; set; } = true;
@@ -29,6 +31,7 @@ public class SessionContext
 				new ContextFile { Name = "package.json", Path = "package.json", Status = FileStatus.Modified }
 			],
 			AllowedCommands = ["npm install", "git commit", "docker build"],
+			SessionPermissionCommands = [],
 			AgentSkills = ["Code Generation", "File Operations", "Git Operations", "Web Search"],
 			McpServerUrl = "localhost:8080",
 			McpServerConnected = true

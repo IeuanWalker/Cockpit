@@ -9,7 +9,6 @@ public sealed partial class GlobalCommands : ComponentBase, IDisposable
 {
 	[Inject] GlobalPermissionFeature _globalPermissionFeature { get; set; } = null!;
 	[Inject] UIStateService _uiState { get; set; } = null!;
-	[CascadingParameter] SettingsPopup? SettingsPopup { get; set; }
 
 	public List<string> Commands { get; set; } = [];
 

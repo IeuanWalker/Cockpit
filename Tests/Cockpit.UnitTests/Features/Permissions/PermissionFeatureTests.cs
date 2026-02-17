@@ -34,8 +34,8 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		PermissionRequestModel request = new()
@@ -65,8 +65,8 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		globalFeature.Add("npm");
@@ -98,11 +98,12 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		const string sessionId = "session1";
+		stateProvider.AddSession(new ChatSession { Id = sessionId, Model = testModel });
 		sessionFeature.Add(sessionId, "npm");
 
 		PermissionRequestModel request = new()
@@ -132,11 +133,12 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		const string sessionId = "session1";
+		stateProvider.AddSession(new ChatSession { Id = sessionId, Model = testModel });
 		sessionFeature.Add(sessionId, "npm");
 		globalFeature.Add("npm");
 
@@ -167,8 +169,8 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		const string sessionId = "session1";
@@ -211,8 +213,8 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		ChatSession session = new()
 		{
 			Id = "session1",
@@ -252,8 +254,8 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		ChatSession session = new()
 		{
 			Id = "session1",
@@ -293,8 +295,8 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		ChatSession session = new()
 		{
 			Id = "session1",
@@ -334,8 +336,8 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		ChatSession session = new()
 		{
 			Id = "session1",
@@ -375,8 +377,8 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		ChatSession session1 = new()
 		{
 			Id = "session1",
@@ -437,8 +439,8 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		ChatSession session1 = new()
 		{
 			Id = "session1",
@@ -501,8 +503,8 @@ public class PermissionFeatureTests
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		SessionPermissionFeature sessionFeature = new();
 		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
 		ChatSession session = new()
 		{
 			Id = "session1",
@@ -554,3 +556,5 @@ public class PermissionFeatureTests
 		return [];
 	}
 }
+
+
