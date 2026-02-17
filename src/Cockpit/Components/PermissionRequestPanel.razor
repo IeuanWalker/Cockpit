@@ -42,6 +42,10 @@
 
     <!-- Show what will be saved -->
     <div class="text-xs text-gray-400 mt-2 px-3 pb-2">
+        <div class="mb-2">
+            <div><span class="font-semibold">Intention:</span> @Request.Intention</div>
+            <div><span class="font-semibold">Full Command:</span> <span class="text-blue-400 font-mono">@Request.FullCommand</span></div>
+        </div>
         @if(Request.Commands.Count == 1)
         {
             <span>Saving for session or globally, will add '<span class="text-blue-400 font-mono">@Request.Commands[0]</span>' to the allow list</span>

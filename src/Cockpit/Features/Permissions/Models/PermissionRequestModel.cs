@@ -5,8 +5,9 @@ public class PermissionRequestModel
 	public string Id { get; init; } = Guid.NewGuid().ToString();
 	public DateTime Requested { get; init; } = DateTime.UtcNow;
 	public required string SessionId { get; init; }
+	public required string FullCommand { get; init; }
 	public required List<string> Commands { get; init; }
-	public required string RequestTitle { get; init; }
+	public required string RequestTitle { get; set; }
 	public required string Intention { get; init; }
 	public required bool CanApproveGlobally { get; init; }
 	public required bool CanApproveForSession { get; init; }

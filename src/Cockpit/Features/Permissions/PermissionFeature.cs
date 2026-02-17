@@ -43,14 +43,30 @@ public class PermissionFeature
 
 	PermissionRequestModel ToRequestModel(PermissionRequest request, string sessionId)
 	{
-		// TODO: Get intention
 		string intention = string.Empty;
+		if(request.ExtensionData?.TryGetValue("intention", out object? intentionObj) ?? false)
+		{
+			if(intentionObj is JsonElement element && element.ValueKind == JsonValueKind.String)
+			{
+				intention = element.GetString() ?? string.Empty;
+			}
+		}
+
+		string fullCommand = string.Empty;
+		if(request.ExtensionData?.TryGetValue("fullCommandText", out object? fullCommandObj) ?? false)
+		{
+			if(fullCommandObj is JsonElement element && element.ValueKind == JsonValueKind.String)
+			{
+				fullCommand = element.GetString() ?? string.Empty;
+			}
+		}
 
 		if(request.Kind.Equals("read", StringComparison.InvariantCultureIgnoreCase))
 		{
 			return new PermissionRequestModel
 			{
 				SessionId = sessionId,
+				FullCommand = fullCommand,
 				Commands = ["read"],
 				RequestTitle = "Allow read file(s)",
 				Intention = intention,
@@ -72,84 +88,65 @@ public class PermissionFeature
 		}
 
 		// Try to extract command from various possible fields
-		if(request.ExtensionData?.TryGetValue("command", out object? cmdObj) ?? false)
+		if(!string.IsNullOrWhiteSpace(fullCommand))
 		{
-			string cmdStr = cmdObj?.ToString() ?? string.Empty;
 
-			// If it's a JSON object with fullCommandText, extract that
-			if(cmdStr.StartsWith('{') && cmdStr.Contains("fullCommandText"))
+			// Extract meaningful executables (filters out cd, pwd, etc.)
+			List<string> meaningfulExecutables = CommandExtractor.ExtractMeaningfulExecutables(fullCommand);
+
+			// Use meaningful executables if found, otherwise fall back to all executables
+			List<string> commands;
+			if(meaningfulExecutables.Count > 0)
 			{
-				try
+				commands = meaningfulExecutables;
+			}
+			else
+			{
+				// Only navigation commands - use all executables
+				commands = CommandExtractor.ExtractExecutables(fullCommand);
+				if(commands.Count == 0)
 				{
-					using JsonDocument doc = JsonDocument.Parse(cmdStr);
-					if(doc.RootElement.TryGetProperty("fullCommandText", out JsonElement fullCmd))
-					{
-						cmdStr = fullCmd.GetString() ?? request.Kind;
-					}
-				}
-				catch
-				{
-					// Fall through to return as-is
+					// Fallback to first word
+					commands = [fullCommand.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? fullCommand];
 				}
 			}
 
-			if(!string.IsNullOrEmpty(cmdStr))
+			// Create comma-separated list of commands for title
+			string commandList = string.Join("`, `", commands);
+
+			// Check if this is a destructive command
+			bool isDestructive = CommandExtractor.ContainsDestructiveCommand(fullCommand);
+			List<string> filesToDelete = isDestructive ? CommandExtractor.ExtractFilesToDelete(fullCommand) : [];
+
+			string requestTitle = isDestructive
+				? $"⚠️ Allow destructive command `{commandList}`"
+				: $"Allow running `{commandList}`";
+
+			if(filesToDelete.Count > 0)
 			{
-				// Extract meaningful executables (filters out cd, pwd, etc.)
-				List<string> meaningfulExecutables = CommandExtractor.ExtractMeaningfulExecutables(cmdStr);
-
-				// Use meaningful executables if found, otherwise fall back to all executables
-				List<string> commands;
-				if(meaningfulExecutables.Count > 0)
-				{
-					commands = meaningfulExecutables;
-				}
-				else
-				{
-					// Only navigation commands - use all executables
-					commands = CommandExtractor.ExtractExecutables(cmdStr);
-					if(commands.Count == 0)
-					{
-						// Fallback to first word
-						commands = [cmdStr.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? cmdStr];
-					}
-				}
-
-				// Create comma-separated list of commands for title
-				string commandList = string.Join("`, `", commands);
-
-				// Check if this is a destructive command
-				bool isDestructive = CommandExtractor.ContainsDestructiveCommand(cmdStr);
-				List<string> filesToDelete = isDestructive ? CommandExtractor.ExtractFilesToDelete(cmdStr) : [];
-
-				string requestTitle = isDestructive
-					? $"⚠️ Allow destructive command `{commandList}`"
-					: $"Allow running `{commandList}`";
-
-				if(filesToDelete.Count > 0)
-				{
-					requestTitle += $" (deletes {filesToDelete.Count} file(s))";
-				}
-
-				return new PermissionRequestModel
-				{
-					SessionId = sessionId,
-					Commands = commands,
-					RequestTitle = requestTitle,
-					Intention = intention,
-					CanApproveGlobally = !isDestructive, // Destructive commands can't be globally approved
-					CanApproveForSession = true,
-					FullRequestJson = JsonSerializer.Serialize(request),
-					IsDestructive = isDestructive,
-					FilesToDelete = [.. filesToDelete]
-				};
+				requestTitle += $" (deletes {filesToDelete.Count} file(s))";
 			}
+
+			return new PermissionRequestModel
+			{
+				SessionId = sessionId,
+				FullCommand = fullCommand,
+				Commands = commands,
+				RequestTitle = requestTitle,
+				Intention = intention,
+				CanApproveGlobally = !isDestructive, // Destructive commands can't be globally approved
+				CanApproveForSession = true,
+				FullRequestJson = JsonSerializer.Serialize(request),
+				IsDestructive = isDestructive,
+				FilesToDelete = [.. filesToDelete]
+			};
 		}
 
 		// Fallback to generic messages
 		return new PermissionRequestModel
 		{
 			SessionId = sessionId,
+			FullCommand = fullCommand,
 			Commands = [request.Kind],
 			RequestTitle = request.Kind.ToLowerInvariant() switch
 			{
@@ -291,6 +288,42 @@ public class PermissionFeature
 			{
 				_logger.LogDebug("Commands approved by global permission: {Commands}", string.Join(", ", request.Commands));
 				return PermissionDecisionEnum.Global;
+			}
+
+			// Filter out already-approved commands
+			List<string> unapprovedCommands = request.Commands
+				.Where(cmd => !_sessionPermissionFeature.HasPermission(request.SessionId, cmd) &&
+							  !_globalPermissionFeature.HasPermissions([cmd]))
+				.ToList();
+
+			// If all commands are approved, auto-approve
+			if(unapprovedCommands.Count == 0)
+			{
+				_logger.LogDebug("All commands already approved individually");
+				return PermissionDecisionEnum.Once;
+			}
+
+			// If some commands were filtered out, update the request
+			if(unapprovedCommands.Count < request.Commands.Count)
+			{
+				_logger.LogInformation("Filtered approved commands. Original: {Original}, Unapproved: {Unapproved}",
+					string.Join(", ", request.Commands), string.Join(", ", unapprovedCommands));
+
+				// Update request to only show unapproved commands
+				request.Commands.Clear();
+				request.Commands.AddRange(unapprovedCommands);
+
+				// Update title using the same format as original
+				string commandList = string.Join("`, `", unapprovedCommands);
+				request.RequestTitle = request.IsDestructive
+					? $"⚠️ Allow destructive command `{commandList}`"
+					: $"Allow running `{commandList}`";
+
+				// Re-append file deletion info if present
+				if(request.FilesToDelete.Count > 0)
+				{
+					request.RequestTitle += $" (deletes {request.FilesToDelete.Count} file(s))";
+				}
 			}
 		}
 
