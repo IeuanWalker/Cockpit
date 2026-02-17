@@ -97,7 +97,7 @@ public class PermissionFeature
 			{
 				// Extract meaningful executables (filters out cd, pwd, etc.)
 				List<string> meaningfulExecutables = CommandExtractor.ExtractMeaningfulExecutables(cmdStr);
-				
+
 				// Use the first meaningful executable, or fall back to all executables if only navigation commands
 				string shortCmd;
 				if(meaningfulExecutables.Count > 0)
@@ -115,7 +115,7 @@ public class PermissionFeature
 				bool isDestructive = CommandExtractor.ContainsDestructiveCommand(cmdStr);
 				List<string> filesToDelete = isDestructive ? CommandExtractor.ExtractFilesToDelete(cmdStr) : [];
 
-				string requestTitle = isDestructive 
+				string requestTitle = isDestructive
 					? $"⚠️ Allow destructive command `{shortCmd}`"
 					: $"Allow running `{shortCmd}`";
 
@@ -131,7 +131,7 @@ public class PermissionFeature
 					RequestTitle = requestTitle,
 					Intention = intention,
 					CanApproveGlobally = !isDestructive, // Destructive commands can't be globally approved
-					CanApproveForSession = !isDestructive, // Destructive commands require approval each time
+					CanApproveForSession = true,
 					FullRequestJson = JsonSerializer.Serialize(request),
 					IsDestructive = isDestructive,
 					FilesToDelete = [.. filesToDelete]
