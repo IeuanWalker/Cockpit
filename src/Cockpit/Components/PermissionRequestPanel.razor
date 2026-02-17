@@ -20,7 +20,7 @@
                     @GetAllowLabel(_selectedAllowOption)
                 </button>
                 <button class="btn-allow-arrow" @onclick="ToggleDropdown" aria-label="Show allow options">
-                    <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
                 </button>
                 @if(_showDropdown)
                 {
@@ -43,8 +43,8 @@
     <!-- Show what will be saved -->
     <div class="text-xs text-gray-400 mt-2 px-3 pb-2">
         <div class="mb-2">
-            <div><span class="font-semibold">Intention:</span> @Request.Intention</div>
-            <div><span class="font-semibold">Full Command:</span> <span class="text-blue-400 font-mono">@Request.FullCommand</span></div>
+            <div>@Request.Intention</div>
+            <div class="text-blue-400 font-mono">@Request.FullCommand</div>
         </div>
         @if(Request.Commands.Count == 1)
         {
