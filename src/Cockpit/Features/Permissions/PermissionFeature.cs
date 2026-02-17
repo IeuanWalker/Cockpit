@@ -51,7 +51,7 @@ public class PermissionFeature
 			return new PermissionRequestModel
 			{
 				SessionId = sessionId,
-				Command = "read",
+				Commands = ["read"],
 				RequestTitle = "Allow read file(s)",
 				Intention = intention,
 				CanApproveGlobally = true,
@@ -98,26 +98,33 @@ public class PermissionFeature
 				// Extract meaningful executables (filters out cd, pwd, etc.)
 				List<string> meaningfulExecutables = CommandExtractor.ExtractMeaningfulExecutables(cmdStr);
 
-				// Use the first meaningful executable, or fall back to all executables if only navigation commands
-				string shortCmd;
+				// Use meaningful executables if found, otherwise fall back to all executables
+				List<string> commands;
 				if(meaningfulExecutables.Count > 0)
 				{
-					shortCmd = meaningfulExecutables[0];
+					commands = meaningfulExecutables;
 				}
 				else
 				{
-					// Only navigation commands - use the first one
-					List<string> allExecutables = CommandExtractor.ExtractExecutables(cmdStr);
-					shortCmd = allExecutables.Count > 0 ? allExecutables[0] : cmdStr.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? cmdStr;
+					// Only navigation commands - use all executables
+					commands = CommandExtractor.ExtractExecutables(cmdStr);
+					if(commands.Count == 0)
+					{
+						// Fallback to first word
+						commands = [cmdStr.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? cmdStr];
+					}
 				}
+
+				// Create comma-separated list of commands for title
+				string commandList = string.Join("`, `", commands);
 
 				// Check if this is a destructive command
 				bool isDestructive = CommandExtractor.ContainsDestructiveCommand(cmdStr);
 				List<string> filesToDelete = isDestructive ? CommandExtractor.ExtractFilesToDelete(cmdStr) : [];
 
 				string requestTitle = isDestructive
-					? $"⚠️ Allow destructive command `{shortCmd}`"
-					: $"Allow running `{shortCmd}`";
+					? $"⚠️ Allow destructive command `{commandList}`"
+					: $"Allow running `{commandList}`";
 
 				if(filesToDelete.Count > 0)
 				{
@@ -127,7 +134,7 @@ public class PermissionFeature
 				return new PermissionRequestModel
 				{
 					SessionId = sessionId,
-					Command = shortCmd,
+					Commands = commands,
 					RequestTitle = requestTitle,
 					Intention = intention,
 					CanApproveGlobally = !isDestructive, // Destructive commands can't be globally approved
@@ -139,22 +146,20 @@ public class PermissionFeature
 			}
 		}
 
-		//// Fallback to generic messages
-		//return Request.ToolName.ToLowerInvariant() switch
-		//{
-		//	"write" or "edit" or "create" => "Allow file changes?",
-		//	"bash" or "powershell" or "cmd" or "shell" => "Allow terminal commands?",
-		//	"execute" => "Allow command execution?",
-		//	"git" => "Allow git operations?",
-		//	"read" => "Allow file access?",
-		//	_ => $"Allow {Request.ToolName}?"
-		//};
-
+		// Fallback to generic messages
 		return new PermissionRequestModel
 		{
 			SessionId = sessionId,
-			Command = request.Kind,
-			RequestTitle = $"Allow `{request.Kind}`?",
+			Commands = [request.Kind],
+			RequestTitle = request.Kind.ToLowerInvariant() switch
+			{
+				"write" or "edit" or "create" => "Allow file changes?",
+				"bash" or "powershell" or "cmd" or "shell" => "Allow terminal commands?",
+				"execute" => "Allow command execution?",
+				"git" => "Allow git operations?",
+				"read" => "Allow file access?",
+				_ => $"Allow {request.Kind}?"
+			},
 			Intention = intention,
 			CanApproveGlobally = true,
 			CanApproveForSession = true,
@@ -178,8 +183,8 @@ public class PermissionFeature
 
 			PermissionRequestModel permissionRequest = ToRequestModel(request, invocation.SessionId);
 
-			_logger.LogInformation("Permission request: Kind={Kind}, Command={Command}, SessionId={SessionId}",
-				request.Kind, permissionRequest.Command, session.Id);
+			_logger.LogInformation("Permission request: Kind={Kind}, Commands={Commands}, SessionId={SessionId}",
+				request.Kind, string.Join(", ", permissionRequest.Commands), session.Id);
 
 			// Check permission through our service
 			PermissionDecisionEnum decision = await CheckPermissionAsync(permissionRequest, session.IsYolo);
@@ -187,7 +192,7 @@ public class PermissionFeature
 			// Convert our decision to SDK format
 			string resultKind = decision.Equals(PermissionDecisionEnum.Denied) ? "denied-interactively-by-user" : "approved";
 
-			_logger.LogInformation("Permission decision: {Decision} for {Command}", resultKind, permissionRequest.Command);
+			_logger.LogInformation("Permission decision: {Decision} for {Commands}", resultKind, string.Join(", ", permissionRequest.Commands));
 
 			return new PermissionRequestResult { Kind = resultKind };
 		}
@@ -268,29 +273,29 @@ public class PermissionFeature
 		// YOLO mode - auto-approve everything
 		if(isYolo)
 		{
-			_logger.LogInformation("YOLO mode enabled - auto-approving: {Command}", request.Command);
+			_logger.LogInformation("YOLO mode enabled - auto-approving: {Commands}", string.Join(", ", request.Commands));
 			return PermissionDecisionEnum.Once;
 		}
 
 		lock(_permissionsLock)
 		{
-			// Priority 1: Check session allowlist
-			if(_sessionPermissionFeature.HasPermission(request.SessionId, request.Command))
+			// Priority 1: Check session allowlist - all commands must be allowed
+			if(_sessionPermissionFeature.HasPermissions(request.SessionId, request.Commands))
 			{
-				_logger.LogDebug("Command approved by session permission: {Command}", request.Command);
+				_logger.LogDebug("Commands approved by session permission: {Commands}", string.Join(", ", request.Commands));
 				return PermissionDecisionEnum.Session;
 			}
 
-			// Priority 2: Check global allowlist
-			if(_globalPermissionFeature.HasPermission(request.Command))
+			// Priority 2: Check global allowlist - all commands must be allowed
+			if(_globalPermissionFeature.HasPermissions(request.Commands))
 			{
-				_logger.LogDebug("Command approved by global permission: {Command}", request.Command);
+				_logger.LogDebug("Commands approved by global permission: {Commands}", string.Join(", ", request.Commands));
 				return PermissionDecisionEnum.Global;
 			}
 		}
 
 		// No matching permission found - need user approval
-		_logger.LogInformation("No permission found for command, requesting user approval: {NormalizedId}", request.Command);
+		_logger.LogInformation("No permission found for commands, requesting user approval: {Commands}", string.Join(", ", request.Commands));
 		return await RequestUserApprovalAsync(request);
 	}
 
@@ -342,24 +347,24 @@ public class PermissionFeature
 		}
 
 		_logger.LogInformation(
-			"Permission {Decision} for session {SessionId}: {Command}",
+			"Permission {Decision} for session {SessionId}: {Commands}",
 			decision.Equals(PermissionDecisionEnum.Denied) ? "denied" : "granted",
 			request.SessionId,
-			request.Command);
+			string.Join(", ", request.Commands));
 
 		// If approved, save permission based on scope
 		if(!decision.Equals(PermissionDecisionEnum.Denied))
 		{
-			_logger.LogDebug("Saving permission with scope: {Scope}, command: {Command}", decision, request.Command);
+			_logger.LogDebug("Saving permission with scope: {Scope}, commands: {Commands}", decision, string.Join(", ", request.Commands));
 
 			if(decision.Equals(PermissionDecisionEnum.Global))
 			{
-				_globalPermissionFeature.Add(request.Command);
+				_globalPermissionFeature.Add(request.Commands);
 				_logger.LogDebug("Added global permission");
 			}
 			else if(decision.Equals(PermissionDecisionEnum.Session))
 			{
-				_sessionPermissionFeature.Add(request.SessionId, request.Command);
+				_sessionPermissionFeature.Add(request.SessionId, request.Commands);
 				_logger.LogDebug("Added session permission");
 			}
 			// PermissionScope.Once doesn't save anything
@@ -367,7 +372,7 @@ public class PermissionFeature
 			// Check if other pending requests for this session can now be auto-approved
 			if(decision.Equals(PermissionDecisionEnum.Global) || decision.Equals(PermissionDecisionEnum.Session))
 			{
-				AutoResolveMatchingRequests(request.SessionId, request.Command, decision);
+				AutoResolveMatchingRequests(request.SessionId, request.Commands, decision);
 			}
 		}
 
@@ -383,7 +388,7 @@ public class PermissionFeature
 	/// <summary>
 	/// Auto-resolve pending requests that match a newly added permission
 	/// </summary>
-	void AutoResolveMatchingRequests(string sessionId, string command, PermissionDecisionEnum decision)
+	void AutoResolveMatchingRequests(string sessionId, List<string> commands, PermissionDecisionEnum decision)
 	{
 		if(decision.Equals(PermissionDecisionEnum.Denied))
 		{
@@ -392,7 +397,7 @@ public class PermissionFeature
 
 		List<PermissionRequestModel> pendingForSession = [.. _pendingRequests.Values.OrderBy(r => r.Requested)];
 
-		_logger.LogInformation("Checking {Count} pending requests for auto-approval with pattern: {Pattern}", pendingForSession.Count, command);
+		_logger.LogInformation("Checking {Count} pending requests for auto-approval with patterns: {Patterns}", pendingForSession.Count, string.Join(", ", commands));
 
 		foreach(PermissionRequestModel pendingRequest in pendingForSession)
 		{
@@ -402,7 +407,8 @@ public class PermissionFeature
 				continue;
 			}
 
-			if(!pendingRequest.Command.Equals(command))
+			// Check if ALL commands in the pending request are in the newly granted commands
+			if(!pendingRequest.Commands.All(cmd => commands.Contains(cmd)))
 			{
 				continue;
 			}
@@ -412,8 +418,8 @@ public class PermissionFeature
 				continue;
 			}
 
-			_logger.LogInformation("Auto-approving pending request {RequestId} ({Command}) - matches {command}",
-				pendingRequest.Id, pendingRequest.Command, command);
+			_logger.LogInformation("Auto-approving pending request {RequestId} ({Commands}) - all commands match",
+				pendingRequest.Id, string.Join(", ", pendingRequest.Commands));
 
 			// Remove from pending requests atomically before completing
 			if(_pendingRequests.TryRemove(pendingRequest.Id, out _))

@@ -42,7 +42,20 @@
 
     <!-- Show what will be saved -->
     <div class="text-xs text-gray-400 mt-2 px-3 pb-2">
-        Saving for session or globally, will add '<span class="text-blue-400 font-mono">@Request.Command</span>' to the allow list
+        @if(Request.Commands.Count == 1)
+        {
+            <span>Saving for session or globally, will add '<span class="text-blue-400 font-mono">@Request.Commands[0]</span>' to the allow list</span>
+        }
+        else
+        {
+            <span>Saving for session or globally, will add these commands to the allow list:</span>
+            <div class="ml-4 mt-1">
+                @foreach(var cmd in Request.Commands)
+                {
+                    <div class="text-blue-400 font-mono">• @cmd</div>
+                }
+            </div>
+        }
     </div>
 </div>
 

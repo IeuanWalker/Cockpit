@@ -21,11 +21,11 @@ public sealed class GlobalPermissionFeature
 	readonly Lock _permissionsLock = new();
 	public event Action? OnPermissionsChanged;
 
-	public bool HasPermission(string command)
+	public bool HasPermissions(List<string> commands)
 	{
 		lock(_permissionsLock)
 		{
-			return _commands.Contains(command);
+			return commands.All(cmd => _commands.Contains(cmd));
 		}
 	}
 
@@ -45,6 +45,29 @@ public sealed class GlobalPermissionFeature
 			{
 				_commands.Add(command);
 
+				Save();
+			}
+		}
+
+		OnPermissionsChanged?.Invoke();
+	}
+
+	public void Add(List<string> commands)
+	{
+		lock(_permissionsLock)
+		{
+			bool modified = false;
+			foreach(string command in commands)
+			{
+				if(!_commands.Contains(command))
+				{
+					_commands.Add(command);
+					modified = true;
+				}
+			}
+
+			if(modified)
+			{
 				Save();
 			}
 		}
