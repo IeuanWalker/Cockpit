@@ -99,13 +99,13 @@ public static partial class CommandExtractor
 	// PowerShell cmdlets where we keep scriptblock content
 	static readonly HashSet<string> cmdletsKeepContent = new(StringComparer.OrdinalIgnoreCase)
 	{
-		"ForEach-Object", "Where-Object", "Measure-Command"
+		"ForEach-Object", "Measure-Command"
 	};
 
 	// PowerShell cmdlets where we remove entire scriptblock
 	static readonly HashSet<string> cmdletsRemoveContent = new(StringComparer.OrdinalIgnoreCase)
 	{
-		"Invoke-Command"
+		"Invoke-Command", "Where-Object"
 	};
 
 	/// <summary>
