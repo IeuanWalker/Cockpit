@@ -5,6 +5,7 @@ using Cockpit.Features.Permissions;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
+using SessionContextModel = Cockpit.Models.SessionContext;
 
 namespace Cockpit.Services;
 
@@ -13,7 +14,6 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	readonly CopilotClientService _clientService;
 	readonly ILogger<UnifiedSessionManager> _logger;
 	readonly ToastService _toastService;
-	readonly ContextService _contextService;
 	readonly CopilotModelService _copilotModelService;
 	PermissionFeature? _permissionFeature;
 	readonly TerminalService _terminalService;
@@ -37,14 +37,12 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		CopilotClientService clientService,
 		ILogger<UnifiedSessionManager> logger,
 		ToastService toastService,
-		ContextService contextService,
 		CopilotModelService copilotModelService,
 		TerminalService terminalService)
 	{
 		_clientService = clientService;
 		_logger = logger;
 		_toastService = toastService;
-		_contextService = contextService;
 		_copilotModelService = copilotModelService;
 		_terminalService = terminalService;
 	}
@@ -52,6 +50,23 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	public void SetPermissionFeature(PermissionFeature permissionFeature)
 	{
 		_permissionFeature = permissionFeature;
+	}
+
+	static void EnsureSessionContext(ChatSession session)
+	{
+		session.Context ??= SessionContextModel.CreateDefault();
+	}
+
+	static void SetSessionContextDirectoryFromSessionPaths(ChatSession session)
+	{
+		if(!string.IsNullOrEmpty(session.WorkingDirectory))
+		{
+			session.Context.CurrentDirectory = session.WorkingDirectory;
+		}
+		else if(!string.IsNullOrEmpty(session.WorkspacePath))
+		{
+			session.Context.CurrentDirectory = session.WorkspacePath;
+		}
 	}
 
 	// Deserialize JsonElement arguments to Dictionary<string, object>
@@ -254,6 +269,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 							Status = SessionStatus.Idle,
 							Model = defaultModel,
 							ReasoningEffort = defaultModel.DefaultReasoningEffort,
+							Context = SessionContextModel.CreateDefault()
 						};
 
 						Sessions.Add(chatSession);
@@ -315,6 +331,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				Status = SessionStatus.Idle,
 				WorkspacePath = sdkSession.WorkspacePath,
 				WorkingDirectory = workingDirectory,
+				Context = SessionContextModel.CreateDefault(workingDirectory ?? sdkSession.WorkspacePath),
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				IsResumed = true
@@ -322,12 +339,6 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 
 			Sessions.Insert(0, chatSession);
 			CurrentSession = chatSession;
-
-			// Update the context service with the working directory
-			if(!string.IsNullOrEmpty(workingDirectory))
-			{
-				_contextService.SetDirectory(workingDirectory);
-			}
 
 			NotifyStateChanged();
 			return chatSession;
@@ -498,17 +509,9 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			session.Status = SessionStatus.Idle;
 			session.IsResumed = true;
 			session.WorkspacePath = sdkSession.WorkspacePath;
+			EnsureSessionContext(session);
+			SetSessionContextDirectoryFromSessionPaths(session);
 			CurrentSession = session;
-
-			// Update context service with working directory
-			if(!string.IsNullOrEmpty(session.WorkingDirectory))
-			{
-				_contextService.SetDirectory(session.WorkingDirectory);
-			}
-			else if(!string.IsNullOrEmpty(session.WorkspacePath))
-			{
-				_contextService.SetDirectory(session.WorkspacePath);
-			}
 
 			NotifyStateChanged();
 			_logger.LogInformation("Successfully resumed session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
@@ -532,19 +535,60 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 
 	public void SetCurrentSession(ChatSession session)
 	{
+		EnsureSessionContext(session);
+		SetSessionContextDirectoryFromSessionPaths(session);
 		CurrentSession = session;
 
-		// Update context service when switching sessions
-		if(!string.IsNullOrEmpty(session.WorkingDirectory))
+		NotifyStateChanged();
+	}
+
+	public void SetCurrentSessionContextDirectory(string directory)
+	{
+		if(CurrentSession is null || string.IsNullOrWhiteSpace(directory))
 		{
-			_contextService.SetDirectory(session.WorkingDirectory);
-		}
-		else if(!string.IsNullOrEmpty(session.WorkspacePath))
-		{
-			// Fallback to workspace path if no working directory is set
-			_contextService.SetDirectory(session.WorkspacePath);
+			return;
 		}
 
+		CurrentSession.Context.CurrentDirectory = directory;
+		NotifyStateChanged();
+	}
+
+	public void SetCurrentSessionContextBranch(string branch)
+	{
+		if(CurrentSession is null || string.IsNullOrWhiteSpace(branch))
+		{
+			return;
+		}
+
+		CurrentSession.Context.CurrentBranch = branch;
+		NotifyStateChanged();
+	}
+
+	public void ToggleCurrentSessionContextSkill(string skill)
+	{
+		if(CurrentSession is null || string.IsNullOrWhiteSpace(skill))
+		{
+			return;
+		}
+
+		if(!CurrentSession.Context.AgentSkills.Remove(skill))
+		{
+			CurrentSession.Context.AgentSkills.Add(skill);
+		}
+		NotifyStateChanged();
+	}
+
+	public void ToggleCurrentSessionContextCommand(string command)
+	{
+		if(CurrentSession is null || string.IsNullOrWhiteSpace(command))
+		{
+			return;
+		}
+
+		if(!CurrentSession.Context.AllowedCommands.Remove(command))
+		{
+			CurrentSession.Context.AllowedCommands.Add(command);
+		}
 		NotifyStateChanged();
 	}
 

@@ -1,3 +1,4 @@
+using Cockpit.Models;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -8,13 +9,25 @@ public partial class ContextPanel : ComponentBase, IDisposable
 {
 	DotNetObjectReference<ContextPanel>? _dotNetHelper;
 	[Inject] UIStateService UIState { get; set; } = default!;
-	[Inject] ContextService ContextService { get; set; } = default!;
+	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
+
+	SessionContext? CurrentContext => SessionManager.CurrentSession?.Context;
+	List<string> Branches => CurrentContext?.Branches ?? [];
+	List<ContextFile> EditedFiles => CurrentContext?.EditedFiles ?? [];
+	string CurrentDirectory => CurrentContext?.CurrentDirectory ?? string.Empty;
+	string CurrentBranch => CurrentContext?.CurrentBranch ?? string.Empty;
+	string McpServerUrl => CurrentContext?.McpServerUrl ?? string.Empty;
+	bool McpServerConnected => CurrentContext?.McpServerConnected ?? false;
+
+	void SetBranch(string branch) => SessionManager.SetCurrentSessionContextBranch(branch);
+	void ToggleSkill(string skill) => SessionManager.ToggleCurrentSessionContextSkill(skill);
+	bool IsSkillEnabled(string skill) => CurrentContext?.AgentSkills.Contains(skill) == true;
 
 	protected override void OnInitialized()
 	{
 		UIState.OnStateChanged += OnStateChanged;
-		ContextService.OnContextChanged += OnStateChanged;
+		SessionManager.OnStateChanged += OnStateChanged;
 
 		// Initialize files dropdown as open
 		UIState.SetDropdownOpen("files", true);
@@ -51,7 +64,7 @@ public partial class ContextPanel : ComponentBase, IDisposable
 		if(disposing)
 		{
 			UIState.OnStateChanged -= OnStateChanged;
-			ContextService.OnContextChanged -= OnStateChanged;
+			SessionManager.OnStateChanged -= OnStateChanged;
 			_dotNetHelper?.Dispose();
 		}
 	}

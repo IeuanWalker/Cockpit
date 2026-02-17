@@ -40,7 +40,6 @@ public static class MauiProgram
 		builder.Services.AddScoped<MarkdownService>();
 		builder.Services.AddSingleton<UIStateService>();
 		builder.Services.AddSingleton<TimestampService>();
-		builder.Services.AddSingleton<ContextService>();
 		builder.Services.AddSingleton<TerminalService>();
 
 		// Register Copilot SDK services

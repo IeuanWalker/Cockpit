@@ -31,7 +31,7 @@
                 </svg>
             </button>
             <div class="dropdown-content @(UIState.IsDropdownOpen("directory") ? "open" : "")">
-                <div class="px-3 py-1.5 text-xs text-vscode-text">@ContextService.CurrentDirectory</div>
+                <div class="px-3 py-1.5 text-xs text-vscode-text">@CurrentDirectory</div>
             </div>
         </div>
 
@@ -49,10 +49,10 @@
                 </svg>
             </button>
             <div class="dropdown-content @(UIState.IsDropdownOpen("branch") ? "open" : "")">
-                @foreach(var branch in ContextService.Branches)
+                @foreach(var branch in Branches)
                 {
-                    var isActive = branch == ContextService.CurrentBranch;
-                    <div class="px-3 py-1 hover:bg-vscode-hover cursor-pointer flex items-center" @onclick="() => ContextService.SetBranch(branch)">
+                    var isActive = branch == CurrentBranch;
+                    <div class="px-3 py-1 hover:bg-vscode-hover cursor-pointer flex items-center" @onclick="() => SetBranch(branch)">
                         @if(isActive)
                         {
                             <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></span>
@@ -74,14 +74,14 @@
                     <svg class="icon-xs mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-xs font-medium">Edited Files (@ContextService.EditedFiles.Count)</span>
+                    <span class="text-xs font-medium">Edited Files (@EditedFiles.Count)</span>
                 </div>
                 <svg class="w-3 h-3 transform transition-transform @(UIState.IsDropdownOpen("files") ? "rotate-180" : "")" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                 </svg>
             </button>
             <div class="dropdown-content @(UIState.IsDropdownOpen("files") ? "open" : "")">
-                @foreach(var file in ContextService.EditedFiles)
+                @foreach(var file in EditedFiles)
                 {
                     var borderColor = file.Status switch
                     {
@@ -172,11 +172,11 @@
             <div class="dropdown-content @(UIState.IsDropdownOpen("mcp") ? "open" : "")">
                 <div class="px-3 py-1.5 hover:bg-vscode-hover cursor-pointer">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs">@ContextService.McpServerUrl</span>
-                        <span class="w-2 h-2 @(ContextService.McpServerConnected ? "bg-green-500" : "bg-red-500") rounded-full"></span>
+                        <span class="text-xs">@McpServerUrl</span>
+                        <span class="w-2 h-2 @(McpServerConnected ? "bg-green-500" : "bg-red-500") rounded-full"></span>
                     </div>
                 </div>
-                <div class="px-3 py-1 text-xs secondary-text">Status: @(ContextService.McpServerConnected ? "Connected" : "Disconnected")</div>
+                <div class="px-3 py-1 text-xs secondary-text">Status: @(McpServerConnected ? "Connected" : "Disconnected")</div>
                 <div class="px-3 pb-2">
                     <button class="text-xs hover:underline" style="color: var(--accent-color);">Configure...</button>
                 </div>
@@ -200,7 +200,7 @@
                 @foreach(var skill in new[] { "Code Generation", "File Operations", "Git Operations", "Terminal Access", "Web Search" })
                 {
                     <div class="px-3 py-1 flex items-center text-xs">
-                        <input type="checkbox" checked="@ContextService.IsSkillEnabled(skill)" @onchange="() => ContextService.ToggleSkill(skill)" class="mr-2" />
+                        <input type="checkbox" checked="@IsSkillEnabled(skill)" @onchange="() => ToggleSkill(skill)" class="mr-2" />
                         <span>@skill</span>
                     </div>
                 }

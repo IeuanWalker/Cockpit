@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Cockpit.Features.Permissions.Models;
 using GitHub.Copilot.SDK;
+using SessionContextModel = Cockpit.Models.SessionContext;
 
 namespace Cockpit.Models;
 
@@ -14,6 +15,7 @@ public class ChatSession
 	public List<ChatMessage> Messages { get; set; } = [];
 	public string? WorkspacePath { get; set; }
 	public string? WorkingDirectory { get; set; }
+	public SessionContextModel Context { get; set; } = SessionContextModel.CreateDefault();
 	public required ModelInfo Model { get; set; }
 	public string? ReasoningEffort { get; set; }
 	public ActivityGroup? ActiveWorkingGroup { get; set; }
