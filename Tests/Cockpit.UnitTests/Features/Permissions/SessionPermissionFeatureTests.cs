@@ -1,7 +1,9 @@
+using System.Text.Json;
 using Cockpit.Features.Permissions;
 using Cockpit.Models;
 using Cockpit.Services;
 using GitHub.Copilot.SDK;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Permissions;
@@ -14,7 +16,7 @@ public class SessionPermissionFeatureTests
 	{
 		readonly List<ChatSession> _sessions = [];
 
-		public void AddSession(string sessionId)
+		public void AddSession(string sessionId, string? workspacePath = null)
 		{
 			if(_sessions.Any(s => s.Id == sessionId))
 			{
@@ -24,7 +26,8 @@ public class SessionPermissionFeatureTests
 			_sessions.Add(new ChatSession
 			{
 				Id = sessionId,
-				Model = testModel
+				Model = testModel,
+				WorkspacePath = workspacePath
 			});
 		}
 
@@ -335,5 +338,79 @@ public class SessionPermissionFeatureTests
 
 		// Assert
 		feature.GetAll(sessionId).ShouldBeEmpty();
+	}
+
+	[Fact]
+	public void Add_WithWorkspacePath_PersistsCommandsToWorkspaceFile()
+	{
+		// Arrange
+		const string sessionId = "session1";
+		string workspacePath = Path.Combine(Path.GetTempPath(), $"cockpit-permissions-{Guid.NewGuid():N}");
+		Directory.CreateDirectory(workspacePath);
+
+		try
+		{
+			TestSessionStateProvider stateProvider = new();
+			stateProvider.AddSession(sessionId, workspacePath);
+			SessionPermissionFeature feature = new(stateProvider);
+
+			// Act
+			feature.Add(sessionId, "npm");
+
+			// Assert
+			string permissionsFilePath = Path.Combine(workspacePath, "Cockpit", "session-commands.json");
+			File.Exists(permissionsFilePath).ShouldBeTrue();
+			List<string>? storedCommands = JsonSerializer.Deserialize<List<string>>(File.ReadAllText(permissionsFilePath));
+			storedCommands.ShouldNotBeNull();
+			storedCommands.ShouldContain("npm");
+		}
+		finally
+		{
+			if(Directory.Exists(workspacePath))
+			{
+				Directory.Delete(workspacePath, recursive: true);
+			}
+		}
+	}
+
+	[Fact]
+	public void TryRestoreSessionCommands_WhenFileExists_LoadsCommandsIntoContext()
+	{
+		// Arrange
+		const string sessionId = "session1";
+		string workspacePath = Path.Combine(Path.GetTempPath(), $"cockpit-permissions-{Guid.NewGuid():N}");
+		string permissionsDirectory = Path.Combine(workspacePath, "Cockpit");
+		string permissionsFilePath = Path.Combine(permissionsDirectory, "session-commands.json");
+		Directory.CreateDirectory(permissionsDirectory);
+		File.WriteAllText(permissionsFilePath, JsonSerializer.Serialize(new[] { "npm", "git" }));
+
+		ChatSession session = new()
+		{
+			Id = sessionId,
+			Model = testModel,
+			WorkspacePath = workspacePath,
+			Context = Cockpit.Models.SessionContext.CreateDefault()
+		};
+
+		try
+		{
+			// Act
+			bool restored = SessionPermissionFeature.TryRestoreSessionCommands(session, NullLogger.Instance);
+
+			// Assert
+			restored.ShouldBeTrue();
+			lock(session.Context.SessionPermissionCommandsLock)
+			{
+				session.Context.SessionPermissionCommands.ShouldContain("npm");
+				session.Context.SessionPermissionCommands.ShouldContain("git");
+			}
+		}
+		finally
+		{
+			if(Directory.Exists(workspacePath))
+			{
+				Directory.Delete(workspacePath, recursive: true);
+			}
+		}
 	}
 }

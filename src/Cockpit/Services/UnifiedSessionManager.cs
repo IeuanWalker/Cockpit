@@ -511,6 +511,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			session.WorkspacePath = sdkSession.WorkspacePath;
 			EnsureSessionContext(session);
 			SetSessionContextDirectoryFromSessionPaths(session);
+			SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 			CurrentSession = session;
 
 			NotifyStateChanged();
