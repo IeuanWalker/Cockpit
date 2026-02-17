@@ -1,0 +1,8 @@
+﻿@for(int i = 0; i < 5; i++)
+{
+    var isEven = i % 2 == 0;
+    <div class="session-item px-3 py-2.5 border-l-2 border-transparent">
+        <div class="skeleton-title animate-pulse" style="width: @(isEven ? "75%" : "55%");"></div>
+        <div class="skeleton-date animate-pulse" style="width: @(isEven ? "35%" : "25%");"></div>
+    </div>
+}
