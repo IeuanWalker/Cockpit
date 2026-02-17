@@ -74,6 +74,9 @@ public static class MauiProgram
 }
 
 #if NET10_0 && !MACCATALYST && !WINDOWS
+/// <summary>
+/// !Important: This is required to allow unit tests to work
+/// </summary>
 public class Program
 {
 	public static void Main(string[] args)
