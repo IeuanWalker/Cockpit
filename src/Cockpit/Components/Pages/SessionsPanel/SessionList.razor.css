@@ -1,0 +1,7 @@
+.session-delete-btn {
+    transition: opacity 0.2s ease-in-out;
+}
+
+.session-item:hover .session-delete-btn {
+    opacity: 1;
+}

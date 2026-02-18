@@ -1,0 +1,23 @@
+#chatMessages {
+    overflow-x: hidden;
+    min-width: 0;
+}
+
+    #chatMessages .max-w-2xl {
+        min-width: 0;
+        width: 100%;
+    }
+
+.chat-bubble {
+    background-color: var(--button-bg);
+    color: white;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    display: block;
+    min-width: 0;
+}
+
+    .chat-bubble p {
+        margin: 0;
+    }

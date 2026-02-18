@@ -1,0 +1,12 @@
+.skeleton-title {
+    height: 1.1rem;
+    border-radius: 0.4rem;
+    background: var(--border-color, #2B2B2B);
+    margin-bottom: 0.4rem;
+}
+
+.skeleton-date {
+    height: 0.8rem;
+    border-radius: 0.4rem;
+    background: var(--border-color, #2B2B2B);
+}

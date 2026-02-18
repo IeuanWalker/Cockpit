@@ -1,0 +1,76 @@
+.settings-popup-shell {
+    width: 42rem;
+    max-width: calc(100vw - 2.5rem);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.settings-popup-content {
+    display: flex;
+    min-height: 22rem;
+}
+
+.settings-menu {
+    width: 14rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1rem 0.75rem;
+    background-color: var(--bg-color);
+}
+
+.settings-menu-item {
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background-color: transparent;
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+    .settings-menu-item:hover {
+        background-color: var(--hover-color);
+    }
+
+    .settings-menu-item.active {
+        background-color: var(--active-color);
+    }
+
+.settings-panel {
+    flex: 1;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    overflow-y: auto;
+    max-height: 26rem;
+}
+
+    .settings-panel::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .settings-panel::-webkit-scrollbar-track {
+        background: var(--sidebar-color);
+    }
+
+    .settings-panel::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 0px;
+    }
+
+        .settings-panel::-webkit-scrollbar-thumb:hover {
+            background: var(--hover-color);
+        }
+
+:deep(.settings-section) {
+    padding: 0.25rem 0;
+}
+
+:deep(.settings-section-empty) {
+    min-height: 2.5rem;
+}
