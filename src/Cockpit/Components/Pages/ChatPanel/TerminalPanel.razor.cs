@@ -14,6 +14,7 @@ public partial class TerminalPanel : IDisposable
 	string _terminalId = string.Empty;
 	bool _isSessionActive = false;
 	bool _hasRestoredBuffer = false;
+	bool _isTerminalInitialized = false;
 	bool _isFullscreen = false;
 	string _containerStyle = "height: 30%; display: flex; flex-direction: column; z-index: 50;";
 	string _containerClasses = string.Empty;
@@ -40,6 +41,24 @@ public partial class TerminalPanel : IDisposable
 		_terminalId = $"terminal-{SessionId}";
 		TerminalService.OnDataReceived += OnTerminalData;
 		UIState.OnStateChanged += OnUIStateChanged;
+	}
+
+	protected override void OnParametersSet()
+	{
+		string nextTerminalId = $"terminal-{SessionId}";
+		if(_terminalId != nextTerminalId)
+		{
+			_terminalId = nextTerminalId;
+			_isTerminalInitialized = false;
+			_hasRestoredBuffer = false;
+		}
+
+		if(!IsOpen)
+		{
+			_isSessionActive = false;
+			_hasRestoredBuffer = false;
+			_isTerminalInitialized = false;
+		}
 	}
 
 	void OnUIStateChanged()
@@ -73,7 +92,7 @@ public partial class TerminalPanel : IDisposable
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
-		if(!firstRender || !IsOpen || _terminal is null)
+		if(!IsOpen || _terminal is null || _isTerminalInitialized || string.IsNullOrWhiteSpace(SessionId))
 		{
 			return;
 		}
@@ -103,6 +122,7 @@ public partial class TerminalPanel : IDisposable
 		}
 
 		_isSessionActive = true;
+		_isTerminalInitialized = true;
 
 		await _terminal.Focus();
 		await Resize();

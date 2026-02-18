@@ -1,0 +1,45 @@
+@namespace Cockpit.Components.Pages.ChatPanel
+
+<div class="border-t border-vscode-border bg-vscode-sidebar p-3">
+    <div class="relative">
+        @if(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)
+        {
+            <div class="absolute inset-0 bg-black bg-opacity-30 z-10 rounded-lg cursor-not-allowed"></div>
+        }
+        <div class="bg-vscode-bg border border-vscode-border rounded-lg overflow-visible">
+            <div class="flex items-stretch">
+                <div class="flex-1">
+                    <textarea id="chatInput" @bind="_chatInput" @bind:event="oninput" @bind:after="OnTextareaInput" @onkeydown="HandleKeyDown"
+                              class="w-full bg-transparent text-vscode-text px-3 py-2 resize-none focus:outline-none scrollbar-thin"
+                              rows="1" placeholder="Ask Copilot anything..." disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)"></textarea>
+                </div>
+                <div class="flex items-end space-x-1 p-2 border-l border-vscode-border self-stretch">
+                    <SpeechToTextControl @bind-ChatInput="_chatInput"
+                                         Disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)" />
+                    <button @onclick="SendMessage" class="btn-primary p-1.5 rounded" title="Send" disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
+                        <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="flex items-center justify-between px-3 py-1.5 border-t border-vscode-border">
+                <div class="flex items-center space-x-2">
+                    <button class="p-1 hover:bg-vscode-hover rounded" title="Attach file" disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
+                        <svg class="icon-xs secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                    </button>
+                    <button class="p-1 hover:bg-vscode-hover rounded" title="Code snippet" disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
+                        <svg class="icon-xs secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <ModelReasoningControl />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,10 +1,12 @@
+using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
+using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Components.Pages.ChatPanel;
 
-public partial class PermissionRequestPanel
+public partial class PermissionRequestPanel : ComponentBase, IDisposable
 {
     bool _showDropdown = false;
     PermissionDecisionEnum _selectedAllowOption = PermissionDecisionEnum.Once;
@@ -30,24 +32,53 @@ public partial class PermissionRequestPanel
         StateHasChanged();
     }
 
-    [Parameter, EditorRequired]
-    public required PermissionRequestModel Request { get; set; }
+    [Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
 
-    [Parameter]
-    public EventCallback<PermissionDecisionEnum> OnPermissionDecision { get; set; }
+    [Inject] PermissionFeature _permissionFeature { get; set; } = default!;
 
     [Inject]
     ILogger<PermissionRequestPanel> Logger { get; set; } = default!;
 
     bool _showDetailsPopup = false;
+    PermissionRequestModel? Request => _sessionManager.CurrentSession?.PendingPermissionRequests?.Values.FirstOrDefault();
 
-	async Task OnDecision(PermissionDecisionEnum decision)
+	protected override void OnInitialized()
 	{
-		Logger.LogInformation("OnDecision called: isApproved={IsApproved}, decision={Scope}, sessionId={SessionId}",
-			!decision.Equals(PermissionDecisionEnum.Denied), decision, Request.SessionId);
+		_sessionManager.OnStateChanged += OnStateChanged;
+	}
 
-		Logger.LogInformation("Invoking OnPermissionDecision callback");
-		await OnPermissionDecision.InvokeAsync(decision);
-		Logger.LogInformation("OnPermissionDecision callback completed");
+	void OnStateChanged()
+	{
+		InvokeAsync(StateHasChanged);
+	}
+
+	Task OnDecision(PermissionDecisionEnum decision)
+	{
+		PermissionRequestModel? currentRequest = Request;
+		if(currentRequest is null)
+		{
+			Logger.LogWarning("OnDecision called but no pending permission request was found");
+			return Task.CompletedTask;
+		}
+
+		Logger.LogInformation("OnDecision called: isApproved={IsApproved}, decision={Scope}, sessionId={SessionId}",
+			!decision.Equals(PermissionDecisionEnum.Denied), decision, currentRequest.SessionId);
+
+		_permissionFeature.ResolvePermissionRequest(currentRequest.Id, decision);
+		return Task.CompletedTask;
+	}
+
+	public void Dispose()
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void Dispose(bool disposing)
+	{
+		if(disposing)
+		{
+			_sessionManager.OnStateChanged -= OnStateChanged;
+		}
 	}
 }
