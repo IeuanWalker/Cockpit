@@ -12,6 +12,12 @@
                 <Opperations Group="message.ActivityGroup" />
             }
             @* Typing indicator removed - using thinking panel instead *@
+            else if(message.Type == MessageType.Error)
+            {
+                <div class="error-message">
+                    <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                </div>
+            }
             else if(message.IsUser)
             {
                 <!-- User Message -->

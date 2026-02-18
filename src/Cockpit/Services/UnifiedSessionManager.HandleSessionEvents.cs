@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -56,12 +57,48 @@ public partial class UnifiedSessionManager
 					HandleToolComplete(session, toolComplete);
 					break;
 
-				case SessionIdleEvent:
-					HandleSessionIdle(session);
+				case SessionIdleEvent idleEvt:
+					HandleSessionIdle(session, idleEvt.Timestamp);
 					break;
 
 				case SessionErrorEvent error:
 					HandleSessionError(session, error);
+					break;
+
+				case SessionTitleChangedEvent titleChanged:
+					HandleSessionTitleChanged(session, titleChanged);
+					break;
+
+				case AbortEvent abort:
+					HandleAbort(session, abort);
+					break;
+
+				case SessionShutdownEvent shutdown:
+					HandleSessionShutdown(session, shutdown);
+					break;
+
+				case SessionWarningEvent warning:
+					HandleSessionWarning(session, warning);
+					break;
+
+				case ToolExecutionProgressEvent toolProgress:
+					HandleToolProgress(session, toolProgress);
+					break;
+
+				case ToolExecutionPartialResultEvent toolPartial:
+					HandleToolPartialResult(session, toolPartial);
+					break;
+
+				case SubagentStartedEvent subagentStarted:
+					HandleSubagentStarted(session, subagentStarted);
+					break;
+
+				case SubagentCompletedEvent subagentCompleted:
+					HandleSubagentCompleted(session, subagentCompleted);
+					break;
+
+				case SubagentFailedEvent subagentFailed:
+					HandleSubagentFailed(session, subagentFailed);
 					break;
 
 				case SessionCompactionStartEvent:
@@ -70,12 +107,116 @@ public partial class UnifiedSessionManager
 
 				case SessionCompactionCompleteEvent compaction:
 					_logger.LogInformation("Session {SessionId} completed compaction: {TokensRemoved} tokens removed",
-						sessionId, compaction.Data?.TokensRemoved);
+					sessionId, compaction.Data?.TokensRemoved);
+					break;
+
+				// Tier 2 — informational logging only
+				case AssistantIntentEvent intent:
+					_logger.LogDebug("Session {SessionId} assistant intent: {Intent}", sessionId, intent.Data?.Intent);
+					break;
+
+				case AssistantTurnEndEvent turnEnd:
+					_logger.LogDebug("Session {SessionId} assistant turn ended: {TurnId}", sessionId, turnEnd.Data?.TurnId);
+					break;
+
+				case AssistantUsageEvent usage:
+					_logger.LogDebug("Session {SessionId} usage — model: {Model}, in: {In}, out: {Out}, cost: {Cost}",
+					sessionId, usage.Data?.Model, usage.Data?.InputTokens, usage.Data?.OutputTokens, usage.Data?.Cost);
+					break;
+
+				case SessionInfoEvent info:
+					_logger.LogInformation("Session {SessionId} info [{InfoType}]: {Message}",
+					sessionId, info.Data?.InfoType, info.Data?.Message);
+					break;
+
+				case SessionStartEvent start:
+					_logger.LogInformation("Session {SessionId} started — producer: {Producer}, model: {Model}",
+					sessionId, start.Data?.Producer, start.Data?.SelectedModel);
+					break;
+
+				case SessionResumeEvent resume:
+					_logger.LogInformation("Session {SessionId} resumed at {ResumeTime}, {EventCount} prior events",
+					sessionId, resume.Data?.ResumeTime, resume.Data?.EventCount);
+					break;
+
+				case SessionContextChangedEvent ctxChanged:
+					_logger.LogInformation("Session {SessionId} context changed — cwd: {Cwd}, repo: {Repo}, branch: {Branch}",
+					sessionId, ctxChanged.Data?.Cwd, ctxChanged.Data?.Repository, ctxChanged.Data?.Branch);
+					break;
+
+				case SessionModeChangedEvent modeChanged:
+					_logger.LogInformation("Session {SessionId} mode changed: {Prev} → {New}",
+					sessionId, modeChanged.Data?.PreviousMode, modeChanged.Data?.NewMode);
+					break;
+
+				case SessionModelChangeEvent modelChange:
+					_logger.LogInformation("Session {SessionId} model changed: {Prev} → {New}",
+					sessionId, modelChange.Data?.PreviousModel, modelChange.Data?.NewModel);
+					break;
+
+				case SessionHandoffEvent handoff:
+					_logger.LogInformation("Session {SessionId} handoff — source: {Source}, summary: {Summary}",
+					sessionId, handoff.Data?.SourceType, handoff.Data?.Summary);
+					break;
+
+				case SessionTruncationEvent truncation:
+					_logger.LogInformation("Session {SessionId} truncated — {MessagesRemoved} messages, {TokensRemoved} tokens removed",
+					sessionId, truncation.Data?.MessagesRemovedDuringTruncation, truncation.Data?.TokensRemovedDuringTruncation);
+					break;
+
+				case SessionUsageInfoEvent usageInfo:
+					_logger.LogDebug("Session {SessionId} usage info — {Current}/{Limit} tokens, {Messages} messages",
+					sessionId, usageInfo.Data?.CurrentTokens, usageInfo.Data?.TokenLimit, usageInfo.Data?.MessagesLength);
+					break;
+
+				case SessionPlanChangedEvent planChanged:
+					_logger.LogDebug("Session {SessionId} plan changed: {Operation}", sessionId, planChanged.Data?.Operation);
+					break;
+
+				case SessionSnapshotRewindEvent snapshotRewind:
+					_logger.LogInformation("Session {SessionId} snapshot rewind — {EventsRemoved} events removed",
+					sessionId, snapshotRewind.Data?.EventsRemoved);
+					break;
+
+				case SessionWorkspaceFileChangedEvent fileChanged:
+					_logger.LogDebug("Session {SessionId} workspace file {Operation}: {Path}",
+					sessionId, fileChanged.Data?.Operation, fileChanged.Data?.Path);
+					break;
+
+				case HookStartEvent hookStart:
+					_logger.LogDebug("Session {SessionId} hook started — type: {HookType}, id: {Id}",
+					sessionId, hookStart.Data?.HookType, hookStart.Data?.HookInvocationId);
+					break;
+
+				case HookEndEvent hookEnd:
+					_logger.LogInformation("Session {SessionId} hook ended — type: {HookType}, success: {Success}",
+					sessionId, hookEnd.Data?.HookType, hookEnd.Data?.Success);
+					break;
+
+				case SkillInvokedEvent skill:
+					_logger.LogInformation("Session {SessionId} skill invoked: {Name}", sessionId, skill.Data?.Name);
+					break;
+
+				case SubagentSelectedEvent subagentSelected:
+					_logger.LogInformation("Session {SessionId} subagent selected: {AgentName}", sessionId, subagentSelected.Data?.AgentName);
+					break;
+
+				case SystemMessageEvent systemMsg:
+					_logger.LogDebug("Session {SessionId} system message [{Role}]", sessionId, systemMsg.Data?.Role);
+					break;
+
+				case ToolUserRequestedEvent toolUserRequested:
+					_logger.LogDebug("Session {SessionId} tool user requested: {ToolName} (handled by permission callback)",
+					sessionId, toolUserRequested.Data?.ToolName);
+					break;
+
+				case PendingMessagesModifiedEvent:
+					_logger.LogDebug("Session {SessionId} pending messages modified", sessionId);
 					break;
 
 				default:
-					Debug.WriteLine($"UNHANDLED EVENT TYPE: {evt.GetType().Name} - {evt.Type}");
-					break;
+_logger.LogDebug("Unhandled event type {EventType} for session {SessionId}", evt.Type, sessionId);
+break;
 			}
 		}
 		catch(Exception ex)
@@ -95,12 +236,18 @@ public partial class UnifiedSessionManager
 			return;
 		}
 
+		// Safety net: finalize any prior group not yet closed by SessionIdleEvent
+		if(session.ActiveWorkingGroup is not null)
+		{
+			HandleSessionIdle(session);
+		}
+
 		ChatMessage message = new()
 		{
 			Id = Guid.NewGuid().ToString(),
 			Content = evt.Data.Content ?? string.Empty,
 			IsUser = true,
-			Timestamp = DateTime.Now,
+			Timestamp = evt.Timestamp,
 			Type = MessageType.Text,
 			EventType = evt.Type
 		};
@@ -139,7 +286,7 @@ public partial class UnifiedSessionManager
 					Id = messageId,
 					Content = string.Empty,
 					IsUser = false,
-					Timestamp = DateTime.Now,
+					Timestamp = evt.Timestamp,
 					Type = MessageType.Text,
 					IsStreaming = true,
 					IsComplete = false,
@@ -245,7 +392,7 @@ public partial class UnifiedSessionManager
 					Id = messageId,
 					Type = ThinkingEventType.Message,
 					Message = content,
-					Timestamp = DateTime.Now
+					Timestamp = evt.Timestamp.LocalDateTime
 				});
 				Debug.WriteLine("Added intermediate message to thinking group");
 			}
@@ -281,7 +428,7 @@ public partial class UnifiedSessionManager
 				Id = messageId,
 				Content = content,
 				IsUser = false,
-				Timestamp = DateTime.Now,
+				Timestamp = evt.Timestamp,
 				Type = MessageType.Text,
 				IsComplete = true,
 				EventType = evt.Type
@@ -376,7 +523,7 @@ public partial class UnifiedSessionManager
 		{
 			session.ActiveWorkingGroup = new ActivityGroup
 			{
-				StartTime = DateTime.Now,
+				StartTime = evt.Timestamp.LocalDateTime,
 				Status = GroupStatus.Running,
 				IsExpanded = true
 			};
@@ -415,16 +562,18 @@ public partial class UnifiedSessionManager
 			ToolName = evt.Data.ToolName ?? "unknown",
 			ToolCallId = evt.Data.ToolCallId,
 			InputParameters = DeserializeArguments(evt.Data.Arguments),
-			StartTime = DateTime.Now,
+			StartTime = evt.Timestamp.LocalDateTime,
 			Status = ToolStatus.Running
 		};
+
+		toolExec.RawEvents.Add(SerializeEvent(evt));
 
 		// Add as a thinking event (chronologically ordered with messages)
 		session.ActiveWorkingGroup.AddEvent(new ThinkingEvent
 		{
 			Type = ThinkingEventType.Tool,
 			Tool = toolExec,
-			Timestamp = DateTime.Now
+			Timestamp = evt.Timestamp.LocalDateTime
 		});
 
 		session.LastActivity = DateTime.Now;
@@ -457,8 +606,9 @@ public partial class UnifiedSessionManager
 		{
 			toolExec.Status = ToolStatus.Success;
 			toolExec.IsSuccess = true;
-			toolExec.EndTime = DateTime.Now;
+			toolExec.EndTime = evt.Timestamp.LocalDateTime;
 			toolExec.Output = evt.Data.Result?.ToString();
+			toolExec.RawEvents.Add(SerializeEvent(evt));
 		}
 
 		session.LastActivity = DateTime.Now;
@@ -470,8 +620,9 @@ public partial class UnifiedSessionManager
 		}
 	}
 
-	void HandleSessionIdle(ChatSession session)
+	void HandleSessionIdle(ChatSession session, DateTimeOffset? eventTimestamp = null)
 	{
+		DateTime now = eventTimestamp?.LocalDateTime ?? DateTime.Now;
 		Debug.WriteLine("HandleSessionIdle - Finalizing activity group");
 
 		if(session.ActiveWorkingGroup is not null && session.ActiveWorkingGroup.Tools.Any())
@@ -510,7 +661,7 @@ public partial class UnifiedSessionManager
 			}
 
 			group.Status = GroupStatus.Complete;
-			group.EndTime = DateTime.Now;
+			group.EndTime = now;
 			group.IsExpanded = false;
 
 			// Extract the last message event as the summary (but not "Session stopped")
@@ -529,7 +680,7 @@ public partial class UnifiedSessionManager
 					Id = lastMessage.Id ?? Guid.NewGuid().ToString(),
 					Content = string.Empty,
 					IsUser = false,
-					Timestamp = DateTime.Now,
+					Timestamp = now,
 					Type = MessageType.Text,
 					IsStreaming = true,
 					IsComplete = false
@@ -559,7 +710,7 @@ public partial class UnifiedSessionManager
 				{
 					Type = ThinkingEventType.Message,
 					Message = "Session stopped",
-					Timestamp = DateTime.Now
+					Timestamp = now
 				});
 			}
 
@@ -678,6 +829,229 @@ public partial class UnifiedSessionManager
 		}
 	}
 
+	void HandleSessionTitleChanged(ChatSession session, SessionTitleChangedEvent evt)
+	{
+		session.Title = evt.Data.Title;
+		session.LastActivity = DateTime.Now;
+
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
+	}
+
+	void HandleAbort(ChatSession session, AbortEvent evt)
+	{
+		_logger.LogWarning("Session {SessionId} aborted: {Reason}", session.Id, evt.Data.Reason);
+
+		if(session.ActiveWorkingGroup is not null)
+		{
+			session.ActiveWorkingGroup.Status = GroupStatus.Error;
+			session.ActiveWorkingGroup.EndTime = DateTime.Now;
+			session.ActiveWorkingGroup = null;
+		}
+
+		session.Status = SessionStatus.Idle;
+		session.LastActivity = DateTime.Now;
+
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
+	}
+
+	void HandleSessionShutdown(ChatSession session, SessionShutdownEvent evt)
+	{
+		_logger.LogInformation("Session {SessionId} shutdown — type: {ShutdownType}, requests: {Requests}, duration: {Duration}ms",
+			session.Id, evt.Data.ShutdownType, evt.Data.TotalPremiumRequests, evt.Data.TotalApiDurationMs);
+
+		if(session.ActiveWorkingGroup is not null)
+		{
+			session.ActiveWorkingGroup.Status = GroupStatus.Complete;
+			session.ActiveWorkingGroup.EndTime = DateTime.Now;
+			session.ActiveWorkingGroup = null;
+		}
+
+		session.Status = SessionStatus.Idle;
+		session.LastActivity = DateTime.Now;
+
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
+	}
+
+	void HandleSessionWarning(ChatSession session, SessionWarningEvent evt)
+	{
+		_logger.LogWarning("Session {SessionId} warning [{WarningType}]: {Message}",
+			session.Id, evt.Data.WarningType, evt.Data.Message);
+
+		ChatMessage message = new()
+		{
+			Id = Guid.NewGuid().ToString(),
+			Content = evt.Data.Message,
+			IsUser = false,
+			Timestamp = DateTime.Now,
+			Type = MessageType.Error,
+			EventType = evt.Type
+		};
+
+		session.Messages.Add(message);
+		session.LastActivity = DateTime.Now;
+
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
+	}
+
+	void HandleToolProgress(ChatSession session, ToolExecutionProgressEvent evt)
+	{
+		if(session.ActiveWorkingGroup is null)
+		{
+			return;
+		}
+
+		List<ThinkingEvent> events = session.ActiveWorkingGroup.GetEventsSnapshot();
+		ToolExecution? toolExec = events
+			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
+			.Select(e => e.Tool!)
+			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
+
+		if(toolExec is not null)
+		{
+			toolExec.ProgressMessage = evt.Data.ProgressMessage;
+			toolExec.RawEvents.Add(SerializeEvent(evt));
+			session.LastActivity = DateTime.Now;
+
+			if(session == CurrentSession)
+			{
+				NotifyStateChanged();
+			}
+		}
+	}
+
+	void HandleToolPartialResult(ChatSession session, ToolExecutionPartialResultEvent evt)
+	{
+		if(session.ActiveWorkingGroup is null)
+		{
+			return;
+		}
+
+		List<ThinkingEvent> events = session.ActiveWorkingGroup.GetEventsSnapshot();
+		ToolExecution? toolExec = events
+			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
+			.Select(e => e.Tool!)
+			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
+
+		if(toolExec is not null)
+		{
+			toolExec.Output = (toolExec.Output ?? string.Empty) + evt.Data.PartialOutput;
+			session.LastActivity = DateTime.Now;
+
+			if(session == CurrentSession)
+			{
+				NotifyStateChanged();
+			}
+		}
+	}
+
+	void HandleSubagentStarted(ChatSession session, SubagentStartedEvent evt)
+	{
+		if(session.ActiveWorkingGroup is null)
+		{
+			session.ActiveWorkingGroup = new ActivityGroup
+			{
+				StartTime = evt.Timestamp.LocalDateTime,
+				Status = GroupStatus.Running,
+				IsExpanded = true
+			};
+		}
+
+		ToolExecution subagentExec = new()
+		{
+			ToolName = evt.Data.AgentDisplayName ?? string.Empty,
+			ToolCallId = evt.Data.ToolCallId,
+			StartTime = evt.Timestamp.LocalDateTime,
+			Status = ToolStatus.Running
+		};
+
+		subagentExec.RawEvents.Add(SerializeEvent(evt));
+
+		session.ActiveWorkingGroup.AddEvent(new ThinkingEvent
+		{
+			Type = ThinkingEventType.Tool,
+			Tool = subagentExec,
+			Timestamp = evt.Timestamp.LocalDateTime
+		});
+
+		session.LastActivity = DateTime.Now;
+
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
+	}
+
+	void HandleSubagentCompleted(ChatSession session, SubagentCompletedEvent evt)
+	{
+		if(session.ActiveWorkingGroup is null)
+		{
+			return;
+		}
+
+		List<ThinkingEvent> events = session.ActiveWorkingGroup.GetEventsSnapshot();
+		ToolExecution? subagentExec = events
+			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
+			.Select(e => e.Tool!)
+			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
+
+		if(subagentExec is not null)
+		{
+			subagentExec.Status = ToolStatus.Success;
+			subagentExec.IsSuccess = true;
+			subagentExec.EndTime = DateTime.Now;
+			subagentExec.RawEvents.Add(SerializeEvent(evt));
+		}
+
+		session.LastActivity = DateTime.Now;
+
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
+	}
+
+	void HandleSubagentFailed(ChatSession session, SubagentFailedEvent evt)
+	{
+		if(session.ActiveWorkingGroup is null)
+		{
+			return;
+		}
+
+		List<ThinkingEvent> events = session.ActiveWorkingGroup.GetEventsSnapshot();
+		ToolExecution? subagentExec = events
+			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
+			.Select(e => e.Tool!)
+			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
+
+		if(subagentExec is not null)
+		{
+			subagentExec.Status = ToolStatus.Error;
+			subagentExec.IsSuccess = false;
+			subagentExec.EndTime = DateTime.Now;
+			subagentExec.Output = evt.Data.Error;
+			subagentExec.RawEvents.Add(SerializeEvent(evt));
+		}
+
+		session.LastActivity = DateTime.Now;
+
+		if(session == CurrentSession)
+		{
+			NotifyStateChanged();
+		}
+	}
+
 	async Task StreamSummaryTextAsync(ChatSession session, ChatMessage message, string fullText)
 	{
 		const int chunkSize = 3; // Characters per tick
@@ -704,6 +1078,19 @@ public partial class UnifiedSessionManager
 		if(session == CurrentSession)
 		{
 			NotifyStateChanged();
+		}
+	}
+	static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+
+	static string SerializeEvent(SessionEvent evt)
+	{
+		try
+		{
+			return JsonSerializer.Serialize(evt, evt.GetType(), _jsonOptions);
+		}
+		catch
+		{
+			return evt.ToString() ?? string.Empty;
 		}
 	}
 }

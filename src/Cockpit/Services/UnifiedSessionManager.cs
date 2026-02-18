@@ -114,125 +114,6 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		return $"{tools.Count} operations ({preview})";
 	}
 
-	void FinalizeHistoryGroup(ChatSession session, ref ActivityGroup? group, ref ChatMessage? initialMessage)
-	{
-		if(group is null || !group.Tools.Any())
-		{
-			group = null;
-			return;
-		}
-
-		ActivityGroup g = group; // Capture for use in lambdas
-		g.Status = GroupStatus.Complete;
-		g.EndTime = g.GetEventsSnapshot().LastOrDefault()?.Timestamp ?? g.StartTime;
-		g.IsExpanded = false;
-
-		// Mark any still-running tools as stopped (Error status) - handles incomplete resumed sessions
-		bool hasStoppedTools = false;
-		foreach(ToolExecution tool in g.Tools)
-		{
-			if(tool.Status == ToolStatus.Running)
-			{
-				tool.Status = ToolStatus.Error;
-				tool.EndTime = g.EndTime;
-				tool.IsSuccess = false;
-				hasStoppedTools = true;
-			}
-		}
-
-		// Extract the last message as the summary (same logic as HandleSessionIdle)
-		List<ThinkingEvent> events = g.GetEventsSnapshot();
-		ThinkingEvent? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventType.Message);
-
-		bool hasSummary = false;
-		if(lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
-		{
-			g.RemoveEvent(lastMessage);
-			session.Messages.Add(new ChatMessage
-			{
-				Id = lastMessage.Id ?? Guid.NewGuid().ToString(),
-				Content = lastMessage.Message,
-				IsUser = false,
-				Timestamp = lastMessage.Timestamp,
-				Type = MessageType.Text,
-				IsComplete = true
-			});
-			hasSummary = true;
-		}
-
-		// Add "Session stopped" event for resumed sessions that had stopped tools
-		if(hasStoppedTools)
-		{
-			g.AddEvent(new ThinkingEvent
-			{
-				Type = ThinkingEventType.Message,
-				Message = "Session stopped",
-				Timestamp = g.EndTime ?? DateTime.Now
-			});
-		}
-
-		// Insert activity group between initial and summary
-		ChatMessage activityMessage = new()
-		{
-			IsUser = false,
-			Type = MessageType.ActivityGroup,
-			ActivityGroup = g,
-			Timestamp = g.EndTime ?? DateTime.Now,
-			Content = GenerateActivitySummary(g)
-		};
-
-		if(!string.IsNullOrEmpty(g.InitialMessageId))
-		{
-			int initialIndex = session.Messages.FindIndex(m => m.Id == g.InitialMessageId);
-			if(initialIndex >= 0)
-			{
-				session.Messages.Insert(initialIndex + 1, activityMessage);
-			}
-			else
-			{
-				// Insert before the summary if it exists, otherwise at the end
-				int insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
-				session.Messages.Insert(insertIndex, activityMessage);
-			}
-		}
-		else
-		{
-			// No initial assistant message - insert after the last user message
-			int lastUserIndex = -1;
-			int searchLimit = hasSummary ? session.Messages.Count - 2 : session.Messages.Count - 1;
-			for(int i = searchLimit; i >= 0; i--)
-			{
-				if(session.Messages[i].IsUser)
-				{
-					lastUserIndex = i;
-					break;
-				}
-			}
-
-			int insertIndex;
-			if(lastUserIndex >= 0)
-			{
-				// Insert right after the user message
-				insertIndex = lastUserIndex + 1;
-			}
-			else
-			{
-				// Fallback: No user message found - insert before summary if exists, otherwise at end
-				insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
-			}
-
-			// Ensure we never insert at index 0 if there are messages
-			if(insertIndex == 0 && session.Messages.Count > 0)
-			{
-				insertIndex = session.Messages.Count;
-			}
-
-			session.Messages.Insert(insertIndex, activityMessage);
-		}
-
-		group = null;
-		initialMessage = null;
-	}
 
 	public async Task LoadExistingSessionsAsync()
 	{
@@ -400,111 +281,17 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 
 			_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 
-			// Reconstruct messages with activity groups from event history
-			ActivityGroup? currentGroup = null;
-			ChatMessage? initialMessage = null;
-
+			// Process event history through the same handlers used for live events
 			foreach(SessionEvent evt in events)
 			{
-				if(evt is UserMessageEvent userMsg && userMsg.Data is not null)
-				{
-					// Finalize any pending activity group before user message
-					FinalizeHistoryGroup(session, ref currentGroup, ref initialMessage);
-
-					// Reset initial message tracking for the new turn
-					initialMessage = null;
-
-					session.Messages.Add(new ChatMessage
-					{
-						Id = Guid.NewGuid().ToString(),
-						Content = userMsg.Data.Content ?? string.Empty,
-						IsUser = true,
-						Timestamp = userMsg.Timestamp,
-						Type = MessageType.Text
-					});
-				}
-				else if(evt is AssistantMessageEvent assistantMsg && assistantMsg.Data is not null)
-				{
-					string content = assistantMsg.Data.Content ?? string.Empty;
-					if(string.IsNullOrWhiteSpace(content))
-					{
-						continue;
-					}
-
-					if(currentGroup is not null)
-					{
-						// During an active group, messages go to thinking events
-						currentGroup.AddEvent(new ThinkingEvent
-						{
-							Id = assistantMsg.Data.MessageId,
-							Type = ThinkingEventType.Message,
-							Message = content,
-							Timestamp = assistantMsg.Timestamp.LocalDateTime
-						});
-					}
-					else
-					{
-						// No active group - this could be the initial message before tools
-						ChatMessage msg = new()
-						{
-							Id = assistantMsg.Data.MessageId ?? Guid.NewGuid().ToString(),
-							Content = content,
-							IsUser = false,
-							Timestamp = assistantMsg.Timestamp,
-							Type = MessageType.Text,
-						};
-						session.Messages.Add(msg);
-						initialMessage = msg;
-					}
-				}
-				else if(evt is ToolExecutionStartEvent toolStart && toolStart.Data is not null)
-				{
-					// Create group on first tool
-					currentGroup ??= new ActivityGroup
-					{
-						StartTime = toolStart.Timestamp.LocalDateTime,
-						Status = GroupStatus.Complete,
-						IsExpanded = false,
-						InitialMessageId = initialMessage?.Id,
-					};
-
-					ToolExecution toolExec = new()
-					{
-						ToolName = toolStart.Data.ToolName ?? "unknown",
-						ToolCallId = toolStart.Data.ToolCallId,
-						StartTime = toolStart.Timestamp.LocalDateTime,
-						Status = ToolStatus.Running,
-						InputParameters = DeserializeArguments(toolStart.Data.Arguments)
-					};
-
-					currentGroup.AddEvent(new ThinkingEvent
-					{
-						Type = ThinkingEventType.Tool,
-						Tool = toolExec,
-						Timestamp = toolStart.Timestamp.LocalDateTime
-					});
-				}
-				else if(evt is ToolExecutionCompleteEvent toolComplete && toolComplete.Data is not null)
-				{
-					if(currentGroup is not null)
-					{
-						List<ThinkingEvent> toolEvents = currentGroup.GetEventsSnapshot();
-						ToolExecution? tool = toolEvents
-							.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
-							.Select(e => e.Tool!)
-							.FirstOrDefault(t => t.ToolCallId == toolComplete.Data.ToolCallId);
-						if(tool is not null)
-						{
-							tool.Status = ToolStatus.Success;
-							tool.EndTime = toolComplete.Timestamp.LocalDateTime;
-							tool.Output = toolComplete.Data.Result?.ToString();
-						}
-					}
-				}
+				HandleSessionEvent(sessionId, evt);
 			}
 
-			// Finalize any remaining group at the end
-			FinalizeHistoryGroup(session, ref currentGroup, ref initialMessage);
+			// Fallback: finalize any active group not closed by SessionIdleEvent (e.g., abrupt termination)
+			if(session.ActiveWorkingGroup is not null)
+			{
+				HandleSessionIdle(session);
+			}
 
 			session.Status = SessionStatus.Idle;
 			session.IsResumed = true;

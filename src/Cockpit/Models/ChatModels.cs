@@ -178,11 +178,13 @@ public class ToolExecution
 	public string? ToolCallId { get; set; }
 	public Dictionary<string, object>? InputParameters { get; set; }
 	public string? Output { get; set; }
+	public string? ProgressMessage { get; set; }
 	public DateTime StartTime { get; set; } = DateTime.Now;
 	public DateTime? EndTime { get; set; }
 	public ToolStatus Status { get; set; } = ToolStatus.Running;
 	public bool IsExpanded { get; set; } = false;
 	public bool IsSuccess { get; set; } = true;
+	public List<string> RawEvents { get; } = [];
 }
 
 public enum GroupStatus

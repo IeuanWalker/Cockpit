@@ -134,3 +134,13 @@
     color: var(--text-color);
     line-height: 1.5;
 }
+
+.tool-progress {
+    font-size: 0.7rem;
+    color: var(--secondary-text);
+    padding: 0 0.4rem;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
