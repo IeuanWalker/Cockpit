@@ -32,7 +32,7 @@ public partial class App : Application
 					{
 						new Button
 						{
-							Text = "Settings",
+							Text = "⚙",
 							FontSize = 14,
 							Background = Colors.Transparent,
 							BorderWidth = 0,
