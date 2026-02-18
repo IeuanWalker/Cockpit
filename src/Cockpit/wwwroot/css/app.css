@@ -51,24 +51,27 @@ html, body {
     background-color: var(--border-color);
     color: var(--secondary-text);
 }
-.status-badge.agentrunning {
-    background-color: #0078D4;
-    color: #fff;
-}
-.status-badge.agentfinished {
-    background-color: #2B2B2B;
-    color: #CCCCCC;
-}
-.status-badge.idle {
-    background-color: #37373D;
-    color: #CCCCCC;
-}
 
-    color: var(--text-color);
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    overflow: hidden;
+    .status-badge.agentrunning {
+        background-color: #0078D4;
+        color: #fff;
+    }
+
+    .status-badge.agentfinished {
+        background-color: #2B2B2B;
+        color: #CCCCCC;
+    }
+
+    .status-badge.idle {
+        background-color: #37373D;
+        color: #CCCCCC;
+    }
+
+color: var(--text-color);
+margin: 0;
+padding: 0;
+height: 100%;
+overflow: hidden;
 }
 
 .bg-vscode-bg {
@@ -200,7 +203,6 @@ html, body {
 
     .settings-menu-item.active {
         background-color: var(--active-color);
-        border: 1px solid var(--border-color);
     }
 
 .settings-panel {
@@ -671,24 +673,30 @@ input[type="color"] {
 
 /* Skeleton loader animation */
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
 }
 
 .animate-pulse {
-  animation: pulse 1.2s cubic-bezier(0.4,0,0.6,1) infinite;
+    animation: pulse 1.2s cubic-bezier(0.4,0,0.6,1) infinite;
 }
 
 .skeleton-title {
-  height: 1.1rem;
-  border-radius: 0.4rem;
-  background: var(--border-color, #2B2B2B);
-  margin-bottom: 0.4rem;
+    height: 1.1rem;
+    border-radius: 0.4rem;
+    background: var(--border-color, #2B2B2B);
+    margin-bottom: 0.4rem;
 }
+
 .skeleton-date {
-  height: 0.8rem;
-  border-radius: 0.4rem;
-  background: var(--border-color, #2B2B2B);
+    height: 0.8rem;
+    border-radius: 0.4rem;
+    background: var(--border-color, #2B2B2B);
 }
 
 /* Session list item delete button */
@@ -727,10 +735,12 @@ input[type="color"] {
 .terminal-panel, .terminal-panel * {
     box-sizing: border-box !important;
 }
+
 .terminal-panel {
     padding: 0 !important;
     border: none !important;
 }
+
 .xterm {
     box-sizing: border-box !important;
     padding: 0 !important;
