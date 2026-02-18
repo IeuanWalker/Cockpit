@@ -1,0 +1,91 @@
+.activity-group {
+    margin: 0.25rem 0;
+    padding-left: 55px;
+    overflow: hidden;
+    min-width: 0;
+}
+
+    .activity-group.running {
+        border-left: none;
+    }
+
+    .activity-group.complete {
+        border-left: none;
+    }
+
+    .activity-group.error {
+        border-left: none;
+    }
+
+.group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.875rem;
+    color: var(--secondary-text);
+}
+
+    .group-header:hover {
+        color: var(--text-color);
+    }
+
+.expand-arrow {
+    transition: transform 0.2s;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.status-icon {
+    flex-shrink: 0;
+}
+
+.group-summary {
+    flex: 1;
+}
+
+.group-content {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 2px solid var(--border-color);
+    margin-left: 0.25rem;
+    overflow: hidden;
+}
+
+.thinking-message {
+    overflow: hidden;
+    word-break: break-word;
+}
+
+    .thinking-message pre {
+        overflow-x: auto;
+        max-width: 100%;
+    }
+
+    .thinking-message table {
+        display: block;
+        overflow-x: auto;
+        max-width: 100%;
+    }
+
+        .thinking-message pre::-webkit-scrollbar,
+        .thinking-message table::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .thinking-message pre::-webkit-scrollbar-track,
+        .thinking-message table::-webkit-scrollbar-track {
+            background: var(--sidebar-color);
+        }
+
+        .thinking-message pre::-webkit-scrollbar-thumb,
+        .thinking-message table::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 0px;
+        }
+
+            .thinking-message pre::-webkit-scrollbar-thumb:hover,
+            .thinking-message table::-webkit-scrollbar-thumb:hover {
+                background: var(--hover-color);
+            }
