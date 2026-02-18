@@ -1,10 +1,12 @@
 using Microsoft.JSInterop;
+using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Services;
 
 public class ThemeService
 {
 	readonly IJSRuntime _jsRuntime;
+	readonly ILogger<ThemeService> _logger;
 	bool _isInitialized = false;
 	bool _isSystemThemeListenerRegistered = false;
 
@@ -14,9 +16,10 @@ public class ThemeService
 	public string AccentColor { get; private set; }
 	public string AccentHoverColor { get; private set; }
 
-	public ThemeService(IJSRuntime jsRuntime)
+	public ThemeService(IJSRuntime jsRuntime, ILogger<ThemeService> logger)
 	{
 		_jsRuntime = jsRuntime;
+		_logger = logger;
 
 		CurrentTheme = UserAppSettings.Theme;
 		AccentColor = UserAppSettings.AccentColor;
@@ -90,9 +93,16 @@ public class ThemeService
 			return;
 		}
 
-		App.UpdateTitleBarTheme(CurrentTheme);
-		await ApplyThemeAsync();
-		OnThemeChanged?.Invoke();
+		try
+		{
+			App.UpdateTitleBarTheme(CurrentTheme);
+			await ApplyThemeForSystemThemeChangeAsync();
+			OnThemeChanged?.Invoke();
+		}
+		catch(Exception ex)
+		{
+			_logger.LogDebug(ex, "Failed to apply system theme change");
+		}
 	}
 
 	ThemeEnum GetEffectiveTheme()
@@ -104,6 +114,20 @@ public class ThemeService
 
 		AppTheme requestedTheme = Application.Current?.RequestedTheme ?? AppTheme.Dark;
 		return requestedTheme.Equals(AppTheme.Light) ? ThemeEnum.Light : ThemeEnum.Dark;
+	}
+
+	async Task ApplyThemeForSystemThemeChangeAsync()
+	{
+		if(Application.Current?.Windows?.FirstOrDefault()?.Page is MainPage mainPage)
+		{
+			string script = GetEffectiveTheme().Equals(ThemeEnum.Light)
+				? "window.cockpit?.addBodyClass?.('light-theme');"
+				: "window.cockpit?.removeBodyClass?.('light-theme');";
+			await mainPage.InvokeJavaScriptAsync(script);
+			return;
+		}
+
+		await ApplyThemeAsync();
 	}
 
 	async Task ApplyAccentColorAsync()
