@@ -45,6 +45,19 @@ html, body {
     overflow: hidden;
 }
 
+/* Smooth color transitions when switching app theme. */
+html,
+body,
+.bg-vscode-bg,
+.bg-vscode-sidebar,
+.border-vscode-border,
+.text-vscode-text,
+.text-vscode-title,
+.secondary-text,
+.theme-btn {
+    transition: background-color 0.10s ease, color 0.10s ease, border-color 0.10s ease;
+}
+
 .bg-vscode-bg {
     background-color: var(--bg-color) !important;
 }
