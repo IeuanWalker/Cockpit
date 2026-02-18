@@ -729,6 +729,21 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				NotifyStateChanged();
 			}
 		}
+		catch(InvalidOperationException ex) when(ex.Message.Contains("Error: Session file not found"))
+		{
+			_logger.LogWarning(ex, "Session {SessionId} not found during deletion - it may have already been deleted", sessionId);
+			// Even if the session was not found, we can consider it deleted, so remove from our list and update UI
+			ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			if(session is not null)
+			{
+				Sessions.Remove(session);
+				if(CurrentSession?.Id == sessionId)
+				{
+					CurrentSession = Sessions.FirstOrDefault();
+				}
+				NotifyStateChanged();
+			}
+		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to delete session {SessionId}", sessionId);

@@ -16,6 +16,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	bool _shouldScrollToBottom = false;
 	bool _isUserScrolledUpFromChat = false;
 	int _lastMessageCount = 0;
+	string? _lastSessionId;
 	DotNetObjectReference<ChatPanel>? _dotNetRef;
 
 	protected override async Task OnInitializedAsync()
@@ -42,6 +43,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 
 			// Initialize message count
 			_lastMessageCount = SessionManager.CurrentSession?.Messages?.Count ?? 0;
+			_lastSessionId = SessionManager.CurrentSession?.Id;
 		}
 
 		if(_shouldScrollToBottom && !_isUserScrolledUpFromChat)
@@ -53,8 +55,16 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 
 	void OnStateChanged()
 	{
-		// Only scroll chat if there's a new message
+		string? currentSessionId = SessionManager.CurrentSession?.Id;
 		int currentMessageCount = SessionManager.CurrentSession?.Messages?.Count ?? 0;
+
+		if(currentSessionId != _lastSessionId)
+		{
+			_shouldScrollToBottom = true;
+			_isUserScrolledUpFromChat = false;
+		}
+
+		// Only auto-follow chat if there's a new message
 		if(currentMessageCount > _lastMessageCount)
 		{
 			_shouldScrollToBottom = true;
@@ -63,9 +73,10 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 				// Always jump to latest when user sends a message
 				_isUserScrolledUpFromChat = false;
 			}
-			_lastMessageCount = currentMessageCount;
 		}
 
+		_lastSessionId = currentSessionId;
+		_lastMessageCount = currentMessageCount;
 		InvokeAsync(StateHasChanged);
 	}
 
