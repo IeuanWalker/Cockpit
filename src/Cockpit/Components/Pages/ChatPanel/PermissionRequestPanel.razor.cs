@@ -2,7 +2,7 @@ using Cockpit.Features.Permissions.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 
-namespace Cockpit.Components;
+namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class PermissionRequestPanel
 {
