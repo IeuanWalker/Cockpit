@@ -53,9 +53,9 @@ public static class UserAppSettings
 	}
 }
 
-// TODO: Implement system
 public enum ThemeEnum
 {
 	Light,
 	Dark,
+	System,
 }

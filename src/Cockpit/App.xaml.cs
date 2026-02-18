@@ -58,9 +58,27 @@ public partial class App : Application
 	public static void UpdateTitleBarTheme(ThemeEnum theme)
 	{
 		App? app = Current as App;
+		bool isLightTheme = theme.Equals(ThemeEnum.Light);
+
+		if(app is not null)
+		{
+			// Keep MAUI application theme in sync so Windows caption button colors update correctly.
+			app.UserAppTheme = theme switch
+			{
+				ThemeEnum.Light => AppTheme.Light,
+				ThemeEnum.Dark => AppTheme.Dark,
+				_ => AppTheme.Unspecified
+			};
+
+			if(theme.Equals(ThemeEnum.System))
+			{
+				isLightTheme = app.RequestedTheme.Equals(AppTheme.Light);
+			}
+		}
+
 		if(app?._mainWindow?.TitleBar is TitleBar titleBar)
 		{
-			if(theme.Equals(ThemeEnum.Light))
+			if(isLightTheme)
 			{
 				titleBar.BackgroundColor = Color.FromArgb("#F8F8F8");
 				titleBar.ForegroundColor = Color.FromArgb("#3B3B3B");
