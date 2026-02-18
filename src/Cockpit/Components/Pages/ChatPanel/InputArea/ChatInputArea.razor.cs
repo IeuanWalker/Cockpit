@@ -107,4 +107,24 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 		return ValueTask.CompletedTask;
 	}
+
+	void ToggleYoloMode()
+	{
+		if(_sessionManager.CurrentSession is null)
+		{
+			return;
+		}
+
+		_sessionManager.CurrentSession.IsYolo = !_sessionManager.CurrentSession.IsYolo;
+		StateHasChanged();
+	}
+
+	string GetYoloButtonStyle()
+	{
+		if(_sessionManager.CurrentSession?.IsYolo == true)
+		{
+			return "background-color: var(--accent-color); color: white; border: 1px solid var(--accent-color);";
+		}
+		return "color: var(--text-color); border: 1px solid var(--input-border); background-color: var(--input-bg);";
+	}
 }
