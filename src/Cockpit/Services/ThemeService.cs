@@ -6,6 +6,7 @@ public class ThemeService
 {
 	readonly IJSRuntime _jsRuntime;
 	bool _isInitialized = false;
+	bool _isSystemThemeListenerRegistered = false;
 
 	public event Action? OnThemeChanged;
 
@@ -29,22 +30,22 @@ public class ThemeService
 			return;
 		}
 
+		RegisterSystemThemeListener();
+		App.UpdateTitleBarTheme(CurrentTheme);
+
 		await ApplyThemeAsync();
 		await ApplyAccentColorAsync();
 
 		_isInitialized = true;
-
-		App.UpdateTitleBarTheme(CurrentTheme);
 	}
 
 	public async Task SetThemeAsync(ThemeEnum theme)
 	{
 		CurrentTheme = theme;
 		UserAppSettings.Theme = theme;
+		App.UpdateTitleBarTheme(theme);
 		await ApplyThemeAsync();
 		OnThemeChanged?.Invoke();
-
-		App.UpdateTitleBarTheme(theme);
 	}
 
 	public async Task SetAccentColorAsync(string color, string hoverColor)
@@ -61,7 +62,7 @@ public class ThemeService
 
 	async Task ApplyThemeAsync()
 	{
-		if(CurrentTheme.Equals(ThemeEnum.Light))
+		if(GetEffectiveTheme().Equals(ThemeEnum.Light))
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
 		}
@@ -69,6 +70,40 @@ public class ThemeService
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
 		}
+	}
+
+	void RegisterSystemThemeListener()
+	{
+		if(_isSystemThemeListenerRegistered || Application.Current is null)
+		{
+			return;
+		}
+
+		Application.Current.RequestedThemeChanged += OnRequestedThemeChanged;
+		_isSystemThemeListenerRegistered = true;
+	}
+
+	async void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e)
+	{
+		if(!CurrentTheme.Equals(ThemeEnum.System))
+		{
+			return;
+		}
+
+		App.UpdateTitleBarTheme(CurrentTheme);
+		await ApplyThemeAsync();
+		OnThemeChanged?.Invoke();
+	}
+
+	ThemeEnum GetEffectiveTheme()
+	{
+		if(!CurrentTheme.Equals(ThemeEnum.System))
+		{
+			return CurrentTheme;
+		}
+
+		AppTheme requestedTheme = Application.Current?.RequestedTheme ?? AppTheme.Dark;
+		return requestedTheme.Equals(AppTheme.Light) ? ThemeEnum.Light : ThemeEnum.Dark;
 	}
 
 	async Task ApplyAccentColorAsync()

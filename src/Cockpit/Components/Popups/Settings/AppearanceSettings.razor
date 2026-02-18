@@ -4,6 +4,14 @@
         <div>
             <label class="text-sm font-medium text-vscode-title block mb-2">Theme</label>
             <div class="flex items-center space-x-2">
+                <button @onclick='() => SetTheme(ThemeEnum.System)'
+                        class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center @(_themeService.CurrentTheme.Equals(ThemeEnum.System) ? "active" : "")"
+                        style="border: 1px solid var(--border-color); color: var(--text-color);">
+                    <svg class="icon-sm mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M2 4a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H9l-3.293 3.293A1 1 0 014 16.586V14a2 2 0 01-2-2V4zm2 0h12v8H8.586a1 1 0 00-.707.293L6 14.172V12a1 1 0 00-1-1V4z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm">System</span>
+                </button>
                 <button @onclick='() => SetTheme(ThemeEnum.Dark)'
                         class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center @(_themeService.CurrentTheme.Equals(ThemeEnum.Dark) ? "active" : "")"
                         style="border: 1px solid var(--border-color); color: var(--text-color);">
