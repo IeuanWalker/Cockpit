@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
 using Blazor.Sonner.Services;
 using Cockpit.Features.Permissions;
+using Cockpit.Features.SessionEvents;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -15,6 +15,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	readonly ILogger<UnifiedSessionManager> _logger;
 	readonly ToastService _toastService;
 	readonly CopilotModelService _copilotModelService;
+	readonly SessionEventProcessor _processor;
 	PermissionFeature? _permissionFeature;
 	readonly TerminalService _terminalService;
 
@@ -38,13 +39,15 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		ILogger<UnifiedSessionManager> logger,
 		ToastService toastService,
 		CopilotModelService copilotModelService,
-		TerminalService terminalService)
+		TerminalService terminalService,
+		SessionEventProcessor processor)
 	{
 		_clientService = clientService;
 		_logger = logger;
 		_toastService = toastService;
 		_copilotModelService = copilotModelService;
 		_terminalService = terminalService;
+		_processor = processor;
 	}
 
 	public void SetPermissionFeature(PermissionFeature permissionFeature)
@@ -69,49 +72,24 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		}
 	}
 
-	// Deserialize JsonElement arguments to Dictionary<string, object>
-	static Dictionary<string, object>? DeserializeArguments(object? arguments)
+	void HandleSessionEvent(string sessionId, SessionEvent evt)
 	{
-		if(arguments is null)
+		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+		if(session is null)
 		{
-			return null;
+			return;
 		}
 
-		try
+		Func<ChatMessage, string, Task>? streamCallback = session == CurrentSession
+			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, NotifyStateChanged)
+			: null;
+
+		_processor.Process(session, evt, streamCallback);
+
+		if(session == CurrentSession)
 		{
-			// If it's already a dictionary, return it
-			if(arguments is Dictionary<string, object> dict)
-			{
-				return dict;
-			}
-
-			// If it's a JsonElement, deserialize it
-			if(arguments is JsonElement je)
-			{
-				if(je.ValueKind == JsonValueKind.Object)
-				{
-					return JsonSerializer.Deserialize<Dictionary<string, object>>(je.GetRawText());
-				}
-			}
+			NotifyStateChanged();
 		}
-		catch
-		{
-			// Fall through to return null
-		}
-
-		return null;
-	}
-
-	string GenerateActivitySummary(ActivityGroup group)
-	{
-		List<ToolExecution> tools = [.. group.Tools]; // Create snapshot
-		int running = tools.Count(t => t.Status == ToolStatus.Running);
-		int complete = tools.Count(t => t.Status == ToolStatus.Success);
-		IEnumerable<string> toolNames = tools.Select(t => t.ToolName).Distinct().Take(3);
-		int more = tools.Select(t => t.ToolName).Distinct().Count() - 3;
-		string preview = string.Join(", ", toolNames) + (more > 0 ? $", +{more}" : "");
-
-		return $"{tools.Count} operations ({preview})";
 	}
 
 
@@ -290,13 +268,13 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			{
 				foreach(SessionEvent evt in events)
 				{
-					HandleSessionEventCore(tempSession, evt);
+					_processor.Process(tempSession, evt);
 				}
 
 				// Fallback: finalize any active group not closed by SessionIdleEvent (e.g., abrupt termination)
 				if(tempSession.ActiveWorkingGroup is not null)
 				{
-					HandleSessionIdle(tempSession);
+					_processor.FinalizeOpenGroup(tempSession);
 				}
 			});
 
