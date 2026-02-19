@@ -1,6 +1,4 @@
-﻿using Cockpit.Features.SessionEvents.Models.Enums;
-
-namespace Cockpit.Features.SessionEvents.Models;
+﻿namespace Cockpit.Features.SessionEvents.Models;
 
 public class ThinkingEventModel
 {
@@ -9,4 +7,10 @@ public class ThinkingEventModel
 	public ThinkingEventTypeEnum Type { get; set; }
 	public string? Message { get; set; } // For message events
 	public ToolExecutionModel? Tool { get; set; } // For tool events
+}
+
+public enum ThinkingEventTypeEnum
+{
+	Message,
+	Tool
 }

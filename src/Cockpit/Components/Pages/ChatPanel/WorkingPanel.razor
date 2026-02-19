@@ -1,5 +1,6 @@
 @using Cockpit.Components.Controls
-@using Cockpit.Features.SessionEvents.Models.Enums
+@using Cockpit.Features.SessionEvents.Models
+
 @if(IsVisible && Group is not null)
 {
     var events = Group.GetEventsSnapshot();

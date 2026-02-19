@@ -3,7 +3,6 @@ using Blazor.Sonner.Services;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;

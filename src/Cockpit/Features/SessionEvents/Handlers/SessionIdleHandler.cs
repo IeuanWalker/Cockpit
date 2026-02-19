@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 
 namespace Cockpit.Features.SessionEvents.Handlers;

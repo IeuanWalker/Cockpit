@@ -1,6 +1,4 @@
-﻿using Cockpit.Features.SessionEvents.Models.Enums;
-
-namespace Cockpit.Features.SessionEvents.Models;
+﻿namespace Cockpit.Features.SessionEvents.Models;
 
 public class ActivityGroupModel
 {
@@ -55,4 +53,11 @@ public class ActivityGroupModel
 			}
 		}
 	}
+}
+
+public enum GroupStatusEnum
+{
+	Running,
+	Complete,
+	Error
 }

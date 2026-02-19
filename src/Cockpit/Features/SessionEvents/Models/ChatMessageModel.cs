@@ -1,6 +1,4 @@
-﻿using Cockpit.Features.SessionEvents.Models.Enums;
-
-namespace Cockpit.Features.SessionEvents.Models;
+﻿namespace Cockpit.Features.SessionEvents.Models;
 
 public class ChatMessageModel
 {
@@ -16,4 +14,17 @@ public class ChatMessageModel
 	public string? ReasoningContent { get; set; }
 	public Dictionary<string, object>? Metadata { get; set; }
 	public ActivityGroupModel? ActivityGroup { get; set; }
+}
+
+public enum MessageTypeEnum
+{
+	Text,
+	Code,
+	Typing,
+	ToolExecution,
+	ToolResult,
+	SystemMessage,
+	Error,
+	Reasoning,
+	ActivityGroup
 }

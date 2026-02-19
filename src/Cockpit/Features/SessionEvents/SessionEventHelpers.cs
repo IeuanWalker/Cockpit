@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Features.SessionEvents.Models.Enums;
 using GitHub.Copilot.SDK;
 
 namespace Cockpit.Features.SessionEvents;

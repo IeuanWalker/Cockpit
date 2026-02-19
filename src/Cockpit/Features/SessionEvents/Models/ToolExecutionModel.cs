@@ -1,6 +1,4 @@
-﻿using Cockpit.Features.SessionEvents.Models.Enums;
-
-namespace Cockpit.Features.SessionEvents.Models;
+﻿namespace Cockpit.Features.SessionEvents.Models;
 
 public class ToolExecutionModel
 {
@@ -52,4 +50,11 @@ public class ToolExecutionModel
 			return [.. _children];
 		}
 	}
+}
+
+public enum ToolStatusEnum
+{
+	Running,
+	Success,
+	Error
 }

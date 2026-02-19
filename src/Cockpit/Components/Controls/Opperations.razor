@@ -1,5 +1,6 @@
 @using Cockpit.Components.Controls
-@using Cockpit.Features.SessionEvents.Models.Enums
+@using Cockpit.Features.SessionEvents.Models
+
 <div class="activity-group @GetStatusClass()">
     <div class="group-header" @onclick="ToggleExpanded">
         <span class="expand-arrow">@(Group.IsExpanded ? "▾" : "▸")</span>

@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Features.SessionEvents.Models.Enums;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;

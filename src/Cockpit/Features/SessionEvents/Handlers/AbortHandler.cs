@@ -1,4 +1,4 @@
-using Cockpit.Features.SessionEvents.Models.Enums;
+using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;

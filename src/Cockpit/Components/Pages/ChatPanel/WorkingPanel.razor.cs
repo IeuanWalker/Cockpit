@@ -1,5 +1,4 @@
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Services;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
