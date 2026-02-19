@@ -17,7 +17,7 @@
                 @if(evt.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrEmpty(evt.Message))
                 {
                     <div class="thinking-message">
-                        <MarkdownRenderer Content="@evt.Message" />
+                        <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
                     </div>
                 }
                 else if(evt.Type == ThinkingEventTypeEnum.Tool && evt.Tool is not null)
