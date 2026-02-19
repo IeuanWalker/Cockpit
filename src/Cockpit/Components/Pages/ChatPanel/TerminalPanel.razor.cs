@@ -9,6 +9,15 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class TerminalPanel : IDisposable
 {
+	[Inject] TerminalFeature _terminalFeature { get; set; } = default!;
+	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
+	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Inject] ILogger<TerminalPanel> _logger { get; set; } = default!;
+
+	[Parameter] public bool IsOpen { get; set; }
+	[Parameter] public string SessionId { get; set; } = string.Empty;
+	[Parameter] public string? WorkingDirectory { get; set; }
+
 	const int domLayoutSettleDelayMs = 100; // Delay to allow DOM layout to settle after resize
 	bool _disposed;
 	Xterm? _terminal;
@@ -29,15 +38,6 @@ public partial class TerminalPanel : IDisposable
 		FontFamily = "Consolas, 'Courier New', monospace"
 	};
 
-	[Inject] TerminalFeature TerminalService { get; set; } = default!;
-	[Inject] IJSRuntime JS { get; set; } = default!;
-	[Inject] ILogger<TerminalPanel> Logger { get; set; } = default!;
-	[Parameter] public bool IsOpen { get; set; }
-	[Parameter] public string SessionId { get; set; } = string.Empty;
-	[Parameter] public string? WorkingDirectory { get; set; }
-
-	[Inject] UIStateService UIState { get; set; } = default!;
-
 	bool _showAddToMessagePopup;
 
 	void OpenAddToMessagePopup() => _showAddToMessagePopup = true;
@@ -46,8 +46,8 @@ public partial class TerminalPanel : IDisposable
 	protected override void OnInitialized()
 	{
 		_terminalId = $"terminal-{SessionId}";
-		TerminalService.OnDataReceived += OnTerminalData;
-		UIState.OnStateChanged += OnUIStateChanged;
+		_terminalFeature.OnDataReceived += OnTerminalData;
+		_uiState.OnStateChanged += OnUIStateChanged;
 	}
 
 	protected override void OnParametersSet()
@@ -112,12 +112,12 @@ public partial class TerminalPanel : IDisposable
 
 		// Try to create session (returns true if new, false if already exists)
 		string workDir = !string.IsNullOrEmpty(WorkingDirectory) ? WorkingDirectory : Directory.GetCurrentDirectory();
-		await TerminalService.CreateSession(SessionId, workDir);
+		await _terminalFeature.CreateSession(SessionId, workDir);
 
 		// Restore buffered output (works for both new and existing sessions)
 		if(!_hasRestoredBuffer)
 		{
-			string bufferedOutput = TerminalService.GetBufferedOutput(SessionId);
+			string bufferedOutput = _terminalFeature.GetBufferedOutput(SessionId);
 			if(!string.IsNullOrEmpty(bufferedOutput))
 			{
 				try
@@ -127,7 +127,7 @@ public partial class TerminalPanel : IDisposable
 				}
 				catch(Exception ex)
 				{
-					Logger.LogDebug(ex, "Failed to restore buffered output for session {SessionId}", SessionId);
+					_logger.LogDebug(ex, "Failed to restore buffered output for session {SessionId}", SessionId);
 				}
 			}
 		}
@@ -144,8 +144,8 @@ public partial class TerminalPanel : IDisposable
 	async Task OnTerminalFirstRender()
 	{
 		_dotNetRef = DotNetObjectReference.Create(this);
-		await JS.InvokeVoidAsync("xtermInterop.registerWindowResize", _terminalId, _dotNetRef);
-		await JS.InvokeVoidAsync("xtermInterop.observeElementResize", _terminalId, _dotNetRef);
+		await _jsRuntime.InvokeVoidAsync("xtermInterop.registerWindowResize", _terminalId, _dotNetRef);
+		await _jsRuntime.InvokeVoidAsync("xtermInterop.observeElementResize", _terminalId, _dotNetRef);
 		await Resize();
 	}
 
@@ -177,14 +177,14 @@ public partial class TerminalPanel : IDisposable
 			await _terminal.Addon("addon-fit").InvokeVoidAsync("fit");
 
 			// Clear texture atlas to fix any stale rendering artifacts
-			await JS.InvokeVoidAsync("xtermInterop.triggerResize", _terminalId);
+			await _jsRuntime.InvokeVoidAsync("xtermInterop.triggerResize", _terminalId);
 
 			// Query the actual cols/rows after fit
-			TerminalSize? size = await JS.InvokeAsync<TerminalSize?>("xtermInterop.getTerminalSize", _terminalId);
+			TerminalSize? size = await _jsRuntime.InvokeAsync<TerminalSize?>("xtermInterop.getTerminalSize", _terminalId);
 			if(size is not null && size.Cols > 0 && size.Rows > 0)
 			{
 				// Resize the PTY to match the terminal's new dimensions
-				TerminalService.ResizePty(SessionId, size.Cols, size.Rows);
+				_terminalFeature.ResizePty(SessionId, size.Cols, size.Rows);
 			}
 		}
 		catch(OperationCanceledException)
@@ -193,7 +193,7 @@ public partial class TerminalPanel : IDisposable
 		}
 		catch(Exception ex)
 		{
-			Logger.LogDebug(ex, "Failed to resize terminal for session {SessionId}", SessionId);
+			_logger.LogDebug(ex, "Failed to resize terminal for session {SessionId}", SessionId);
 		}
 	}
 
@@ -205,7 +205,7 @@ public partial class TerminalPanel : IDisposable
 
 	async Task OnTerminalInput(string data)
 	{
-		await TerminalService.WriteAsync(SessionId, data);
+		await _terminalFeature.WriteAsync(SessionId, data);
 	}
 
 	// Event handler must be async void to match event signature
@@ -227,14 +227,14 @@ public partial class TerminalPanel : IDisposable
 				}
 				catch(Exception ex)
 				{
-					Logger.LogDebug(ex, "Failed to write data to terminal for session {SessionId}", sessionId);
+					_logger.LogDebug(ex, "Failed to write data to terminal for session {SessionId}", sessionId);
 				}
 			});
 		}
 		catch(Exception ex)
 		{
 			// Log unhandled exceptions from async void to prevent app crash
-			Logger.LogError(ex, "Unhandled exception in terminal data event handler for session {SessionId}", sessionId);
+			_logger.LogError(ex, "Unhandled exception in terminal data event handler for session {SessionId}", sessionId);
 
 			// Surface a minimal error indication to the user in the terminal itself
 			try
@@ -250,7 +250,7 @@ public partial class TerminalPanel : IDisposable
 						catch(Exception writeEx)
 						{
 							// Swallow any secondary errors while reporting the failure
-							Logger.LogDebug(writeEx, "Failed to write error message to terminal for session {SessionId}", sessionId);
+							_logger.LogDebug(writeEx, "Failed to write error message to terminal for session {SessionId}", sessionId);
 						}
 					});
 				}
@@ -258,7 +258,7 @@ public partial class TerminalPanel : IDisposable
 			catch(Exception notifyEx)
 			{
 				// As a final safeguard, ignore any errors while attempting to notify the user
-				Logger.LogDebug(notifyEx, "Failed to notify user of terminal error for session {SessionId}", sessionId);
+				_logger.LogDebug(notifyEx, "Failed to notify user of terminal error for session {SessionId}", sessionId);
 			}
 		}
 	}
@@ -272,8 +272,8 @@ public partial class TerminalPanel : IDisposable
 				_isSessionActive = false;
 				_resizeCts?.Cancel();
 				_resizeCts?.Dispose();
-				TerminalService.OnDataReceived -= OnTerminalData;
-				UIState.OnStateChanged -= OnUIStateChanged;
+				_terminalFeature.OnDataReceived -= OnTerminalData;
+				_uiState.OnStateChanged -= OnUIStateChanged;
 				_dotNetRef?.Dispose();
 				//! Important: Don't close the session - keep it alive for when we switch back
 			}
@@ -290,8 +290,8 @@ public partial class TerminalPanel : IDisposable
 		}
 
 		// Clear buffered output and restart PTY
-		TerminalService.SoftClear(SessionId);
-		await TerminalService.RestartSession(SessionId, WorkingDirectory ?? Directory.GetCurrentDirectory());
+		_terminalFeature.SoftClear(SessionId);
+		await _terminalFeature.RestartSession(SessionId, WorkingDirectory ?? Directory.GetCurrentDirectory());
 		_hasRestoredBuffer = false;
 		_isSessionActive = true;
 
