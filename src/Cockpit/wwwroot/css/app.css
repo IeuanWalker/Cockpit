@@ -108,6 +108,24 @@ body,
         background: var(--hover-color);
     }
 
+.code-block-pre::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.code-block-pre::-webkit-scrollbar-track {
+    background: var(--sidebar-color);
+}
+
+.code-block-pre::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 0px;
+}
+
+.code-block-pre::-webkit-scrollbar-thumb:hover {
+    background: var(--hover-color);
+}
+
 .dropdown-content {
     max-height: 0;
     overflow: hidden;
@@ -342,99 +360,108 @@ input[type="checkbox"]:checked + .toggle-switch {
             color: #10893E;
         }
 
-    /* Syntax highlighting for dark theme */
-    .markdown-content .hljs {
+    /* Syntax highlighting — dark theme */
+    .hljs {
         background: transparent;
         color: #D4D4D4;
     }
 
-    .markdown-content .hljs-keyword,
-    .markdown-content .hljs-selector-tag,
-    .markdown-content .hljs-literal,
-    .markdown-content .hljs-section,
-    .markdown-content .hljs-link {
+    .hljs-keyword,
+    .hljs-selector-tag,
+    .hljs-literal,
+    .hljs-section,
+    .hljs-link {
         color: #569CD6;
     }
 
-    .markdown-content .hljs-string {
+    .hljs-string {
         color: #CE9178;
     }
 
-    .markdown-content .hljs-number,
-    .markdown-content .hljs-regexp,
-    .markdown-content .hljs-deletion {
+    .hljs-number,
+    .hljs-regexp,
+    .hljs-deletion {
         color: #B5CEA8;
     }
 
-    .markdown-content .hljs-title,
-    .markdown-content .hljs-section {
+    .hljs-title {
         color: #DCDCAA;
     }
 
-    .markdown-content .hljs-comment,
-    .markdown-content .hljs-quote {
+    .hljs-comment,
+    .hljs-quote {
         color: #6A9955;
         font-style: italic;
     }
 
-    .markdown-content .hljs-type,
-    .markdown-content .hljs-class .hljs-title {
+    .hljs-type,
+    .hljs-class .hljs-title {
         color: #4EC9B0;
     }
 
-    .markdown-content .hljs-variable,
-    .markdown-content .hljs-template-variable,
-    .markdown-content .hljs-attribute {
+    .hljs-variable,
+    .hljs-template-variable,
+    .hljs-attribute,
+    .hljs-attr {
         color: #9CDCFE;
     }
 
-    .markdown-content .hljs-function {
+    .hljs-function {
         color: #DCDCAA;
     }
 
-/* Syntax highlighting for light theme */
-.light-theme .markdown-content .hljs {
-    color: #000000;
+    .hljs-punctuation {
+        color: #D4D4D4;
+    }
+
+/* Syntax highlighting — light theme */
+.light-theme .hljs {
+    color: #1E1E1E;
 }
 
-.light-theme .markdown-content .hljs-keyword,
-.light-theme .markdown-content .hljs-selector-tag,
-.light-theme .markdown-content .hljs-literal {
+.light-theme .hljs-keyword,
+.light-theme .hljs-selector-tag,
+.light-theme .hljs-literal {
     color: #0000FF;
 }
 
-.light-theme .markdown-content .hljs-string {
+.light-theme .hljs-string {
     color: #A31515;
 }
 
-.light-theme .markdown-content .hljs-number {
+.light-theme .hljs-number {
     color: #098658;
 }
 
-.light-theme .markdown-content .hljs-title,
-.light-theme .markdown-content .hljs-section {
+.light-theme .hljs-title,
+.light-theme .hljs-section {
     color: #795E26;
 }
 
-.light-theme .markdown-content .hljs-comment,
-.light-theme .markdown-content .hljs-quote {
+.light-theme .hljs-comment,
+.light-theme .hljs-quote {
     color: #008000;
     font-style: italic;
 }
 
-.light-theme .markdown-content .hljs-type,
-.light-theme .markdown-content .hljs-class .hljs-title {
+.light-theme .hljs-type,
+.light-theme .hljs-class .hljs-title {
     color: #267F99;
 }
 
-.light-theme .markdown-content .hljs-variable,
-.light-theme .markdown-content .hljs-template-variable,
-.light-theme .markdown-content .hljs-attribute {
+.light-theme .hljs-variable,
+.light-theme .hljs-template-variable,
+.light-theme .hljs-attribute,
+.light-theme .hljs-attr {
     color: #001080;
 }
 
-.light-theme .markdown-content .hljs-function {
+.light-theme .hljs-function {
     color: #795E26;
+}
+
+.light-theme .hljs-punctuation {
+    color: #1E1E1E;
 }
 
 .break-words {
@@ -537,7 +564,7 @@ input[type="checkbox"]:checked + .toggle-switch {
     }
 
 code {
-    color: #c02d76;
+    color: inherit;
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {

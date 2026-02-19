@@ -1,0 +1,17 @@
+.code-block-pre {
+    background-color: var(--sidebar-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 0 0 0.5rem 0;
+}
+
+    .code-block-pre code {
+        display: block;
+        background: transparent;
+        font-size: 0.7rem;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        padding: 0.5rem;
+        white-space: pre;
+        color: #D4D4D4;
+    }

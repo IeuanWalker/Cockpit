@@ -63,7 +63,7 @@
         <div class="tool-details">
             @foreach(Lazy<string> rawEvent in Tool.RawEvents)
             {
-                <pre class="detail-code">@rawEvent.Value</pre>
+                <CodeBlock Code="@rawEvent.Value" Language="json" />
             }
         </div>
     }

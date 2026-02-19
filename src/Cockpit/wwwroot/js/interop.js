@@ -106,6 +106,13 @@ window.cockpit = {
             window.hljs.highlightElement(block);
         });
     },
+    highlightBlock: function (elementId) {
+        if (!window.hljs) return;
+        const element = document.getElementById(elementId);
+        if (element) {
+            window.hljs.highlightElement(element);
+        }
+    },
     addCopyButtonsToCodeBlocks: function (containerId) {
         const container = document.getElementById(containerId);
         if (!container) {
