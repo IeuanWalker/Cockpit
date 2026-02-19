@@ -74,12 +74,12 @@ public partial class TerminalAddToMessagePopup : ComponentBase
 		await OnClose.InvokeAsync();
 	}
 
-	void HandleConfirm()
+	async Task HandleConfirm()
 	{
 		if(!string.IsNullOrEmpty(_previewText))
 		{
 			_uiState.AppendChatInput($"Terminal output:\n```\n{_previewText}\n```");
 		}
-		_ = OnClose.InvokeAsync();
+		await OnClose.InvokeAsync();
 	}
 }
