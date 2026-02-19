@@ -189,7 +189,24 @@ public class ToolExecution
 	public ToolStatus Status { get; set; } = ToolStatus.Running;
 	public bool IsExpanded { get; set; } = false;
 	public bool IsSuccess { get; set; } = true;
-	public List<Lazy<string>> RawEvents { get; } = [];
+	readonly Lock _rawEventsLock = new();
+	readonly List<Lazy<string>> _rawEvents = [];
+
+	public void AddRawEvent(Lazy<string> rawEvent)
+	{
+		lock(_rawEventsLock)
+		{
+			_rawEvents.Add(rawEvent);
+		}
+	}
+
+	public List<Lazy<string>> GetRawEventsSnapshot()
+	{
+		lock(_rawEventsLock)
+		{
+			return [.. _rawEvents];
+		}
+	}
 
 	readonly Lock _childrenLock = new();
 	readonly List<ToolExecution> _children = [];

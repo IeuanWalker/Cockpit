@@ -25,7 +25,7 @@ static class SubagentStartedHandler
 		if(existingExec is not null)
 		{
 			existingExec.ToolName = evt.Data.AgentDisplayName ?? existingExec.ToolName;
-			existingExec.RawEvents.Add(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
+			existingExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 		}
 		else
 		{
@@ -37,7 +37,7 @@ static class SubagentStartedHandler
 				Status = ToolStatus.Running
 			};
 
-			subagentExec.RawEvents.Add(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
+			subagentExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 
 			session.ActiveWorkingGroup.AddEvent(new ThinkingEvent
 			{
