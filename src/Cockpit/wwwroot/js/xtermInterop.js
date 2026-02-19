@@ -6,13 +6,7 @@ window.xtermInterop.triggerResize = function (terminalElementId) {
         return;
     }
 
-    // Call fit to resize the terminal - this handles the reflow
-    if (termEl.xterm.fit) {
-        termEl.xterm.fit();
-    }
-
-    // Force a complete repaint by clearing the texture atlas
-    // This ensures no stale rendering artifacts remain
+    // Clear texture atlas to remove stale rendering artifacts after a fit()
     if (termEl.xterm.clearTextureAtlas) {
         termEl.xterm.clearTextureAtlas();
     }
@@ -42,17 +36,21 @@ window.xtermInterop.observeElementResize = function (terminalElementId, dotnetHe
     if (!termEl) {
         return { dispose: () => { } };
     }
-    const observer = new ResizeObserver(entries => {
-        for (const entry of entries) {
-            if (entry.target === termEl) {
-                window.xtermInterop.triggerResize(terminalElementId);
-                dotnetHelper.invokeMethodAsync('OnTerminalWindowResize');
-            }
-        }
+    // Observe the container (parent) so the terminal canvas size adjustments don't re-trigger
+    const target = termEl.parentElement ?? termEl;
+    let debounceTimer = null;
+    const observer = new ResizeObserver(() => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            dotnetHelper.invokeMethodAsync('OnTerminalWindowResize');
+        }, 50);
     });
-    observer.observe(termEl);
+    observer.observe(target);
     return {
-        dispose: () => observer.disconnect()
+        dispose: () => {
+            clearTimeout(debounceTimer);
+            observer.disconnect();
+        }
     };
 };
 
@@ -64,13 +62,19 @@ window.xtermInterop.clearTerminal = function (terminalElementId) {
 };
 
 window.xtermInterop.registerWindowResize = function (terminalElementId, dotnetHelper) {
+    let debounceTimer = null;
     function onResize() {
-        window.xtermInterop.triggerResize(terminalElementId);
-        dotnetHelper.invokeMethodAsync('OnTerminalWindowResize');
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            dotnetHelper.invokeMethodAsync('OnTerminalWindowResize');
+        }, 50);
     }
     window.addEventListener('resize', onResize);
     return {
-        dispose: () => window.removeEventListener('resize', onResize)
+        dispose: () => {
+            clearTimeout(debounceTimer);
+            window.removeEventListener('resize', onResize);
+        }
     };
 };
 

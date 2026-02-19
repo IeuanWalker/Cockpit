@@ -16,6 +16,7 @@ public partial class TerminalPanel : IDisposable
 	bool _hasRestoredBuffer = false;
 	bool _isTerminalInitialized = false;
 	bool _isFullscreen = false;
+	CancellationTokenSource? _resizeCts;
 	string _containerStyle = "height: 30%; display: flex; flex-direction: column; z-index: 50;";
 	string _containerClasses = string.Empty;
 	readonly HashSet<string> _addons = ["addon-fit"];
@@ -151,13 +152,22 @@ public partial class TerminalPanel : IDisposable
 			return;
 		}
 
+		// Debounce: cancel any in-flight resize and schedule a fresh one
+		_resizeCts?.Cancel();
+		_resizeCts?.Dispose();
+		_resizeCts = new CancellationTokenSource();
+		CancellationToken token = _resizeCts.Token;
+
 		try
 		{
 			// Wait briefly for the DOM/container layout to settle after a resize
-			await Task.Delay(domLayoutSettleDelayMs);
+			await Task.Delay(domLayoutSettleDelayMs, token);
 
 			// IMPORTANT: Call fit() once to resize the terminal to match the container
 			await _terminal.Addon("addon-fit").InvokeVoidAsync("fit");
+
+			// Clear texture atlas to fix any stale rendering artifacts
+			await JS.InvokeVoidAsync("xtermInterop.triggerResize", _terminalId);
 
 			// Query the actual cols/rows after fit
 			TerminalSize? size = await JS.InvokeAsync<TerminalSize?>("xtermInterop.getTerminalSize", _terminalId);
@@ -166,6 +176,10 @@ public partial class TerminalPanel : IDisposable
 				// Resize the PTY to match the terminal's new dimensions
 				TerminalService.ResizePty(SessionId, size.Cols, size.Rows);
 			}
+		}
+		catch(OperationCanceledException)
+		{
+			// Expected: a newer resize superseded this one
 		}
 		catch(Exception ex)
 		{
@@ -246,6 +260,8 @@ public partial class TerminalPanel : IDisposable
 			if(disposing)
 			{
 				_isSessionActive = false;
+				_resizeCts?.Cancel();
+				_resizeCts?.Dispose();
 				TerminalService.OnDataReceived -= OnTerminalData;
 				UIState.OnStateChanged -= OnUIStateChanged;
 				_dotNetRef?.Dispose();
