@@ -3,16 +3,16 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Porta.Pty;
 
-namespace Cockpit.Services;
+namespace Cockpit.Features.Terminal;
 
-public sealed partial class TerminalService : IDisposable
+public sealed partial class TerminalFeature : IDisposable
 {
-	readonly ILogger<TerminalService> _logger;
-	readonly ConcurrentDictionary<string, TerminalSession> _sessions = new();
+	readonly ILogger<TerminalFeature> _logger;
+	readonly ConcurrentDictionary<string, TerminalSessionModel> _sessions = new();
 
 	public event Action<string, string>? OnDataReceived;
 
-	public TerminalService(ILogger<TerminalService> logger)
+	public TerminalFeature(ILogger<TerminalFeature> logger)
 	{
 		_logger = logger;
 	}
@@ -31,7 +31,7 @@ public sealed partial class TerminalService : IDisposable
 			};
 
 			IPtyConnection ptyConnection = await PtyProvider.SpawnAsync(options, CancellationToken.None);
-			TerminalSession session = new(sessionId, ptyConnection);
+			TerminalSessionModel session = new(sessionId, ptyConnection);
 
 			// Create cancellation token for the background read task
 			CancellationTokenSource cts = new();
@@ -82,7 +82,7 @@ public sealed partial class TerminalService : IDisposable
 
 	public string GetBufferedOutput(string sessionId)
 	{
-		if(_sessions.TryGetValue(sessionId, out TerminalSession? session))
+		if(_sessions.TryGetValue(sessionId, out TerminalSessionModel? session))
 		{
 			return session.GetBuffer();
 		}
@@ -91,7 +91,7 @@ public sealed partial class TerminalService : IDisposable
 
 	public async Task<bool> WriteAsync(string sessionId, string data)
 	{
-		if(!_sessions.TryGetValue(sessionId, out TerminalSession? session))
+		if(!_sessions.TryGetValue(sessionId, out TerminalSessionModel? session))
 		{
 			return false;
 		}
@@ -112,7 +112,7 @@ public sealed partial class TerminalService : IDisposable
 
 	public void Dispose()
 	{
-		foreach(TerminalSession session in _sessions.Values)
+		foreach(TerminalSessionModel session in _sessions.Values)
 		{
 			// Cancel the background read task
 			session.ReadTaskCancellation?.Cancel();
@@ -142,66 +142,9 @@ public sealed partial class TerminalService : IDisposable
 		GC.SuppressFinalize(this);
 	}
 
-	/// <summary>
-	/// Represents a single terminal session managed by <see cref="TerminalService"/>.
-	/// Maintains the underlying PTY connection and a bounded in-memory output buffer
-	/// for streaming and retrieval of terminal data.
-	/// </summary>
-	class TerminalSession
-	{
-		const int maxBufferSize = 1024 * 1024; // 1MB limit
-		public string Id { get; }
-		public IPtyConnection Connection { get; }
-		readonly StringBuilder _outputBuffer = new();
-		readonly Lock _bufferLock = new();
-
-		public int Cols { get; set; } = 120;
-		public int Rows { get; set; } = 30;
-
-		public CancellationTokenSource? ReadTaskCancellation { get; set; }
-		public Task? ReadTask { get; set; }
-
-		public TerminalSession(string id, IPtyConnection connection)
-		{
-			Id = id;
-			Connection = connection;
-		}
-
-		public void BufferOutput(string data)
-		{
-			lock(_bufferLock)
-			{
-				_outputBuffer.Append(data);
-
-				// Trim buffer if it exceeds max size
-				if(_outputBuffer.Length > maxBufferSize)
-				{
-					int excessLength = _outputBuffer.Length - maxBufferSize;
-					_outputBuffer.Remove(0, excessLength);
-				}
-			}
-		}
-
-		public string GetBuffer()
-		{
-			lock(_bufferLock)
-			{
-				return _outputBuffer.ToString();
-			}
-		}
-
-		public void ClearBuffer()
-		{
-			lock(_bufferLock)
-			{
-				_outputBuffer.Clear();
-			}
-		}
-	}
-
 	public void ResizePty(string sessionId, int cols, int rows)
 	{
-		if(_sessions.TryGetValue(sessionId, out TerminalSession? session))
+		if(_sessions.TryGetValue(sessionId, out TerminalSessionModel? session))
 		{
 			session.Cols = cols;
 			session.Rows = rows;
@@ -212,7 +155,7 @@ public sealed partial class TerminalService : IDisposable
 	public async Task RestartSession(string sessionId, string workingDirectory)
 	{
 		// Dispose existing session if present
-		if(_sessions.TryRemove(sessionId, out TerminalSession? existing))
+		if(_sessions.TryRemove(sessionId, out TerminalSessionModel? existing))
 		{
 			// Cancel the background read task
 			existing.ReadTaskCancellation?.Cancel();
@@ -250,7 +193,7 @@ public sealed partial class TerminalService : IDisposable
 
 	public void SoftClear(string sessionId)
 	{
-		if(_sessions.TryGetValue(sessionId, out TerminalSession? session))
+		if(_sessions.TryGetValue(sessionId, out TerminalSessionModel? session))
 		{
 			session.ClearBuffer();
 		}
@@ -258,7 +201,7 @@ public sealed partial class TerminalService : IDisposable
 
 	public void CloseSession(string sessionId)
 	{
-		if(_sessions.TryRemove(sessionId, out TerminalSession? session))
+		if(_sessions.TryRemove(sessionId, out TerminalSessionModel? session))
 		{
 			// Cancel the background read task
 			session.ReadTaskCancellation?.Cancel();

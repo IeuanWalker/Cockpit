@@ -1,3 +1,4 @@
+using Cockpit.Features.Terminal;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
@@ -28,7 +29,7 @@ public partial class TerminalPanel : IDisposable
 		FontFamily = "Consolas, 'Courier New', monospace"
 	};
 
-	[Inject] TerminalService TerminalService { get; set; } = default!;
+	[Inject] TerminalFeature TerminalService { get; set; } = default!;
 	[Inject] IJSRuntime JS { get; set; } = default!;
 	[Inject] ILogger<TerminalPanel> Logger { get; set; } = default!;
 	[Parameter] public bool IsOpen { get; set; }
