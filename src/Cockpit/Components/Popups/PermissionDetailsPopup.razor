@@ -1,3 +1,4 @@
+@using Cockpit.Components.Controls
 <!-- Overlay -->
 <div class="settings-overlay @(IsOpen ? "active" : "")" @onclick="Close"></div>
 
@@ -20,10 +21,11 @@
         </div>
 
         <!-- Dialog Content -->
-        <div class="p-4 space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin">
-            <div class="detail-value code-json">
-                <pre>@FormatAsJson(Request?.FullRequestJson ?? string.Empty)</pre>
-            </div>
+        <div class="space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin">
+            @if(IsOpen)
+            {
+                <CodeBlock Code="@FormatAsJson(Request?.FullRequestJson ?? string.Empty)" Language="json" />
+            }
         </div>
     </div>
 </div>

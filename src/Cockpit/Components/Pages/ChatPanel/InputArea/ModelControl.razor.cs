@@ -68,9 +68,10 @@ public partial class ModelControl : ComponentBase, IDisposable
 		}
 
 		string newEffort = _sessionManager.CurrentSession.Model.DefaultReasoningEffort ?? string.Empty;
+		string currentEffort = _sessionManager.CurrentSession.ReasoningEffort ?? string.Empty;
 
 		// Only mark for restart if reasoning effort actually changed
-		if(_sessionManager.CurrentSession.ReasoningEffort != newEffort)
+		if(currentEffort != newEffort)
 		{
 			_sessionManager.CurrentSession.ReasoningEffort = newEffort;
 			_sessionManager.CurrentSession.RequiresRestart = true;

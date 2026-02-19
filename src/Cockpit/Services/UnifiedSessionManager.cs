@@ -483,32 +483,58 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				throw new InvalidOperationException($"Session {sessionId} not found");
 			}
 
+			ChatSession? chatSession = Sessions.FirstOrDefault(s => s.Id == sessionId);
+
 			// 2. Destroy the in-memory session object
 			await existingSession.DisposeAsync();
 			_logger.LogInformation("Destroyed session {SessionId} for restart", sessionId);
 
-			// 3. Create ResumeSessionConfig with new model/reasoning
-			ResumeSessionConfig resumeConfig = new()
-			{
-				Model = newModelId,
-				ReasoningEffort = newReasoningEffort,
-				Streaming = true,
-				OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
-			};
-
-			// 4. Resume session with same ID but new config
 			CopilotClient client = await _clientService.GetClientAsync(cancellationToken);
-			CopilotSession resumedSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
+			CopilotSession newSdkSession;
 
-			// 5. Re-subscribe to session events
-			resumedSession.On(evt =>
+			// 3. For sessions with no messages the CLI hasn't persisted them yet — create fresh
+			bool hasMessages = chatSession?.Messages.Count > 0;
+			if(hasMessages)
 			{
-				_logger.LogDebug("Session {SessionId} event: {EventType}", resumedSession.SessionId, evt.Type);
-				HandleSessionEvent(resumedSession.SessionId, evt);
+				ResumeSessionConfig resumeConfig = new()
+				{
+					Model = newModelId,
+					ReasoningEffort = newReasoningEffort,
+					Streaming = true,
+					OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
+				};
+				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
+			}
+			else
+			{
+				SessionConfig createConfig = new()
+				{
+					Model = newModelId,
+					ReasoningEffort = newReasoningEffort,
+					Streaming = true,
+					InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
+					WorkingDirectory = chatSession?.WorkingDirectory,
+					OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
+				};
+				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
+
+				// Update the ChatSession with the new SDK session ID
+				if(chatSession is not null)
+				{
+					_sdkSessions.TryRemove(chatSession.Id, out _);
+					chatSession.Id = newSdkSession.SessionId;
+				}
+			}
+
+			// 4. Re-subscribe to session events
+			newSdkSession.On(evt =>
+			{
+				_logger.LogDebug("Session {SessionId} event: {EventType}", newSdkSession.SessionId, evt.Type);
+				HandleSessionEvent(newSdkSession.SessionId, evt);
 			});
 
-			// 6. Update dictionary with resumed session
-			_sdkSessions.TryAdd(resumedSession.SessionId, resumedSession);
+			// 5. Update dictionary with new/resumed session
+			_sdkSessions.TryAdd(newSdkSession.SessionId, newSdkSession);
 
 			_logger.LogInformation("Restarted session {SessionId} with model {Model}", sessionId, newModelId);
 		}

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using System.Net;
 
 namespace Cockpit.Components.Controls;
 
@@ -12,7 +11,6 @@ public partial class CodeBlock : ComponentBase
 	[Inject] IJSRuntime JS { get; set; } = default!;
 
 	readonly string _id = $"cb-{Guid.NewGuid():N}";
-	string _rawHtml = string.Empty;
 	string _prevCode = string.Empty;
 	bool _needsHighlight;
 
@@ -21,7 +19,6 @@ public partial class CodeBlock : ComponentBase
 		if(Code != _prevCode)
 		{
 			_prevCode = Code;
-			_rawHtml = WebUtility.HtmlEncode(Code);
 			_needsHighlight = true;
 		}
 	}
