@@ -78,10 +78,14 @@ public partial class TerminalPanel : IDisposable
 		// Trigger re-render
 		await InvokeAsync(StateHasChanged);
 
-		// Wait for DOM to update with new size
+		// Cancel any resize triggered by the DOM change (ResizeObserver fires in ~50ms)
+		// so the explicit resize below is the authoritative one.
+		_resizeCts?.Cancel();
+
+		// Wait for the DOM layout to fully settle at the new size
 		await Task.Delay(150);
 
-		// Resize terminal to fit new container (this reflows content)
+		// Drive a single clean resize + full viewport refresh
 		await Resize();
 
 		// Focus the terminal

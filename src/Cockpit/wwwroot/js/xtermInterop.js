@@ -6,10 +6,22 @@ window.xtermInterop.triggerResize = function (terminalElementId) {
         return;
     }
 
-    // Clear texture atlas to remove stale rendering artifacts after a fit()
-    if (termEl.xterm.clearTextureAtlas) {
-        termEl.xterm.clearTextureAtlas();
+    const term = termEl.xterm;
+    // Anchor the viewport to the bottom of the active screen so scrollback
+    // content pulled into view during a large resize doesn't stay visible.
+    // Without this, `clear` only clears the active buffer while the scrollback
+    // remains visible in the newly revealed rows.
+    term.scrollToBottom?.();
+    if (term.clearTextureAtlas) {
+        term.clearTextureAtlas();
     }
+    // Defer refresh to the next animation frame so it runs after xterm's own
+    // resize render cycle, ensuring all rows are cleanly repainted.
+    requestAnimationFrame(() => {
+        if (term.refresh) {
+            term.refresh(0, term.rows - 1);
+        }
+    });
 };
 
 window.xtermInterop.getTerminalSize = function (terminalElementId) {
