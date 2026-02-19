@@ -17,7 +17,7 @@
         <!-- Line count selector -->
         <div class="px-4 py-3 border-b border-vscode-border">
             <label class="text-xs secondary-text mb-2 block">Lines to include</label>
-            <input type="number" min="1" max="@_totalLineCount" @bind="_selectedLineCount" @bind:event="oninput" @bind:after="UpdatePreview"
+            <input type="number" min="1" max="@Math.Max(1, _totalLineCount)" @bind="_selectedLineCount" @bind:event="oninput" @bind:after="UpdatePreview"
                    class="w-24 bg-vscode-bg border border-vscode-border rounded px-2 py-1 text-xs text-vscode-text focus:outline-none" />
         </div>
 
