@@ -1,15 +1,4 @@
-:deep(.terminal-panel),
-:deep(.terminal-panel *) {
-    box-sizing: border-box !important;
-}
-
 .terminal-panel {
-    padding: 0 !important;
-    border: none !important;
-}
-
-:deep(.xterm) {
-    box-sizing: border-box !important;
     padding: 0 !important;
     border: none !important;
 }

@@ -2,6 +2,7 @@ using Blazor.Sonner.Extensions;
 using Blazor.Sonner.Services;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
+using Cockpit.Features.Terminal;
 using Cockpit.Services;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
@@ -41,7 +42,7 @@ public static class MauiProgram
 		builder.Services.AddScoped<MarkdownService>();
 		builder.Services.AddSingleton<UIStateService>();
 		builder.Services.AddSingleton<TimestampService>();
-		builder.Services.AddSingleton<TerminalService>();
+		builder.Services.AddSingleton<TerminalFeature>();
 
 		// Register Copilot SDK services
 		builder.Services.AddSingleton<CopilotClientService>();

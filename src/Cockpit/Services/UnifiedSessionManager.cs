@@ -3,6 +3,7 @@ using Blazor.Sonner.Services;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.Terminal;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	readonly CopilotModelService _copilotModelService;
 	readonly SessionEventProcessor _processor;
 	PermissionFeature? _permissionFeature;
-	readonly TerminalService _terminalService;
+	readonly TerminalFeature _terminalFeature;
 
 	// Internal: Maps sessionId -> SDK CopilotSession (for ALL resumed sessions)
 	readonly ConcurrentDictionary<string, CopilotSession> _sdkSessions = new();
@@ -40,14 +41,14 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		ILogger<UnifiedSessionManager> logger,
 		ToastService toastService,
 		CopilotModelService copilotModelService,
-		TerminalService terminalService,
+		TerminalFeature terminalFeature,
 		SessionEventProcessor processor)
 	{
 		_clientService = clientService;
 		_logger = logger;
 		_toastService = toastService;
 		_copilotModelService = copilotModelService;
-		_terminalService = terminalService;
+		_terminalFeature = terminalFeature;
 		_processor = processor;
 	}
 
@@ -535,7 +536,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			}
 
 			// Clean up terminal session
-			_terminalService.CloseSession(sessionId);
+			_terminalFeature.CloseSession(sessionId);
 
 			// Delete from Copilot CLI
 			CopilotClient client = await _clientService.GetClientAsync();

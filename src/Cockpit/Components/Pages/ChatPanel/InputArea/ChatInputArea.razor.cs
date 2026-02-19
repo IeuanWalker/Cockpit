@@ -19,6 +19,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	protected override void OnInitialized()
 	{
 		_sessionManager.OnStateChanged += OnStateChanged;
+		_uiState.OnAppendChatInput += OnAppendChatInput;
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -69,6 +70,17 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		}
 	}
 
+	void OnAppendChatInput(string text)
+	{
+		InvokeAsync(async () =>
+		{
+			_chatInput = string.IsNullOrEmpty(_chatInput) ? text : _chatInput + "\n" + text;
+			StateHasChanged();
+			await Task.Delay(10);
+			await OnTextareaInput();
+		});
+	}
+
 	async Task SendMessage()
 	{
 		if(string.IsNullOrWhiteSpace(_chatInput))
@@ -99,6 +111,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	public ValueTask DisposeAsync()
 	{
 		_sessionManager.OnStateChanged -= OnStateChanged;
+		_uiState.OnAppendChatInput -= OnAppendChatInput;
 
 		if(_subscribedToUIState)
 		{

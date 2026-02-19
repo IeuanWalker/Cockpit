@@ -6,16 +6,22 @@ window.xtermInterop.triggerResize = function (terminalElementId) {
         return;
     }
 
-    // Call fit to resize the terminal - this handles the reflow
-    if (termEl.xterm.fit) {
-        termEl.xterm.fit();
+    const term = termEl.xterm;
+    // Anchor the viewport to the bottom of the active screen so scrollback
+    // content pulled into view during a large resize doesn't stay visible.
+    // Without this, `clear` only clears the active buffer while the scrollback
+    // remains visible in the newly revealed rows.
+    term.scrollToBottom?.();
+    if (term.clearTextureAtlas) {
+        term.clearTextureAtlas();
     }
-
-    // Force a complete repaint by clearing the texture atlas
-    // This ensures no stale rendering artifacts remain
-    if (termEl.xterm.clearTextureAtlas) {
-        termEl.xterm.clearTextureAtlas();
-    }
+    // Defer refresh to the next animation frame so it runs after xterm's own
+    // resize render cycle, ensuring all rows are cleanly repainted.
+    requestAnimationFrame(() => {
+        if (term.refresh) {
+            term.refresh(0, term.rows - 1);
+        }
+    });
 };
 
 window.xtermInterop.getTerminalSize = function (terminalElementId) {
@@ -42,17 +48,21 @@ window.xtermInterop.observeElementResize = function (terminalElementId, dotnetHe
     if (!termEl) {
         return { dispose: () => { } };
     }
-    const observer = new ResizeObserver(entries => {
-        for (const entry of entries) {
-            if (entry.target === termEl) {
-                window.xtermInterop.triggerResize(terminalElementId);
-                dotnetHelper.invokeMethodAsync('OnTerminalWindowResize');
-            }
-        }
+    // Observe the container (parent) so the terminal canvas size adjustments don't re-trigger
+    const target = termEl.parentElement ?? termEl;
+    let debounceTimer = null;
+    const observer = new ResizeObserver(() => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            dotnetHelper.invokeMethodAsync('OnTerminalWindowResize');
+        }, 50);
     });
-    observer.observe(termEl);
+    observer.observe(target);
     return {
-        dispose: () => observer.disconnect()
+        dispose: () => {
+            clearTimeout(debounceTimer);
+            observer.disconnect();
+        }
     };
 };
 
@@ -63,14 +73,45 @@ window.xtermInterop.clearTerminal = function (terminalElementId) {
     }
 };
 
+window.xtermInterop.getTerminalText = function (terminalElementId, lineCount) {
+    if (!window.XtermBlazor) return '';
+    let term;
+    try {
+        term = window.XtermBlazor.getTerminalById(terminalElementId);
+    } catch {
+        return '';
+    }
+    const buffer = term.buffer.active;
+    const totalLines = buffer.length;
+    const startLine = Math.max(0, totalLines - lineCount);
+    const lines = [];
+    for (let i = startLine; i < totalLines; i++) {
+        const line = buffer.getLine(i);
+        if (line) {
+            lines.push(line.translateToString(true));
+        }
+    }
+    // Trim trailing blank lines
+    while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+        lines.pop();
+    }
+    return lines.join('\n');
+};
+
 window.xtermInterop.registerWindowResize = function (terminalElementId, dotnetHelper) {
+    let debounceTimer = null;
     function onResize() {
-        window.xtermInterop.triggerResize(terminalElementId);
-        dotnetHelper.invokeMethodAsync('OnTerminalWindowResize');
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            dotnetHelper.invokeMethodAsync('OnTerminalWindowResize');
+        }, 50);
     }
     window.addEventListener('resize', onResize);
     return {
-        dispose: () => window.removeEventListener('resize', onResize)
+        dispose: () => {
+            clearTimeout(debounceTimer);
+            window.removeEventListener('resize', onResize);
+        }
     };
 };
 

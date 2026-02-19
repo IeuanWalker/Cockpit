@@ -1,3 +1,4 @@
+@using Cockpit.Components.Controls
 @using XtermBlazor
 
 @if(IsOpen)
@@ -6,20 +7,30 @@
         <!-- Terminal Header -->
         <div class="h-10 bg-vscode-sidebar border-b border-vscode-border px-3 flex items-center">
             <div class="flex items-center ml-auto">
+                <!-- Add to message -->
+                <button @onclick="OpenAddToMessagePopup" class="px-2 py-1 hover:bg-vscode-hover rounded text-xs text-vscode-text" title="Add to message">
+                    Add to message
+                </button>
+
                 <!-- Fullscreen toggle -->
-                <button @onclick="async () => await ToggleFullscreen()" class="p-1.5 hover:bg-vscode-hover rounded" title="Toggle Fullscreen">
+                <button @onclick="async () => await ToggleFullscreen()" class="p-1.5 hover:bg-vscode-hover rounded" title="@(_isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen")">
                     <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4" stroke-width="2" />
-                        <path d="M9 9l-5 5M15 9l5 5" stroke-width="2" />
+                        @if(_isFullscreen)
+                        {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5M15 15l5.25 5.25" />
+                        }
+                        else
+                        {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                        }
                     </svg>
                 </button>
 
                 <!-- Reset -->
                 <button @onclick="async () => await Reset()" class="p-1.5 hover:bg-vscode-hover rounded" title="Reset">
                     <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M4 4v6h6" stroke-width="2" />
-                        <path d="M20 20v-6h-6" stroke-width="2" />
-                        <path d="M8.5 7a7.5 7.5 0 1 1-2.1 10.9" stroke-width="2" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3v5h5" />
                     </svg>
                 </button>
             </div>
@@ -31,7 +42,12 @@
                Addons="_addons"
                OnFirstRender="OnTerminalFirstRender"
                OnData="OnTerminalInput"
-               OnResize="Resize"
                style="flex: 1 1 auto; min-height: 0; width: 100%; height: 100%;" />
     </div>
 }
+
+<!-- Add to Message Popup -->
+<TerminalAddToMessagePopup IsOpen="@_showAddToMessagePopup"
+                           TerminalId="@_terminalId"
+                           SessionId="@SessionId"
+                           OnClose="CloseAddToMessagePopup" />

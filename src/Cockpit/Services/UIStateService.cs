@@ -123,6 +123,13 @@ public class UIStateService
 		OnStateChanged?.Invoke();
 	}
 
+	public event Action<string>? OnAppendChatInput;
+
+	public void AppendChatInput(string text)
+	{
+		OnAppendChatInput?.Invoke(text);
+	}
+
 	readonly Dictionary<string, bool> _dropdownStates = [];
 
 	public void ToggleDropdown(string dropdownId)
