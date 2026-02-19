@@ -42,41 +42,7 @@
 }
 
 <!-- Add to Message Popup -->
-<div class="settings-overlay @(_showAddToMessagePopup ? "active" : "")" @onclick="CloseAddToMessagePopup"></div>
-
-<div class="settings-popup @(_showAddToMessagePopup ? "active" : "")">
-    <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl" style="width: 580px; max-height: 80vh; display: flex; flex-direction: column;">
-        <!-- Header -->
-        <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between">
-            <h3 class="text-vscode-title font-semibold text-sm">Add Terminal Output to Message</h3>
-            <button @onclick="CloseAddToMessagePopup" class="p-1 hover:bg-vscode-hover rounded">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-
-        <!-- Line count selector -->
-        <div class="px-4 py-3 border-b border-vscode-border">
-            <label class="text-xs secondary-text mb-2 block">Lines to include</label>
-            <input type="number" min="1" @bind="_selectedLineCount" @bind:event="oninput" @bind:after="UpdatePreview"
-                   class="w-24 bg-vscode-bg border border-vscode-border rounded px-2 py-1 text-xs text-vscode-text focus:outline-none" />
-        </div>
-
-        <!-- Preview -->
-        <div class="px-4 py-3 flex-1 overflow-hidden flex flex-col min-h-0" style="min-height: 200px;">
-            <p class="text-xs secondary-text mb-2">Preview (@(string.IsNullOrEmpty(_previewText) ? "0" : _previewText.Split('\n').Length.ToString()) lines)</p>
-            <CodeBlock Code="@(string.IsNullOrEmpty(_previewText) ? "(no terminal output available)" : _previewText)" Language="powershell" />
-        </div>
-
-        <!-- Footer -->
-        <div class="px-4 py-3 border-t border-vscode-border flex items-center justify-end gap-2">
-            <button @onclick="CloseAddToMessagePopup" class="px-3 py-1.5 text-xs rounded hover:bg-vscode-hover text-vscode-text">
-                Cancel
-            </button>
-            <button @onclick="AddToMessage" class="px-3 py-1.5 text-xs rounded btn-primary" disabled="@string.IsNullOrEmpty(_previewText)">
-                Add to Message
-            </button>
-        </div>
-    </div>
-</div>
+<TerminalAddToMessagePopup IsOpen="@_showAddToMessagePopup"
+                           TerminalId="@_terminalId"
+                           SessionId="@SessionId"
+                           OnClose="CloseAddToMessagePopup" />

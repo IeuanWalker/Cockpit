@@ -38,60 +38,9 @@ public partial class TerminalPanel : IDisposable
 	[Inject] UIStateService UIState { get; set; } = default!;
 
 	bool _showAddToMessagePopup;
-	int _selectedLineCount = 25;
-	string _previewText = string.Empty;
 
-	async Task OpenAddToMessagePopup()
-	{
-		// Read the total rendered line count to set the default
-		int totalLines = await GetRenderedLineCount();
-		_selectedLineCount = Math.Min(100, totalLines > 0 ? totalLines : 100);
-		await UpdatePreview();
-		_showAddToMessagePopup = true;
-	}
-
-	void CloseAddToMessagePopup()
-	{
-		_showAddToMessagePopup = false;
-	}
-
-	async Task UpdatePreview()
-	{
-		if(_selectedLineCount > 0)
-		{
-			try
-			{
-				_previewText = await JS.InvokeAsync<string>("xtermInterop.getTerminalText", _terminalId, _selectedLineCount);
-			}
-			catch(Exception ex)
-			{
-				Logger.LogDebug(ex, "Failed to get terminal text for session {SessionId}", SessionId);
-				_previewText = string.Empty;
-			}
-		}
-	}
-
-	async Task<int> GetRenderedLineCount()
-	{
-		try
-		{
-			string text = await JS.InvokeAsync<string>("xtermInterop.getTerminalText", _terminalId, int.MaxValue);
-			return string.IsNullOrEmpty(text) ? 0 : text.Split('\n').Length;
-		}
-		catch
-		{
-			return 0;
-		}
-	}
-
-	void AddToMessage()
-	{
-		if(!string.IsNullOrEmpty(_previewText))
-		{
-			UIState.AppendChatInput($"Terminal output:\n```\n{_previewText}\n```");
-		}
-		CloseAddToMessagePopup();
-	}
+	void OpenAddToMessagePopup() => _showAddToMessagePopup = true;
+	void CloseAddToMessagePopup() => _showAddToMessagePopup = false;
 
 	protected override void OnInitialized()
 	{
