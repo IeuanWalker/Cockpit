@@ -37,7 +37,7 @@
                     </button>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <ModelReasoningControl />
+                    <ModelControl />
                     <button @onclick="ToggleYoloMode"
                             class="px-3 py-0.5 text-xs font-medium rounded transition-colors duration-200 @(_sessionManager.CurrentSession?.Status == SessionStatus.Running || _sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0 ? "opacity-50 cursor-not-allowed" : "hover:bg-vscode-hover")"
                             style="@GetYoloButtonStyle()"

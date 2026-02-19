@@ -182,6 +182,13 @@ public sealed partial class ToolExecutionDetail : IDisposable
 				return string.Empty;
 			}
 
+			// Prefer a 'description' key if present (e.g. subagent task tools renamed to agent display name)
+			string? descriptionValue = GetValue(Tool.InputParameters, "description");
+			if(descriptionValue is not null)
+			{
+				return descriptionValue;
+			}
+
 			return first.ToString() ?? string.Empty;
 		}
 		catch
