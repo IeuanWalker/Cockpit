@@ -4,14 +4,9 @@
     gap: 0.5rem;
     padding: 0.25rem 0.4rem;
     margin: 0.1rem 0;
-    cursor: pointer;
     border-radius: 4px;
     transition: background 0.15s;
 }
-
-    .tool-execution:hover {
-        background: var(--hover-color);
-    }
 
 .tool-summary {
     display: flex;
@@ -19,7 +14,12 @@
     gap: 0.5rem;
     font-size: 0.8rem;
     width: 100%;
+    cursor: pointer;
 }
+
+    .tool-summary:hover {
+        opacity: 0.85;
+    }
 
 .tool-dot {
     width: 7px;
