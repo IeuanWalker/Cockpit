@@ -75,24 +75,6 @@ public enum SessionStatus
 	Archived
 }
 
-
-
-
-
-// Thinking event - can be either a message or a tool execution
-
-
-
-
-// Activity group for multiple tool executions
-
-
-// Individual tool execution
-
-
-
-
-
 public class ContextFile
 {
 	public string Name { get; set; } = string.Empty;
