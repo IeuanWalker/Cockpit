@@ -43,6 +43,11 @@ public class ChatSession
 	public bool IsResumed { get; set; }
 
 	/// <summary>
+	/// Whether this session is currently loading/replaying history (shows loading indicator in UI)
+	/// </summary>
+	public bool IsResuming { get; set; }
+
+	/// <summary>
 	/// Whether this session requires a restart to apply configuration changes (model/reasoning effort)
 	/// </summary>
 	public bool RequiresRestart { get; set; }
@@ -184,7 +189,26 @@ public class ToolExecution
 	public ToolStatus Status { get; set; } = ToolStatus.Running;
 	public bool IsExpanded { get; set; } = false;
 	public bool IsSuccess { get; set; } = true;
-	public List<string> RawEvents { get; } = [];
+	public List<Lazy<string>> RawEvents { get; } = [];
+
+	readonly Lock _childrenLock = new();
+	readonly List<ToolExecution> _children = [];
+
+	public void AddChild(ToolExecution child)
+	{
+		lock(_childrenLock)
+		{
+			_children.Add(child);
+		}
+	}
+
+	public List<ToolExecution> GetChildrenSnapshot()
+	{
+		lock(_childrenLock)
+		{
+			return [.. _children];
+		}
+	}
 }
 
 public enum GroupStatus

@@ -61,7 +61,7 @@ public partial class Opperations
 		int more = tools.Select(t => t.ToolName).Distinct().Count() - 3;
 		string preview = string.Join(", ", toolNames) + (more > 0 ? $", +{more}" : string.Empty);
 
-		string result = $"{tools.Count} operations ({preview})";
+		string result = $"{tools.Sum(t => 1 + t.GetChildrenSnapshot().Count)} operations ({preview})";
 
 		TimeSpan? elapsedTime = Group.EndTime - Group.StartTime;
 

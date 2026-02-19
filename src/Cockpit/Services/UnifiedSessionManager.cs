@@ -260,37 +260,54 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
 			};
 
+			// Mark as resuming so the session list shows a loading indicator immediately
+			session.IsResuming = true;
+			NotifyStateChanged();
+
 			CopilotClient client = await _clientService.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
 
-			// Subscribe to session events (will process in background)
-			sdkSession.On(evt =>
-			{
-				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
-				HandleSessionEvent(sdkSession.SessionId, evt);
-			});
-
-			// Add to SDK sessions dictionary
-			_sdkSessions.AddOrUpdate(sdkSession.SessionId, sdkSession, (_, _) => sdkSession);
-
-			// Load existing messages from SDK
+			// Load existing messages from SDK BEFORE subscribing to live events
+			// to avoid a race condition where live events modify session state concurrently with replay
 			IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
-			session.Messages.Clear();
-			session.StreamingMessages.Clear();
-			session.ActiveWorkingGroup = null;
-
 			_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 
-			// Process event history through the same handlers used for live events
-			foreach(SessionEvent evt in events)
+			// Replay history into a temporary session so the real session is never in an intermediate
+			// state — no spurious UI re-renders during replay
+			ChatSession tempSession = new()
 			{
-				HandleSessionEvent(sessionId, evt);
-			}
+				Id = sessionId,
+				Title = session.Title,
+				Status = SessionStatus.Idle,
+				Model = session.Model,
+				ReasoningEffort = session.ReasoningEffort,
+				Context = session.Context,
+				LastActivity = session.LastActivity,
+				CreatedAt = session.CreatedAt
+			};
 
-			// Fallback: finalize any active group not closed by SessionIdleEvent (e.g., abrupt termination)
-			if(session.ActiveWorkingGroup is not null)
+			await Task.Run(() =>
 			{
-				HandleSessionIdle(session);
+				foreach(SessionEvent evt in events)
+				{
+					HandleSessionEventCore(tempSession, evt);
+				}
+
+				// Fallback: finalize any active group not closed by SessionIdleEvent (e.g., abrupt termination)
+				if(tempSession.ActiveWorkingGroup is not null)
+				{
+					HandleSessionIdle(tempSession);
+				}
+			});
+
+			// Atomically apply replayed state to the real session, then clear loading indicator
+			session.IsResuming = false;
+			session.Messages = tempSession.Messages;
+			session.ActiveWorkingGroup = null;
+			session.LastActivity = tempSession.LastActivity;
+			if(session.Title != tempSession.Title)
+			{
+				session.Title = tempSession.Title;
 			}
 
 			session.Status = SessionStatus.Idle;
@@ -301,6 +318,14 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 			CurrentSession = session;
 
+			// Subscribe to live events and register SDK session only after replay is complete
+			sdkSession.On(evt =>
+			{
+				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
+				HandleSessionEvent(sdkSession.SessionId, evt);
+			});
+			_sdkSessions.AddOrUpdate(sdkSession.SessionId, sdkSession, (_, _) => sdkSession);
+
 			NotifyStateChanged();
 			_logger.LogInformation("Successfully resumed session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
 			return true;
@@ -308,6 +333,9 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		catch(Exception ex) when(ex.Message.Equals("Communication error with Copilot CLI: Request session.resume failed with message: Session file is corrupted or incompatible"))
 		{
 			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
+			ChatSession? failedSession = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			if(failedSession is not null) failedSession.IsResuming = false;
+			NotifyStateChanged();
 			_toastService.Error("Session Unavailable", opts =>
 			{
 				opts.Description = "The session file may be corrupted, incompatible, or in use by another instance. You may need to delete or exit the session running else where";
@@ -317,6 +345,9 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to resume session {SessionId}", sessionId);
+			ChatSession? failedSession = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			if(failedSession is not null) failedSession.IsResuming = false;
+			NotifyStateChanged();
 			return false;
 		}
 	}

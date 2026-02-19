@@ -59,6 +59,12 @@
     font-size: 0.75rem;
 }
 
+.tool-child-count {
+    font-size: 0.7rem;
+    color: var(--secondary-text);
+    flex-shrink: 0;
+}
+
 .tool-description {
     color: var(--secondary-text);
     white-space: nowrap;
@@ -106,7 +112,7 @@
     padding: 0.5rem;
     border-radius: 4px;
     overflow-x: auto;
-    margin: 0;
+    margin: 0 0 0.5rem 0;
     color: var(--text-color);
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
@@ -143,4 +149,10 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.tool-children {
+    border-left: 2px solid var(--border-color);
+    margin-left: 0.5rem;
+    padding-left: 0.25rem;
 }

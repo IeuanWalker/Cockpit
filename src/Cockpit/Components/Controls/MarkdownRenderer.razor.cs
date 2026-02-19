@@ -14,14 +14,29 @@ public partial class MarkdownRenderer : ComponentBase
 
 	readonly string _containerId = $"markdown-{Guid.NewGuid():N}";
 	string _html = string.Empty;
+	string? _lastContent;
+	bool _contentChanged;
 
 	protected override void OnParametersSet()
 	{
-		_html = MarkdownService.ToHtml(Content ?? string.Empty);
+		string content = Content ?? string.Empty;
+		if(content != _lastContent)
+		{
+			_lastContent = content;
+			_html = MarkdownService.ToHtml(content);
+			_contentChanged = true;
+		}
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
+		if(!firstRender && !_contentChanged)
+		{
+			return;
+		}
+
+		_contentChanged = false;
+
 		try
 		{
 			await JSRuntime.InvokeVoidAsync("cockpit.highlightCodeBlocks", _containerId);

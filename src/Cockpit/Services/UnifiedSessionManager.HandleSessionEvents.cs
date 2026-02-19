@@ -20,6 +20,11 @@ public partial class UnifiedSessionManager
 		{
 			return;
 		}
+		HandleSessionEventCore(session, evt);
+	}
+
+	void HandleSessionEventCore(ChatSession session, SessionEvent evt)
+	{
 
 		try
 		{
@@ -102,127 +107,135 @@ public partial class UnifiedSessionManager
 					break;
 
 				case SessionCompactionStartEvent:
-					_logger.LogInformation("Session {SessionId} started context compaction", sessionId);
+					_logger.LogInformation("Session {SessionId} started context compaction", session.Id);
 					break;
 
 				case SessionCompactionCompleteEvent compaction:
 					_logger.LogInformation("Session {SessionId} completed compaction: {TokensRemoved} tokens removed",
-					sessionId, compaction.Data?.TokensRemoved);
+					session.Id, compaction.Data?.TokensRemoved);
 					break;
 
 				// Tier 2 — informational logging only
 				case AssistantIntentEvent intent:
-					_logger.LogDebug("Session {SessionId} assistant intent: {Intent}", sessionId, intent.Data?.Intent);
+					_logger.LogDebug("Session {SessionId} assistant intent: {Intent}", session.Id, intent.Data?.Intent);
 					break;
 
 				case AssistantTurnEndEvent turnEnd:
-					_logger.LogDebug("Session {SessionId} assistant turn ended: {TurnId}", sessionId, turnEnd.Data?.TurnId);
+					_logger.LogDebug("Session {SessionId} assistant turn ended: {TurnId}", session.Id, turnEnd.Data?.TurnId);
 					break;
 
 				case AssistantUsageEvent usage:
 					_logger.LogDebug("Session {SessionId} usage — model: {Model}, in: {In}, out: {Out}, cost: {Cost}",
-					sessionId, usage.Data?.Model, usage.Data?.InputTokens, usage.Data?.OutputTokens, usage.Data?.Cost);
+					session.Id, usage.Data?.Model, usage.Data?.InputTokens, usage.Data?.OutputTokens, usage.Data?.Cost);
 					break;
 
 				case SessionInfoEvent info:
 					_logger.LogInformation("Session {SessionId} info [{InfoType}]: {Message}",
-					sessionId, info.Data?.InfoType, info.Data?.Message);
+					session.Id, info.Data?.InfoType, info.Data?.Message);
 					break;
 
 				case SessionStartEvent start:
 					_logger.LogInformation("Session {SessionId} started — producer: {Producer}, model: {Model}",
-					sessionId, start.Data?.Producer, start.Data?.SelectedModel);
+					session.Id, start.Data?.Producer, start.Data?.SelectedModel);
 					break;
 
 				case SessionResumeEvent resume:
 					_logger.LogInformation("Session {SessionId} resumed at {ResumeTime}, {EventCount} prior events",
-					sessionId, resume.Data?.ResumeTime, resume.Data?.EventCount);
+					session.Id, resume.Data?.ResumeTime, resume.Data?.EventCount);
 					break;
 
 				case SessionContextChangedEvent ctxChanged:
 					_logger.LogInformation("Session {SessionId} context changed — cwd: {Cwd}, repo: {Repo}, branch: {Branch}",
-					sessionId, ctxChanged.Data?.Cwd, ctxChanged.Data?.Repository, ctxChanged.Data?.Branch);
+					session.Id, ctxChanged.Data?.Cwd, ctxChanged.Data?.Repository, ctxChanged.Data?.Branch);
 					break;
 
 				case SessionModeChangedEvent modeChanged:
 					_logger.LogInformation("Session {SessionId} mode changed: {Prev} → {New}",
-					sessionId, modeChanged.Data?.PreviousMode, modeChanged.Data?.NewMode);
+					session.Id, modeChanged.Data?.PreviousMode, modeChanged.Data?.NewMode);
 					break;
 
 				case SessionModelChangeEvent modelChange:
 					_logger.LogInformation("Session {SessionId} model changed: {Prev} → {New}",
-					sessionId, modelChange.Data?.PreviousModel, modelChange.Data?.NewModel);
+					session.Id, modelChange.Data?.PreviousModel, modelChange.Data?.NewModel);
 					break;
 
 				case SessionHandoffEvent handoff:
 					_logger.LogInformation("Session {SessionId} handoff — source: {Source}, summary: {Summary}",
-					sessionId, handoff.Data?.SourceType, handoff.Data?.Summary);
+					session.Id, handoff.Data?.SourceType, handoff.Data?.Summary);
 					break;
 
 				case SessionTruncationEvent truncation:
 					_logger.LogInformation("Session {SessionId} truncated — {MessagesRemoved} messages, {TokensRemoved} tokens removed",
-					sessionId, truncation.Data?.MessagesRemovedDuringTruncation, truncation.Data?.TokensRemovedDuringTruncation);
+					session.Id, truncation.Data?.MessagesRemovedDuringTruncation, truncation.Data?.TokensRemovedDuringTruncation);
 					break;
 
 				case SessionUsageInfoEvent usageInfo:
 					_logger.LogDebug("Session {SessionId} usage info — {Current}/{Limit} tokens, {Messages} messages",
-					sessionId, usageInfo.Data?.CurrentTokens, usageInfo.Data?.TokenLimit, usageInfo.Data?.MessagesLength);
+					session.Id, usageInfo.Data?.CurrentTokens, usageInfo.Data?.TokenLimit, usageInfo.Data?.MessagesLength);
 					break;
 
 				case SessionPlanChangedEvent planChanged:
-					_logger.LogDebug("Session {SessionId} plan changed: {Operation}", sessionId, planChanged.Data?.Operation);
+					_logger.LogDebug("Session {SessionId} plan changed: {Operation}", session.Id, planChanged.Data?.Operation);
 					break;
 
 				case SessionSnapshotRewindEvent snapshotRewind:
 					_logger.LogInformation("Session {SessionId} snapshot rewind — {EventsRemoved} events removed",
-					sessionId, snapshotRewind.Data?.EventsRemoved);
+					session.Id, snapshotRewind.Data?.EventsRemoved);
 					break;
 
 				case SessionWorkspaceFileChangedEvent fileChanged:
 					_logger.LogDebug("Session {SessionId} workspace file {Operation}: {Path}",
-					sessionId, fileChanged.Data?.Operation, fileChanged.Data?.Path);
+					session.Id, fileChanged.Data?.Operation, fileChanged.Data?.Path);
 					break;
 
 				case HookStartEvent hookStart:
 					_logger.LogDebug("Session {SessionId} hook started — type: {HookType}, id: {Id}",
-					sessionId, hookStart.Data?.HookType, hookStart.Data?.HookInvocationId);
+					session.Id, hookStart.Data?.HookType, hookStart.Data?.HookInvocationId);
 					break;
 
 				case HookEndEvent hookEnd:
 					_logger.LogInformation("Session {SessionId} hook ended — type: {HookType}, success: {Success}",
-					sessionId, hookEnd.Data?.HookType, hookEnd.Data?.Success);
+					session.Id, hookEnd.Data?.HookType, hookEnd.Data?.Success);
 					break;
 
 				case SkillInvokedEvent skill:
-					_logger.LogInformation("Session {SessionId} skill invoked: {Name}", sessionId, skill.Data?.Name);
+					_logger.LogInformation("Session {SessionId} skill invoked: {Name}", session.Id, skill.Data?.Name);
 					break;
 
 				case SubagentSelectedEvent subagentSelected:
-					_logger.LogInformation("Session {SessionId} subagent selected: {AgentName}", sessionId, subagentSelected.Data?.AgentName);
+					_logger.LogInformation("Session {SessionId} subagent selected: {AgentName}", session.Id, subagentSelected.Data?.AgentName);
 					break;
 
 				case SystemMessageEvent systemMsg:
-					_logger.LogDebug("Session {SessionId} system message [{Role}]", sessionId, systemMsg.Data?.Role);
+					_logger.LogDebug("Session {SessionId} system message [{Role}]", session.Id, systemMsg.Data?.Role);
 					break;
 
 				case ToolUserRequestedEvent toolUserRequested:
 					_logger.LogDebug("Session {SessionId} tool user requested: {ToolName} (handled by permission callback)",
-					sessionId, toolUserRequested.Data?.ToolName);
+					session.Id, toolUserRequested.Data?.ToolName);
 					break;
 
 				case PendingMessagesModifiedEvent:
-					_logger.LogDebug("Session {SessionId} pending messages modified", sessionId);
+					_logger.LogDebug("Session {SessionId} pending messages modified", session.Id);
 					break;
 
 				default:
-_logger.LogDebug("Unhandled event type {EventType} for session {SessionId}", evt.Type, sessionId);
+_logger.LogDebug("Unhandled event type {EventType} for session {SessionId}", evt.Type, session.Id);
 break;
 			}
 		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Error handling session event {EventType} for session {SessionId}",
-				evt.Type, sessionId);
+				evt.Type, session.Id);
+		}
+
+		// Update LastActivity only for meaningful events (user/assistant messages, tool executions)
+		if(evt is UserMessageEvent or AssistantMessageEvent or AssistantTurnEndEvent
+			or ToolExecutionStartEvent or ToolExecutionCompleteEvent or SessionIdleEvent
+			or SubagentStartedEvent or SubagentCompletedEvent or SessionErrorEvent)
+		{
+			session.LastActivity = evt.Timestamp.LocalDateTime;
 		}
 	}
 
@@ -253,7 +266,6 @@ break;
 		};
 
 		session.Messages.Add(message);
-		session.LastActivity = DateTime.Now;
 		session.Status = SessionStatus.Running;
 
 		// Only notify if this is the current visible session
@@ -297,8 +309,7 @@ break;
 			}
 
 			message.Content += evt.Data.DeltaContent ?? string.Empty;
-			session.LastActivity = DateTime.Now;
-
+	
 			// Only notify if this is the current visible session
 			if(session == CurrentSession)
 			{
@@ -326,7 +337,6 @@ break;
 		}
 
 		msg.Content += evt.Data.DeltaContent ?? string.Empty;
-		session.LastActivity = DateTime.Now;
 
 		// Only notify if this is the current visible session
 		if(session == CurrentSession)
@@ -373,8 +383,7 @@ break;
 					session.ActiveWorkingGroup.InitialMessageId = messageId;
 				}
 
-				session.LastActivity = DateTime.Now;
-
+		
 				// Only notify if this is the current visible session
 				if(session == CurrentSession)
 				{
@@ -403,8 +412,7 @@ break;
 				session.StreamingMessages.Remove(messageId);
 			}
 
-			session.LastActivity = DateTime.Now;
-
+	
 			// Only notify if this is the current visible session
 			if(session == CurrentSession)
 			{
@@ -436,7 +444,6 @@ break;
 			session.Messages.Add(message);
 		}
 
-		session.LastActivity = DateTime.Now;
 
 		// Only notify if this is the current visible session
 		if(session == CurrentSession)
@@ -457,7 +464,6 @@ break;
 
 		// Reasoning is only shown in the thinking panel, not in chat
 		// Just update activity timestamp
-		session.LastActivity = DateTime.Now;
 
 		// Only notify if this is the current visible session
 		if(session == CurrentSession)
@@ -486,7 +492,6 @@ break;
 			session.StreamingMessages.Remove(messageId);
 		}
 
-		session.LastActivity = DateTime.Now;
 
 		// Only notify if this is the current visible session
 		if(session == CurrentSession)
@@ -566,9 +571,27 @@ break;
 			Status = ToolStatus.Running
 		};
 
-		toolExec.RawEvents.Add(SerializeEvent(evt));
+		toolExec.RawEvents.Add(new Lazy<string>(() => SerializeEvent(evt)));
 
-		// Add as a thinking event (chronologically ordered with messages)
+		// If this is a child call (belongs to a subagent), nest it under the parent
+		string? parentCallId = evt.Data.ParentToolCallId;
+		if(parentCallId is not null)
+		{
+			ToolExecution? parent = FindToolExecution(session.ActiveWorkingGroup, parentCallId);
+			if(parent is not null)
+			{
+				parent.AddChild(toolExec);
+
+				if(session == CurrentSession)
+				{
+					NotifyStateChanged();
+				}
+
+				return;
+			}
+		}
+
+		// Top-level tool — add as a thinking event (chronologically ordered with messages)
 		session.ActiveWorkingGroup.AddEvent(new ThinkingEvent
 		{
 			Type = ThinkingEventType.Tool,
@@ -576,7 +599,6 @@ break;
 			Timestamp = evt.Timestamp.LocalDateTime
 		});
 
-		session.LastActivity = DateTime.Now;
 
 		// Only notify if this is the current visible session
 		if(session == CurrentSession)
@@ -595,12 +617,8 @@ break;
 			return;
 		}
 
-		// Find the tool execution in the active group (thread-safe)
-		List<ThinkingEvent> events = session.ActiveWorkingGroup.GetEventsSnapshot();
-		ToolExecution? toolExec = events
-			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
-			.Select(e => e.Tool!)
-			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
+		// Find the tool execution in the active group, including children (thread-safe)
+		ToolExecution? toolExec = FindToolExecution(session.ActiveWorkingGroup, evt.Data.ToolCallId);
 
 		if(toolExec is not null)
 		{
@@ -608,10 +626,9 @@ break;
 			toolExec.IsSuccess = true;
 			toolExec.EndTime = evt.Timestamp.LocalDateTime;
 			toolExec.Output = evt.Data.Result?.ToString();
-			toolExec.RawEvents.Add(SerializeEvent(evt));
+			toolExec.RawEvents.Add(new Lazy<string>(() => SerializeEvent(evt)));
 		}
 
-		session.LastActivity = DateTime.Now;
 
 		// Only notify if this is the current visible session
 		if(session == CurrentSession)
@@ -647,7 +664,7 @@ break;
 				return;
 			}
 
-			// Mark any still-running tools as stopped (Error status)
+			// Mark any still-running tools as stopped (Error status), including children
 			bool hasStoppedTools = false;
 			foreach(ToolExecution tool in group.Tools)
 			{
@@ -657,6 +674,16 @@ break;
 					tool.EndTime = DateTime.Now;
 					tool.IsSuccess = false;
 					hasStoppedTools = true;
+				}
+
+				foreach(ToolExecution child in tool.GetChildrenSnapshot())
+				{
+					if(child.Status == ToolStatus.Running)
+					{
+						child.Status = ToolStatus.Error;
+						child.EndTime = DateTime.Now;
+						child.IsSuccess = false;
+					}
 				}
 			}
 
@@ -820,7 +847,6 @@ break;
 
 		session.Messages.Add(message);
 		session.Status = SessionStatus.Error;
-		session.LastActivity = DateTime.Now;
 
 		// Only notify if this is the current visible session
 		if(session == CurrentSession)
@@ -832,7 +858,6 @@ break;
 	void HandleSessionTitleChanged(ChatSession session, SessionTitleChangedEvent evt)
 	{
 		session.Title = evt.Data.Title;
-		session.LastActivity = DateTime.Now;
 
 		if(session == CurrentSession)
 		{
@@ -852,7 +877,6 @@ break;
 		}
 
 		session.Status = SessionStatus.Idle;
-		session.LastActivity = DateTime.Now;
 
 		if(session == CurrentSession)
 		{
@@ -873,7 +897,6 @@ break;
 		}
 
 		session.Status = SessionStatus.Idle;
-		session.LastActivity = DateTime.Now;
 
 		if(session == CurrentSession)
 		{
@@ -897,7 +920,6 @@ break;
 		};
 
 		session.Messages.Add(message);
-		session.LastActivity = DateTime.Now;
 
 		if(session == CurrentSession)
 		{
@@ -912,18 +934,13 @@ break;
 			return;
 		}
 
-		List<ThinkingEvent> events = session.ActiveWorkingGroup.GetEventsSnapshot();
-		ToolExecution? toolExec = events
-			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
-			.Select(e => e.Tool!)
-			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
+		ToolExecution? toolExec = FindToolExecution(session.ActiveWorkingGroup, evt.Data.ToolCallId);
 
 		if(toolExec is not null)
 		{
 			toolExec.ProgressMessage = evt.Data.ProgressMessage;
-			toolExec.RawEvents.Add(SerializeEvent(evt));
-			session.LastActivity = DateTime.Now;
-
+			toolExec.RawEvents.Add(new Lazy<string>(() => SerializeEvent(evt)));
+	
 			if(session == CurrentSession)
 			{
 				NotifyStateChanged();
@@ -938,17 +955,12 @@ break;
 			return;
 		}
 
-		List<ThinkingEvent> events = session.ActiveWorkingGroup.GetEventsSnapshot();
-		ToolExecution? toolExec = events
-			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
-			.Select(e => e.Tool!)
-			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
+		ToolExecution? toolExec = FindToolExecution(session.ActiveWorkingGroup, evt.Data.ToolCallId);
 
 		if(toolExec is not null)
 		{
 			toolExec.Output = (toolExec.Output ?? string.Empty) + evt.Data.PartialOutput;
-			session.LastActivity = DateTime.Now;
-
+	
 			if(session == CurrentSession)
 			{
 				NotifyStateChanged();
@@ -968,24 +980,39 @@ break;
 			};
 		}
 
-		ToolExecution subagentExec = new()
+		// Check if a ToolExecution already exists for this ToolCallId (created by tool.execution_start)
+		// If so, update it in-place rather than creating a duplicate entry
+		List<ThinkingEvent> existingEvents = session.ActiveWorkingGroup.GetEventsSnapshot();
+		ToolExecution? existingExec = existingEvents
+			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
+			.Select(e => e.Tool!)
+			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
+
+		if(existingExec is not null)
 		{
-			ToolName = evt.Data.AgentDisplayName ?? string.Empty,
-			ToolCallId = evt.Data.ToolCallId,
-			StartTime = evt.Timestamp.LocalDateTime,
-			Status = ToolStatus.Running
-		};
-
-		subagentExec.RawEvents.Add(SerializeEvent(evt));
-
-		session.ActiveWorkingGroup.AddEvent(new ThinkingEvent
+			existingExec.ToolName = evt.Data.AgentDisplayName ?? existingExec.ToolName;
+			existingExec.RawEvents.Add(new Lazy<string>(() => SerializeEvent(evt)));
+		}
+		else
 		{
-			Type = ThinkingEventType.Tool,
-			Tool = subagentExec,
-			Timestamp = evt.Timestamp.LocalDateTime
-		});
+			ToolExecution subagentExec = new()
+			{
+				ToolName = evt.Data.AgentDisplayName ?? string.Empty,
+				ToolCallId = evt.Data.ToolCallId,
+				StartTime = evt.Timestamp.LocalDateTime,
+				Status = ToolStatus.Running
+			};
 
-		session.LastActivity = DateTime.Now;
+			subagentExec.RawEvents.Add(new Lazy<string>(() => SerializeEvent(evt)));
+
+			session.ActiveWorkingGroup.AddEvent(new ThinkingEvent
+			{
+				Type = ThinkingEventType.Tool,
+				Tool = subagentExec,
+				Timestamp = evt.Timestamp.LocalDateTime
+			});
+		}
+
 
 		if(session == CurrentSession)
 		{
@@ -1011,10 +1038,9 @@ break;
 			subagentExec.Status = ToolStatus.Success;
 			subagentExec.IsSuccess = true;
 			subagentExec.EndTime = DateTime.Now;
-			subagentExec.RawEvents.Add(SerializeEvent(evt));
+			subagentExec.RawEvents.Add(new Lazy<string>(() => SerializeEvent(evt)));
 		}
 
-		session.LastActivity = DateTime.Now;
 
 		if(session == CurrentSession)
 		{
@@ -1041,10 +1067,9 @@ break;
 			subagentExec.IsSuccess = false;
 			subagentExec.EndTime = DateTime.Now;
 			subagentExec.Output = evt.Data.Error;
-			subagentExec.RawEvents.Add(SerializeEvent(evt));
+			subagentExec.RawEvents.Add(new Lazy<string>(() => SerializeEvent(evt)));
 		}
 
-		session.LastActivity = DateTime.Now;
 
 		if(session == CurrentSession)
 		{
@@ -1081,6 +1106,40 @@ break;
 		}
 	}
 	static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+
+	/// <summary>
+	/// Finds a ToolExecution by ToolCallId in the group's top-level tools and their children.
+	/// </summary>
+	static ToolExecution? FindToolExecution(ActivityGroup group, string? toolCallId)
+	{
+		if(toolCallId is null)
+		{
+			return null;
+		}
+
+		foreach(ThinkingEvent evt in group.GetEventsSnapshot())
+		{
+			if(evt.Type != ThinkingEventType.Tool || evt.Tool is null)
+			{
+				continue;
+			}
+
+			if(evt.Tool.ToolCallId == toolCallId)
+			{
+				return evt.Tool;
+			}
+
+			ToolExecution? child = evt.Tool.GetChildrenSnapshot()
+				.FirstOrDefault(c => c.ToolCallId == toolCallId);
+
+			if(child is not null)
+			{
+				return child;
+			}
+		}
+
+		return null;
+	}
 
 	static string SerializeEvent(SessionEvent evt)
 	{

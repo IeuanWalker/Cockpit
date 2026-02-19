@@ -1,7 +1,14 @@
-<div class="tool-execution @GetStatusClass()" @onclick="ToggleExpanded">
-    <div class="tool-summary">
+<div class="tool-execution @GetStatusClass()">
+    <div class="tool-summary" @onclick="ToggleExpanded">
         <span class="tool-dot @GetStatusClass()"></span>
         <span class="tool-label" style="color: @GetLabelColor()">@GetToolLabel()</span>
+        @{
+            var childCount = Tool.GetChildrenSnapshot().Count;
+        }
+        @if(childCount > 0)
+        {
+            <span class="tool-child-count">(@childCount)</span>
+        }
         <span class="tool-description">
             @if(@GetToolLabel().Equals("Edit"))
             {
@@ -42,10 +49,21 @@
 
     @if(Tool.IsExpanded)
     {
+        var children = Tool.GetChildrenSnapshot();
+        @if(children.Count > 0)
+        {
+            <div class="tool-children" @onclick:stopPropagation="true">
+                @foreach(var child in children)
+                {
+                    <ToolExecutionDetail Tool="child" />
+                }
+            </div>
+        }
+
         <div class="tool-details">
-            @foreach(string rawEvent in Tool.RawEvents)
+            @foreach(Lazy<string> rawEvent in Tool.RawEvents)
             {
-                <pre class="detail-code">@rawEvent</pre>
+                <pre class="detail-code">@rawEvent.Value</pre>
             }
         </div>
     }
