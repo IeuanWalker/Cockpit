@@ -73,6 +73,31 @@ window.xtermInterop.clearTerminal = function (terminalElementId) {
     }
 };
 
+window.xtermInterop.getTerminalText = function (terminalElementId, lineCount) {
+    if (!window.XtermBlazor) return '';
+    let term;
+    try {
+        term = window.XtermBlazor.getTerminalById(terminalElementId);
+    } catch {
+        return '';
+    }
+    const buffer = term.buffer.active;
+    const totalLines = buffer.length;
+    const startLine = Math.max(0, totalLines - lineCount);
+    const lines = [];
+    for (let i = startLine; i < totalLines; i++) {
+        const line = buffer.getLine(i);
+        if (line) {
+            lines.push(line.translateToString(true));
+        }
+    }
+    // Trim trailing blank lines
+    while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+        lines.pop();
+    }
+    return lines.join('\n');
+};
+
 window.xtermInterop.registerWindowResize = function (terminalElementId, dotnetHelper) {
     let debounceTimer = null;
     function onResize() {
