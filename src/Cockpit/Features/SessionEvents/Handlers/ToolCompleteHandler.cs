@@ -24,7 +24,7 @@ static class ToolCompleteHandler
 			toolExec.IsSuccess = true;
 			toolExec.EndTime = evt.Timestamp.LocalDateTime;
 			toolExec.Output = evt.Data.Result?.ToString();
-			toolExec.RawEvents.Add(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
+			toolExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 		}
 	}
 }

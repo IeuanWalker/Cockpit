@@ -17,7 +17,7 @@ static class ToolProgressHandler
 		if(toolExec is not null)
 		{
 			toolExec.ProgressMessage = evt.Data.ProgressMessage;
-			toolExec.RawEvents.Add(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
+			toolExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 		}
 	}
 }

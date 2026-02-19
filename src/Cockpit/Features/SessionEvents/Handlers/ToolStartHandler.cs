@@ -61,7 +61,7 @@ static class ToolStartHandler
 			Status = ToolStatus.Running
 		};
 
-		toolExec.RawEvents.Add(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
+		toolExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 
 		// If this is a child call (belongs to a subagent), nest it under the parent
 		string? parentCallId = evt.Data.ParentToolCallId;

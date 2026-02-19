@@ -24,7 +24,7 @@ static class SubagentFailedHandler
 			subagentExec.IsSuccess = false;
 			subagentExec.EndTime = DateTime.Now;
 			subagentExec.Output = evt.Data.Error;
-			subagentExec.RawEvents.Add(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
+			subagentExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 		}
 	}
 }
