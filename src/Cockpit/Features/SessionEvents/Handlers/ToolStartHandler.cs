@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 
@@ -18,10 +20,10 @@ static class ToolStartHandler
 
 		if(session.ActiveWorkingGroup is null)
 		{
-			session.ActiveWorkingGroup = new ActivityGroup
+			session.ActiveWorkingGroup = new ActivityGroupModel
 			{
 				StartTime = evt.Timestamp.LocalDateTime,
-				Status = GroupStatus.Running,
+				Status = GroupStatusEnum.Running,
 				IsExpanded = true
 			};
 
@@ -36,12 +38,12 @@ static class ToolStartHandler
 				}
 			}
 
-			ChatMessage? lastAssistantMessage = null;
+			ChatMessageModel? lastAssistantMessage = null;
 			if(lastUserIndex >= 0)
 			{
 				lastAssistantMessage = session.Messages
 					.Skip(lastUserIndex + 1)
-					.Where(m => !m.IsUser && m.Type == MessageType.Text)
+					.Where(m => !m.IsUser && m.Type == MessageTypeEnum.Text)
 					.LastOrDefault();
 			}
 
@@ -52,13 +54,13 @@ static class ToolStartHandler
 			}
 		}
 
-		ToolExecution toolExec = new()
+		ToolExecutionModel toolExec = new()
 		{
 			ToolName = evt.Data.ToolName ?? "unknown",
 			ToolCallId = evt.Data.ToolCallId,
 			InputParameters = SessionEventHelpers.DeserializeArguments(evt.Data.Arguments),
 			StartTime = evt.Timestamp.LocalDateTime,
-			Status = ToolStatus.Running
+			Status = ToolStatusEnum.Running
 		};
 
 		toolExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
@@ -67,7 +69,7 @@ static class ToolStartHandler
 		string? parentCallId = evt.Data.ParentToolCallId;
 		if(parentCallId is not null)
 		{
-			ToolExecution? parent = SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, parentCallId);
+			ToolExecutionModel? parent = SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, parentCallId);
 			if(parent is not null)
 			{
 				parent.AddChild(toolExec);
@@ -76,9 +78,9 @@ static class ToolStartHandler
 		}
 
 		// Top-level tool — add as a thinking event (chronologically ordered with messages)
-		session.ActiveWorkingGroup.AddEvent(new ThinkingEvent
+		session.ActiveWorkingGroup.AddEvent(new ThinkingEventModel
 		{
-			Type = ThinkingEventType.Tool,
+			Type = ThinkingEventTypeEnum.Tool,
 			Tool = toolExec,
 			Timestamp = evt.Timestamp.LocalDateTime
 		});

@@ -1,23 +1,25 @@
 using System.Diagnostics;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 
 namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SessionIdleHandler
 {
-	internal static void Handle(ChatSession session, DateTimeOffset? eventTimestamp = null, Func<ChatMessage, string, Task>? onStreamSummary = null)
+	internal static void Handle(ChatSession session, DateTimeOffset? eventTimestamp = null, Func<ChatMessageModel, string, Task>? onStreamSummary = null)
 	{
 		DateTime now = eventTimestamp?.LocalDateTime ?? DateTime.Now;
 		Debug.WriteLine("SessionIdleHandler - Finalizing activity group");
 
 		if(session.ActiveWorkingGroup is not null && session.ActiveWorkingGroup.Tools.Any())
 		{
-			ActivityGroup group = session.ActiveWorkingGroup;
+			ActivityGroupModel group = session.ActiveWorkingGroup;
 			Debug.WriteLine($"Finalizing thinking group. Has {group.Tools.Count()} tools");
 
 			// Check if activity message already exists for this group
 			bool activityMessageExists = session.Messages.Any(m =>
-				m.Type == MessageType.ActivityGroup && m.ActivityGroup?.Id == group.Id);
+				m.Type == MessageTypeEnum.ActivityGroup && m.ActivityGroup?.Id == group.Id);
 
 			if(activityMessageExists)
 			{
@@ -28,34 +30,34 @@ static class SessionIdleHandler
 
 			// Mark any still-running tools as stopped (Error status), including children
 			bool hasStoppedTools = false;
-			foreach(ToolExecution tool in group.Tools)
+			foreach(ToolExecutionModel tool in group.Tools)
 			{
-				if(tool.Status == ToolStatus.Running)
+				if(tool.Status == ToolStatusEnum.Running)
 				{
-					tool.Status = ToolStatus.Error;
+					tool.Status = ToolStatusEnum.Error;
 					tool.EndTime = DateTime.Now;
 					tool.IsSuccess = false;
 					hasStoppedTools = true;
 				}
 
-				foreach(ToolExecution child in tool.GetChildrenSnapshot())
+				foreach(ToolExecutionModel child in tool.GetChildrenSnapshot())
 				{
-					if(child.Status == ToolStatus.Running)
+					if(child.Status == ToolStatusEnum.Running)
 					{
-						child.Status = ToolStatus.Error;
+						child.Status = ToolStatusEnum.Error;
 						child.EndTime = DateTime.Now;
 						child.IsSuccess = false;
 					}
 				}
 			}
 
-			group.Status = GroupStatus.Complete;
+			group.Status = GroupStatusEnum.Complete;
 			group.EndTime = now;
 			group.IsExpanded = false;
 
 			// Extract the last message event as the summary (but not "Session stopped")
-			List<ThinkingEvent> events = group.GetEventsSnapshot();
-			ThinkingEvent? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventType.Message);
+			List<ThinkingEventModel> events = group.GetEventsSnapshot();
+			ThinkingEventModel? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventTypeEnum.Message);
 
 			bool hasSummary = false;
 			if(lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
@@ -64,13 +66,13 @@ static class SessionIdleHandler
 				group.RemoveEvent(lastMessage);
 
 				// Add summary message as streaming - will be progressively revealed
-				ChatMessage summaryMsg = new()
+				ChatMessageModel summaryMsg = new()
 				{
 					Id = lastMessage.Id ?? Guid.NewGuid().ToString(),
 					Content = string.Empty,
 					IsUser = false,
 					Timestamp = now,
-					Type = MessageType.Text,
+					Type = MessageTypeEnum.Text,
 					IsStreaming = true,
 					IsComplete = false
 				};
@@ -95,19 +97,19 @@ static class SessionIdleHandler
 			// Add "Session stopped" event to operation list AFTER extracting summary
 			if(hasStoppedTools)
 			{
-				group.AddEvent(new ThinkingEvent
+				group.AddEvent(new ThinkingEventModel
 				{
-					Type = ThinkingEventType.Message,
+					Type = ThinkingEventTypeEnum.Message,
 					Message = "Session stopped",
 					Timestamp = now
 				});
 			}
 
 			// Insert activity group between initial and summary messages
-			ChatMessage activityMessage = new()
+			ChatMessageModel activityMessage = new()
 			{
 				IsUser = false,
-				Type = MessageType.ActivityGroup,
+				Type = MessageTypeEnum.ActivityGroup,
 				ActivityGroup = group,
 				Timestamp = group.EndTime ?? DateTime.Now,
 				Content = GenerateActivitySummary(group)
@@ -169,9 +171,9 @@ static class SessionIdleHandler
 		session.Status = SessionStatus.Idle;
 	}
 
-	static string GenerateActivitySummary(ActivityGroup group)
+	static string GenerateActivitySummary(ActivityGroupModel group)
 	{
-		List<ToolExecution> tools = [.. group.Tools];
+		List<ToolExecutionModel> tools = [.. group.Tools];
 		IEnumerable<string> toolNames = tools.Select(t => t.ToolName).Distinct().Take(3);
 		int more = tools.Select(t => t.ToolName).Distinct().Count() - 3;
 		string preview = string.Join(", ", toolNames) + (more > 0 ? $", +{more}" : "");

@@ -1,3 +1,4 @@
+@using Cockpit.Features.SessionEvents.Models.Enums
 <div class="tool-execution @GetStatusClass()">
     <div class="tool-summary" @onclick="ToggleExpanded">
         <span class="tool-dot @GetStatusClass()"></span>
@@ -42,7 +43,7 @@
         <span class="expand-indicator">@(Tool.IsExpanded ? "▾" : "▸")</span>
     </div>
 
-    @if(Tool.Status == ToolStatus.Running && !string.IsNullOrEmpty(Tool.ProgressMessage))
+    @if(Tool.Status == ToolStatusEnum.Running && !string.IsNullOrEmpty(Tool.ProgressMessage))
     {
         <div class="tool-progress">@Tool.ProgressMessage</div>
     }

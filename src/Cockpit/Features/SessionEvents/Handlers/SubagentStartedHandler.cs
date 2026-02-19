@@ -1,3 +1,5 @@
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 
@@ -7,18 +9,18 @@ static class SubagentStartedHandler
 {
 	internal static void Handle(ChatSession session, SubagentStartedEvent evt)
 	{
-		session.ActiveWorkingGroup ??= new ActivityGroup
+		session.ActiveWorkingGroup ??= new ActivityGroupModel
 		{
 			StartTime = evt.Timestamp.LocalDateTime,
-			Status = GroupStatus.Running,
+			Status = GroupStatusEnum.Running,
 			IsExpanded = true
 		};
 
 		// Check if a ToolExecution already exists for this ToolCallId (created by tool.execution_start)
 		// If so, update it in-place rather than creating a duplicate entry
-		List<ThinkingEvent> existingEvents = session.ActiveWorkingGroup.GetEventsSnapshot();
-		ToolExecution? existingExec = existingEvents
-			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
+		List<ThinkingEventModel> existingEvents = session.ActiveWorkingGroup.GetEventsSnapshot();
+		ToolExecutionModel? existingExec = existingEvents
+			.Where(e => e.Type == ThinkingEventTypeEnum.Tool && e.Tool is not null)
 			.Select(e => e.Tool!)
 			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
 
@@ -29,19 +31,19 @@ static class SubagentStartedHandler
 		}
 		else
 		{
-			ToolExecution subagentExec = new()
+			ToolExecutionModel subagentExec = new()
 			{
 				ToolName = evt.Data.AgentDisplayName ?? string.Empty,
 				ToolCallId = evt.Data.ToolCallId,
 				StartTime = evt.Timestamp.LocalDateTime,
-				Status = ToolStatus.Running
+				Status = ToolStatusEnum.Running
 			};
 
 			subagentExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 
-			session.ActiveWorkingGroup.AddEvent(new ThinkingEvent
+			session.ActiveWorkingGroup.AddEvent(new ThinkingEventModel
 			{
-				Type = ThinkingEventType.Tool,
+				Type = ThinkingEventTypeEnum.Tool,
 				Tool = subagentExec,
 				Timestamp = evt.Timestamp.LocalDateTime
 			});

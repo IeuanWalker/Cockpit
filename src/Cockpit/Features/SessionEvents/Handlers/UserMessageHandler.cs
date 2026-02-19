@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 
@@ -16,13 +18,13 @@ static class UserMessageHandler
 			return;
 		}
 
-		ChatMessage message = new()
+		ChatMessageModel message = new()
 		{
 			Id = Guid.NewGuid().ToString(),
 			Content = evt.Data.Content ?? string.Empty,
 			IsUser = true,
 			Timestamp = evt.Timestamp,
-			Type = MessageType.Text,
+			Type = MessageTypeEnum.Text,
 			EventType = evt.Type
 		};
 

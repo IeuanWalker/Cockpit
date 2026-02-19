@@ -1,4 +1,5 @@
-using Cockpit.Models;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 
@@ -7,7 +8,7 @@ namespace Cockpit.Components.Controls;
 public sealed partial class ToolExecutionDetail : IDisposable
 {
 	[Parameter]
-	public ToolExecution Tool { get; set; } = default!;
+	public ToolExecutionModel Tool { get; set; } = default!;
 
 	[Parameter]
 	public bool IsLive { get; set; }
@@ -42,9 +43,9 @@ public sealed partial class ToolExecutionDetail : IDisposable
 	{
 		return Tool.Status switch
 		{
-			ToolStatus.Running => "running",
-			ToolStatus.Success => "success",
-			ToolStatus.Error => "error",
+			ToolStatusEnum.Running => "running",
+			ToolStatusEnum.Success => "success",
+			ToolStatusEnum.Error => "error",
 			_ => ""
 		};
 	}

@@ -1,4 +1,5 @@
 @using Cockpit.Components.Controls
+@using Cockpit.Features.SessionEvents.Models.Enums
 @using Cockpit.Models
 
 <div id="chatMessages" class="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin p-3 space-y-3">
@@ -6,13 +7,13 @@
     {
         @foreach(var message in _sessionManager.CurrentSession.Messages)
         {
-            if(message.Type == MessageType.ActivityGroup && message.ActivityGroup is not null)
+            if(message.Type == MessageTypeEnum.ActivityGroup && message.ActivityGroup is not null)
             {
                 <!-- Activity Group (completed thinking) - plain inline expander -->
                 <Opperations Group="message.ActivityGroup" />
             }
             @* Typing indicator removed - using thinking panel instead *@
-            else if(message.Type == MessageType.Error)
+            else if(message.Type == MessageTypeEnum.Error)
             {
                 <div class="error-message">
                     <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 
@@ -18,7 +19,7 @@ static class AssistantReasoningHandler
 
 		string messageId = "reasoning";
 
-		if(session.StreamingMessages.TryGetValue(messageId, out ChatMessage? existingMessage))
+		if(session.StreamingMessages.TryGetValue(messageId, out ChatMessageModel? existingMessage))
 		{
 			existingMessage.ReasoningContent = evt.Data.Content ?? string.Empty;
 			existingMessage.IsStreaming = false;

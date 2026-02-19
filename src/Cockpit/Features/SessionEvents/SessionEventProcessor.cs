@@ -1,4 +1,5 @@
 using Cockpit.Features.SessionEvents.Handlers;
+using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -23,7 +24,7 @@ public sealed class SessionEventProcessor
 	/// Pass <paramref name="onStreamSummary"/> to stream the idle-event summary progressively;
 	/// pass <c>null</c> for background (non-visible) sessions.
 	/// </summary>
-	public void Process(ChatSession session, SessionEvent evt, Func<ChatMessage, string, Task>? onStreamSummary = null)
+	public void Process(ChatSession session, SessionEvent evt, Func<ChatMessageModel, string, Task>? onStreamSummary = null)
 	{
 		try
 		{
@@ -51,7 +52,7 @@ public sealed class SessionEventProcessor
 					break;
 
 				case AssistantReasoningDeltaEvent reasoningDelta:
-					AssistantReasoningDeltaHandler.Handle(session, reasoningDelta);
+					//////	AssistantReasoningDeltaHandler.Handle(session, reasoningDelta);
 					break;
 
 				case AssistantReasoningEvent reasoning:

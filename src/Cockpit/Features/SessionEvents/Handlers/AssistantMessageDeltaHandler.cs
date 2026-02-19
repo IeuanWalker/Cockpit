@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 
@@ -19,17 +21,17 @@ static class AssistantMessageDeltaHandler
 		string messageId = evt.Data.MessageId ?? "streaming";
 
 		// Don't add to chat if we have an active thinking group
-		if(session.ActiveWorkingGroup is not null && session.ActiveWorkingGroup.Status == GroupStatus.Running)
+		if(session.ActiveWorkingGroup is not null && session.ActiveWorkingGroup.Status == GroupStatusEnum.Running)
 		{
-			if(!session.StreamingMessages.TryGetValue(messageId, out ChatMessage? message))
+			if(!session.StreamingMessages.TryGetValue(messageId, out ChatMessageModel? message))
 			{
-				message = new ChatMessage
+				message = new ChatMessageModel
 				{
 					Id = messageId,
 					Content = string.Empty,
 					IsUser = false,
 					Timestamp = evt.Timestamp,
-					Type = MessageType.Text,
+					Type = MessageTypeEnum.Text,
 					IsStreaming = true,
 					IsComplete = false,
 					EventType = evt.Type
@@ -43,15 +45,15 @@ static class AssistantMessageDeltaHandler
 		}
 
 		// Not in thinking mode - add to chat normally
-		if(!session.StreamingMessages.TryGetValue(messageId, out ChatMessage? msg))
+		if(!session.StreamingMessages.TryGetValue(messageId, out ChatMessageModel? msg))
 		{
-			msg = new ChatMessage
+			msg = new ChatMessageModel
 			{
 				Id = messageId,
 				Content = string.Empty,
 				IsUser = false,
 				Timestamp = DateTime.Now,
-				Type = MessageType.Text,
+				Type = MessageTypeEnum.Text,
 				IsStreaming = true,
 				IsComplete = false,
 				EventType = evt.Type

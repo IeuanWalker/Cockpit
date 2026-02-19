@@ -1,4 +1,5 @@
-using Cockpit.Models;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Services;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
@@ -10,7 +11,7 @@ namespace Cockpit.Components.Pages.ChatPanel;
 public sealed partial class WorkingPanel : IAsyncDisposable
 {
 	[Parameter]
-	public ActivityGroup? Group { get; set; }
+	public ActivityGroupModel? Group { get; set; }
 
 	[Parameter]
 	public bool IsVisible { get; set; }
@@ -34,7 +35,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	protected override void OnParametersSet()
 	{
 		// Start timer when thinking starts
-		if(IsVisible && Group is not null && Group.Status == GroupStatus.Running)
+		if(IsVisible && Group is not null && Group.Status == GroupStatusEnum.Running)
 		{
 			_timer ??= new Timer(_ =>
 			{
@@ -140,7 +141,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 			return string.Empty;
 		}
 
-		TimeSpan elapsed = Group.Status == GroupStatus.Running
+		TimeSpan elapsed = Group.Status == GroupStatusEnum.Running
 			? DateTime.Now - Group.StartTime
 			: (Group.EndTime ?? DateTime.Now) - Group.StartTime;
 
@@ -154,9 +155,9 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 			return string.Empty;
 		}
 
-		List<ToolExecution> tools = [.. Group.Tools]; // Create snapshot to avoid collection modified exception
-		int running = tools.Count(t => t.Status == ToolStatus.Running);
-		int complete = tools.Count(t => t.Status == ToolStatus.Success);
+		List<ToolExecutionModel> tools = [.. Group.Tools]; // Create snapshot to avoid collection modified exception
+		int running = tools.Count(t => t.Status == ToolStatusEnum.Running);
+		int complete = tools.Count(t => t.Status == ToolStatusEnum.Success);
 
 		return $"{running} running, {complete} complete";
 	}

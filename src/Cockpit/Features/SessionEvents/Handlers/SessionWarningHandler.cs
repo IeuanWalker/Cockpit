@@ -1,3 +1,5 @@
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -11,13 +13,13 @@ static class SessionWarningHandler
 		logger.LogWarning("Session {SessionId} warning [{WarningType}]: {Message}",
 			session.Id, evt.Data.WarningType, evt.Data.Message);
 
-		ChatMessage message = new()
+		ChatMessageModel message = new()
 		{
 			Id = Guid.NewGuid().ToString(),
 			Content = evt.Data.Message,
 			IsUser = false,
 			Timestamp = DateTime.Now,
-			Type = MessageType.Error,
+			Type = MessageTypeEnum.Error,
 			EventType = evt.Type
 		};
 

@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using Blazor.Sonner.Services;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -31,8 +33,8 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	public ChatSession? CurrentSession { get; private set; }
 
 	// Activity grouping for working panel (per-session)
-	public ActivityGroup? ActiveWorkingGroup => CurrentSession?.ActiveWorkingGroup;
-	public bool IsWorking => CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatus.Running;
+	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.ActiveWorkingGroup;
+	public bool IsWorking => CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatusEnum.Running;
 
 	public UnifiedSessionManager(
 		CopilotClientService clientService,
@@ -80,7 +82,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			return;
 		}
 
-		Func<ChatMessage, string, Task>? streamCallback = session == CurrentSession
+		Func<ChatMessageModel, string, Task>? streamCallback = session == CurrentSession
 			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, NotifyStateChanged)
 			: null;
 

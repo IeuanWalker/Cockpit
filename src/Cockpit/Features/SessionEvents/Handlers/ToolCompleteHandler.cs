@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 
@@ -16,11 +18,11 @@ static class ToolCompleteHandler
 			return;
 		}
 
-		ToolExecution? toolExec = SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, evt.Data.ToolCallId);
+		ToolExecutionModel? toolExec = SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, evt.Data.ToolCallId);
 
 		if(toolExec is not null)
 		{
-			toolExec.Status = ToolStatus.Success;
+			toolExec.Status = ToolStatusEnum.Success;
 			toolExec.IsSuccess = true;
 			toolExec.EndTime = evt.Timestamp.LocalDateTime;
 			toolExec.Output = evt.Data.Result?.ToString();

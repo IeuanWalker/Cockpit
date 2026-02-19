@@ -1,3 +1,4 @@
+using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 
@@ -12,11 +13,8 @@ static class ToolPartialResultHandler
 			return;
 		}
 
-		ToolExecution? toolExec = SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, evt.Data.ToolCallId);
+		ToolExecutionModel? toolExec = SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, evt.Data.ToolCallId);
 
-		if(toolExec is not null)
-		{
-			toolExec.Output = (toolExec.Output ?? string.Empty) + evt.Data.PartialOutput;
-		}
+		toolExec?.Output = (toolExec.Output ?? string.Empty) + evt.Data.PartialOutput;
 	}
 }

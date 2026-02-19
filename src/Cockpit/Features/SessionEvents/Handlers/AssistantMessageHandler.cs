@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 
@@ -19,11 +21,11 @@ static class AssistantMessageHandler
 		string messageId = evt.Data.MessageId ?? Guid.NewGuid().ToString();
 		string content = evt.Data.Content ?? string.Empty;
 
-		bool isStreamingMessage = session.StreamingMessages.TryGetValue(messageId, out ChatMessage? streamingMsg);
+		bool isStreamingMessage = session.StreamingMessages.TryGetValue(messageId, out ChatMessageModel? streamingMsg);
 		bool isInChat = session.Messages.Any(m => m.Id == messageId);
 
 		// Check if we have an active thinking group
-		if(session.ActiveWorkingGroup is not null && session.ActiveWorkingGroup.Status == GroupStatus.Running)
+		if(session.ActiveWorkingGroup is not null && session.ActiveWorkingGroup.Status == GroupStatusEnum.Running)
 		{
 			// If this message is already in chat, it's the initial message - keep it there
 			if(isInChat)
@@ -46,10 +48,10 @@ static class AssistantMessageHandler
 			// All messages during thinking go to the thinking panel
 			if(!string.IsNullOrWhiteSpace(content))
 			{
-				session.ActiveWorkingGroup.AddEvent(new ThinkingEvent
+				session.ActiveWorkingGroup.AddEvent(new ThinkingEventModel
 				{
 					Id = messageId,
-					Type = ThinkingEventType.Message,
+					Type = ThinkingEventTypeEnum.Message,
 					Message = content,
 					Timestamp = evt.Timestamp.LocalDateTime
 				});
@@ -72,13 +74,13 @@ static class AssistantMessageHandler
 		}
 		else if(!string.IsNullOrWhiteSpace(content))
 		{
-			ChatMessage message = new()
+			ChatMessageModel message = new()
 			{
 				Id = messageId,
 				Content = content,
 				IsUser = false,
 				Timestamp = evt.Timestamp,
-				Type = MessageType.Text,
+				Type = MessageTypeEnum.Text,
 				IsComplete = true,
 				EventType = evt.Type
 			};

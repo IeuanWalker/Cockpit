@@ -1,5 +1,6 @@
 using System.Text.Json;
-using Cockpit.Models;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using GitHub.Copilot.SDK;
 
 namespace Cockpit.Features.SessionEvents;
@@ -11,16 +12,16 @@ static class SessionEventHelpers
 		WriteIndented = true
 	};
 
-	internal static ToolExecution? FindToolExecution(ActivityGroup group, string? toolCallId)
+	internal static ToolExecutionModel? FindToolExecution(ActivityGroupModel group, string? toolCallId)
 	{
 		if(toolCallId is null)
 		{
 			return null;
 		}
 
-		foreach(ThinkingEvent evt in group.GetEventsSnapshot())
+		foreach(ThinkingEventModel evt in group.GetEventsSnapshot())
 		{
-			if(evt.Type != ThinkingEventType.Tool || evt.Tool is null)
+			if(evt.Type != ThinkingEventTypeEnum.Tool || evt.Tool is null)
 			{
 				continue;
 			}
@@ -30,7 +31,7 @@ static class SessionEventHelpers
 				return evt.Tool;
 			}
 
-			ToolExecution? child = evt.Tool
+			ToolExecutionModel? child = evt.Tool
 				.GetChildrenSnapshot()
 				.FirstOrDefault(c => c.ToolCallId == toolCallId);
 
@@ -55,7 +56,7 @@ static class SessionEventHelpers
 		}
 	}
 
-	internal static async Task StreamSummaryTextAsync(ChatMessage message, string fullText, Action notifyStateChanged)
+	internal static async Task StreamSummaryTextAsync(ChatMessageModel message, string fullText, Action notifyStateChanged)
 	{
 		const int chunkSize = 3;
 		const int delayMs = 8;

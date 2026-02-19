@@ -1,3 +1,4 @@
+using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 
@@ -12,12 +13,14 @@ static class ToolProgressHandler
 			return;
 		}
 
-		ToolExecution? toolExec = SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, evt.Data.ToolCallId);
+		ToolExecutionModel? toolExec = SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, evt.Data.ToolCallId);
 
-		if(toolExec is not null)
+		if(toolExec is null)
 		{
-			toolExec.ProgressMessage = evt.Data.ProgressMessage;
-			toolExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
+			return;
 		}
+
+		toolExec.ProgressMessage = evt.Data.ProgressMessage;
+		toolExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 	}
 }

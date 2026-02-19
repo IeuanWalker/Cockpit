@@ -1,4 +1,5 @@
-using Cockpit.Models;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 
@@ -7,7 +8,7 @@ namespace Cockpit.Components.Controls;
 public partial class Opperations
 {
 	[Parameter]
-	public ActivityGroup Group { get; set; } = default!;
+	public ActivityGroupModel Group { get; set; } = default!;
 
 	void ToggleExpanded()
 	{
@@ -19,18 +20,18 @@ public partial class Opperations
 	{
 		return Group.Status switch
 		{
-			GroupStatus.Running => "running",
-			GroupStatus.Complete => "complete",
-			GroupStatus.Error => "error",
+			GroupStatusEnum.Running => "running",
+			GroupStatusEnum.Complete => "complete",
+			GroupStatusEnum.Error => "error",
 			_ => string.Empty
 		};
 	}
 
 	string GetStatusIcon()
 	{
-		List<ToolExecution> tools = [.. Group.Tools]; // Create snapshot
-		bool hasRunning = tools.Any(t => t.Status == ToolStatus.Running);
-		bool hasError = tools.Any(t => t.Status == ToolStatus.Error);
+		List<ToolExecutionModel> tools = [.. Group.Tools]; // Create snapshot
+		bool hasRunning = tools.Any(t => t.Status == ToolStatusEnum.Running);
+		bool hasError = tools.Any(t => t.Status == ToolStatusEnum.Error);
 
 		if(hasRunning)
 		{
@@ -47,9 +48,9 @@ public partial class Opperations
 
 	string GenerateSummary()
 	{
-		List<ToolExecution> tools = [.. Group.Tools]; // Create snapshot
-		int running = tools.Count(t => t.Status == ToolStatus.Running);
-		int complete = tools.Count(t => t.Status == ToolStatus.Success);
+		List<ToolExecutionModel> tools = [.. Group.Tools]; // Create snapshot
+		int running = tools.Count(t => t.Status == ToolStatusEnum.Running);
+		int complete = tools.Count(t => t.Status == ToolStatusEnum.Success);
 
 		if(running > 0)
 		{

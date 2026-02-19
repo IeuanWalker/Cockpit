@@ -1,3 +1,4 @@
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -13,7 +14,7 @@ static class SessionShutdownHandler
 
 		if(session.ActiveWorkingGroup is not null)
 		{
-			session.ActiveWorkingGroup.Status = GroupStatus.Complete;
+			session.ActiveWorkingGroup.Status = GroupStatusEnum.Complete;
 			session.ActiveWorkingGroup.EndTime = DateTime.Now;
 			session.ActiveWorkingGroup = null;
 		}

@@ -1,3 +1,5 @@
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.SessionEvents.Models.Enums;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 
@@ -12,15 +14,15 @@ static class SubagentCompletedHandler
 			return;
 		}
 
-		List<ThinkingEvent> events = session.ActiveWorkingGroup.GetEventsSnapshot();
-		ToolExecution? subagentExec = events
-			.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
+		List<ThinkingEventModel> events = session.ActiveWorkingGroup.GetEventsSnapshot();
+		ToolExecutionModel? subagentExec = events
+			.Where(e => e.Type == ThinkingEventTypeEnum.Tool && e.Tool is not null)
 			.Select(e => e.Tool!)
 			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
 
 		if(subagentExec is not null)
 		{
-			subagentExec.Status = ToolStatus.Success;
+			subagentExec.Status = ToolStatusEnum.Success;
 			subagentExec.IsSuccess = true;
 			subagentExec.EndTime = DateTime.Now;
 			subagentExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
