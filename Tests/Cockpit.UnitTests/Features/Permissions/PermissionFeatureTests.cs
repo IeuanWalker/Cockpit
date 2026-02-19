@@ -192,7 +192,7 @@ public class PermissionFeatureTests
 		Task<PermissionDecisionEnum> checkTask = feature.CheckPermissionAsync(request);
 
 		// Give it a moment to process
-		await Task.Delay(100);
+		await Task.Delay(100, TestContext.Current.CancellationToken);
 
 		// Assert - Should have filtered to only unapproved command
 		request.Commands.ShouldBe(["yarn"]);
@@ -421,13 +421,13 @@ public class PermissionFeatureTests
 		Task<PermissionDecisionEnum> task1 = feature.CheckPermissionAsync(request1);
 		Task<PermissionDecisionEnum> task2 = feature.CheckPermissionAsync(request2);
 
-		await Task.Delay(100); // Let them start
+		await Task.Delay(100, TestContext.Current.CancellationToken); // Let them start
 
 		// Act - Approve first request globally
 		feature.ResolvePermissionRequest(request1.Id, PermissionDecisionEnum.Global);
 
 		// Assert - Second request should auto-resolve
-		PermissionDecisionEnum result2 = await task2.WaitAsync(TimeSpan.FromSeconds(2));
+		PermissionDecisionEnum result2 = await task2.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 		result2.ShouldBe(PermissionDecisionEnum.Global);
 
 		globalFeature.Dispose();
@@ -482,13 +482,13 @@ public class PermissionFeatureTests
 		Task<PermissionDecisionEnum> task1 = feature.CheckPermissionAsync(request1);
 		Task<PermissionDecisionEnum> task2 = feature.CheckPermissionAsync(request2);
 
-		await Task.Delay(100);
+		await Task.Delay(100, TestContext.Current.CancellationToken);
 
 		// Act - Approve first request for session only
 		feature.ResolvePermissionRequest(request1.Id, PermissionDecisionEnum.Session);
 
 		// Assert - Second request should still be pending (different session)
-		await Task.Delay(200);
+		await Task.Delay(200, TestContext.Current.CancellationToken);
 		task2.IsCompleted.ShouldBeFalse();
 
 		// Clean up

@@ -7,15 +7,12 @@ static class SubagentStartedHandler
 {
 	internal static void Handle(ChatSession session, SubagentStartedEvent evt)
 	{
-		if(session.ActiveWorkingGroup is null)
+		session.ActiveWorkingGroup ??= new ActivityGroup
 		{
-			session.ActiveWorkingGroup = new ActivityGroup
-			{
-				StartTime = evt.Timestamp.LocalDateTime,
-				Status = GroupStatus.Running,
-				IsExpanded = true
-			};
-		}
+			StartTime = evt.Timestamp.LocalDateTime,
+			Status = GroupStatus.Running,
+			IsExpanded = true
+		};
 
 		// Check if a ToolExecution already exists for this ToolCallId (created by tool.execution_start)
 		// If so, update it in-place rather than creating a duplicate entry

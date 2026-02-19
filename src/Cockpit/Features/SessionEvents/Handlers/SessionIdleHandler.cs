@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Cockpit.Models;
-using GitHub.Copilot.SDK;
 
 namespace Cockpit.Features.SessionEvents.Handlers;
 
@@ -141,15 +140,7 @@ static class SessionIdleHandler
 					}
 				}
 
-				int insertIndex;
-				if(lastUserIndex >= 0)
-				{
-					insertIndex = lastUserIndex + 1;
-				}
-				else
-				{
-					insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
-				}
+				int insertIndex = lastUserIndex >= 0 ? lastUserIndex + 1 : hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
 
 				// Ensure we never insert at index 0 if there are messages
 				if(insertIndex == 0 && session.Messages.Count > 0)

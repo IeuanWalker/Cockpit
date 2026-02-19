@@ -312,7 +312,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		{
 			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
 			ChatSession? failedSession = Sessions.FirstOrDefault(s => s.Id == sessionId);
-			if(failedSession is not null) failedSession.IsResuming = false;
+			failedSession?.IsResuming = false;
 			NotifyStateChanged();
 			_toastService.Error("Session Unavailable", opts =>
 			{
@@ -324,7 +324,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		{
 			_logger.LogError(ex, "Failed to resume session {SessionId}", sessionId);
 			ChatSession? failedSession = Sessions.FirstOrDefault(s => s.Id == sessionId);
-			if(failedSession is not null) failedSession.IsResuming = false;
+			failedSession?.IsResuming = false;
 			NotifyStateChanged();
 			return false;
 		}

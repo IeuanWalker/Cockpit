@@ -167,7 +167,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 		Task[] tasks = new Task[threadCount];
 		for(int i = 0; i < threadCount; i++)
 		{
-			tasks[i] = Task.Run(() => feature.Add(command));
+			tasks[i] = Task.Run(() => feature.Add(command), TestContext.Current.CancellationToken);
 		}
 		await Task.WhenAll(tasks);
 
@@ -188,7 +188,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 		for(int i = 0; i < commandCount; i++)
 		{
 			int index = i;
-			tasks[i] = Task.Run(() => feature.Add($"command{index}"));
+			tasks[i] = Task.Run(() => feature.Add($"command{index}"), TestContext.Current.CancellationToken);
 		}
 		await Task.WhenAll(tasks);
 
@@ -221,7 +221,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 				{
 					feature.Add(commands[j % commands.Count]);
 				}
-			}));
+			}, TestContext.Current.CancellationToken));
 		}
 
 		// Readers
@@ -234,7 +234,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 					_ = feature.HasPermissions([commands[j % commands.Count]]);
 					_ = feature.GetAll();
 				}
-			}));
+			}, TestContext.Current.CancellationToken));
 		}
 
 		// Should not throw any exceptions
@@ -267,7 +267,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 				{
 					feature.Add(commands[j % commands.Count]);
 				}
-			}));
+			}, TestContext.Current.CancellationToken));
 		}
 
 		// Removers
@@ -279,7 +279,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 				{
 					feature.Remove(commands[j % commands.Count]);
 				}
-			}));
+			}, TestContext.Current.CancellationToken));
 		}
 
 		// Should not throw
@@ -298,7 +298,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 		Task[] tasks = new Task[threadCount];
 		for(int i = 0; i < threadCount; i++)
 		{
-			tasks[i] = Task.Run(() => feature.Add(commands));
+			tasks[i] = Task.Run(() => feature.Add(commands), TestContext.Current.CancellationToken);
 		}
 		await Task.WhenAll(tasks);
 
