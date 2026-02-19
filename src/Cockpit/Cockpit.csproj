@@ -60,6 +60,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Cockpit.UnitTests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Blazor.Sonner" Version="0.0.5" />
     <PackageReference Include="CommunityToolkit.Maui" Version="14.0.0" />
     <PackageReference Include="GitHub.Copilot.SDK" Version="0.1.25" />
