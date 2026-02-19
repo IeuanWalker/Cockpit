@@ -61,7 +61,10 @@
         }
 
         <div class="tool-details">
-            @foreach(Lazy<string> rawEvent in Tool.GetRawEventsSnapshot())
+            @{
+                var rawEvents = Tool.GetRawEventsSnapshot();
+            }
+            @foreach(Lazy<string> rawEvent in rawEvents)
             {
                 <CodeBlock Code="@rawEvent.Value" Language="json" />
             }
