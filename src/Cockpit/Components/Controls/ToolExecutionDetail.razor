@@ -1,7 +1,16 @@
-<div class="tool-execution @GetStatusClass()" @onclick="ToggleExpanded">
-    <div class="tool-summary">
+@using Cockpit.Features.SessionEvents.Models
+
+<div class="tool-execution @GetStatusClass()">
+    <div class="tool-summary" @onclick="ToggleExpanded">
         <span class="tool-dot @GetStatusClass()"></span>
         <span class="tool-label" style="color: @GetLabelColor()">@GetToolLabel()</span>
+        @{
+            var childCount = Tool.GetChildrenSnapshot().Count;
+        }
+        @if(childCount > 0)
+        {
+            <span class="tool-child-count">(@childCount)</span>
+        }
         <span class="tool-description">
             @if(@GetToolLabel().Equals("Edit"))
             {
@@ -23,7 +32,7 @@
                 }
                 else
                 {
-                    @desc
+                    <MarkdownRenderer Content="@desc" CssClass="text-sm" />
                 }
             }
             else
@@ -31,45 +40,36 @@
                 @GetToolDescription()
             }
         </span>
-        @if(Tool.EndTime.HasValue)
-        {
-            <span class="tool-duration">@GetDuration()</span>
-        }
+        <span class="tool-duration">@GetDuration()</span>
         <span class="expand-indicator">@(Tool.IsExpanded ? "▾" : "▸")</span>
     </div>
 
+    @if(Tool.Status == ToolStatusEnum.Running && !string.IsNullOrEmpty(Tool.ProgressMessage))
+    {
+        <div class="tool-progress">@Tool.ProgressMessage</div>
+    }
+
     @if(Tool.IsExpanded)
     {
-        <div class="tool-details">
-            @if(Tool.InputParameters is not null)
-            {
-                <div class="detail-section">
-                    <h4>Input Parameters</h4>
-                    <pre class="detail-code">@SerializeJson(Tool.InputParameters)</pre>
-                </div>
-            }
-            @if(!string.IsNullOrEmpty(Tool.Output))
-            {
-                <div class="detail-section">
-                    <h4>Output</h4>
-                    <pre class="detail-code">@Tool.Output</pre>
-                </div>
-            }
-            <div class="detail-section">
-                <h4>Timing</h4>
-                <div class="detail-text">
-                    Started: @Tool.StartTime.ToString("HH:mm:ss")<br />
-                    @if(Tool.EndTime.HasValue)
-                    {
-                        <text>Completed: @Tool.EndTime.Value.ToString("HH:mm:ss")<br /></text>
-                        <text>Duration: @GetDuration()</text>
-                    }
-                    else
-                    {
-                        <text>Status: Running...</text>
-                    }
-                </div>
+        var children = Tool.GetChildrenSnapshot();
+        @if(children.Count > 0)
+        {
+            <div class="tool-children" @onclick:stopPropagation="true">
+                @foreach(var child in children)
+                {
+                    <ToolExecutionDetail Tool="child" />
+                }
             </div>
+        }
+
+        <div class="tool-details">
+            @{
+                var rawEvents = Tool.GetRawEventsSnapshot();
+            }
+            @foreach(Lazy<string> rawEvent in rawEvents)
+            {
+                <CodeBlock Code="@rawEvent.Value" Language="json" />
+            }
         </div>
     }
 </div>

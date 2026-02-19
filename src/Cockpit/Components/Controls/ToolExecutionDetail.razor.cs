@@ -1,16 +1,36 @@
-using System.Text.Json;
-using Cockpit.Models;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Controls;
 
-public partial class ToolExecutionDetail
+public sealed partial class ToolExecutionDetail : IDisposable
 {
 	[Parameter]
-	public ToolExecution Tool { get; set; } = default!;
+	public ToolExecutionModel Tool { get; set; } = default!;
 
 	[Parameter]
 	public bool IsLive { get; set; }
+
+	[Inject] TimestampService TimestampService { get; set; } = default!;
+
+	protected override void OnInitialized()
+	{
+		TimestampService.OnTick += OnTick;
+	}
+
+	void OnTick()
+	{
+		if(Tool.EndTime is null)
+		{
+			InvokeAsync(StateHasChanged);
+		}
+	}
+
+	public void Dispose()
+	{
+		TimestampService.OnTick -= OnTick;
+	}
 
 	void ToggleExpanded()
 	{
@@ -22,9 +42,9 @@ public partial class ToolExecutionDetail
 	{
 		return Tool.Status switch
 		{
-			ToolStatus.Running => "running",
-			ToolStatus.Success => "success",
-			ToolStatus.Error => "error",
+			ToolStatusEnum.Running => "running",
+			ToolStatusEnum.Success => "success",
+			ToolStatusEnum.Error => "error",
 			_ => ""
 		};
 	}
@@ -162,6 +182,13 @@ public partial class ToolExecutionDetail
 				return string.Empty;
 			}
 
+			// Prefer a 'description' key if present (e.g. subagent task tools renamed to agent display name)
+			string? descriptionValue = GetValue(Tool.InputParameters, "description");
+			if(descriptionValue is not null)
+			{
+				return descriptionValue;
+			}
+
 			return first.ToString() ?? string.Empty;
 		}
 		catch
@@ -181,12 +208,9 @@ public partial class ToolExecutionDetail
 
 	string GetDuration()
 	{
-		if(!Tool.EndTime.HasValue)
-		{
-			return string.Empty;
-		}
-
-		TimeSpan duration = Tool.EndTime.Value - Tool.StartTime;
+		TimeSpan duration = Tool.EndTime.HasValue
+			? Tool.EndTime.Value - Tool.StartTime
+			: DateTime.Now - Tool.StartTime;
 		if(duration.TotalSeconds < 1)
 		{
 			return "<1s";
@@ -200,18 +224,4 @@ public partial class ToolExecutionDetail
 		return $"{duration.TotalMinutes:F1}m";
 	}
 
-	string SerializeJson(object obj)
-	{
-		try
-		{
-			return JsonSerializer.Serialize(obj, new JsonSerializerOptions
-			{
-				WriteIndented = true
-			});
-		}
-		catch
-		{
-			return obj?.ToString() ?? "";
-		}
-	}
 }

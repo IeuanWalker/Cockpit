@@ -1,6 +1,7 @@
 using Blazor.Sonner.Extensions;
 using Blazor.Sonner.Services;
 using Cockpit.Features.Permissions;
+using Cockpit.Features.SessionEvents;
 using Cockpit.Services;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
@@ -46,6 +47,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<CopilotClientService>();
 		builder.Services.AddSingleton<GlobalPermissionFeature>();
 		builder.Services.AddSingleton<SessionPermissionFeature>();
+		builder.Services.AddSingleton<SessionEventProcessor>();
 
 		// Register UnifiedSessionManager first (no PermissionFeature dependency in constructor)
 		builder.Services.AddSingleton<UnifiedSessionManager>();

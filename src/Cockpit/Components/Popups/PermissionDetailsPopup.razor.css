@@ -58,3 +58,9 @@
             color: var(--vscode-editor-foreground);
             white-space: pre;
         }
+
+::deep .code-block-pre {
+    border: none;
+    margin: 0;
+    border-radius: 0;
+}

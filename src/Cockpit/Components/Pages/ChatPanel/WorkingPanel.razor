@@ -1,4 +1,6 @@
 @using Cockpit.Components.Controls
+@using Cockpit.Features.SessionEvents.Models
+
 @if(IsVisible && Group is not null)
 {
     var events = Group.GetEventsSnapshot();
@@ -17,13 +19,13 @@
         <div id="workingContent" class="working-content">
             @foreach(var evt in events)
             {
-                @if(evt.Type == ThinkingEventType.Message && !string.IsNullOrEmpty(evt.Message))
+                @if(evt.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrEmpty(evt.Message))
                 {
                     <div class="working-message">
-                        @((MarkupString)Markdig.Markdown.ToHtml(evt.Message))
+                        <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
                     </div>
                 }
-                else if(evt.Type == ThinkingEventType.Tool && evt.Tool is not null)
+                else if(evt.Type == ThinkingEventTypeEnum.Tool && evt.Tool is not null)
                 {
                     <ToolExecutionDetail Tool="evt.Tool" IsLive="true" />
                 }

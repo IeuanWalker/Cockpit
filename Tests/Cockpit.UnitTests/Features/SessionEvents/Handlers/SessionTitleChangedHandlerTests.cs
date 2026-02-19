@@ -1,0 +1,32 @@
+using Cockpit.Features.SessionEvents;
+using Cockpit.Models;
+using GitHub.Copilot.SDK;
+using Microsoft.Extensions.Logging.Abstractions;
+using Shouldly;
+
+namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
+
+public class SessionTitleChangedHandlerTests
+{
+	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
+	static ChatSession CreateSession() => new() { Model = testModel };
+	static SessionEventProcessor CreateProcessor() => new(NullLogger<SessionEventProcessor>.Instance);
+
+	[Fact]
+	public void Handle_UpdatesSessionTitle()
+	{
+		// Arrange
+		ChatSession session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+
+		// Act
+		processor.Process(session, new SessionTitleChangedEvent
+		{
+			Data = new SessionTitleChangedData { Title = "My New Title" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// Assert
+		session.Title.ShouldBe("My New Title");
+	}
+}

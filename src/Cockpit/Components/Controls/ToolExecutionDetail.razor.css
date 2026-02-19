@@ -4,14 +4,9 @@
     gap: 0.5rem;
     padding: 0.25rem 0.4rem;
     margin: 0.1rem 0;
-    cursor: pointer;
     border-radius: 4px;
     transition: background 0.15s;
 }
-
-    .tool-execution:hover {
-        background: var(--hover-color);
-    }
 
 .tool-summary {
     display: flex;
@@ -19,7 +14,12 @@
     gap: 0.5rem;
     font-size: 0.8rem;
     width: 100%;
+    cursor: pointer;
 }
+
+    .tool-summary:hover {
+        opacity: 0.85;
+    }
 
 .tool-dot {
     width: 7px;
@@ -59,6 +59,12 @@
     font-size: 0.75rem;
 }
 
+.tool-child-count {
+    font-size: 0.7rem;
+    color: var(--secondary-text);
+    flex-shrink: 0;
+}
+
 .tool-description {
     color: var(--secondary-text);
     white-space: nowrap;
@@ -88,49 +94,18 @@
     border-top: 1px solid var(--border-color);
 }
 
-.detail-section {
-    margin: 0.5rem 0;
-}
-
-    .detail-section h4 {
-        font-size: 0.75rem;
-        color: var(--secondary-text);
-        margin-bottom: 0.25rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-.detail-code {
+.tool-progress {
     font-size: 0.7rem;
-    background: var(--sidebar-color);
-    padding: 0.5rem;
-    border-radius: 4px;
-    overflow-x: auto;
-    margin: 0;
-    color: var(--text-color);
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    color: var(--secondary-text);
+    padding: 0 0.4rem;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-    .detail-code::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-
-    .detail-code::-webkit-scrollbar-track {
-        background: var(--sidebar-color);
-    }
-
-    .detail-code::-webkit-scrollbar-thumb {
-        background: var(--border-color);
-        border-radius: 0px;
-    }
-
-        .detail-code::-webkit-scrollbar-thumb:hover {
-            background: var(--hover-color);
-        }
-
-.detail-text {
-    font-size: 0.75rem;
-    color: var(--text-color);
-    line-height: 1.5;
+.tool-children {
+    border-left: 2px solid var(--border-color);
+    margin-left: 0.5rem;
+    padding-left: 0.25rem;
 }

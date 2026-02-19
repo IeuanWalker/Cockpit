@@ -197,7 +197,7 @@ public class SessionPermissionFeatureTests
 		Task[] tasks = new Task[threadCount];
 		for(int i = 0; i < threadCount; i++)
 		{
-			tasks[i] = Task.Run(() => feature.Add(sessionId, command));
+			tasks[i] = Task.Run(() => feature.Add(sessionId, command), TestContext.Current.CancellationToken);
 		}
 		await Task.WhenAll(tasks);
 
@@ -220,7 +220,7 @@ public class SessionPermissionFeatureTests
 		for(int i = 0; i < commandCount; i++)
 		{
 			int index = i;
-			tasks[i] = Task.Run(() => feature.Add(sessionId, $"command{index}"));
+			tasks[i] = Task.Run(() => feature.Add(sessionId, $"command{index}"), TestContext.Current.CancellationToken);
 		}
 		await Task.WhenAll(tasks);
 
@@ -254,7 +254,7 @@ public class SessionPermissionFeatureTests
 			{
 				int commandIndex = c;
 				tasks.Add(Task.Run(() =>
-					feature.Add($"session{sessionIndex}", $"command{sessionIndex}_{commandIndex}")));
+					feature.Add($"session{sessionIndex}", $"command{sessionIndex}_{commandIndex}"), TestContext.Current.CancellationToken));
 			}
 		}
 		await Task.WhenAll(tasks);
@@ -292,7 +292,7 @@ public class SessionPermissionFeatureTests
 				{
 					feature.Add(sessionId, commands[j % commands.Count]);
 				}
-			}));
+			}, TestContext.Current.CancellationToken));
 		}
 
 		// Readers
@@ -305,7 +305,7 @@ public class SessionPermissionFeatureTests
 					_ = feature.HasPermission(sessionId, commands[j % commands.Count]);
 					_ = feature.GetAll(sessionId);
 				}
-			}));
+			}, TestContext.Current.CancellationToken));
 		}
 
 		// Should not throw any exceptions
@@ -330,7 +330,7 @@ public class SessionPermissionFeatureTests
 		Task[] tasks = new Task[50];
 		for(int i = 0; i < 50; i++)
 		{
-			tasks[i] = Task.Run(() => feature.Clear(sessionId));
+			tasks[i] = Task.Run(() => feature.Clear(sessionId), TestContext.Current.CancellationToken);
 		}
 
 		// Should not throw
@@ -389,7 +389,7 @@ public class SessionPermissionFeatureTests
 			Id = sessionId,
 			Model = testModel,
 			WorkspacePath = workspacePath,
-			Context = Cockpit.Models.SessionContext.CreateDefault()
+			Context = Models.SessionContext.CreateDefault()
 		};
 
 		try

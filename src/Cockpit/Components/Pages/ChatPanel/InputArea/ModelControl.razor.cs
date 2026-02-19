@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ChatPanel;
 
-public partial class ModelReasoningControl : ComponentBase
+public partial class ModelControl : ComponentBase, IDisposable
 {
 	[Inject] CopilotModelService _modelService { get; set; } = default!;
 	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
@@ -15,6 +15,8 @@ public partial class ModelReasoningControl : ComponentBase
 
 	protected override async Task OnInitializedAsync()
 	{
+		_sessionManager.OnStateChanged += OnStateChanged;
+
 		_availableModels = await _modelService.GetModels();
 		if(_availableModels.Count > 0)
 		{
@@ -22,6 +24,11 @@ public partial class ModelReasoningControl : ComponentBase
 			_sessionManager.CurrentSession?.Model = _availableModels[0];
 			UpdateReasoningEffortForSelectedModel();
 		}
+	}
+
+	void OnStateChanged()
+	{
+		InvokeAsync(StateHasChanged);
 	}
 
 	void ToggleModelDropdown()
@@ -61,9 +68,10 @@ public partial class ModelReasoningControl : ComponentBase
 		}
 
 		string newEffort = _sessionManager.CurrentSession.Model.DefaultReasoningEffort ?? string.Empty;
+		string currentEffort = _sessionManager.CurrentSession.ReasoningEffort ?? string.Empty;
 
 		// Only mark for restart if reasoning effort actually changed
-		if(_sessionManager.CurrentSession.ReasoningEffort != newEffort)
+		if(currentEffort != newEffort)
 		{
 			_sessionManager.CurrentSession.ReasoningEffort = newEffort;
 			_sessionManager.CurrentSession.RequiresRestart = true;
@@ -154,6 +162,20 @@ public partial class ModelReasoningControl : ComponentBase
 		else
 		{
 			return "#999999";
+		}
+	}
+
+	public void Dispose()
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void Dispose(bool disposing)
+	{
+		if(disposing)
+		{
+			_sessionManager.OnStateChanged -= OnStateChanged;
 		}
 	}
 }

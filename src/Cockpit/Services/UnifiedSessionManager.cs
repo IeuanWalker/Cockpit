@@ -1,7 +1,8 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
 using Blazor.Sonner.Services;
 using Cockpit.Features.Permissions;
+using Cockpit.Features.SessionEvents;
+using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	readonly ILogger<UnifiedSessionManager> _logger;
 	readonly ToastService _toastService;
 	readonly CopilotModelService _copilotModelService;
+	readonly SessionEventProcessor _processor;
 	PermissionFeature? _permissionFeature;
 	readonly TerminalService _terminalService;
 
@@ -30,21 +32,23 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	public ChatSession? CurrentSession { get; private set; }
 
 	// Activity grouping for working panel (per-session)
-	public ActivityGroup? ActiveWorkingGroup => CurrentSession?.ActiveWorkingGroup;
-	public bool IsWorking => CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatus.Running;
+	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.ActiveWorkingGroup;
+	public bool IsWorking => CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatusEnum.Running;
 
 	public UnifiedSessionManager(
 		CopilotClientService clientService,
 		ILogger<UnifiedSessionManager> logger,
 		ToastService toastService,
 		CopilotModelService copilotModelService,
-		TerminalService terminalService)
+		TerminalService terminalService,
+		SessionEventProcessor processor)
 	{
 		_clientService = clientService;
 		_logger = logger;
 		_toastService = toastService;
 		_copilotModelService = copilotModelService;
 		_terminalService = terminalService;
+		_processor = processor;
 	}
 
 	public void SetPermissionFeature(PermissionFeature permissionFeature)
@@ -69,170 +73,26 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		}
 	}
 
-	// Deserialize JsonElement arguments to Dictionary<string, object>
-	static Dictionary<string, object>? DeserializeArguments(object? arguments)
+	void HandleSessionEvent(string sessionId, SessionEvent evt)
 	{
-		if(arguments is null)
+		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+		if(session is null)
 		{
-			return null;
-		}
-
-		try
-		{
-			// If it's already a dictionary, return it
-			if(arguments is Dictionary<string, object> dict)
-			{
-				return dict;
-			}
-
-			// If it's a JsonElement, deserialize it
-			if(arguments is JsonElement je)
-			{
-				if(je.ValueKind == JsonValueKind.Object)
-				{
-					return JsonSerializer.Deserialize<Dictionary<string, object>>(je.GetRawText());
-				}
-			}
-		}
-		catch
-		{
-			// Fall through to return null
-		}
-
-		return null;
-	}
-
-	string GenerateActivitySummary(ActivityGroup group)
-	{
-		List<ToolExecution> tools = [.. group.Tools]; // Create snapshot
-		int running = tools.Count(t => t.Status == ToolStatus.Running);
-		int complete = tools.Count(t => t.Status == ToolStatus.Success);
-		IEnumerable<string> toolNames = tools.Select(t => t.ToolName).Distinct().Take(3);
-		int more = tools.Select(t => t.ToolName).Distinct().Count() - 3;
-		string preview = string.Join(", ", toolNames) + (more > 0 ? $", +{more}" : "");
-
-		return $"{tools.Count} operations ({preview})";
-	}
-
-	void FinalizeHistoryGroup(ChatSession session, ref ActivityGroup? group, ref ChatMessage? initialMessage)
-	{
-		if(group is null || !group.Tools.Any())
-		{
-			group = null;
 			return;
 		}
 
-		ActivityGroup g = group; // Capture for use in lambdas
-		g.Status = GroupStatus.Complete;
-		g.EndTime = g.GetEventsSnapshot().LastOrDefault()?.Timestamp ?? g.StartTime;
-		g.IsExpanded = false;
+		Func<ChatMessageModel, string, Task>? streamCallback = session == CurrentSession
+			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, NotifyStateChanged)
+			: null;
 
-		// Mark any still-running tools as stopped (Error status) - handles incomplete resumed sessions
-		bool hasStoppedTools = false;
-		foreach(ToolExecution tool in g.Tools)
+		_processor.Process(session, evt, streamCallback);
+
+		if(session == CurrentSession)
 		{
-			if(tool.Status == ToolStatus.Running)
-			{
-				tool.Status = ToolStatus.Error;
-				tool.EndTime = g.EndTime;
-				tool.IsSuccess = false;
-				hasStoppedTools = true;
-			}
+			NotifyStateChanged();
 		}
-
-		// Extract the last message as the summary (same logic as HandleSessionIdle)
-		List<ThinkingEvent> events = g.GetEventsSnapshot();
-		ThinkingEvent? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventType.Message);
-
-		bool hasSummary = false;
-		if(lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
-		{
-			g.RemoveEvent(lastMessage);
-			session.Messages.Add(new ChatMessage
-			{
-				Id = lastMessage.Id ?? Guid.NewGuid().ToString(),
-				Content = lastMessage.Message,
-				IsUser = false,
-				Timestamp = lastMessage.Timestamp,
-				Type = MessageType.Text,
-				IsComplete = true
-			});
-			hasSummary = true;
-		}
-
-		// Add "Session stopped" event for resumed sessions that had stopped tools
-		if(hasStoppedTools)
-		{
-			g.AddEvent(new ThinkingEvent
-			{
-				Type = ThinkingEventType.Message,
-				Message = "Session stopped",
-				Timestamp = g.EndTime ?? DateTime.Now
-			});
-		}
-
-		// Insert activity group between initial and summary
-		ChatMessage activityMessage = new()
-		{
-			IsUser = false,
-			Type = MessageType.ActivityGroup,
-			ActivityGroup = g,
-			Timestamp = g.EndTime ?? DateTime.Now,
-			Content = GenerateActivitySummary(g)
-		};
-
-		if(!string.IsNullOrEmpty(g.InitialMessageId))
-		{
-			int initialIndex = session.Messages.FindIndex(m => m.Id == g.InitialMessageId);
-			if(initialIndex >= 0)
-			{
-				session.Messages.Insert(initialIndex + 1, activityMessage);
-			}
-			else
-			{
-				// Insert before the summary if it exists, otherwise at the end
-				int insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
-				session.Messages.Insert(insertIndex, activityMessage);
-			}
-		}
-		else
-		{
-			// No initial assistant message - insert after the last user message
-			int lastUserIndex = -1;
-			int searchLimit = hasSummary ? session.Messages.Count - 2 : session.Messages.Count - 1;
-			for(int i = searchLimit; i >= 0; i--)
-			{
-				if(session.Messages[i].IsUser)
-				{
-					lastUserIndex = i;
-					break;
-				}
-			}
-
-			int insertIndex;
-			if(lastUserIndex >= 0)
-			{
-				// Insert right after the user message
-				insertIndex = lastUserIndex + 1;
-			}
-			else
-			{
-				// Fallback: No user message found - insert before summary if exists, otherwise at end
-				insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
-			}
-
-			// Ensure we never insert at index 0 if there are messages
-			if(insertIndex == 0 && session.Messages.Count > 0)
-			{
-				insertIndex = session.Messages.Count;
-			}
-
-			session.Messages.Insert(insertIndex, activityMessage);
-		}
-
-		group = null;
-		initialMessage = null;
 	}
+
 
 	public async Task LoadExistingSessionsAsync()
 	{
@@ -379,132 +239,55 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
 			};
 
+			// Mark as resuming so the session list shows a loading indicator immediately
+			session.IsResuming = true;
+			NotifyStateChanged();
+
 			CopilotClient client = await _clientService.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
 
-			// Subscribe to session events (will process in background)
-			sdkSession.On(evt =>
-			{
-				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
-				HandleSessionEvent(sdkSession.SessionId, evt);
-			});
-
-			// Add to SDK sessions dictionary
-			_sdkSessions.AddOrUpdate(sdkSession.SessionId, sdkSession, (_, _) => sdkSession);
-
-			// Load existing messages from SDK
+			// Load existing messages from SDK BEFORE subscribing to live events
+			// to avoid a race condition where live events modify session state concurrently with replay
 			IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
-			session.Messages.Clear();
-			session.StreamingMessages.Clear();
-			session.ActiveWorkingGroup = null;
-
 			_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 
-			// Reconstruct messages with activity groups from event history
-			ActivityGroup? currentGroup = null;
-			ChatMessage? initialMessage = null;
-
-			foreach(SessionEvent evt in events)
+			// Replay history into a temporary session so the real session is never in an intermediate
+			// state — no spurious UI re-renders during replay
+			ChatSession tempSession = new()
 			{
-				if(evt is UserMessageEvent userMsg && userMsg.Data is not null)
+				Id = sessionId,
+				Title = session.Title,
+				Status = SessionStatus.Idle,
+				Model = session.Model,
+				ReasoningEffort = session.ReasoningEffort,
+				Context = session.Context,
+				LastActivity = session.LastActivity,
+				CreatedAt = session.CreatedAt
+			};
+
+			await Task.Run(() =>
+			{
+				foreach(SessionEvent evt in events)
 				{
-					// Finalize any pending activity group before user message
-					FinalizeHistoryGroup(session, ref currentGroup, ref initialMessage);
-
-					// Reset initial message tracking for the new turn
-					initialMessage = null;
-
-					session.Messages.Add(new ChatMessage
-					{
-						Id = Guid.NewGuid().ToString(),
-						Content = userMsg.Data.Content ?? string.Empty,
-						IsUser = true,
-						Timestamp = userMsg.Timestamp,
-						Type = MessageType.Text
-					});
+					_processor.Process(tempSession, evt);
 				}
-				else if(evt is AssistantMessageEvent assistantMsg && assistantMsg.Data is not null)
+
+				// Fallback: finalize any active group not closed by SessionIdleEvent (e.g., abrupt termination)
+				if(tempSession.ActiveWorkingGroup is not null)
 				{
-					string content = assistantMsg.Data.Content ?? string.Empty;
-					if(string.IsNullOrWhiteSpace(content))
-					{
-						continue;
-					}
-
-					if(currentGroup is not null)
-					{
-						// During an active group, messages go to thinking events
-						currentGroup.AddEvent(new ThinkingEvent
-						{
-							Id = assistantMsg.Data.MessageId,
-							Type = ThinkingEventType.Message,
-							Message = content,
-							Timestamp = assistantMsg.Timestamp.LocalDateTime
-						});
-					}
-					else
-					{
-						// No active group - this could be the initial message before tools
-						ChatMessage msg = new()
-						{
-							Id = assistantMsg.Data.MessageId ?? Guid.NewGuid().ToString(),
-							Content = content,
-							IsUser = false,
-							Timestamp = assistantMsg.Timestamp,
-							Type = MessageType.Text,
-						};
-						session.Messages.Add(msg);
-						initialMessage = msg;
-					}
+					_processor.FinalizeOpenGroup(tempSession);
 				}
-				else if(evt is ToolExecutionStartEvent toolStart && toolStart.Data is not null)
-				{
-					// Create group on first tool
-					currentGroup ??= new ActivityGroup
-					{
-						StartTime = toolStart.Timestamp.LocalDateTime,
-						Status = GroupStatus.Complete,
-						IsExpanded = false,
-						InitialMessageId = initialMessage?.Id,
-					};
+			});
 
-					ToolExecution toolExec = new()
-					{
-						ToolName = toolStart.Data.ToolName ?? "unknown",
-						ToolCallId = toolStart.Data.ToolCallId,
-						StartTime = toolStart.Timestamp.LocalDateTime,
-						Status = ToolStatus.Running,
-						InputParameters = DeserializeArguments(toolStart.Data.Arguments)
-					};
-
-					currentGroup.AddEvent(new ThinkingEvent
-					{
-						Type = ThinkingEventType.Tool,
-						Tool = toolExec,
-						Timestamp = toolStart.Timestamp.LocalDateTime
-					});
-				}
-				else if(evt is ToolExecutionCompleteEvent toolComplete && toolComplete.Data is not null)
-				{
-					if(currentGroup is not null)
-					{
-						List<ThinkingEvent> toolEvents = currentGroup.GetEventsSnapshot();
-						ToolExecution? tool = toolEvents
-							.Where(e => e.Type == ThinkingEventType.Tool && e.Tool is not null)
-							.Select(e => e.Tool!)
-							.FirstOrDefault(t => t.ToolCallId == toolComplete.Data.ToolCallId);
-						if(tool is not null)
-						{
-							tool.Status = ToolStatus.Success;
-							tool.EndTime = toolComplete.Timestamp.LocalDateTime;
-							tool.Output = toolComplete.Data.Result?.ToString();
-						}
-					}
-				}
+			// Atomically apply replayed state to the real session, then clear loading indicator
+			session.IsResuming = false;
+			session.Messages = tempSession.Messages;
+			session.ActiveWorkingGroup = null;
+			session.LastActivity = tempSession.LastActivity;
+			if(session.Title != tempSession.Title)
+			{
+				session.Title = tempSession.Title;
 			}
-
-			// Finalize any remaining group at the end
-			FinalizeHistoryGroup(session, ref currentGroup, ref initialMessage);
 
 			session.Status = SessionStatus.Idle;
 			session.IsResumed = true;
@@ -514,6 +297,14 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 			CurrentSession = session;
 
+			// Subscribe to live events and register SDK session only after replay is complete
+			sdkSession.On(evt =>
+			{
+				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
+				HandleSessionEvent(sdkSession.SessionId, evt);
+			});
+			_sdkSessions.AddOrUpdate(sdkSession.SessionId, sdkSession, (_, _) => sdkSession);
+
 			NotifyStateChanged();
 			_logger.LogInformation("Successfully resumed session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
 			return true;
@@ -521,6 +312,9 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		catch(Exception ex) when(ex.Message.Equals("Communication error with Copilot CLI: Request session.resume failed with message: Session file is corrupted or incompatible"))
 		{
 			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
+			ChatSession? failedSession = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			failedSession?.IsResuming = false;
+			NotifyStateChanged();
 			_toastService.Error("Session Unavailable", opts =>
 			{
 				opts.Description = "The session file may be corrupted, incompatible, or in use by another instance. You may need to delete or exit the session running else where";
@@ -530,6 +324,9 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to resume session {SessionId}", sessionId);
+			ChatSession? failedSession = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			failedSession?.IsResuming = false;
+			NotifyStateChanged();
 			return false;
 		}
 	}
@@ -665,32 +462,58 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				throw new InvalidOperationException($"Session {sessionId} not found");
 			}
 
+			ChatSession? chatSession = Sessions.FirstOrDefault(s => s.Id == sessionId);
+
 			// 2. Destroy the in-memory session object
 			await existingSession.DisposeAsync();
 			_logger.LogInformation("Destroyed session {SessionId} for restart", sessionId);
 
-			// 3. Create ResumeSessionConfig with new model/reasoning
-			ResumeSessionConfig resumeConfig = new()
-			{
-				Model = newModelId,
-				ReasoningEffort = newReasoningEffort,
-				Streaming = true,
-				OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
-			};
-
-			// 4. Resume session with same ID but new config
 			CopilotClient client = await _clientService.GetClientAsync(cancellationToken);
-			CopilotSession resumedSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
+			CopilotSession newSdkSession;
 
-			// 5. Re-subscribe to session events
-			resumedSession.On(evt =>
+			// 3. For sessions with no messages the CLI hasn't persisted them yet — create fresh
+			bool hasMessages = chatSession?.Messages.Count > 0;
+			if(hasMessages)
 			{
-				_logger.LogDebug("Session {SessionId} event: {EventType}", resumedSession.SessionId, evt.Type);
-				HandleSessionEvent(resumedSession.SessionId, evt);
+				ResumeSessionConfig resumeConfig = new()
+				{
+					Model = newModelId,
+					ReasoningEffort = newReasoningEffort,
+					Streaming = true,
+					OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
+				};
+				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
+			}
+			else
+			{
+				SessionConfig createConfig = new()
+				{
+					Model = newModelId,
+					ReasoningEffort = newReasoningEffort,
+					Streaming = true,
+					InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
+					WorkingDirectory = chatSession?.WorkingDirectory,
+					OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
+				};
+				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
+
+				// Update the ChatSession with the new SDK session ID
+				if(chatSession is not null)
+				{
+					_sdkSessions.TryRemove(chatSession.Id, out _);
+					chatSession.Id = newSdkSession.SessionId;
+				}
+			}
+
+			// 4. Re-subscribe to session events
+			newSdkSession.On(evt =>
+			{
+				_logger.LogDebug("Session {SessionId} event: {EventType}", newSdkSession.SessionId, evt.Type);
+				HandleSessionEvent(newSdkSession.SessionId, evt);
 			});
 
-			// 6. Update dictionary with resumed session
-			_sdkSessions.TryAdd(resumedSession.SessionId, resumedSession);
+			// 5. Update dictionary with new/resumed session
+			_sdkSessions.TryAdd(newSdkSession.SessionId, newSdkSession);
 
 			_logger.LogInformation("Restarted session {SessionId} with model {Model}", sessionId, newModelId);
 		}

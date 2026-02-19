@@ -106,6 +106,13 @@ window.cockpit = {
             window.hljs.highlightElement(block);
         });
     },
+    highlightBlock: function (elementId) {
+        if (!window.hljs) return;
+        const element = document.getElementById(elementId);
+        if (element) {
+            window.hljs.highlightElement(element);
+        }
+    },
     addCopyButtonsToCodeBlocks: function (containerId) {
         const container = document.getElementById(containerId);
         if (!container) {
@@ -113,7 +120,7 @@ window.cockpit = {
         }
 
         container.querySelectorAll('pre').forEach((pre) => {
-            if (pre.querySelector('.code-copy-button')) {
+            if (pre.parentNode.classList.contains('code-block')) {
                 return;
             }
 
@@ -121,6 +128,15 @@ window.cockpit = {
             if (!code) {
                 return;
             }
+
+            // Wrap pre in a positioned container so the copy button doesn't scroll with code
+            const wrapper = document.createElement('div');
+            wrapper.className = 'code-block';
+            pre.parentNode.insertBefore(wrapper, pre);
+            wrapper.appendChild(pre);
+
+            // Apply thin scrollbar styling to the pre
+            pre.classList.add('scrollbar-thin');
 
             const button = document.createElement('button');
             button.type = 'button';
@@ -143,8 +159,7 @@ window.cockpit = {
                 }
             });
 
-            pre.classList.add('code-block');
-            pre.appendChild(button);
+            wrapper.appendChild(button);
         });
     },
     initializeResize: function (handleId, sidebarId, side, dotnetHelper) {
