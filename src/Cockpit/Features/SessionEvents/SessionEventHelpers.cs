@@ -6,7 +6,10 @@ namespace Cockpit.Features.SessionEvents;
 
 static class SessionEventHelpers
 {
-	static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+	static readonly JsonSerializerOptions jsonOptions = new()
+	{
+		WriteIndented = true
+	};
 
 	internal static ToolExecution? FindToolExecution(ActivityGroup group, string? toolCallId)
 	{
@@ -27,7 +30,8 @@ static class SessionEventHelpers
 				return evt.Tool;
 			}
 
-			ToolExecution? child = evt.Tool.GetChildrenSnapshot()
+			ToolExecution? child = evt.Tool
+				.GetChildrenSnapshot()
 				.FirstOrDefault(c => c.ToolCallId == toolCallId);
 
 			if(child is not null)
@@ -43,7 +47,7 @@ static class SessionEventHelpers
 	{
 		try
 		{
-			return JsonSerializer.Serialize(evt, evt.GetType(), _jsonOptions);
+			return JsonSerializer.Serialize(evt, evt.GetType(), jsonOptions);
 		}
 		catch
 		{
