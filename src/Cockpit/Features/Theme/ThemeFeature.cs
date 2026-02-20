@@ -1,12 +1,12 @@
-using Microsoft.JSInterop;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
 
-namespace Cockpit.Services;
+namespace Cockpit.Features.Theme;
 
-public class ThemeService
+public class ThemeFeature
 {
 	readonly IJSRuntime _jsRuntime;
-	readonly ILogger<ThemeService> _logger;
+	readonly ILogger<ThemeFeature> _logger;
 	bool _isInitialized = false;
 	bool _isSystemThemeListenerRegistered = false;
 
@@ -16,7 +16,7 @@ public class ThemeService
 	public string AccentColor { get; private set; }
 	public string AccentHoverColor { get; private set; }
 
-	public ThemeService(IJSRuntime jsRuntime, ILogger<ThemeService> logger)
+	public ThemeFeature(IJSRuntime jsRuntime, ILogger<ThemeFeature> logger)
 	{
 		_jsRuntime = jsRuntime;
 		_logger = logger;
@@ -34,7 +34,7 @@ public class ThemeService
 		}
 
 		RegisterSystemThemeListener();
-		App.UpdateTitleBarTheme(CurrentTheme);
+		UpdateTitleBarTheme(CurrentTheme);
 
 		await ApplyThemeAsync();
 		await ApplyAccentColorAsync();
@@ -46,7 +46,7 @@ public class ThemeService
 	{
 		CurrentTheme = theme;
 		UserAppSettings.Theme = theme;
-		App.UpdateTitleBarTheme(theme);
+		UpdateTitleBarTheme(theme);
 		await ApplyThemeAsync();
 		OnThemeChanged?.Invoke();
 	}
@@ -95,7 +95,7 @@ public class ThemeService
 
 		try
 		{
-			App.UpdateTitleBarTheme(CurrentTheme);
+			UpdateTitleBarTheme(CurrentTheme);
 			await ApplyThemeForSystemThemeChangeAsync();
 			OnThemeChanged?.Invoke();
 		}
@@ -135,5 +135,55 @@ public class ThemeService
 		await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--accent-color", AccentColor);
 		await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--button-bg", AccentColor);
 		await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--button-hover", AccentHoverColor);
+	}
+
+	static void UpdateTitleBarTheme(ThemeEnum theme)
+	{
+		App? app = Application.Current as App;
+		bool isLightTheme = theme.Equals(ThemeEnum.Light);
+
+		if(app is not null)
+		{
+			// Keep MAUI application theme in sync so Windows caption button colors update correctly.
+			app.UserAppTheme = theme switch
+			{
+				ThemeEnum.Light => AppTheme.Light,
+				ThemeEnum.Dark => AppTheme.Dark,
+				_ => AppTheme.Unspecified
+			};
+
+			if(theme.Equals(ThemeEnum.System))
+			{
+				isLightTheme = app.RequestedTheme.Equals(AppTheme.Light);
+			}
+		}
+
+		if(app?.Windows[0]?.TitleBar is TitleBar titleBar)
+		{
+			if(isLightTheme)
+			{
+				titleBar.BackgroundColor = Color.FromArgb("#F8F8F8");
+				titleBar.ForegroundColor = Color.FromArgb("#3B3B3B");
+
+				// Update button text color
+				if(titleBar.TrailingContent is HorizontalStackLayout stack &&
+					stack.Children.FirstOrDefault() is Button btn)
+				{
+					btn.TextColor = Color.FromArgb("#3B3B3B");
+				}
+			}
+			else
+			{
+				titleBar.BackgroundColor = Color.FromArgb("#181818");
+				titleBar.ForegroundColor = Color.FromArgb("#CCCCCC");
+
+				// Update button text color
+				if(titleBar.TrailingContent is HorizontalStackLayout stack &&
+					stack.Children.FirstOrDefault() is Button btn)
+				{
+					btn.TextColor = Color.FromArgb("#CCCCCC");
+				}
+			}
+		}
 	}
 }

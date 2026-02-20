@@ -1,4 +1,6 @@
-﻿namespace Cockpit;
+﻿using Cockpit.Features.Theme;
+
+namespace Cockpit;
 
 public static class UserAppSettings
 {
@@ -51,11 +53,4 @@ public static class UserAppSettings
 		get => Preferences.Default.Get("RightSidebarWidth", 256);
 		set => Preferences.Default.Set("RightSidebarWidth", value);
 	}
-}
-
-public enum ThemeEnum
-{
-	Light,
-	Dark,
-	System,
 }

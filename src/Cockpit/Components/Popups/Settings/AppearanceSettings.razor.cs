@@ -1,3 +1,4 @@
+using Cockpit.Features.Theme;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 
@@ -7,7 +8,7 @@ public partial class AppearanceSettings : ComponentBase, IDisposable
 {
 	string _customColor = "#0078D4";
 	[Inject] UIStateService _uiState { get; set; } = default!;
-	[Inject] ThemeService _themeService { get; set; } = default!;
+	[Inject] ThemeFeature _themeService { get; set; } = default!;
 
 	protected override void OnInitialized()
 	{

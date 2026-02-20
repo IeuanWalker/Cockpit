@@ -3,6 +3,7 @@ using Blazor.Sonner.Services;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.Terminal;
+using Cockpit.Features.Theme;
 using Cockpit.Services;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
@@ -38,7 +39,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
 
 		// Register application services
-		builder.Services.AddScoped<ThemeService>();
+		builder.Services.AddScoped<ThemeFeature>();
 		builder.Services.AddScoped<MarkdownService>();
 		builder.Services.AddSingleton<UIStateService>();
 		builder.Services.AddSingleton<TimestampService>();
