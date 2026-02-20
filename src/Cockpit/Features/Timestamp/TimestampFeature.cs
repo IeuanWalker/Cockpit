@@ -1,13 +1,13 @@
 using System.Timers;
 
-namespace Cockpit.Services;
+namespace Cockpit.Features.Timestamp;
 
-public sealed partial class TimestampService : IDisposable
+public sealed partial class TimestampFeature : IDisposable
 {
 	readonly System.Timers.Timer _timer;
 	public event Action? OnTick;
 
-	public TimestampService()
+	public TimestampFeature()
 	{
 		_timer = new System.Timers.Timer(1000); // Update every 1 second
 		_timer.Elapsed += TimerElapsed;

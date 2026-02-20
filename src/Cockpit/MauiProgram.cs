@@ -6,6 +6,7 @@ using Cockpit.Features.SessionEvents;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.TextToSpeech;
 using Cockpit.Features.Theme;
+using Cockpit.Features.Timestamp;
 using Cockpit.Services;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
@@ -39,14 +40,14 @@ public static class MauiProgram
 #endif
 
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
-		builder.Services.AddSingleton<Microsoft.Maui.Media.ITextToSpeech>(Microsoft.Maui.Media.TextToSpeech.Default);
+		builder.Services.AddSingleton<ITextToSpeech>(TextToSpeech.Default);
 		builder.Services.AddSingleton<TextToSpeechFeature>();
 
 		// Register application services
 		builder.Services.AddScoped<ThemeFeature>();
 		builder.Services.AddScoped<MarkdownService>();
 		builder.Services.AddSingleton<UIStateService>();
-		builder.Services.AddSingleton<TimestampService>();
+		builder.Services.AddSingleton<TimestampFeature>();
 		builder.Services.AddSingleton<TerminalFeature>();
 
 		// Register Copilot SDK services
