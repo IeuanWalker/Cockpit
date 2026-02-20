@@ -80,7 +80,7 @@ public partial class TextToSpeechFeature
 		string text = CodeBlockRegex().Replace(markdown, " code block ");
 		text = InlineCodeRegex().Replace(text, "$1");
 		text = HeadingRegex().Replace(text, string.Empty);
-		text = BoldItalicRegex().Replace(text, "$1");
+		text = BoldItalicRegex().Replace(text, "$1$2$3$4$5$6");
 		text = LinkRegex().Replace(text, "$1");
 		text = ImageRegex().Replace(text, string.Empty);
 		text = HorizontalRuleRegex().Replace(text, string.Empty);
@@ -101,7 +101,7 @@ public partial class TextToSpeechFeature
 	[GeneratedRegex(@"^#{1,6}\s+", RegexOptions.Multiline)]
 	private static partial Regex HeadingRegex();
 
-	[GeneratedRegex(@"[\*_]{1,3}([^\*_]+)[\*_]{1,3}")]
+	[GeneratedRegex(@"\*\*\*([^*]+)\*\*\*|\*\*([^*]+)\*\*|\*([^*]+)\*|___([^_]+)___|__([^_]+)__|_([^_]+)_")]
 	private static partial Regex BoldItalicRegex();
 
 	[GeneratedRegex(@"\[([^\]]+)\]\([^\)]+\)")]
