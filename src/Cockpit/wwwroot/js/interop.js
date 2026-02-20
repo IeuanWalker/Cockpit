@@ -14,6 +14,11 @@ window.cockpit = {
     setRootProperty: function (property, value) {
         document.documentElement.style.setProperty(property, value);
     },
+    setAccentColor: function (color, hoverColor) {
+        document.documentElement.style.setProperty('--accent-color', color);
+        document.documentElement.style.setProperty('--button-bg', color);
+        document.documentElement.style.setProperty('--button-hover', hoverColor);
+    },
     addBodyClass: function (className) {
         document.body.classList.add(className);
     },
