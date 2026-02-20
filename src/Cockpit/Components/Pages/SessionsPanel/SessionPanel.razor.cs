@@ -1,5 +1,6 @@
 using Cockpit.Components.Popups;
-using Cockpit.Services;
+using Cockpit.Features.Sessions;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -7,8 +8,8 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 
 public partial class SessionPanel : ComponentBase, IDisposable
 {
-	[Inject] UIStateService _uiState { get; set; } = default!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
+	[Inject] SessionFeature _sessionManager { get; set; } = default!;
 	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
 
 	DotNetObjectReference<SessionPanel>? _dotNetHelper;

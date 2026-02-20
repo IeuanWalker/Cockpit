@@ -20,7 +20,7 @@
         </button>
     </div>
 
-    @if (_uiState.TextToSpeechEnabled)
+    @if(_uiState.TextToSpeechEnabled)
     {
         <div class="mt-4 space-y-4">
             <div>
@@ -53,7 +53,7 @@
                        class="w-full" />
             </div>
 
-            @if (_locales.Any())
+            @if(_locales.Any())
             {
                 <div>
                     <label class="text-sm font-medium text-vscode-title block mb-1">Locale</label>
@@ -62,7 +62,7 @@
                             class="w-full px-3 py-2 rounded text-sm"
                             style="border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
                         <option value="">Default</option>
-                        @foreach (var locale in _locales.OrderBy(l => l.Name))
+                        @foreach(var locale in _locales.OrderBy(l => l.Name))
                         {
                             <option value="@locale.Id">@locale.Name</option>
                         }

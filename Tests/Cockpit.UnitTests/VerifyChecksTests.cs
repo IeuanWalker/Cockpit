@@ -1,4 +1,4 @@
-﻿namespace Cockpit.UnitTests.cs;
+﻿namespace Cockpit.UnitTests;
 
 public sealed class VerifyChecksTests
 {

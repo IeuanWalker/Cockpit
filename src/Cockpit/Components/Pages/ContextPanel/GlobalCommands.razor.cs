@@ -1,6 +1,5 @@
-using Cockpit.Components.Popups.Settings;
 using Cockpit.Features.Permissions;
-using Cockpit.Services;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
@@ -8,7 +7,7 @@ namespace Cockpit.Components.Pages.ContextPanel;
 public sealed partial class GlobalCommands : ComponentBase, IDisposable
 {
 	[Inject] GlobalPermissionFeature _globalPermissionFeature { get; set; } = null!;
-	[Inject] UIStateService _uiState { get; set; } = null!;
+	[Inject] UIStateFeature _uiState { get; set; } = null!;
 
 	public List<string> Commands { get; set; } = [];
 
@@ -26,7 +25,7 @@ public sealed partial class GlobalCommands : ComponentBase, IDisposable
 
 	void OpenCommandsSettings()
 	{
-		_uiState.OpenSettingsToSection(SettingsSection.Commands);
+		_uiState.OpenSettingsToSection(SettingsSectionEnum.Commands);
 	}
 
 	public void Dispose()

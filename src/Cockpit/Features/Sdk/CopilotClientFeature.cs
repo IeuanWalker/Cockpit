@@ -1,11 +1,11 @@
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
-namespace Cockpit.Services;
+namespace Cockpit.Features.Sdk;
 
-public class CopilotClientService : IAsyncDisposable
+public class CopilotClientFeature : IAsyncDisposable
 {
-	readonly ILogger<CopilotClientService> _logger;
+	readonly ILogger<CopilotClientFeature> _logger;
 	CopilotClient? _client;
 	readonly SemaphoreSlim _clientLock = new(1, 1);
 	bool _disposed;
@@ -15,7 +15,7 @@ public class CopilotClientService : IAsyncDisposable
 
 	public ConnectionState State => _client?.State ?? ConnectionState.Disconnected;
 
-	public CopilotClientService(ILogger<CopilotClientService> logger)
+	public CopilotClientFeature(ILogger<CopilotClientFeature> logger)
 	{
 		_logger = logger;
 	}
@@ -25,7 +25,7 @@ public class CopilotClientService : IAsyncDisposable
 		await _clientLock.WaitAsync(cancellationToken);
 		try
 		{
-			ObjectDisposedException.ThrowIf(_disposed, nameof(CopilotClientService));
+			ObjectDisposedException.ThrowIf(_disposed, nameof(CopilotClientFeature));
 
 			if(_client is not null)
 			{

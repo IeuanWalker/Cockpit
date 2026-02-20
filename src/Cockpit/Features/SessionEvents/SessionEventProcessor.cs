@@ -54,7 +54,7 @@ public sealed class SessionEventProcessor
 					break;
 
 				case AssistantReasoningDeltaEvent reasoningDelta:
-					//////	AssistantReasoningDeltaHandler.Handle(session, reasoningDelta);
+					////	AssistantReasoningDeltaHandler.Handle(session, reasoningDelta);
 					break;
 
 				case AssistantReasoningEvent reasoning:

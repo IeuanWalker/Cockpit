@@ -1,12 +1,13 @@
-using Cockpit.Services;
+using Cockpit.Features.Sessions;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class Directory : ComponentBase, IDisposable
 {
-	[Inject] UIStateService _uiState { get; set; } = null!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = null!;
+	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 
 	string CurrentDirectory => _sessionManager.CurrentSession?.Context?.CurrentDirectory ?? string.Empty;
 

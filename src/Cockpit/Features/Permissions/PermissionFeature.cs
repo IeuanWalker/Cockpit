@@ -1,8 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.Json;
 using Cockpit.Features.Permissions.Models;
+using Cockpit.Features.Sessions;
 using Cockpit.Models;
-using Cockpit.Services;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
@@ -11,7 +11,7 @@ namespace Cockpit.Features.Permissions;
 /// <summary>
 /// Service for managing tool execution permissions
 /// </summary>
-public class PermissionFeature
+public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 {
 	readonly GlobalPermissionFeature _globalPermissionFeature;
 	readonly SessionPermissionFeature _sessionPermissionFeature;
@@ -36,9 +36,6 @@ public class PermissionFeature
 		_sessionPermissionFeature = sessionPermissionFeature;
 		_sessionStateProvider = sessionStateProvider;
 		_logger = logger;
-
-		OnPermissionRequested += HandlePermissionRequested;
-		OnPermissionResolved += HandlePermissionResolved;
 	}
 
 	PermissionRequestModel ToRequestModel(PermissionRequest request, string sessionId)
@@ -200,7 +197,7 @@ public class PermissionFeature
 		}
 	}
 
-	public void HandlePermissionResolved(string sessionId, string requestId)
+	void UpdateSessionOnPermissionResolved(string sessionId, string requestId)
 	{
 		ChatSession? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
@@ -208,7 +205,7 @@ public class PermissionFeature
 			return;
 		}
 
-		_logger.LogInformation("HandlePermissionResolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
+		_logger.LogInformation("Permission resolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
 
 		// Use lock to ensure atomic remove-check-restore operation
 		lock(session.PermissionRequestsLock)
@@ -227,7 +224,7 @@ public class PermissionFeature
 		_sessionStateProvider.NotifyStateChanged();
 	}
 
-	public void HandlePermissionRequested(string sessionId, PermissionRequestModel request)
+	void UpdateSessionOnPermissionRequested(string sessionId, PermissionRequestModel request)
 	{
 		ChatSession? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
@@ -235,7 +232,7 @@ public class PermissionFeature
 			return;
 		}
 
-		_logger.LogInformation("HandlePermissionRequested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
+		_logger.LogInformation("Permission requested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
 
 		// Use lock to ensure atomic check-add-set operation
 		lock(session.PermissionRequestsLock)
@@ -295,10 +292,9 @@ public class PermissionFeature
 			}
 
 			// Filter out already-approved commands
-			unapprovedCommands = request.Commands
+			unapprovedCommands = [.. request.Commands
 				.Where(cmd => !_sessionPermissionFeature.HasPermission(request.SessionId, cmd) &&
-							  !_globalPermissionFeature.HasPermissions([cmd]))
-				.ToList();
+							  !_globalPermissionFeature.HasPermissions([cmd]))];
 
 			// If all commands are approved, auto-approve
 			if(unapprovedCommands.Count == 0)
@@ -352,6 +348,7 @@ public class PermissionFeature
 		_pendingRequests[request.Id] = request;
 
 		// Notify UI
+		UpdateSessionOnPermissionRequested(request.SessionId, request);
 		OnPermissionRequested?.Invoke(request.SessionId, request);
 
 		// Wait for user decision
@@ -426,12 +423,10 @@ public class PermissionFeature
 		_logger.LogDebug("TaskCompletionSource completed: {Completed}", completed);
 
 		// Notify UI with requestId so it can be removed from session list
+		UpdateSessionOnPermissionResolved(request.SessionId, request.Id);
 		OnPermissionResolved?.Invoke(request.SessionId, request.Id);
 	}
 
-	/// <summary>
-	/// Auto-resolve pending requests that match a newly added permission
-	/// </summary>
 	void AutoResolveMatchingRequests(string sessionId, List<string> commands, PermissionDecisionEnum decision)
 	{
 		if(decision.Equals(PermissionDecisionEnum.Denied))
@@ -472,9 +467,24 @@ public class PermissionFeature
 				// Complete the TaskCompletionSource to unblock the waiting permission check
 				pendingRequest.CompletionSource.TrySetResult(decision);
 
-				// Notify UI that this request was resolved
+				// Update session state and notify UI
+				UpdateSessionOnPermissionResolved(sessionId, pendingRequest.Id);
 				OnPermissionResolved?.Invoke(sessionId, pendingRequest.Id);
 			}
+		}
+	}
+
+	public void Dispose()
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void Dispose(bool disposing)
+	{
+		if(disposing)
+		{
+			_permissionsLock.Dispose();
 		}
 	}
 }

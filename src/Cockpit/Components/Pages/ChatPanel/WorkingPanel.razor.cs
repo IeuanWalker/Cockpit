@@ -1,5 +1,5 @@
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Services;
+using Cockpit.Features.Sessions;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
@@ -15,14 +15,11 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	[Parameter]
 	public bool IsVisible { get; set; }
 
-	[Inject]
-	UnifiedSessionManager SessionManager { get; set; } = default!;
+	[Inject] SessionFeature _sessionManager { get; set; } = default!;
 
-	[Inject]
-	IJSRuntime JSRuntime { get; set; } = default!;
+	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
 
-	[Inject]
-	ILogger<WorkingPanel> Logger { get; set; } = default!;
+	[Inject] ILogger<WorkingPanel> _logger { get; set; } = default!;
 
 	Timer? _timer;
 	bool _isUserScrolledUpFromWorking = false;
@@ -88,11 +85,11 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "workingContent", _dotNetRef, "OnWorkingPanelScrollPositionChanged");
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "workingContent", _dotNetRef, "OnWorkingPanelScrollPositionChanged");
 		}
 		catch(Exception ex)
 		{
-			Logger.LogDebug(ex, "Failed to setup smart scroll for working panel");
+			_logger.LogDebug(ex, "Failed to setup smart scroll for working panel");
 		}
 	}
 
@@ -106,11 +103,11 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "workingContent");
+			await _jsRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "workingContent");
 		}
 		catch(Exception ex)
 		{
-			Logger.LogDebug(ex, "Failed to scroll working panel to bottom");
+			_logger.LogDebug(ex, "Failed to scroll working panel to bottom");
 		}
 	}
 
@@ -122,11 +119,11 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 		{
 			try
 			{
-				await JSRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "workingContent");
+				await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "workingContent");
 			}
 			catch(Exception ex)
 			{
-				Logger.LogDebug(ex, "Failed to cleanup smart scroll for working panel");
+				_logger.LogDebug(ex, "Failed to cleanup smart scroll for working panel");
 			}
 		}
 
@@ -169,6 +166,6 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 
 	async Task StopSession()
 	{
-		await SessionManager.AbortCurrentSessionAsync();
+		await _sessionManager.AbortCurrentSessionAsync();
 	}
 }

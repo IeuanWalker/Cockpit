@@ -18,10 +18,8 @@ static class UserMessageHandler
 		}
 
 		string eventMessageId = evt.Id.ToString();
-		ChatMessageModel? optimistic = session.Messages.FirstOrDefault(m =>
-			m.IsUser && !m.IsComplete && m.Id == eventMessageId);
-		optimistic ??= session.Messages.FirstOrDefault(m =>
-			m.IsUser && !m.IsComplete && m.Content == (evt.Data.Content ?? string.Empty));
+		ChatMessageModel? optimistic = session.Messages.FirstOrDefault(m => m.IsUser && !m.IsComplete && m.Id == eventMessageId);
+		optimistic ??= session.Messages.FirstOrDefault(m => m.IsUser && !m.IsComplete && m.Content == (evt.Data.Content ?? string.Empty));
 
 		if(optimistic is not null)
 		{

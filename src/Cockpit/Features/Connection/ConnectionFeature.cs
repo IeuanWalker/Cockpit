@@ -1,36 +1,33 @@
 using System.Text.Json;
-using Cockpit.Services;
+using Cockpit.Features.Sdk;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Connection;
 
-public enum ConnectionHealthStatus { Unknown, Checking, Connected, Disconnected }
-
-public record ConnectionCheckRecord(ConnectionHealthStatus Status, DateTime CheckedAt, string ResponseJson);
-
 /// <summary>
-/// Singleton feature that periodically pings the Copilot backend and exposes connection health state.
+/// Periodically pings the Copilot backend and exposes connection health state.
 /// </summary>
-public sealed class ConnectionFeature : IDisposable
+public sealed partial class ConnectionFeature : IDisposable
 {
-	readonly CopilotClientService _clientService;
+	readonly CopilotClientFeature _clientService;
 	readonly ILogger<ConnectionFeature> _logger;
 	Timer? _timer;
 	bool _initialized = false;
 
 	public event Action? OnStatusChanged;
 
-	public ConnectionHealthStatus Status { get; private set; } = ConnectionHealthStatus.Unknown;
+	public ConnectionStatusEnum Status { get; private set; } = ConnectionStatusEnum.Unknown;
 	public PingResponse? LastResponse { get; private set; }
 	public DateTime? LastChecked { get; private set; }
-	public IReadOnlyList<ConnectionCheckRecord> History => _history;
+	public IReadOnlyList<ConnectionCheckRecordModel> History => _history;
 
-	readonly List<ConnectionCheckRecord> _history = [];
+	readonly List<ConnectionCheckRecordModel> _history = [];
 
 	public const int PollIntervalSeconds = 20;
+	public const int MaxHistorySize = 100;
 
-	public ConnectionFeature(CopilotClientService clientService, ILogger<ConnectionFeature> logger)
+	public ConnectionFeature(CopilotClientFeature clientService, ILogger<ConnectionFeature> logger)
 	{
 		_clientService = clientService;
 		_logger = logger;
@@ -60,14 +57,23 @@ public sealed class ConnectionFeature : IDisposable
 	/// </summary>
 	public async Task Ping()
 	{
-		Status = ConnectionHealthStatus.Checking;
+		Status = ConnectionStatusEnum.Checking;
 		OnStatusChanged?.Invoke();
 
 		LastResponse = await _clientService.PingAsync();
 		LastChecked = DateTime.UtcNow;
-		Status = LastResponse is not null ? ConnectionHealthStatus.Connected : ConnectionHealthStatus.Disconnected;
+		Status = LastResponse is not null ? ConnectionStatusEnum.Connected : ConnectionStatusEnum.Disconnected;
 
-		_history.Add(new ConnectionCheckRecord(Status, LastChecked.Value, GetResponseJson()));
+		if(_history.Count >= MaxHistorySize)
+		{
+			_history.RemoveAt(0);
+		}
+		_history.Add(new ConnectionCheckRecordModel()
+		{
+			Status = Status,
+			CheckedAt = LastChecked.Value,
+			ResponseJson = GetResponseJson()
+		});
 
 		_logger.LogDebug("Ping result: {Status}", Status);
 		OnStatusChanged?.Invoke();

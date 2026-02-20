@@ -1,4 +1,5 @@
-using Cockpit.Services;
+using Cockpit.Features.Sessions;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Logging;
@@ -8,11 +9,13 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 {
-	[Inject] UIStateService _uiState { get; set; } = default!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
+	[Inject] SessionFeature _sessionManager { get; set; } = default!;
 	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
 	[Inject] ILogger<ChatInputArea> _logger { get; set; } = default!;
 
+	// Brief yield to allow Blazor to flush the binding update before resizing
+	const int textareaResizeYieldMs = 10;
 	string _chatInput = string.Empty;
 	bool _subscribedToUIState;
 
@@ -76,7 +79,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		{
 			_chatInput = string.IsNullOrEmpty(_chatInput) ? text : _chatInput + "\n" + text;
 			StateHasChanged();
-			await Task.Delay(10);
+			await Task.Delay(textareaResizeYieldMs);
 			await OnTextareaInput();
 		});
 	}
@@ -92,7 +95,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		_chatInput = string.Empty;
 
 		// Reset textarea height after clearing
-		await Task.Delay(10);
+		await Task.Delay(textareaResizeYieldMs);
 		await OnTextareaInput();
 
 		// Send via SDK

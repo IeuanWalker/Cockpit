@@ -1,24 +1,14 @@
-using Cockpit.Services;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Popups.Settings;
 
-public enum SettingsSection
-{
-	Appearance,
-	Commands,
-	Input,
-	Voice,
-	Sounds,
-	Diagnostics
-}
-
 public partial class SettingsPopup : ComponentBase, IDisposable
 {
-	SettingsSection _activeSection = SettingsSection.Appearance;
-	[Inject] UIStateService _uiState { get; set; } = default!;
+	SettingsSectionEnum _activeSection = SettingsSectionEnum.Appearance;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
 
-	public void OpenToSection(SettingsSection section)
+	public void OpenToSection(SettingsSectionEnum section)
 	{
 		_activeSection = section;
 		StateHasChanged();
@@ -44,7 +34,7 @@ public partial class SettingsPopup : ComponentBase, IDisposable
 		InvokeAsync(StateHasChanged);
 	}
 
-	void SetActiveSection(SettingsSection section)
+	void SetActiveSection(SettingsSectionEnum section)
 	{
 		_activeSection = section;
 	}

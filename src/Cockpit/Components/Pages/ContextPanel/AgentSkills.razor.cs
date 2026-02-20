@@ -1,12 +1,13 @@
-using Cockpit.Services;
+using Cockpit.Features.Sessions;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class AgentSkills : ComponentBase, IDisposable
 {
-	[Inject] UIStateService _uiState { get; set; } = null!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = null!;
+	[Inject] SessionFeature _sessionManager { get; set; } = default!;
 
 	void ToggleSkill(string skill) => _sessionManager.ToggleCurrentSessionContextSkill(skill);
 	bool IsSkillEnabled(string skill) => _sessionManager.CurrentSession?.Context?.AgentSkills.Contains(skill) == true;

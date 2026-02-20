@@ -1,3 +1,4 @@
+using Cockpit.Features.AppSettings;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
@@ -7,6 +8,7 @@ public class ThemeFeature
 {
 	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<ThemeFeature> _logger;
+	readonly IAppSettingsFeature _appSettings;
 	bool _isInitialized = false;
 
 	public event Action? OnThemeChanged;
@@ -15,14 +17,18 @@ public class ThemeFeature
 	public string AccentColor { get; private set; }
 	public string AccentHoverColor { get; private set; }
 
-	public ThemeFeature(IJSRuntime jsRuntime, ILogger<ThemeFeature> logger)
+	public ThemeFeature(
+		IJSRuntime jsRuntime,
+		ILogger<ThemeFeature> logger,
+		IAppSettingsFeature appSettings)
 	{
 		_jsRuntime = jsRuntime;
 		_logger = logger;
+		_appSettings = appSettings;
 
-		CurrentTheme = UserAppSettings.Theme;
-		AccentColor = UserAppSettings.AccentColor;
-		AccentHoverColor = UserAppSettings.AccentHoverColor;
+		CurrentTheme = _appSettings.Theme;
+		AccentColor = _appSettings.AccentColor;
+		AccentHoverColor = _appSettings.AccentHoverColor;
 	}
 
 	public async Task Initialize()
@@ -44,7 +50,7 @@ public class ThemeFeature
 	public async Task SetTheme(ThemeEnum theme)
 	{
 		CurrentTheme = theme;
-		UserAppSettings.Theme = theme;
+		_appSettings.Theme = theme;
 
 		UpdateTitleBarTheme(theme);
 		await ApplyTheme();
@@ -93,8 +99,8 @@ public class ThemeFeature
 		AccentColor = color;
 		AccentHoverColor = hoverColor;
 
-		UserAppSettings.AccentColor = color;
-		UserAppSettings.AccentHoverColor = hoverColor;
+		_appSettings.AccentColor = color;
+		_appSettings.AccentHoverColor = hoverColor;
 
 		await ApplyAccentColor();
 		OnThemeChanged?.Invoke();

@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using Blazor.Sonner.Services;
+using Cockpit.Features.CopilotModels;
 using Cockpit.Features.Permissions;
+using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Terminal;
@@ -9,82 +11,51 @@ using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 using SessionContextModel = Cockpit.Models.SessionContext;
 
-namespace Cockpit.Services;
+namespace Cockpit.Features.Sessions;
 
-public partial class UnifiedSessionManager : ISessionStateProvider
+public partial class SessionFeature
 {
-	readonly CopilotClientService _clientService;
-	readonly ILogger<UnifiedSessionManager> _logger;
+	readonly CopilotClientFeature _clientFeature;
+	readonly ILogger<SessionFeature> _logger;
 	readonly ToastService _toastService;
-	readonly CopilotModelService _copilotModelService;
+	readonly CopilotModelFeature _copilotModelFeature;
 	readonly SessionEventProcessor _processor;
-	PermissionFeature? _permissionFeature;
 	readonly TerminalFeature _terminalFeature;
+	readonly SessionListFeature _sessionListFeature;
+	readonly IPermissionHandler _permissionHandler;
 
-	// Internal: Maps sessionId -> SDK CopilotSession (for ALL resumed sessions)
 	readonly ConcurrentDictionary<string, CopilotSession> _sdkSessions = new();
 
-	public event Action? OnStateChanged;
-
-	// All sessions (persisted + in-memory)
-	public List<ChatSession> Sessions { get; private set; } = [];
-
-	// The ONE session currently visible in UI
-	public ChatSession? CurrentSession { get; private set; }
-
-	// Activity grouping for working panel (per-session)
+	// Pass-through convenience properties so components only need to inject SessionFeature
+	public ChatSession? CurrentSession => _sessionListFeature.CurrentSession;
+	public IReadOnlyList<ChatSession> Sessions => _sessionListFeature.Sessions;
+	public event Action? OnStateChanged
+	{
+		add => _sessionListFeature.OnStateChanged += value;
+		remove => _sessionListFeature.OnStateChanged -= value;
+	}
 	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.ActiveWorkingGroup;
 	public bool IsWorking => CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatusEnum.Running;
 
-	public UnifiedSessionManager(
-		CopilotClientService clientService,
-		ILogger<UnifiedSessionManager> logger,
+	public SessionFeature(
+		CopilotClientFeature clientFeature,
+		ILogger<SessionFeature> logger,
 		ToastService toastService,
-		CopilotModelService copilotModelService,
+		CopilotModelFeature copilotModelFeature,
 		TerminalFeature terminalFeature,
-		SessionEventProcessor processor)
+		SessionEventProcessor processor,
+		SessionListFeature sessionListFeature,
+		IPermissionHandler permissionHandler)
 	{
-		_clientService = clientService;
+		_clientFeature = clientFeature;
 		_logger = logger;
 		_toastService = toastService;
-		_copilotModelService = copilotModelService;
+		_copilotModelFeature = copilotModelFeature;
 		_terminalFeature = terminalFeature;
 		_processor = processor;
+		_sessionListFeature = sessionListFeature;
+		_permissionHandler = permissionHandler;
 	}
-
-	public void SetPermissionFeature(PermissionFeature permissionFeature)
-	{
-		_permissionFeature = permissionFeature;
-	}
-
-	static void EnsureSessionContext(ChatSession session)
-	{
-		session.Context ??= SessionContextModel.CreateDefault();
-	}
-
-	void HandleSessionEvent(string sessionId, SessionEvent evt)
-	{
-		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if(session is null)
-		{
-			return;
-		}
-
-		Func<ChatMessageModel, string, Task>? streamCallback = session == CurrentSession
-			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, NotifyStateChanged)
-			: null;
-
-		lock(session.SessionEventLock)
-		{
-			_processor.Process(session, evt, streamCallback);
-		}
-
-		if(session == CurrentSession)
-		{
-			NotifyStateChanged();
-		}
-	}
-
 
 	public async Task LoadExistingSessionsAsync()
 	{
@@ -92,7 +63,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		{
 			_logger.LogInformation("Loading existing sessions from SDK...");
 
-			CopilotClient client = await _clientService.GetClientAsync();
+			CopilotClient client = await _clientFeature.GetClientAsync();
 			List<SessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
 
 			if(sessionMetadataList.Count == 0)
@@ -103,12 +74,11 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 
 			_logger.LogInformation("Found {Count} existing sessions", sessionMetadataList.Count);
 
-			ModelInfo defaultModel = await _copilotModelService.GetDefaultModel();
+			ModelInfo defaultModel = await _copilotModelFeature.GetDefaultModel();
 
-			// Load each session that isn't already in our list
 			foreach(SessionMetadata metadata in sessionMetadataList)
 			{
-				if(!Sessions.Any(s => s.Id == metadata.SessionId))
+				if(!_sessionListFeature.Sessions.Any(s => s.Id == metadata.SessionId))
 				{
 					try
 					{
@@ -124,7 +94,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 							Context = SessionContextModel.CreateDefault(metadata.Context?.Cwd, metadata.Context?.Branch)
 						};
 
-						Sessions.Add(chatSession);
+						_sessionListFeature.AddSession(chatSession);
 						_logger.LogInformation("Loaded session {SessionId}", chatSession.Id);
 					}
 					catch(Exception ex)
@@ -134,8 +104,8 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				}
 			}
 
-			NotifyStateChanged();
-			_logger.LogInformation("Successfully loaded {Count} sessions", Sessions.Count);
+			_sessionListFeature.NotifyStateChanged();
+			_logger.LogInformation("Successfully loaded {Count} sessions", _sessionListFeature.Sessions.Count);
 		}
 		catch(Exception ex)
 		{
@@ -143,11 +113,34 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		}
 	}
 
+	void HandleSessionEvent(string sessionId, SessionEvent evt)
+	{
+		ChatSession? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+		if(session is null)
+		{
+			return;
+		}
+
+		Func<ChatMessageModel, string, Task>? streamCallback = session == _sessionListFeature.CurrentSession
+			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged)
+			: null;
+
+		lock(session.SessionEventLock)
+		{
+			_processor.Process(session, evt, streamCallback);
+		}
+
+		if(session == _sessionListFeature.CurrentSession)
+		{
+			_sessionListFeature.NotifyStateChanged();
+		}
+	}
+
 	public async Task<ChatSession> CreateNewSessionAsync(string? workingDirectory = null)
 	{
 		try
 		{
-			ModelInfo defaultModel = await _copilotModelService.GetDefaultModel();
+			ModelInfo defaultModel = await _copilotModelFeature.GetDefaultModel();
 
 			SessionConfig config = new()
 			{
@@ -156,20 +149,18 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				Streaming = true,
 				InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
 				WorkingDirectory = workingDirectory,
-				OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
+				OnPermissionRequest = _permissionHandler.HandlePermissionRequest
 			};
 
-			CopilotClient client = await _clientService.GetClientAsync();
+			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.CreateSessionAsync(config);
 
-			// Subscribe to session events
 			sdkSession.On(evt =>
 			{
 				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
 				HandleSessionEvent(sdkSession.SessionId, evt);
 			});
 
-			// Add to SDK sessions dictionary
 			_sdkSessions.TryAdd(sdkSession.SessionId, sdkSession);
 
 			ChatSession chatSession = new()
@@ -189,10 +180,9 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				IsResumed = true
 			};
 
-			Sessions.Insert(0, chatSession);
-			CurrentSession = chatSession;
+			_sessionListFeature.AddSession(chatSession);
+			_sessionListFeature.SetCurrentSession(chatSession);
 
-			NotifyStateChanged();
 			return chatSession;
 		}
 		catch(Exception ex)
@@ -206,18 +196,17 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	{
 		try
 		{
-			ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			ChatSession? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 			if(session is null)
 			{
 				_logger.LogWarning("Session {SessionId} not found", sessionId);
 				return false;
 			}
 
-			// If session is already resumed with an active SDK connection, just switch to it
 			if(session.IsResumed)
 			{
 				_logger.LogInformation("Session {SessionId} already resumed, switching to it", sessionId);
-				SetCurrentSession(session);
+				_sessionListFeature.SetCurrentSession(session);
 				return true;
 			}
 
@@ -228,23 +217,18 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				Model = session.Model.Id,
 				ReasoningEffort = session.ReasoningEffort,
 				Streaming = true,
-				OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
+				OnPermissionRequest = _permissionHandler.HandlePermissionRequest
 			};
 
-			// Mark as resuming so the session list shows a loading indicator immediately
 			session.IsResuming = true;
-			NotifyStateChanged();
+			_sessionListFeature.NotifyStateChanged();
 
-			CopilotClient client = await _clientService.GetClientAsync();
+			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
 
-			// Load existing messages from SDK BEFORE subscribing to live events
-			// to avoid a race condition where live events modify session state concurrently with replay
 			IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
 			_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 
-			// Replay history into a temporary session so the real session is never in an intermediate
-			// state — no spurious UI re-renders during replay
 			ChatSession tempSession = new()
 			{
 				Id = sessionId,
@@ -264,14 +248,12 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 					_processor.Process(tempSession, evt);
 				}
 
-				// Fallback: finalize any active group not closed by SessionIdleEvent (e.g., abrupt termination)
 				if(tempSession.ActiveWorkingGroup is not null)
 				{
 					_processor.FinalizeOpenGroup(tempSession);
 				}
 			});
 
-			// Atomically apply replayed state to the real session, then clear loading indicator
 			session.IsResuming = false;
 			session.Messages = tempSession.Messages;
 			session.ActiveWorkingGroup = null;
@@ -284,11 +266,8 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			session.Status = SessionStatus.Idle;
 			session.IsResumed = true;
 			session.WorkspacePath = sdkSession.WorkspacePath;
-			EnsureSessionContext(session);
 			SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
-			CurrentSession = session;
 
-			// Subscribe to live events and register SDK session only after replay is complete
 			sdkSession.On(evt =>
 			{
 				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
@@ -296,16 +275,18 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			});
 			_sdkSessions.AddOrUpdate(sdkSession.SessionId, sdkSession, (_, _) => sdkSession);
 
-			NotifyStateChanged();
+			// SetCurrentSession handles EnsureSessionContext + CurrentSession assignment + NotifyStateChanged
+			_sessionListFeature.SetCurrentSession(session);
+
 			_logger.LogInformation("Successfully resumed session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
 			return true;
 		}
 		catch(Exception ex) when(ex.Message.Equals("Communication error with Copilot CLI: Request session.resume failed with message: Session file is corrupted or incompatible"))
 		{
 			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
-			ChatSession? failedSession = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			ChatSession? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 			failedSession?.IsResuming = false;
-			NotifyStateChanged();
+			_sessionListFeature.NotifyStateChanged();
 			_toastService.Error("Session Unavailable", opts =>
 			{
 				opts.Description = "The session file may be corrupted, incompatible, or in use by another instance. You may need to delete or exit the session running else where";
@@ -315,58 +296,11 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to resume session {SessionId}", sessionId);
-			ChatSession? failedSession = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			ChatSession? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 			failedSession?.IsResuming = false;
-			NotifyStateChanged();
+			_sessionListFeature.NotifyStateChanged();
 			return false;
 		}
-	}
-
-	public void SetCurrentSession(ChatSession session)
-	{
-		EnsureSessionContext(session);
-		CurrentSession = session;
-
-		NotifyStateChanged();
-	}
-
-	public void SetCurrentSessionContextDirectory(string directory)
-	{
-		if(CurrentSession is null || string.IsNullOrWhiteSpace(directory))
-		{
-			return;
-		}
-
-		CurrentSession.Context.CurrentDirectory = directory;
-		NotifyStateChanged();
-	}
-
-	public void ToggleCurrentSessionContextSkill(string skill)
-	{
-		if(CurrentSession is null || string.IsNullOrWhiteSpace(skill))
-		{
-			return;
-		}
-
-		if(!CurrentSession.Context.AgentSkills.Remove(skill))
-		{
-			CurrentSession.Context.AgentSkills.Add(skill);
-		}
-		NotifyStateChanged();
-	}
-
-	public void ToggleCurrentSessionContextCommand(string command)
-	{
-		if(CurrentSession is null || string.IsNullOrWhiteSpace(command))
-		{
-			return;
-		}
-
-		if(!CurrentSession.Context.AllowedCommands.Remove(command))
-		{
-			CurrentSession.Context.AllowedCommands.Add(command);
-		}
-		NotifyStateChanged();
 	}
 
 	public async Task SendMessageAsync(string content, List<UserMessageDataAttachmentsItem>? attachments = null)
@@ -378,7 +312,6 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 
 		try
 		{
-			// Check if session needs restart before sending message
 			if(CurrentSession.RequiresRestart)
 			{
 				await RestartSessionWithPendingConfigAsync();
@@ -395,7 +328,6 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				bool agentWasBusy = CurrentSession.ActiveWorkingGroup is not null;
 				CurrentSession.Status = SessionStatus.Running;
 
-				// Optimistically add the message immediately so the UI doesn't feel frozen
 				optimisticMessage = new ChatMessageModel
 				{
 					Content = content,
@@ -407,7 +339,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				};
 				CurrentSession.Messages.Add(optimisticMessage);
 			}
-			NotifyStateChanged();
+			_sessionListFeature.NotifyStateChanged();
 
 			string sentMessageId = await sdkSession.SendAsync(new MessageOptions
 			{
@@ -430,7 +362,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		{
 			_logger.LogError(ex, "Failed to send message");
 			CurrentSession.Status = SessionStatus.Error;
-			NotifyStateChanged();
+			_sessionListFeature.NotifyStateChanged();
 		}
 	}
 
@@ -450,23 +382,20 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				CurrentSession.ReasoningEffort ?? "default"
 			);
 
-			// Perform restart (destroy + resume with new config)
 			await RestartSessionAsync(
 				CurrentSession.Id,
 				CurrentSession.Model.Id,
 				CurrentSession.ReasoningEffort
 			);
 
-			// Clear restart flag
 			CurrentSession.RequiresRestart = false;
 
 			_logger.LogInformation("Session {SessionId} restarted successfully", CurrentSession.Id);
-			NotifyStateChanged();
+			_sessionListFeature.NotifyStateChanged();
 		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to restart session {SessionId}", CurrentSession.Id);
-			// Keep RequiresRestart = true so user can retry
 			throw;
 		}
 	}
@@ -475,22 +404,19 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	{
 		try
 		{
-			// 1. Get existing session from dictionary
 			if(!_sdkSessions.TryRemove(sessionId, out CopilotSession? existingSession))
 			{
 				throw new InvalidOperationException($"Session {sessionId} not found");
 			}
 
-			ChatSession? chatSession = Sessions.FirstOrDefault(s => s.Id == sessionId);
+			ChatSession? chatSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 
-			// 2. Destroy the in-memory session object
 			await existingSession.DisposeAsync();
 			_logger.LogInformation("Destroyed session {SessionId} for restart", sessionId);
 
-			CopilotClient client = await _clientService.GetClientAsync(cancellationToken);
+			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
 			CopilotSession newSdkSession;
 
-			// 3. For sessions with no messages the CLI hasn't persisted them yet — create fresh
 			bool hasMessages = chatSession?.Messages.Count > 0;
 			if(hasMessages)
 			{
@@ -499,7 +425,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 					Model = newModelId,
 					ReasoningEffort = newReasoningEffort,
 					Streaming = true,
-					OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
+					OnPermissionRequest = _permissionHandler.HandlePermissionRequest
 				};
 				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
 			}
@@ -512,11 +438,10 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 					Streaming = true,
 					InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
 					WorkingDirectory = chatSession?.WorkingDirectory,
-					OnPermissionRequest = _permissionFeature!.HandlePermissionRequest
+					OnPermissionRequest = _permissionHandler.HandlePermissionRequest
 				};
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
 
-				// Update the ChatSession with the new SDK session ID
 				if(chatSession is not null)
 				{
 					_sdkSessions.TryRemove(chatSession.Id, out _);
@@ -524,14 +449,12 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				}
 			}
 
-			// 4. Re-subscribe to session events
 			newSdkSession.On(evt =>
 			{
 				_logger.LogDebug("Session {SessionId} event: {EventType}", newSdkSession.SessionId, evt.Type);
 				HandleSessionEvent(newSdkSession.SessionId, evt);
 			});
 
-			// 5. Update dictionary with new/resumed session
 			_sdkSessions.TryAdd(newSdkSession.SessionId, newSdkSession);
 
 			_logger.LogInformation("Restarted session {SessionId} with model {Model}", sessionId, newModelId);
@@ -547,44 +470,24 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	{
 		try
 		{
-			// Remove from SDK sessions and dispose
 			if(_sdkSessions.TryRemove(sessionId, out CopilotSession? sdkSession))
 			{
 				await sdkSession.DisposeAsync();
 			}
 
-			// Clean up terminal session
 			_terminalFeature.CloseSession(sessionId);
 
-			// Delete from Copilot CLI
-			CopilotClient client = await _clientService.GetClientAsync();
+			CopilotClient client = await _clientFeature.GetClientAsync();
 			await client.DeleteSessionAsync(sessionId);
 
-			ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
-			if(session is not null)
-			{
-				Sessions.Remove(session);
-				if(CurrentSession?.Id == sessionId)
-				{
-					CurrentSession = Sessions.FirstOrDefault();
-				}
-				NotifyStateChanged();
-			}
+			_sessionListFeature.RemoveSession(sessionId);
+			_sessionListFeature.NotifyStateChanged();
 		}
 		catch(InvalidOperationException ex) when(ex.Message.Contains("Error: Session file not found"))
 		{
 			_logger.LogWarning(ex, "Session {SessionId} not found during deletion - it may have already been deleted", sessionId);
-			// Even if the session was not found, we can consider it deleted, so remove from our list and update UI
-			ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
-			if(session is not null)
-			{
-				Sessions.Remove(session);
-				if(CurrentSession?.Id == sessionId)
-				{
-					CurrentSession = Sessions.FirstOrDefault();
-				}
-				NotifyStateChanged();
-			}
+			_sessionListFeature.RemoveSession(sessionId);
+			_sessionListFeature.NotifyStateChanged();
 		}
 		catch(Exception ex)
 		{
@@ -613,9 +516,4 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			_logger.LogError(ex, "Failed to abort session");
 		}
 	}
-
-	public void NotifyStateChanged() => OnStateChanged?.Invoke();
-
-	// ISessionStateProvider implementation
-	IReadOnlyList<ChatSession> ISessionStateProvider.GetSessions() => Sessions;
 }

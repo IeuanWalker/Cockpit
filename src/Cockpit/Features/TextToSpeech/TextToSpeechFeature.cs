@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Blazor.Sonner.Services;
+using Cockpit.Features.AppSettings;
 using Microsoft.Extensions.Logging;
-using Microsoft.Maui.Media;
 
 namespace Cockpit.Features.TextToSpeech;
 
@@ -18,15 +18,21 @@ public partial class TextToSpeechFeature : IDisposable
 
 	readonly ITextToSpeech _textToSpeech;
 	readonly ILogger<TextToSpeechFeature> _logger;
-	readonly ToastService? _toastService;
+	readonly ToastService _toastService;
+	readonly IAppSettingsFeature _appSettingsFeature;
 	CancellationTokenSource? _cts;
 	readonly SemaphoreSlim _lock = new(1, 1);
 
-	public TextToSpeechFeature(ITextToSpeech textToSpeech, ILogger<TextToSpeechFeature> logger, ToastService? toastService = null)
+	public TextToSpeechFeature(
+		ITextToSpeech textToSpeech,
+		ILogger<TextToSpeechFeature> logger,
+		ToastService toastService,
+		IAppSettingsFeature appSettingsFeature)
 	{
 		_textToSpeech = textToSpeech;
 		_logger = logger;
 		_toastService = toastService;
+		_appSettingsFeature = appSettingsFeature;
 	}
 
 	public async Task<IEnumerable<Locale>> GetLocales()
@@ -130,12 +136,12 @@ public partial class TextToSpeechFeature : IDisposable
 	{
 		SpeechOptions options = new()
 		{
-			Volume = UserAppSettings.VoiceVolume,
-			Pitch = UserAppSettings.VoicePitch,
-			Rate = UserAppSettings.VoiceRate,
+			Volume = _appSettingsFeature.VoiceVolume,
+			Pitch = _appSettingsFeature.VoicePitch,
+			Rate = _appSettingsFeature.VoiceRate,
 		};
 
-		string localeId = UserAppSettings.VoiceLocale;
+		string localeId = _appSettingsFeature.VoiceLocale;
 		if(!string.IsNullOrEmpty(localeId))
 		{
 			IEnumerable<Locale> locales = await _textToSpeech.GetLocalesAsync();

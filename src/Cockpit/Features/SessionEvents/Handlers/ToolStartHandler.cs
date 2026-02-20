@@ -17,15 +17,12 @@ static class ToolStartHandler
 			return;
 		}
 
-		if(session.ActiveWorkingGroup is null)
+		session.ActiveWorkingGroup ??= new ActivityGroupModel
 		{
-			session.ActiveWorkingGroup = new ActivityGroupModel
-			{
-				StartTime = evt.Timestamp.LocalDateTime,
-				Status = GroupStatusEnum.Running,
-				IsExpanded = true
-			};
-		}
+			StartTime = evt.Timestamp.LocalDateTime,
+			Status = GroupStatusEnum.Running,
+			IsExpanded = true
+		};
 
 		// Set InitialMessageId if not already set — find the last assistant message after the last user message
 		if(string.IsNullOrEmpty(session.ActiveWorkingGroup.InitialMessageId))

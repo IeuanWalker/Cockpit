@@ -5,36 +5,36 @@ namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class ConnectionStatus : ComponentBase, IDisposable
 {
-	[Inject] ConnectionFeature _feature { get; set; } = default!;
+	[Inject] ConnectionFeature _connectionFeature { get; set; } = default!;
 
 	bool _showPopup = false;
 	bool _showHistoryPopup = false;
 	readonly HashSet<int> _expandedHistoryIndices = [];
 
-	string _statusClass => _feature.Status switch
+	string _statusClass => _connectionFeature.Status switch
 	{
-		ConnectionHealthStatus.Connected => "connected",
-		ConnectionHealthStatus.Disconnected => "disconnected",
-		ConnectionHealthStatus.Checking => "checking",
+		ConnectionStatusEnum.Connected => "connected",
+		ConnectionStatusEnum.Disconnected => "disconnected",
+		ConnectionStatusEnum.Checking => "checking",
 		_ => "checking"
 	};
 
-	string _statusText => _feature.Status switch
+	string _statusText => _connectionFeature.Status switch
 	{
-		ConnectionHealthStatus.Connected => "Connected",
-		ConnectionHealthStatus.Disconnected => "Disconnected",
-		ConnectionHealthStatus.Checking => "Checking...",
+		ConnectionStatusEnum.Connected => "Connected",
+		ConnectionStatusEnum.Disconnected => "Disconnected",
+		ConnectionStatusEnum.Checking => "Checking...",
 		_ => "Unknown"
 	};
 
 	protected override void OnInitialized()
 	{
-		_feature.OnStatusChanged += OnStatusChanged;
+		_connectionFeature.OnStatusChanged += OnStatusChanged;
 	}
 
 	protected override async Task OnInitializedAsync()
 	{
-		await _feature.Initialize();
+		await _connectionFeature.Initialize();
 	}
 
 	void OnStatusChanged() => InvokeAsync(StateHasChanged);
@@ -49,16 +49,6 @@ public partial class ConnectionStatus : ComponentBase, IDisposable
 		_showHistoryPopup = true;
 	}
 
-	void CloseHistoryPopup() => _showHistoryPopup = false;
-
-	void ToggleHistoryItem(int index)
-	{
-		if(!_expandedHistoryIndices.Remove(index))
-		{
-			_expandedHistoryIndices.Add(index);
-		}
-	}
-
 	public void Dispose()
 	{
 		Dispose(true);
@@ -69,7 +59,7 @@ public partial class ConnectionStatus : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_feature.OnStatusChanged -= OnStatusChanged;
+			_connectionFeature.OnStatusChanged -= OnStatusChanged;
 		}
 	}
 }

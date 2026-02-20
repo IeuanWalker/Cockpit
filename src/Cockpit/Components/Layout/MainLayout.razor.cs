@@ -1,6 +1,7 @@
 using Cockpit.Components.Popups.Settings;
+using Cockpit.Features.Sessions;
 using Cockpit.Features.Theme;
-using Cockpit.Services;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -8,19 +9,19 @@ namespace Cockpit.Components.Layout;
 
 public partial class MainLayout : IDisposable
 {
-	[Inject] UIStateService UIState { get; set; } = default!;
-	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
-	[Inject] ThemeFeature ThemeService { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
+	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
+	[Inject] ThemeFeature _themeFeature { get; set; } = default!;
 
-	static UIStateService? staticUIState;
+	static UIStateFeature? staticUIState;
 	SettingsPopup? _settingsPopup;
 
 	protected override async Task OnInitializedAsync()
 	{
-		await ThemeService.Initialize();
-		UIState.OnStateChanged += OnStateChanged;
-		SessionManager.OnStateChanged += OnStateChanged;
-		staticUIState = UIState; // Store static reference for title bar access
+		await _themeFeature.Initialize();
+		_uiState.OnStateChanged += OnStateChanged;
+		_sessionManager.OnStateChanged += OnStateChanged;
+		staticUIState = _uiState; // Store static reference for title bar access
 	}
 
 	void OnStateChanged()
@@ -44,8 +45,8 @@ public partial class MainLayout : IDisposable
 	{
 		if(disposing)
 		{
-			UIState.OnStateChanged -= OnStateChanged;
-			SessionManager.OnStateChanged -= OnStateChanged;
+			_uiState.OnStateChanged -= OnStateChanged;
+			_sessionManager.OnStateChanged -= OnStateChanged;
 		}
 	}
 }
