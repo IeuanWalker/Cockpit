@@ -22,6 +22,11 @@ public partial class TextToSpeechFeature
 		_textToSpeech = textToSpeech;
 	}
 
+	public async Task<IEnumerable<Locale>> GetLocales()
+	{
+		return await _textToSpeech.GetLocalesAsync();
+	}
+
 	public async Task Speak(string messageId, string text)
 	{
 		await _lock.WaitAsync();

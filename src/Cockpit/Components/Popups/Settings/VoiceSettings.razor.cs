@@ -1,7 +1,6 @@
 using Cockpit.Features.TextToSpeech;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
-using MauiTts = Microsoft.Maui.Media.TextToSpeech;
 
 namespace Cockpit.Components.Popups.Settings;
 
@@ -25,7 +24,7 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 	{
 		if(firstRender)
 		{
-			_locales = await MauiTts.Default.GetLocalesAsync();
+			_locales = await _textToSpeechFeature.GetLocales();
 			await InvokeAsync(StateHasChanged);
 		}
 	}
