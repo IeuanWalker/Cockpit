@@ -49,6 +49,16 @@ public partial class ConnectionStatus : ComponentBase, IDisposable
 		_showHistoryPopup = true;
 	}
 
+	void CloseHistoryPopup() => _showHistoryPopup = false;
+
+	void ToggleHistoryItem(int index)
+	{
+		if(!_expandedHistoryIndices.Remove(index))
+		{
+			_expandedHistoryIndices.Add(index);
+		}
+	}
+
 	public void Dispose()
 	{
 		Dispose(true);
