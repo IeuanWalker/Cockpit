@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Cockpit.Features.TextToSpeech;
 
-public partial class TextToSpeechFeature
+public partial class TextToSpeechFeature : IDisposable
 {
 	public const float DefaultVoiceVolume = 1.0f;
 	public const float DefaultVoicePitch = 1.0f;
@@ -189,4 +189,21 @@ public partial class TextToSpeechFeature
 
 	[GeneratedRegex(@"\n{3,}")]
 	private static partial Regex ExcessNewlinesRegex();
+
+	public void Dispose()
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void Dispose(bool disposing)
+	{
+		if(disposing)
+		{
+			_cts?.Cancel();
+			_cts?.Dispose();
+			_cts = null;
+			_lock.Dispose();
+		}
+	}
 }
