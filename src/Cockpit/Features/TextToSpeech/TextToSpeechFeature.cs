@@ -32,58 +32,65 @@ public partial class TextToSpeechFeature
 		await _lock.WaitAsync();
 		try
 		{
-			// If same message is speaking, stop it
-			if(ActiveMessageId == messageId)
-			{
-				await StopCore();
-				return;
-			}
-
-			// Stop any current speech first
-			await StopCore();
-
-			ActiveMessageId = messageId;
-			OnStateChanged?.Invoke();
-
-			_cts = new CancellationTokenSource();
-		}
-		finally
-		{
-			_lock.Release();
-		}
-
-		CancellationToken token = _cts.Token;
-		string plainText = StripMarkdown(text);
-
-		SpeechOptions options = await BuildSpeechOptionsAsync();
-
-		try
-		{
-			await _textToSpeech.SpeakAsync(plainText, options, cancelToken: token);
-		}
-		catch(OperationCanceledException)
-		{
-			// Expected when stopped
-		}
-		catch
-		{
-			// Ignore other errors
-		}
-		finally
-		{
-			await _lock.WaitAsync();
 			try
 			{
+				// If same message is speaking, stop it
 				if(ActiveMessageId == messageId)
 				{
-					ActiveMessageId = null;
-					OnStateChanged?.Invoke();
+					await StopCore();
+					return;
 				}
+
+				// Stop any current speech first
+				await StopCore();
+
+				ActiveMessageId = messageId;
+				OnStateChanged?.Invoke();
+
+				_cts = new CancellationTokenSource();
 			}
 			finally
 			{
 				_lock.Release();
 			}
+
+			CancellationToken token = _cts.Token;
+			string plainText = StripMarkdown(text);
+
+			SpeechOptions options = await BuildSpeechOptionsAsync();
+
+			try
+			{
+				await _textToSpeech.SpeakAsync(plainText, options, cancelToken: token);
+			}
+			catch(OperationCanceledException)
+			{
+				// Expected when stopped
+			}
+			catch
+			{
+				// Ignore other errors
+			}
+			finally
+			{
+				await _lock.WaitAsync();
+				try
+				{
+					if(ActiveMessageId == messageId)
+					{
+						ActiveMessageId = null;
+						OnStateChanged?.Invoke();
+					}
+				}
+				finally
+				{
+					_lock.Release();
+				}
+			}
+		}
+		catch(Exception)
+		{
+			_lock.Release();
 		}
 	}
 
