@@ -1,6 +1,5 @@
 using Blazor.Sonner.Services;
 using Cockpit.Features.TextToSpeech;
-using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ChatPanel;
@@ -8,19 +7,14 @@ namespace Cockpit.Components.Pages.ChatPanel;
 public partial class AgentTextToSpeechButton : IDisposable
 {
 	[Inject] TextToSpeechFeature _textToSpeechFeature { get; set; } = default!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
 	[Inject] ToastService _toastService { get; set; } = default!;
 	[Parameter] public string MessageId { get; set; } = string.Empty;
 	[Parameter] public string Content { get; set; } = string.Empty;
 	[Parameter] public bool Disabled { get; set; }
 
-	string? _previousSessionId;
-
 	protected override void OnInitialized()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
 		_textToSpeechFeature.OnStateChanged += OnTtsStateChanged;
-		_previousSessionId = _sessionManager.CurrentSession?.Id;
 	}
 
 	void OnTtsStateChanged()
@@ -28,32 +22,16 @@ public partial class AgentTextToSpeechButton : IDisposable
 		_ = InvokeAsync(StateHasChanged);
 	}
 
-	void OnStateChanged()
-	{
-		_ = InvokeAsync(async () =>
-		{
-			try
-			{
-				// Stop TTS when the user switches to a different session
-				string? currentSessionId = _sessionManager.CurrentSession?.Id;
-				if(currentSessionId != _previousSessionId)
-				{
-					_previousSessionId = currentSessionId;
-					await _textToSpeechFeature.Stop();
-				}
-			}
-			catch(Exception ex)
-			{
-				_toastService.Error("Text-to-Speech Error", opts => opts.Description = ex.Message);
-			}
-
-			StateHasChanged();
-		});
-	}
-
 	async Task OnClick()
 	{
-		await _textToSpeechFeature.Speak(MessageId, Content);
+		try
+		{
+			await _textToSpeechFeature.Speak(MessageId, Content);
+		}
+		catch(Exception ex)
+		{
+			_toastService.Error("Text-to-Speech Error", opts => opts.Description = ex.Message);
+		}
 	}
 
 	public void Dispose()
@@ -66,7 +44,6 @@ public partial class AgentTextToSpeechButton : IDisposable
 	{
 		if(disposing)
 		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
 			_textToSpeechFeature.OnStateChanged -= OnTtsStateChanged;
 		}
 	}
