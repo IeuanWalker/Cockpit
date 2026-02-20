@@ -110,6 +110,26 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		_isUserScrolledUpFromChat = !isNearBottom;
 	}
 
+	void OpenWorkspaceFolder()
+	{
+		string? path = SessionManager.CurrentSession?.WorkspacePath
+						?? SessionManager.CurrentSession?.WorkingDirectory;
+		if(string.IsNullOrEmpty(path)) return;
+
+		try
+		{
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+			{
+				FileName = path,
+				UseShellExecute = true
+			});
+		}
+		catch(Exception ex)
+		{
+			Logger.LogDebug(ex, "Failed to open workspace folder");
+		}
+	}
+
 	void ToggleTerminalPanel()
 	{
 		if(SessionManager.CurrentSession is not null)
