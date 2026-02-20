@@ -67,10 +67,11 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 		_volume = TextToSpeechFeature.DefaultVoiceVolume;
 		_pitch = TextToSpeechFeature.DefaultVoicePitch;
 		_rate = TextToSpeechFeature.DefaultVoiceRate;
+		_localeId = string.Empty;
 		UserAppSettings.VoiceVolume = _volume;
 		UserAppSettings.VoicePitch = _pitch;
 		UserAppSettings.VoiceRate = _rate;
-		UserAppSettings.VoiceLocale = string.Empty;
+		UserAppSettings.VoiceLocale = _localeId;
 	}
 
 	async Task TestVoice()
