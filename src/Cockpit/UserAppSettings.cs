@@ -63,25 +63,25 @@ public static class UserAppSettings
 
 	public static float VoiceVolume
 	{
-		get => Preferences.Default.Get("voiceVolume", TextToSpeechFeature.DefaultVoiceVolume);
-		set => Preferences.Default.Set("voiceVolume", value);
+		get => Preferences.Default.Get("VoiceVolume", TextToSpeechFeature.DefaultVoiceVolume);
+		set => Preferences.Default.Set("VoiceVolume", value);
 	}
 
 	public static float VoicePitch
 	{
-		get => Preferences.Default.Get("voicePitch", TextToSpeechFeature.DefaultVoicePitch);
-		set => Preferences.Default.Set("voicePitch", value);
+		get => Preferences.Default.Get("VoicePitch", TextToSpeechFeature.DefaultVoicePitch);
+		set => Preferences.Default.Set("VoicePitch", value);
 	}
 
 	public static float VoiceRate
 	{
-		get => Preferences.Default.Get("voiceRate", TextToSpeechFeature.DefaultVoiceRate);
-		set => Preferences.Default.Set("voiceRate", value);
+		get => Preferences.Default.Get("VoiceRate", TextToSpeechFeature.DefaultVoiceRate);
+		set => Preferences.Default.Set("VoiceRate", value);
 	}
 
 	public static string VoiceLocale
 	{
-		get => Preferences.Default.Get("voiceLocale", string.Empty);
-		set => Preferences.Default.Set("voiceLocale", value);
+		get => Preferences.Default.Get("VoiceLocale", string.Empty);
+		set => Preferences.Default.Set("VoiceLocale", value);
 	}
 }
