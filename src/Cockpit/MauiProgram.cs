@@ -38,7 +38,7 @@ public static class MauiProgram
 #endif
 
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
-		builder.Services.AddSingleton<TextToSpeechService>();
+		builder.Services.AddSingleton<TextToSpeechFeature>();
 
 		// Register application services
 		builder.Services.AddScoped<ThemeFeature>();

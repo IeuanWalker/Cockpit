@@ -3,7 +3,7 @@ using MauiTts = Microsoft.Maui.Media.TextToSpeech;
 
 namespace Cockpit.Features.TextToSpeech;
 
-public partial class TextToSpeechService
+public partial class TextToSpeechFeature
 {
 	public event Action? OnStateChanged;
 

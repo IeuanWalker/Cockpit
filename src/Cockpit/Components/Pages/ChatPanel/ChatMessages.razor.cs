@@ -7,7 +7,7 @@ namespace Cockpit.Components.Pages.ChatPanel;
 public partial class ChatMessages : ComponentBase, IDisposable
 {
 	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
-	[Inject] TextToSpeechService _ttsService { get; set; } = default!;
+	[Inject] TextToSpeechFeature _ttsService { get; set; } = default!;
 	[Inject] UIStateService _uiState { get; set; } = default!;
 
 	string? _previousSessionId;
