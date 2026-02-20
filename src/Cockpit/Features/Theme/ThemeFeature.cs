@@ -8,7 +8,6 @@ public class ThemeFeature
 	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<ThemeFeature> _logger;
 	bool _isInitialized = false;
-	bool _isSystemThemeListenerRegistered = false;
 
 	public event Action? OnThemeChanged;
 
@@ -26,44 +25,33 @@ public class ThemeFeature
 		AccentHoverColor = UserAppSettings.AccentHoverColor;
 	}
 
-	public async Task InitializeAsync()
+	public async Task Initialize()
 	{
 		if(_isInitialized)
 		{
 			return;
 		}
 
-		RegisterSystemThemeListener();
-		UpdateTitleBarTheme(CurrentTheme);
+		Application.Current?.RequestedThemeChanged += OnRequestedThemeChanged;
 
-		await ApplyThemeAsync();
-		await ApplyAccentColorAsync();
+		UpdateTitleBarTheme(CurrentTheme);
+		await ApplyTheme();
+		await ApplyAccentColor();
 
 		_isInitialized = true;
 	}
 
-	public async Task SetThemeAsync(ThemeEnum theme)
+	public async Task SetTheme(ThemeEnum theme)
 	{
 		CurrentTheme = theme;
 		UserAppSettings.Theme = theme;
+
 		UpdateTitleBarTheme(theme);
-		await ApplyThemeAsync();
+		await ApplyTheme();
+
 		OnThemeChanged?.Invoke();
 	}
-
-	public async Task SetAccentColorAsync(string color, string hoverColor)
-	{
-		AccentColor = color;
-		AccentHoverColor = hoverColor;
-
-		UserAppSettings.AccentColor = color;
-		UserAppSettings.AccentHoverColor = hoverColor;
-
-		await ApplyAccentColorAsync();
-		OnThemeChanged?.Invoke();
-	}
-
-	async Task ApplyThemeAsync()
+	async Task ApplyTheme()
 	{
 		if(GetEffectiveTheme().Equals(ThemeEnum.Light))
 		{
@@ -73,17 +61,33 @@ public class ThemeFeature
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
 		}
+
+		ThemeEnum GetEffectiveTheme()
+		{
+			if(!CurrentTheme.Equals(ThemeEnum.System))
+			{
+				return CurrentTheme;
+			}
+
+			AppTheme requestedTheme = Application.Current?.RequestedTheme ?? AppTheme.Dark;
+			return requestedTheme == AppTheme.Light ? ThemeEnum.Light : ThemeEnum.Dark;
+		}
 	}
 
-	void RegisterSystemThemeListener()
+	public async Task SetAccentColor(string color, string hoverColor)
 	{
-		if(_isSystemThemeListenerRegistered || Application.Current is null)
-		{
-			return;
-		}
+		AccentColor = color;
+		AccentHoverColor = hoverColor;
 
-		Application.Current.RequestedThemeChanged += OnRequestedThemeChanged;
-		_isSystemThemeListenerRegistered = true;
+		UserAppSettings.AccentColor = color;
+		UserAppSettings.AccentHoverColor = hoverColor;
+
+		await ApplyAccentColor();
+		OnThemeChanged?.Invoke();
+	}
+	async Task ApplyAccentColor()
+	{
+		await _jsRuntime.InvokeVoidAsync("cockpit.setAccentColor", AccentColor, AccentHoverColor);
 	}
 
 	async void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e)
@@ -96,7 +100,8 @@ public class ThemeFeature
 		try
 		{
 			UpdateTitleBarTheme(CurrentTheme);
-			await ApplyThemeForSystemThemeChangeAsync();
+			await ApplyTheme();
+
 			OnThemeChanged?.Invoke();
 		}
 		catch(Exception ex)
@@ -105,42 +110,10 @@ public class ThemeFeature
 		}
 	}
 
-	ThemeEnum GetEffectiveTheme()
-	{
-		if(!CurrentTheme.Equals(ThemeEnum.System))
-		{
-			return CurrentTheme;
-		}
-
-		AppTheme requestedTheme = Application.Current?.RequestedTheme ?? AppTheme.Dark;
-		return requestedTheme.Equals(AppTheme.Light) ? ThemeEnum.Light : ThemeEnum.Dark;
-	}
-
-	async Task ApplyThemeForSystemThemeChangeAsync()
-	{
-		if(Application.Current?.Windows?.FirstOrDefault()?.Page is MainPage mainPage)
-		{
-			string script = GetEffectiveTheme().Equals(ThemeEnum.Light)
-				? "window.cockpit?.addBodyClass?.('light-theme');"
-				: "window.cockpit?.removeBodyClass?.('light-theme');";
-			await mainPage.InvokeJavaScriptAsync(script);
-			return;
-		}
-
-		await ApplyThemeAsync();
-	}
-
-	async Task ApplyAccentColorAsync()
-	{
-		await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--accent-color", AccentColor);
-		await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--button-bg", AccentColor);
-		await _jsRuntime.InvokeVoidAsync("cockpit.setRootProperty", "--button-hover", AccentHoverColor);
-	}
-
 	static void UpdateTitleBarTheme(ThemeEnum theme)
 	{
 		App? app = Application.Current as App;
-		bool isLightTheme = theme.Equals(ThemeEnum.Light);
+		bool isLightTheme = theme == ThemeEnum.Light;
 
 		if(app is not null)
 		{
@@ -152,37 +125,21 @@ public class ThemeFeature
 				_ => AppTheme.Unspecified
 			};
 
-			if(theme.Equals(ThemeEnum.System))
+			if(theme == ThemeEnum.System)
 			{
-				isLightTheme = app.RequestedTheme.Equals(AppTheme.Light);
+				isLightTheme = app.RequestedTheme == AppTheme.Light;
 			}
 		}
 
 		if(app?.Windows[0]?.TitleBar is TitleBar titleBar)
 		{
-			if(isLightTheme)
-			{
-				titleBar.BackgroundColor = Color.FromArgb("#F8F8F8");
-				titleBar.ForegroundColor = Color.FromArgb("#3B3B3B");
+			titleBar.BackgroundColor = isLightTheme ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
+			titleBar.ForegroundColor = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
 
-				// Update button text color
-				if(titleBar.TrailingContent is HorizontalStackLayout stack &&
-					stack.Children.FirstOrDefault() is Button btn)
-				{
-					btn.TextColor = Color.FromArgb("#3B3B3B");
-				}
-			}
-			else
+			if(titleBar.TrailingContent is HorizontalStackLayout stack &&
+				stack.Children.FirstOrDefault() is Button btn)
 			{
-				titleBar.BackgroundColor = Color.FromArgb("#181818");
-				titleBar.ForegroundColor = Color.FromArgb("#CCCCCC");
-
-				// Update button text color
-				if(titleBar.TrailingContent is HorizontalStackLayout stack &&
-					stack.Children.FirstOrDefault() is Button btn)
-				{
-					btn.TextColor = Color.FromArgb("#CCCCCC");
-				}
+				btn.TextColor = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
 			}
 		}
 	}

@@ -33,12 +33,12 @@ public partial class AppearanceSettings : ComponentBase, IDisposable
 
 	async Task SetTheme(ThemeEnum theme)
 	{
-		await _themeService.SetThemeAsync(theme);
+		await _themeService.SetTheme(theme);
 	}
 
 	async Task SetAccentColor(string color, string hoverColor)
 	{
-		await _themeService.SetAccentColorAsync(color, hoverColor);
+		await _themeService.SetAccentColor(color, hoverColor);
 	}
 
 

@@ -17,7 +17,7 @@ public partial class MainLayout : IDisposable
 
 	protected override async Task OnInitializedAsync()
 	{
-		await ThemeService.InitializeAsync();
+		await ThemeService.Initialize();
 		UIState.OnStateChanged += OnStateChanged;
 		SessionManager.OnStateChanged += OnStateChanged;
 		staticUIState = UIState; // Store static reference for title bar access
