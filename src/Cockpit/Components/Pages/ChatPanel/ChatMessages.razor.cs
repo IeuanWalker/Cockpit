@@ -9,7 +9,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 {
 	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
 	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
-	[Inject] TextToSpeechFeature _textToSpeechService { get; set; } = default!;
+	[Inject] TextToSpeechFeature _textToSpeechFeature { get; set; } = default!;
 	[Inject] UIStateService _uiState { get; set; } = default!;
 
 	DotNetObjectReference<ChatMessages>? _dotNetRef;
@@ -20,7 +20,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	protected override void OnInitialized()
 	{
 		_sessionManager.OnStateChanged += OnStateChanged;
-		_textToSpeechService.OnStateChanged += OnStateChanged;
+		_textToSpeechFeature.OnStateChanged += OnStateChanged;
 		_uiState.OnStateChanged += OnStateChanged;
 		_previousSessionId = _sessionManager.CurrentSession?.Id;
 	}
@@ -56,7 +56,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 			if(currentSessionId != _previousSessionId)
 			{
 				_previousSessionId = currentSessionId;
-				await _textToSpeechService.StopAsync();
+				await _textToSpeechFeature.StopAsync();
 			}
 
 			StateHasChanged();
@@ -66,10 +66,10 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	public async ValueTask DisposeAsync()
 	{
 		_sessionManager.OnStateChanged -= OnStateChanged;
-		_textToSpeechService.OnStateChanged -= OnStateChanged;
+		_textToSpeechFeature.OnStateChanged -= OnStateChanged;
 		_uiState.OnStateChanged -= OnStateChanged;
 
-		await _textToSpeechService.StopAsync();
+		await _textToSpeechFeature.StopAsync();
 
 		try
 		{
