@@ -1,10 +1,13 @@
 using System.Text.RegularExpressions;
-using Microsoft.Maui.Media;
 
 namespace Cockpit.Features.TextToSpeech;
 
 public partial class TextToSpeechFeature
 {
+	public const float DefaultVoiceVolume = 1.0f;
+	public const float DefaultVoicePitch = 1.0f;
+	public const float DefaultVoiceRate = 0.2f;
+
 	public event Action? OnStateChanged;
 
 	public string? ActiveMessageId { get; private set; }

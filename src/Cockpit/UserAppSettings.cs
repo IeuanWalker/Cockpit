@@ -1,4 +1,5 @@
-﻿using Cockpit.Features.Theme;
+﻿using Cockpit.Features.TextToSpeech;
+using Cockpit.Features.Theme;
 
 namespace Cockpit;
 
@@ -62,19 +63,19 @@ public static class UserAppSettings
 
 	public static float VoiceVolume
 	{
-		get => Preferences.Default.Get("voiceVolume", 1.0f);
+		get => Preferences.Default.Get("voiceVolume", TextToSpeechFeature.DefaultVoiceVolume);
 		set => Preferences.Default.Set("voiceVolume", value);
 	}
 
 	public static float VoicePitch
 	{
-		get => Preferences.Default.Get("voicePitch", 1.0f);
+		get => Preferences.Default.Get("voicePitch", TextToSpeechFeature.DefaultVoicePitch);
 		set => Preferences.Default.Set("voicePitch", value);
 	}
 
 	public static float VoiceRate
 	{
-		get => Preferences.Default.Get("voiceRate", 0.2f);
+		get => Preferences.Default.Get("voiceRate", TextToSpeechFeature.DefaultVoiceRate);
 		set => Preferences.Default.Set("voiceRate", value);
 	}
 

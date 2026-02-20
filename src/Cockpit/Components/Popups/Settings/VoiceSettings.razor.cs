@@ -65,14 +65,13 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 
 	void ResetToDefaults()
 	{
-		_volume = UserAppSettings.DefaultVoiceVolume;
-		_pitch = UserAppSettings.DefaultVoicePitch;
-		_rate = UserAppSettings.DefaultVoiceRate;
-		_localeId = UserAppSettings.DefaultVoiceLocale;
+		_volume = TextToSpeechFeature.DefaultVoiceVolume;
+		_pitch = TextToSpeechFeature.DefaultVoicePitch;
+		_rate = TextToSpeechFeature.DefaultVoiceRate;
 		UserAppSettings.VoiceVolume = _volume;
 		UserAppSettings.VoicePitch = _pitch;
 		UserAppSettings.VoiceRate = _rate;
-		UserAppSettings.VoiceLocale = _localeId;
+		UserAppSettings.VoiceLocale = string.Empty;
 	}
 
 	async Task TestVoice()
