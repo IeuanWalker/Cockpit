@@ -400,7 +400,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				{
 					Content = content,
 					IsUser = true,
-					Timestamp = DateTime.Now,
+					Timestamp = DateTime.UtcNow,
 					Type = MessageTypeEnum.Text,
 					IsComplete = false,
 					IsPending = agentWasBusy

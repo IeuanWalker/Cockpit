@@ -64,7 +64,7 @@ public sealed class ConnectionFeature : IDisposable
 		OnStatusChanged?.Invoke();
 
 		LastResponse = await _clientService.PingAsync();
-		LastChecked = DateTime.Now;
+		LastChecked = DateTime.UtcNow;
 		Status = LastResponse is not null ? ConnectionHealthStatus.Connected : ConnectionHealthStatus.Disconnected;
 
 		_history.Add(new ConnectionCheckRecord(Status, LastChecked.Value, GetResponseJson()));
