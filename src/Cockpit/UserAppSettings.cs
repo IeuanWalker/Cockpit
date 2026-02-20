@@ -56,7 +56,7 @@ public static class UserAppSettings
 
 	public static bool TextToSpeechEnabled
 	{
-		get => Preferences.Default.Get("TextToSpeechEnabled", true);
+		get => Preferences.Default.Get("TextToSpeechEnabled", false);
 		set => Preferences.Default.Set("TextToSpeechEnabled", value);
 	}
 }
