@@ -175,12 +175,6 @@ public partial class TextToSpeechFeature
 	[GeneratedRegex(@"^>\s+", RegexOptions.Multiline)]
 	private static partial Regex BlockquoteRegex();
 
-	[GeneratedRegex(@"^[\-\*\+]\s+", RegexOptions.Multiline)]
-	private static partial Regex UnorderedListRegex();
-
-	[GeneratedRegex(@"^\d+\.\s+", RegexOptions.Multiline)]
-	private static partial Regex OrderedListRegex();
-
 	[GeneratedRegex(@"\n{3,}")]
 	private static partial Regex ExcessNewlinesRegex();
 }
