@@ -35,7 +35,7 @@
                     </div>
                     <div>
                         <div class="font-medium text-vscode-text mb-0.5">Next check</div>
-                        <div>@(_feature.LastChecked?.AddSeconds(20).ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</div>
+                        <div>@(_feature.LastChecked?.AddSeconds(ConnectionFeature.PollIntervalSeconds).ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</div>
                     </div>
                 </div>
                 <div class="max-h-[50vh] overflow-y-auto scrollbar-thin">
