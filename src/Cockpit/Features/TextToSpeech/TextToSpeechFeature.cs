@@ -12,17 +12,17 @@ public partial class TextToSpeechFeature
 
 	CancellationTokenSource? _cts;
 
-	public async Task SpeakAsync(string messageId, string text)
+	public async Task Speak(string messageId, string text)
 	{
 		// If same message is speaking, stop it
 		if(ActiveMessageId == messageId)
 		{
-			await StopAsync();
+			await Stop();
 			return;
 		}
 
 		// Stop any current speech first
-		await StopAsync();
+		await Stop();
 
 		ActiveMessageId = messageId;
 		OnStateChanged?.Invoke();
@@ -54,9 +54,9 @@ public partial class TextToSpeechFeature
 		}
 	}
 
-	public async Task StopAsync()
+	public async Task Stop()
 	{
-		var cts = _cts;
+		CancellationTokenSource? cts = _cts;
 		_cts = null;
 		if(cts is not null)
 		{

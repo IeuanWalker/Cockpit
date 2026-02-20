@@ -35,7 +35,7 @@ public partial class AgentTextToSpeechButton
 			if(currentSessionId != _previousSessionId)
 			{
 				_previousSessionId = currentSessionId;
-				await _textToSpeachFeature.StopAsync();
+				await _textToSpeachFeature.Stop();
 			}
 
 			StateHasChanged();
@@ -44,7 +44,7 @@ public partial class AgentTextToSpeechButton
 
 	async Task OnClick()
 	{
-		await _textToSpeachFeature.SpeakAsync(MessageId, Content);
+		await _textToSpeachFeature.Speak(MessageId, Content);
 	}
 
 	public void Dispose()

@@ -12,6 +12,6 @@ public partial class TextToSpeechButton
 
 	async Task OnClick()
 	{
-		await _textToSpeechFeature.SpeakAsync(MessageId, Content);
+		await _textToSpeechFeature.Speak(MessageId, Content);
 	}
 }

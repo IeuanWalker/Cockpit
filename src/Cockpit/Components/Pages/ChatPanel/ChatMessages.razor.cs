@@ -56,7 +56,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 			if(currentSessionId != _previousSessionId)
 			{
 				_previousSessionId = currentSessionId;
-				await _textToSpeechFeature.StopAsync();
+				await _textToSpeechFeature.Stop();
 			}
 
 			StateHasChanged();
@@ -69,7 +69,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		_textToSpeechFeature.OnStateChanged -= OnStateChanged;
 		_uiState.OnStateChanged -= OnStateChanged;
 
-		await _textToSpeechFeature.StopAsync();
+		await _textToSpeechFeature.Stop();
 
 		try
 		{

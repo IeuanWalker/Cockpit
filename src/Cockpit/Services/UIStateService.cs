@@ -146,7 +146,10 @@ public class UIStateService
 	{
 		TextToSpeechEnabled = value;
 		if(!value)
-			_ = _textToSpeechFeature.StopAsync();
+		{
+			_ = _textToSpeechFeature.Stop();
+		}
+
 		OnStateChanged?.Invoke();
 	}
 
