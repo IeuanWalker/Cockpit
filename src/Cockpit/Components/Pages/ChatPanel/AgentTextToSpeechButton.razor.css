@@ -1,0 +1,31 @@
+.tts-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.25rem;
+    border: none;
+    background: transparent;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s, color 0.15s;
+    padding: 0;
+}
+
+.tts-btn:hover {
+    opacity: 1;
+    color: var(--text-color);
+}
+
+.tts-btn.tts-btn-active {
+    opacity: 1;
+    color: #e53e3e;
+    animation: tts-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes tts-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}

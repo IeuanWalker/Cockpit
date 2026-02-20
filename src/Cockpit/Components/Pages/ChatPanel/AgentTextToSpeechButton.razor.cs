@@ -17,7 +17,13 @@ public partial class AgentTextToSpeechButton
 	protected override void OnInitialized()
 	{
 		_sessionManager.OnStateChanged += OnStateChanged;
+		_textToSpeachFeature.OnStateChanged += OnTtsStateChanged;
 		_previousSessionId = _sessionManager.CurrentSession?.Id;
+	}
+
+	void OnTtsStateChanged()
+	{
+		_ = InvokeAsync(StateHasChanged);
 	}
 
 	void OnStateChanged()
@@ -43,6 +49,7 @@ public partial class AgentTextToSpeechButton
 
 	public void Dispose()
 	{
-		_textToSpeachFeature.OnStateChanged -= OnStateChanged;
+		_sessionManager.OnStateChanged -= OnStateChanged;
+		_textToSpeachFeature.OnStateChanged -= OnTtsStateChanged;
 	}
 }

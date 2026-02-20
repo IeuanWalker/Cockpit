@@ -49,13 +49,13 @@
                                 <div class="bg-vscode-sidebar border border-vscode-border rounded-lg px-4 py-3">
                                     <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
                                 </div>
+                                @if(_uiState.TextToSpeechEnabled && !message.IsStreaming)
+                                {
+                                    <div class="message-actions mt-1">
+                                        <AgentTextToSpeechButton MessageId="@message.Id" Content="@message.Content" />
+                                    </div>
+                                }
                             </div>
-                            @if(_uiState.TextToSpeechEnabled && !message.IsStreaming)
-                            {
-                                <div class="message-actions mt-1">
-                                    <AgentTextToSpeechButton MessageId="@message.Id" Content="@message.Content" />
-                                </div>
-                            }
                         </div>
                     </div>
                 }

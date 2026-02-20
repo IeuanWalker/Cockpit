@@ -56,11 +56,12 @@ public partial class TextToSpeechFeature
 
 	public async Task StopAsync()
 	{
-		if(_cts is not null)
+		var cts = _cts;
+		_cts = null;
+		if(cts is not null)
 		{
-			await _cts.CancelAsync();
-			_cts.Dispose();
-			_cts = null;
+			await cts.CancelAsync();
+			cts.Dispose();
 		}
 
 		if(ActiveMessageId is not null)
