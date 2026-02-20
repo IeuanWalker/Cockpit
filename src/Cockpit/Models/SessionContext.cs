@@ -4,7 +4,6 @@ public class SessionContext
 {
 	public string CurrentDirectory { get; set; } = "/workspace/my-project";
 	public string CurrentBranch { get; set; } = "main";
-	public List<string> Branches { get; set; } = [];
 	public List<ContextFile> EditedFiles { get; set; } = [];
 	public List<string> AllowedCommands { get; set; } = [];
 	public List<string> SessionPermissionCommands { get; set; } = [];
@@ -13,15 +12,14 @@ public class SessionContext
 	public string McpServerUrl { get; set; } = "localhost:8080";
 	public bool McpServerConnected { get; set; } = true;
 
-	public static SessionContext CreateDefault(string? currentDirectory = null)
+	public static SessionContext CreateDefault(string? currentDirectory = null, string branch = "main")
 	{
 		return new SessionContext
 		{
 			CurrentDirectory = !string.IsNullOrWhiteSpace(currentDirectory)
 				? currentDirectory
 				: "/workspace/my-project",
-			CurrentBranch = "main",
-			Branches = ["main", "feature/new-ui", "bugfix/auth-issue"],
+			CurrentBranch = branch,
 			EditedFiles =
 			[
 				new ContextFile { Name = "MyComponent.tsx", Path = "src/components/MyComponent.tsx", Status = FileStatus.Modified },

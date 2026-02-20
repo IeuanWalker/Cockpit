@@ -62,18 +62,6 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 		session.Context ??= SessionContextModel.CreateDefault();
 	}
 
-	static void SetSessionContextDirectoryFromSessionPaths(ChatSession session)
-	{
-		if(!string.IsNullOrEmpty(session.WorkingDirectory))
-		{
-			session.Context.CurrentDirectory = session.WorkingDirectory;
-		}
-		else if(!string.IsNullOrEmpty(session.WorkspacePath))
-		{
-			session.Context.CurrentDirectory = session.WorkspacePath;
-		}
-	}
-
 	void HandleSessionEvent(string sessionId, SessionEvent evt)
 	{
 		ChatSession? session = Sessions.FirstOrDefault(s => s.Id == sessionId);
@@ -130,7 +118,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 							Status = SessionStatus.Idle,
 							Model = defaultModel,
 							ReasoningEffort = defaultModel.DefaultReasoningEffort,
-							Context = SessionContextModel.CreateDefault()
+							Context = SessionContextModel.CreateDefault(metadata.Context?.Cwd, metadata.Context?.Branch)
 						};
 
 						Sessions.Add(chatSession);
@@ -294,7 +282,6 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			session.IsResumed = true;
 			session.WorkspacePath = sdkSession.WorkspacePath;
 			EnsureSessionContext(session);
-			SetSessionContextDirectoryFromSessionPaths(session);
 			SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 			CurrentSession = session;
 
@@ -335,7 +322,6 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 	public void SetCurrentSession(ChatSession session)
 	{
 		EnsureSessionContext(session);
-		SetSessionContextDirectoryFromSessionPaths(session);
 		CurrentSession = session;
 
 		NotifyStateChanged();
