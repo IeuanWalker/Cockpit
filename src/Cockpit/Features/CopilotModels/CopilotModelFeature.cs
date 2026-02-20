@@ -2,7 +2,7 @@ using GitHub.Copilot.SDK;
 
 namespace Cockpit.Features.CopilotModels;
 
-public class CopilotModelFeature
+public sealed partial class CopilotModelFeature : IDisposable
 {
 	List<ModelInfo>? _models;
 	readonly SemaphoreSlim _fetchLock = new(1, 1);
@@ -65,5 +65,11 @@ public class CopilotModelFeature
 		}
 
 		throw new InvalidOperationException("No models available from the Copilot API.");
+	}
+
+	public void Dispose()
+	{
+		_fetchLock.Dispose();
+		GC.SuppressFinalize(this);
 	}
 }
