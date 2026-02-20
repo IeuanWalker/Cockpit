@@ -7,7 +7,7 @@ namespace Cockpit.Components.Popups;
 
 public partial class CreateSessionPopup : ComponentBase, IDisposable
 {
-	[Inject] SessionFeature SessionManager { get; set; } = default!;
+	[Inject] SessionFeature _sessionFeature { get; set; } = default!;
 
 	bool _isOpen = false;
 	string _selectedPath = string.Empty;
@@ -94,7 +94,7 @@ public partial class CreateSessionPopup : ComponentBase, IDisposable
 
 		try
 		{
-			await SessionManager.CreateNewSessionAsync(_selectedPath);
+			await _sessionFeature.CreateNewSessionAsync(_selectedPath);
 		}
 		catch(Exception ex)
 		{
