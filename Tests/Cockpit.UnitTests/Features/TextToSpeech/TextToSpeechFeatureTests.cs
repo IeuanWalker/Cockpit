@@ -27,11 +27,11 @@ public class TextToSpeechFeatureTests
 	[InlineData("[link text](http://example.com)", "link text")]
 	[InlineData("![alt text](http://example.com/img.png)", "")]
 	[InlineData("> blockquote text", "blockquote text")]
-	[InlineData("- unordered item", "unordered item")]
-	[InlineData("* unordered item", "unordered item")]
-	[InlineData("+ unordered item", "unordered item")]
-	[InlineData("1. ordered item", "ordered item")]
-	[InlineData("42. ordered item", "ordered item")]
+	[InlineData("- unordered item", "- unordered item")]
+	[InlineData("* unordered item", "* unordered item")]
+	[InlineData("+ unordered item", "+ unordered item")]
+	[InlineData("1. ordered item", "1. ordered item")]
+	[InlineData("42. ordered item", "42. ordered item")]
 	public void StripMarkdown_ReturnsExpected(string input, string expected)
 	{
 		string result = TextToSpeechFeature.StripMarkdown(input);

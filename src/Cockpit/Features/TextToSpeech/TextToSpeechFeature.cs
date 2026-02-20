@@ -146,8 +146,6 @@ public partial class TextToSpeechFeature
 		text = LinkRegex().Replace(text, "$1");
 		text = HorizontalRuleRegex().Replace(text, string.Empty);
 		text = BlockquoteRegex().Replace(text, string.Empty);
-		text = UnorderedListRegex().Replace(text, string.Empty);
-		text = OrderedListRegex().Replace(text, string.Empty);
 		text = ExcessNewlinesRegex().Replace(text, "\n\n");
 
 		return text.Trim();
