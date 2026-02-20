@@ -142,8 +142,8 @@ public partial class TextToSpeechFeature
 		text = InlineCodeRegex().Replace(text, "$1");
 		text = HeadingRegex().Replace(text, string.Empty);
 		text = BoldItalicRegex().Replace(text, "$1$2$3$4$5$6");
-		text = LinkRegex().Replace(text, "$1");
 		text = ImageRegex().Replace(text, string.Empty);
+		text = LinkRegex().Replace(text, "$1");
 		text = HorizontalRuleRegex().Replace(text, string.Empty);
 		text = BlockquoteRegex().Replace(text, string.Empty);
 		text = UnorderedListRegex().Replace(text, string.Empty);
