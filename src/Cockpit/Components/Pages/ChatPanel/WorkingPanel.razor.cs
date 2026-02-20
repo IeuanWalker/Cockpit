@@ -161,6 +161,12 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 		return $"{running} running, {complete} complete";
 	}
 
+	async Task ScrollToBottomAndResume()
+	{
+		_isUserScrolledUpFromWorking = false;
+		await ScrollToBottom();
+	}
+
 	async Task StopSession()
 	{
 		await SessionManager.AbortCurrentSessionAsync();

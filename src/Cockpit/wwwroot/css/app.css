@@ -155,6 +155,30 @@ body,
         display: block;
     }
 
+.scroll-to-bottom-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 16px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--sidebar-color);
+    color: var(--secondary-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    transition: background-color 0.15s, color 0.15s;
+    z-index: 10;
+}
+
+    .scroll-to-bottom-btn:hover {
+        background: var(--hover-color);
+        color: var(--text-color);
+    }
+
 .settings-overlay {
     display: none;
     position: fixed;

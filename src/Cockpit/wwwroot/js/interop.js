@@ -68,22 +68,52 @@ window.cockpit = {
         const element = document.getElementById(elementId);
         if (!element) return;
 
-        // Remove existing listener if any
+        // Remove existing listeners if any
         if (element._smartScrollHandler) {
             element.removeEventListener('scroll', element._smartScrollHandler);
         }
+        if (element._smartScrollResizeObserver) {
+            element._smartScrollResizeObserver.disconnect();
+        }
 
-        element._smartScrollHandler = function () {
+        const checkState = function (fromUserScroll) {
             const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
-
-            // Only notify if scroll state changed
             if (element._wasNearBottom !== isNearBottom) {
+                // Content growth (ResizeObserver/MutationObserver) should never interrupt autoscroll.
+                // If content pushed us away from bottom, scroll back down to maintain the anchor.
+                if (!isNearBottom && !fromUserScroll) {
+                    element.scrollTop = element.scrollHeight;
+                    return;
+                }
                 element._wasNearBottom = isNearBottom;
                 dotnetHelper.invokeMethodAsync(methodName, isNearBottom);
             }
         };
 
+        element._smartScrollHandler = () => checkState(true);
         element.addEventListener('scroll', element._smartScrollHandler);
+
+        // Also recheck when content inside grows (tool rows expanding, new messages)
+        element._smartScrollResizeObserver = new ResizeObserver(() => checkState(false));
+        // Observe all direct children so any expansion triggers a recheck
+        const observeChildren = () => {
+            for (const child of element.children) {
+                element._smartScrollResizeObserver.observe(child);
+            }
+        };
+        observeChildren();
+
+        // Watch for new children AND text content changes (streaming tokens into existing nodes)
+        element._smartScrollMutationObserver = new MutationObserver(() => {
+            observeChildren();
+            // If already pinned to bottom, scroll instantly without waiting for ResizeObserver
+            if (element._wasNearBottom) {
+                element.scrollTop = element.scrollHeight;
+            } else {
+                checkState(false);
+            }
+        });
+        element._smartScrollMutationObserver.observe(element, { childList: true, subtree: true, characterData: true });
 
         // Initialize state
         const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
@@ -91,11 +121,20 @@ window.cockpit = {
     },
     cleanupSmartScroll: function (elementId) {
         const element = document.getElementById(elementId);
-        if (element && element._smartScrollHandler) {
+        if (!element) return;
+        if (element._smartScrollHandler) {
             element.removeEventListener('scroll', element._smartScrollHandler);
             delete element._smartScrollHandler;
-            delete element._wasNearBottom;
         }
+        if (element._smartScrollResizeObserver) {
+            element._smartScrollResizeObserver.disconnect();
+            delete element._smartScrollResizeObserver;
+        }
+        if (element._smartScrollMutationObserver) {
+            element._smartScrollMutationObserver.disconnect();
+            delete element._smartScrollMutationObserver;
+        }
+        delete element._wasNearBottom;
     },
     highlightCodeBlocks: function (containerId) {
         if (!window.hljs) {
@@ -208,6 +247,36 @@ window.cockpit = {
         };
 
         handle.addEventListener('mousedown', startResize);
+    },
+    setupScrollAnchor: function (elementId) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+
+        // Clean up any existing observer
+        if (element._resizeObserver) {
+            element._resizeObserver.disconnect();
+        }
+
+        let lastHeight = element.clientHeight;
+
+        element._resizeObserver = new ResizeObserver(() => {
+            const newHeight = element.clientHeight;
+            const delta = lastHeight - newHeight; // positive = element shrank
+            if (delta > 0) {
+                // Panel expanded below us — push scroll down to keep same content visible
+                element.scrollTop += delta;
+            }
+            lastHeight = newHeight;
+        });
+
+        element._resizeObserver.observe(element);
+    },
+    cleanupScrollAnchor: function (elementId) {
+        const element = document.getElementById(elementId);
+        if (element && element._resizeObserver) {
+            element._resizeObserver.disconnect();
+            delete element._resizeObserver;
+        }
     }
 };
 

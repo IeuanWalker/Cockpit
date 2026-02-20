@@ -74,7 +74,10 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, NotifyStateChanged)
 			: null;
 
-		_processor.Process(session, evt, streamCallback);
+		lock(session.SessionEventLock)
+		{
+			_processor.Process(session, evt, streamCallback);
+		}
 
 		if(session == CurrentSession)
 		{
@@ -386,13 +389,42 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				throw new InvalidOperationException($"Session {CurrentSession.Id} not found in SDK sessions");
 			}
 
-			CurrentSession.Status = SessionStatus.Running;
+			ChatMessageModel? optimisticMessage = null;
+			lock(CurrentSession.SessionEventLock)
+			{
+				bool agentWasBusy = CurrentSession.ActiveWorkingGroup is not null;
+				CurrentSession.Status = SessionStatus.Running;
 
-			await sdkSession.SendAsync(new MessageOptions
+				// Optimistically add the message immediately so the UI doesn't feel frozen
+				optimisticMessage = new ChatMessageModel
+				{
+					Content = content,
+					IsUser = true,
+					Timestamp = DateTime.UtcNow,
+					Type = MessageTypeEnum.Text,
+					IsComplete = false,
+					IsPending = agentWasBusy
+				};
+				CurrentSession.Messages.Add(optimisticMessage);
+			}
+			NotifyStateChanged();
+
+			string sentMessageId = await sdkSession.SendAsync(new MessageOptions
 			{
 				Prompt = content,
 				Attachments = attachments
 			});
+
+			if(!string.IsNullOrWhiteSpace(sentMessageId) && optimisticMessage is not null)
+			{
+				lock(CurrentSession.SessionEventLock)
+				{
+					if(CurrentSession.Messages.Contains(optimisticMessage) && !optimisticMessage.IsComplete)
+					{
+						optimisticMessage.Id = sentMessageId;
+					}
+				}
+			}
 		}
 		catch(Exception ex)
 		{

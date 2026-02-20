@@ -7,3 +7,4 @@
 ### Features
 - Integrated terminal
 - Manage multiple sessions simultaneously
+- Clean chat history, without hiding anything
