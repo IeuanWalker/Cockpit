@@ -1,0 +1,35 @@
+@using Cockpit.Components.Controls
+@using Cockpit.Features.Connection
+
+<button class="connection-banner @_statusClass" @onclick="OpenPopup" title="Click for connection details">
+    <span class="connection-dot @(_feature.Status == ConnectionHealthStatus.Checking ? "pulse" : "")"></span>
+    <span class="connection-label">@_statusText</span>
+    @if(_feature.LastChecked is not null)
+    {
+        <span class="connection-time">@_feature.LastChecked.Value.ToString("HH:mm:ss")</span>
+    }
+</button>
+
+<!-- Details Popup -->
+<div class="settings-overlay @(_showPopup ? "active" : "")" @onclick="ClosePopup"></div>
+<div class="settings-popup @(_showPopup ? "active" : "")">
+    <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl w-[500px] max-w-[90vw]">
+        <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between">
+            <h3 class="text-vscode-title font-semibold flex items-center">
+                <span class="connection-dot @_statusClass" style="width:10px;height:10px;display:inline-block;border-radius:50%;flex-shrink:0;margin-right:8px"></span>
+                Connection Status
+            </h3>
+            <button @onclick="ClosePopup" class="p-1 hover:bg-vscode-hover rounded">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="max-h-[60vh] overflow-y-auto scrollbar-thin">
+            @if(_showPopup)
+            {
+                <CodeBlock Code="@_feature.GetResponseJson()" Language="json" />
+            }
+        </div>
+    </div>
+</div>

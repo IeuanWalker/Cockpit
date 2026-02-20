@@ -6,12 +6,12 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SessionIdleHandler
 {
-	internal static void Handle(ChatSession session, DateTimeOffset? eventTimestamp = null, Func<ChatMessageModel, string, Task>? onStreamSummary = null)
+	internal static void Handle(ChatSession session, DateTimeOffset? eventTimestamp = null, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
 	{
 		DateTime now = eventTimestamp?.LocalDateTime ?? DateTime.Now;
 		Debug.WriteLine("SessionIdleHandler - Finalizing activity group");
 
-		if(session.ActiveWorkingGroup is not null && session.ActiveWorkingGroup.Tools.Any())
+		if(session.ActiveWorkingGroup is not null && (session.ActiveWorkingGroup.Tools.Any() || groupStatus == GroupStatusEnum.Error))
 		{
 			ActivityGroupModel group = session.ActiveWorkingGroup;
 			Debug.WriteLine($"Finalizing thinking group. Has {group.Tools.Count()} tools");
@@ -50,7 +50,7 @@ static class SessionIdleHandler
 				}
 			}
 
-			group.Status = GroupStatusEnum.Complete;
+			group.Status = groupStatus;
 			group.EndTime = now;
 			group.IsExpanded = false;
 
@@ -93,8 +93,17 @@ static class SessionIdleHandler
 				hasSummary = true;
 			}
 
-			// Add "Session stopped" event to operation list AFTER extracting summary
-			if(hasStoppedTools)
+			// Add termination event to operation list AFTER extracting summary
+			if(groupStatus == GroupStatusEnum.Error)
+			{
+				group.AddEvent(new ThinkingEventModel
+				{
+					Type = ThinkingEventTypeEnum.Message,
+					Message = "Session aborted",
+					Timestamp = now
+				});
+			}
+			else if(hasStoppedTools)
 			{
 				group.AddEvent(new ThinkingEventModel
 				{
@@ -111,7 +120,7 @@ static class SessionIdleHandler
 				Type = MessageTypeEnum.ActivityGroup,
 				ActivityGroup = group,
 				Timestamp = group.EndTime ?? DateTime.Now,
-				Content = GenerateActivitySummary(group)
+				Content = group.Tools.Any() ? GenerateActivitySummary(group) : "Aborted"
 			};
 
 			if(!string.IsNullOrEmpty(group.InitialMessageId))

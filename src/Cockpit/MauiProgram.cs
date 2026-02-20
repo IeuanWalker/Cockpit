@@ -1,5 +1,6 @@
 using Blazor.Sonner.Extensions;
 using Blazor.Sonner.Services;
+using Cockpit.Features.Connection;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.Terminal;
@@ -47,6 +48,7 @@ public static class MauiProgram
 
 		// Register Copilot SDK services
 		builder.Services.AddSingleton<CopilotClientService>();
+		builder.Services.AddSingleton<ConnectionFeature>();
 		builder.Services.AddSingleton<GlobalPermissionFeature>();
 		builder.Services.AddSingleton<SessionPermissionFeature>();
 		builder.Services.AddSingleton<SessionEventProcessor>();

@@ -25,8 +25,11 @@ static class ToolStartHandler
 				Status = GroupStatusEnum.Running,
 				IsExpanded = true
 			};
+		}
 
-			// Find the most recent assistant message AFTER the last user message (current turn only)
+		// Set InitialMessageId if not already set — find the last assistant message after the last user message
+		if(string.IsNullOrEmpty(session.ActiveWorkingGroup.InitialMessageId))
+		{
 			int lastUserIndex = -1;
 			for(int i = session.Messages.Count - 1; i >= 0; i--)
 			{

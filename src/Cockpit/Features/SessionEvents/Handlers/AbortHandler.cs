@@ -11,13 +11,6 @@ static class AbortHandler
 	{
 		logger.LogWarning("Session {SessionId} aborted: {Reason}", session.Id, evt.Data.Reason);
 
-		if(session.ActiveWorkingGroup is not null)
-		{
-			session.ActiveWorkingGroup.Status = GroupStatusEnum.Error;
-			session.ActiveWorkingGroup.EndTime = DateTime.Now;
-			session.ActiveWorkingGroup = null;
-		}
-
-		session.Status = SessionStatus.Idle;
+		SessionIdleHandler.Handle(session, DateTimeOffset.Now, null, GroupStatusEnum.Error);
 	}
 }

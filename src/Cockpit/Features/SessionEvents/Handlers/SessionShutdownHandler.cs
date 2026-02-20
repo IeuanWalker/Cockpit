@@ -1,4 +1,3 @@
-using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -12,13 +11,6 @@ static class SessionShutdownHandler
 		logger.LogInformation("Session {SessionId} shutdown — type: {ShutdownType}, requests: {Requests}, duration: {Duration}ms",
 			session.Id, evt.Data.ShutdownType, evt.Data.TotalPremiumRequests, evt.Data.TotalApiDurationMs);
 
-		if(session.ActiveWorkingGroup is not null)
-		{
-			session.ActiveWorkingGroup.Status = GroupStatusEnum.Complete;
-			session.ActiveWorkingGroup.EndTime = DateTime.Now;
-			session.ActiveWorkingGroup = null;
-		}
-
-		session.Status = SessionStatus.Idle;
+		SessionIdleHandler.Handle(session, DateTimeOffset.Now);
 	}
 }
