@@ -7,7 +7,7 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class AgentTextToSpeechButton : IDisposable
 {
-	[Inject] TextToSpeechFeature _textToSpeachFeature { get; set; } = default!;
+	[Inject] TextToSpeechFeature _textToSpeechFeature { get; set; } = default!;
 	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
 	[Inject] ToastService _toastService { get; set; } = default!;
 	[Parameter] public string MessageId { get; set; } = string.Empty;
@@ -19,7 +19,7 @@ public partial class AgentTextToSpeechButton : IDisposable
 	protected override void OnInitialized()
 	{
 		_sessionManager.OnStateChanged += OnStateChanged;
-		_textToSpeachFeature.OnStateChanged += OnTtsStateChanged;
+		_textToSpeechFeature.OnStateChanged += OnTtsStateChanged;
 		_previousSessionId = _sessionManager.CurrentSession?.Id;
 	}
 
@@ -39,7 +39,7 @@ public partial class AgentTextToSpeechButton : IDisposable
 				if(currentSessionId != _previousSessionId)
 				{
 					_previousSessionId = currentSessionId;
-					await _textToSpeachFeature.Stop();
+					await _textToSpeechFeature.Stop();
 				}
 			}
 			catch(Exception ex)
@@ -53,7 +53,7 @@ public partial class AgentTextToSpeechButton : IDisposable
 
 	async Task OnClick()
 	{
-		await _textToSpeachFeature.Speak(MessageId, Content);
+		await _textToSpeechFeature.Speak(MessageId, Content);
 	}
 
 	public void Dispose()
@@ -67,7 +67,7 @@ public partial class AgentTextToSpeechButton : IDisposable
 		if(disposing)
 		{
 			_sessionManager.OnStateChanged -= OnStateChanged;
-			_textToSpeachFeature.OnStateChanged -= OnTtsStateChanged;
+			_textToSpeechFeature.OnStateChanged -= OnTtsStateChanged;
 		}
 	}
 }

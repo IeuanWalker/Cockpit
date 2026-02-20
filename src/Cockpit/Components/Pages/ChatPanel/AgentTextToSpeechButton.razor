@@ -1,8 +1,8 @@
-<button class="tts-btn @(_textToSpeachFeature.ActiveMessageId == MessageId ? "tts-btn-active" : "")"
-        title="@(_textToSpeachFeature.ActiveMessageId == MessageId ? "Stop speaking" : "Read aloud")"
+<button class="tts-btn @(_textToSpeechFeature.ActiveMessageId == MessageId ? "tts-btn-active" : "")"
+        title="@(_textToSpeechFeature.ActiveMessageId == MessageId ? "Stop speaking" : "Read aloud")"
         @onclick="OnClick"
         disabled="@Disabled">
-    @if(_textToSpeachFeature.ActiveMessageId == MessageId)
+    @if(_textToSpeechFeature.ActiveMessageId == MessageId)
     {
         <!-- Speaking / stop icon -->
         <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
