@@ -28,7 +28,7 @@ public sealed class ConnectionFeature : IDisposable
 
 	readonly List<ConnectionCheckRecord> _history = [];
 
-	const int PollIntervalSeconds = 20;
+	public const int PollIntervalSeconds = 20;
 
 	public ConnectionFeature(CopilotClientService clientService, ILogger<ConnectionFeature> logger)
 	{

@@ -86,9 +86,13 @@ static class AssistantMessageHandler
 			// Insert before any pending user messages so the summary appears before the next queued message
 			int pendingIdx = session.Messages.FindIndex(m => m.IsUser && m.IsPending);
 			if(pendingIdx >= 0)
+			{
 				session.Messages.Insert(pendingIdx, message);
+			}
 			else
+			{
 				session.Messages.Add(message);
+			}
 		}
 	}
 }
