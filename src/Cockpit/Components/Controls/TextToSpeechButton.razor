@@ -1,11 +1,8 @@
-@implements IDisposable
-@inject Cockpit.Features.TextToSpeech.TextToSpeechFeature TtsService
-
-<button class="tts-btn @(TtsService.ActiveMessageId == MessageId ? "tts-btn-active" : "")"
-        title="@(TtsService.ActiveMessageId == MessageId ? "Stop speaking" : "Read aloud")"
+<button class="tts-btn @(_textToSpeechFeature.ActiveMessageId == MessageId ? "tts-btn-active" : "")"
+        title="@(_textToSpeechFeature.ActiveMessageId == MessageId ? "Stop speaking" : "Read aloud")"
         @onclick="OnClick"
         disabled="@Disabled">
-    @if(TtsService.ActiveMessageId == MessageId)
+    @if(_textToSpeechFeature.ActiveMessageId == MessageId)
     {
         <!-- Speaking / stop icon -->
         <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,19 +19,3 @@
         </svg>
     }
 </button>
-
-@code {
-    [Parameter] public string MessageId { get; set; } = string.Empty;
-    [Parameter] public string Content { get; set; } = string.Empty;
-    [Parameter] public bool Disabled { get; set; }
-
-    async Task OnClick()
-    {
-        await TtsService.SpeakAsync(MessageId, Content);
-    }
-
-    public void Dispose()
-    {
-        // No subscriptions needed - parent (ChatMessages) drives re-renders via TTS state changes
-    }
-}
