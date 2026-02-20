@@ -1,3 +1,4 @@
+using Blazor.Sonner.Services;
 using Cockpit.Features.TextToSpeech;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
@@ -11,6 +12,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
 	[Inject] TextToSpeechFeature _textToSpeechFeature { get; set; } = default!;
 	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Inject] ToastService _toastService { get; set; } = default!;
 
 	DotNetObjectReference<ChatMessages>? _dotNetRef;
 	bool _isScrolledUp = false;
@@ -52,11 +54,18 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	{
 		_ = InvokeAsync(async () =>
 		{
-			string? currentSessionId = _sessionManager.CurrentSession?.Id;
-			if(currentSessionId != _previousSessionId)
+			try
 			{
-				_previousSessionId = currentSessionId;
-				await _textToSpeechFeature.Stop();
+				string? currentSessionId = _sessionManager.CurrentSession?.Id;
+				if(currentSessionId != _previousSessionId)
+				{
+					_previousSessionId = currentSessionId;
+					await _textToSpeechFeature.Stop();
+				}
+			}
+			catch(Exception ex)
+			{
+				_toastService.Error("Text-to-Speech Error", opts => opts.Description = ex.Message);
 			}
 
 			StateHasChanged();

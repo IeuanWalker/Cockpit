@@ -11,25 +11,34 @@ public partial class TextToSpeechFeature
 	public bool IsSpeaking => ActiveMessageId is not null;
 
 	CancellationTokenSource? _cts;
+	readonly SemaphoreSlim _lock = new(1, 1);
 
 	public async Task Speak(string messageId, string text)
 	{
-		// If same message is speaking, stop it
-		if(ActiveMessageId == messageId)
+		await _lock.WaitAsync();
+		try
 		{
-			await Stop();
-			return;
+			// If same message is speaking, stop it
+			if(ActiveMessageId == messageId)
+			{
+				await StopCore();
+				return;
+			}
+
+			// Stop any current speech first
+			await StopCore();
+
+			ActiveMessageId = messageId;
+			OnStateChanged?.Invoke();
+
+			_cts = new CancellationTokenSource();
+		}
+		finally
+		{
+			_lock.Release();
 		}
 
-		// Stop any current speech first
-		await Stop();
-
-		ActiveMessageId = messageId;
-		OnStateChanged?.Invoke();
-
-		_cts = new CancellationTokenSource();
 		CancellationToken token = _cts.Token;
-
 		string plainText = StripMarkdown(text);
 
 		try
@@ -46,15 +55,36 @@ public partial class TextToSpeechFeature
 		}
 		finally
 		{
-			if(ActiveMessageId == messageId)
+			await _lock.WaitAsync();
+			try
 			{
-				ActiveMessageId = null;
-				OnStateChanged?.Invoke();
+				if(ActiveMessageId == messageId)
+				{
+					ActiveMessageId = null;
+					OnStateChanged?.Invoke();
+				}
+			}
+			finally
+			{
+				_lock.Release();
 			}
 		}
 	}
 
 	public async Task Stop()
+	{
+		await _lock.WaitAsync();
+		try
+		{
+			await StopCore();
+		}
+		finally
+		{
+			_lock.Release();
+		}
+	}
+
+	async Task StopCore()
 	{
 		CancellationTokenSource? cts = _cts;
 		_cts = null;

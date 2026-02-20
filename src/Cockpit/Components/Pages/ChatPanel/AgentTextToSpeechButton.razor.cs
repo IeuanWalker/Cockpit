@@ -1,13 +1,15 @@
+using Blazor.Sonner.Services;
 using Cockpit.Features.TextToSpeech;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ChatPanel;
 
-public partial class AgentTextToSpeechButton
+public partial class AgentTextToSpeechButton : IDisposable
 {
 	[Inject] TextToSpeechFeature _textToSpeachFeature { get; set; } = default!;
 	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] ToastService _toastService { get; set; } = default!;
 	[Parameter] public string MessageId { get; set; } = string.Empty;
 	[Parameter] public string Content { get; set; } = string.Empty;
 	[Parameter] public bool Disabled { get; set; }
@@ -30,12 +32,19 @@ public partial class AgentTextToSpeechButton
 	{
 		_ = InvokeAsync(async () =>
 		{
-			// Stop TTS when the user switches to a different session
-			string? currentSessionId = _sessionManager.CurrentSession?.Id;
-			if(currentSessionId != _previousSessionId)
+			try
 			{
-				_previousSessionId = currentSessionId;
-				await _textToSpeachFeature.Stop();
+				// Stop TTS when the user switches to a different session
+				string? currentSessionId = _sessionManager.CurrentSession?.Id;
+				if(currentSessionId != _previousSessionId)
+				{
+					_previousSessionId = currentSessionId;
+					await _textToSpeachFeature.Stop();
+				}
+			}
+			catch(Exception ex)
+			{
+				_toastService.Error("Text-to-Speech Error", opts => opts.Description = ex.Message);
 			}
 
 			StateHasChanged();
@@ -49,7 +58,16 @@ public partial class AgentTextToSpeechButton
 
 	public void Dispose()
 	{
-		_sessionManager.OnStateChanged -= OnStateChanged;
-		_textToSpeachFeature.OnStateChanged -= OnTtsStateChanged;
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	protected virtual void Dispose(bool disposing)
+	{
+		if(disposing)
+		{
+			_sessionManager.OnStateChanged -= OnStateChanged;
+			_textToSpeachFeature.OnStateChanged -= OnTtsStateChanged;
+		}
 	}
 }
