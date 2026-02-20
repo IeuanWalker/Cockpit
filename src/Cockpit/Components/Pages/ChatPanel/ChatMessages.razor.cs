@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ChatPanel;
 
-public partial class ChatMessages : ComponentBase, IDisposable
+public partial class ChatMessages : ComponentBase, IAsyncDisposable
 {
 	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
 	[Inject] TextToSpeechFeature _ttsService { get; set; } = default!;
@@ -35,19 +35,12 @@ public partial class ChatMessages : ComponentBase, IDisposable
 		});
 	}
 
-	public void Dispose()
+	public async ValueTask DisposeAsync()
 	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
-	}
+		_sessionManager.OnStateChanged -= OnStateChanged;
+		_ttsService.OnStateChanged -= OnStateChanged;
+		_uiState.OnStateChanged -= OnStateChanged;
 
-	protected virtual void Dispose(bool disposing)
-	{
-		if(disposing)
-		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
-			_ttsService.OnStateChanged -= OnStateChanged;
-			_uiState.OnStateChanged -= OnStateChanged;
-		}
+		await _ttsService.StopAsync();
 	}
 }
