@@ -145,7 +145,7 @@ public class ThemeFeature
 			}
 		}
 
-		if(app?.Windows[0]?.TitleBar is TitleBar titleBar)
+		if(app?.Windows.FirstOrDefault()?.TitleBar is TitleBar titleBar)
 		{
 			titleBar.BackgroundColor = isLightTheme ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
 			titleBar.ForegroundColor = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
