@@ -1,3 +1,5 @@
+using Blazor.Sonner.Services;
+using Cockpit.Features.TextToSpeech;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -8,13 +10,21 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 {
 	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
 	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
+	[Inject] TextToSpeechFeature _textToSpeechFeature { get; set; } = default!;
+	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Inject] ToastService _toastService { get; set; } = default!;
 
 	DotNetObjectReference<ChatMessages>? _dotNetRef;
 	bool _isScrolledUp = false;
 
+	string? _previousSessionId;
+
 	protected override void OnInitialized()
 	{
 		_sessionManager.OnStateChanged += OnStateChanged;
+		_textToSpeechFeature.OnStateChanged += OnStateChanged;
+		_uiState.OnStateChanged += OnStateChanged;
+		_previousSessionId = _sessionManager.CurrentSession?.Id;
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -42,12 +52,34 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 
 	void OnStateChanged()
 	{
-		InvokeAsync(StateHasChanged);
+		_ = InvokeAsync(async () =>
+		{
+			try
+			{
+				string? currentSessionId = _sessionManager.CurrentSession?.Id;
+				if(currentSessionId != _previousSessionId)
+				{
+					_previousSessionId = currentSessionId;
+					await _textToSpeechFeature.Stop();
+				}
+			}
+			catch(Exception ex)
+			{
+				_toastService.Error("Text-to-Speech Error", opts => opts.Description = ex.Message);
+			}
+
+			StateHasChanged();
+		});
 	}
 
 	public async ValueTask DisposeAsync()
 	{
 		_sessionManager.OnStateChanged -= OnStateChanged;
+		_textToSpeechFeature.OnStateChanged -= OnStateChanged;
+		_uiState.OnStateChanged -= OnStateChanged;
+
+		await _textToSpeechFeature.Stop();
+
 		try
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupScrollAnchor", "chatMessages");

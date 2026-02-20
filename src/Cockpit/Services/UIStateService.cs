@@ -1,9 +1,17 @@
 using Cockpit.Components.Popups.Settings;
+using Cockpit.Features.TextToSpeech;
 
 namespace Cockpit.Services;
 
 public class UIStateService
 {
+	readonly TextToSpeechFeature _textToSpeechFeature;
+
+	public UIStateService(TextToSpeechFeature textToSpeechFeature)
+	{
+		_textToSpeechFeature = textToSpeechFeature;
+	}
+
 	public event Action? OnStateChanged;
 
 	public bool LeftSidebarCollapsed { get; private set; } = false;
@@ -45,6 +53,17 @@ public class UIStateService
 		{
 			_sendOnEnter = value;
 			UserAppSettings.SendOnEnter = value;
+		}
+	}
+
+	bool _textToSpeechEnabled = UserAppSettings.TextToSpeechEnabled;
+	public bool TextToSpeechEnabled
+	{
+		get => _textToSpeechEnabled;
+		private set
+		{
+			_textToSpeechEnabled = value;
+			UserAppSettings.TextToSpeechEnabled = value;
 		}
 	}
 
@@ -120,6 +139,17 @@ public class UIStateService
 	public void SetEnterToSend(bool value)
 	{
 		SendOnEnter = value;
+		OnStateChanged?.Invoke();
+	}
+
+	public void SetTextToSpeechEnabled(bool value)
+	{
+		TextToSpeechEnabled = value;
+		if(!value)
+		{
+			_ = _textToSpeechFeature.Stop();
+		}
+
 		OnStateChanged?.Invoke();
 	}
 

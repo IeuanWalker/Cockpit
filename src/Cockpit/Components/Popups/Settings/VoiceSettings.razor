@@ -1,5 +1,94 @@
-﻿<div class="settings-section settings-section-empty">
+﻿<div class="settings-section">
     <h4 class="text-sm font-semibold text-vscode-title mb-3">Voice</h4>
+    <div class="space-y-2">
+        <button @onclick='() => _uiState.SetTextToSpeechEnabled(true)'
+                class="theme-btn w-full px-3 py-2 rounded flex items-center @(_uiState.TextToSpeechEnabled ? "active" : "")"
+                style="border: 1px solid var(--border-color); color: var(--text-color);">
+            <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m0 0l-3-3m3 3l3-3M9 12H3m18 0h-6" />
+            </svg>
+            <span class="text-sm">Enable text to speech</span>
+        </button>
+        <button @onclick='() => _uiState.SetTextToSpeechEnabled(false)'
+                class="theme-btn w-full px-3 py-2 rounded flex items-center @(!_uiState.TextToSpeechEnabled ? "active" : "")"
+                style="border: 1px solid var(--border-color); color: var(--text-color);">
+            <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            </svg>
+            <span class="text-sm">Disable text to speech</span>
+        </button>
+    </div>
+
+    @if (_uiState.TextToSpeechEnabled)
+    {
+        <div class="mt-4 space-y-4">
+            <div>
+                <label class="text-sm font-medium text-vscode-title block mb-1">
+                    Volume <span class="secondary-text">(@_volume.ToString("0.00"))</span>
+                </label>
+                <input type="range" min="0" max="1" step="0.05"
+                       value="@_volume"
+                       @oninput="OnVolumeChanged"
+                       class="w-full" />
+            </div>
+
+            <div>
+                <label class="text-sm font-medium text-vscode-title block mb-1">
+                    Pitch <span class="secondary-text">(@_pitch.ToString("0.00"))</span>
+                </label>
+                <input type="range" min="0" max="2" step="0.05"
+                       value="@_pitch"
+                       @oninput="OnPitchChanged"
+                       class="w-full" />
+            </div>
+
+            <div>
+                <label class="text-sm font-medium text-vscode-title block mb-1">
+                    Rate <span class="secondary-text">(@_rate.ToString("0.00"))</span>
+                </label>
+                <input type="range" min="0.1" max="2" step="0.05"
+                       value="@_rate"
+                       @oninput="OnRateChanged"
+                       class="w-full" />
+            </div>
+
+            @if (_locales.Any())
+            {
+                <div>
+                    <label class="text-sm font-medium text-vscode-title block mb-1">Locale</label>
+                    <select value="@_localeId"
+                            @onchange="OnLocaleChanged"
+                            class="w-full px-3 py-2 rounded text-sm"
+                            style="border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                        <option value="">Default</option>
+                        @foreach (var locale in _locales.OrderBy(l => l.Name))
+                        {
+                            <option value="@locale.Id">@locale.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <div class="flex gap-2">
+                <button @onclick="TestVoice"
+                        class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center"
+                        style="border: 1px solid var(--border-color); color: var(--text-color);">
+                    <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-sm">Test voice</span>
+                </button>
+                <button @onclick="ResetToDefaults"
+                        class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center"
+                        style="border: 1px solid var(--border-color); color: var(--text-color);">
+                    <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span class="text-sm">Reset defaults</span>
+                </button>
+            </div>
+        </div>
+    }
 </div>
-
-

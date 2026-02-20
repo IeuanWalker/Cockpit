@@ -61,3 +61,10 @@
     overflow-wrap: break-word;
     max-width: 100%;
 }
+
+.message-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
