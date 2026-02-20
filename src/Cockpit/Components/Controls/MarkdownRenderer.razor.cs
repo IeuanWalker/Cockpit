@@ -1,4 +1,4 @@
-using Cockpit.Services;
+using Cockpit.Features.Markdown;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -9,8 +9,8 @@ public partial class MarkdownRenderer : ComponentBase
 	[Parameter] public string Content { get; set; } = string.Empty;
 	[Parameter] public string? CssClass { get; set; }
 
-	[Inject] MarkdownService MarkdownService { get; set; } = default!;
-	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
+	[Inject] MarkdownFeature _markdownFeature { get; set; } = default!;
+	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
 
 	readonly string _containerId = $"markdown-{Guid.NewGuid():N}";
 	string _html = string.Empty;
@@ -23,7 +23,7 @@ public partial class MarkdownRenderer : ComponentBase
 		if(content != _lastContent)
 		{
 			_lastContent = content;
-			_html = MarkdownService.ToHtml(content);
+			_html = _markdownFeature.ToHtml(content);
 			_contentChanged = true;
 		}
 	}
@@ -39,8 +39,8 @@ public partial class MarkdownRenderer : ComponentBase
 
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("cockpit.highlightCodeBlocks", _containerId);
-			await JSRuntime.InvokeVoidAsync("cockpit.addCopyButtonsToCodeBlocks", _containerId);
+			await _jsRuntime.InvokeVoidAsync("cockpit.highlightCodeBlocks", _containerId);
+			await _jsRuntime.InvokeVoidAsync("cockpit.addCopyButtonsToCodeBlocks", _containerId);
 		}
 		catch
 		{

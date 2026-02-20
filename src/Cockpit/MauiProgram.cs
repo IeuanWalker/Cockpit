@@ -1,6 +1,7 @@
 using Blazor.Sonner.Extensions;
 using Blazor.Sonner.Services;
 using Cockpit.Features.Connection;
+using Cockpit.Features.Markdown;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.Terminal;
@@ -45,7 +46,7 @@ public static class MauiProgram
 
 		// Register application services
 		builder.Services.AddScoped<ThemeFeature>();
-		builder.Services.AddScoped<MarkdownService>();
+		builder.Services.AddScoped<MarkdownFeature>();
 		builder.Services.AddSingleton<UIStateService>();
 		builder.Services.AddSingleton<TimestampFeature>();
 		builder.Services.AddSingleton<TerminalFeature>();

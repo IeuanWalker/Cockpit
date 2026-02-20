@@ -1,17 +1,22 @@
 using Markdig;
 
-namespace Cockpit.Services;
+namespace Cockpit.Features.Markdown;
 
-public class MarkdownService
+public class MarkdownFeature
 {
 	readonly MarkdownPipeline _pipeline;
 
-	public MarkdownService()
+	public MarkdownFeature()
 	{
 		_pipeline = new MarkdownPipelineBuilder()
+			.DisableHtml()
 			.UseAdvancedExtensions()
 			.UseSoftlineBreakAsHardlineBreak()
-			.DisableHtml()
+			.UseEmojiAndSmiley()
+			.UseGridTables()
+			.UseListExtras()
+			.UsePipeTables()
+			.UseTaskLists()
 			.Build();
 	}
 
@@ -22,6 +27,6 @@ public class MarkdownService
 			return string.Empty;
 		}
 
-		return Markdown.ToHtml(markdown, _pipeline);
+		return Markdig.Markdown.ToHtml(markdown, _pipeline);
 	}
 }
