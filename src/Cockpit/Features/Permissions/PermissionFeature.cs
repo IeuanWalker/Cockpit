@@ -480,7 +480,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 		GC.SuppressFinalize(this);
 	}
 
-	private void Dispose(bool disposing)
+	void Dispose(bool disposing)
 	{
 		if(disposing)
 		{
