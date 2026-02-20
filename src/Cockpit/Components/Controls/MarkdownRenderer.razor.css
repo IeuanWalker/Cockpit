@@ -1,0 +1,133 @@
+.markdown-content {
+    line-height: 1.5;
+    word-break: break-word;
+    min-width: 0;
+    max-width: 100%;
+}
+
+    .markdown-content ::deep > *:first-child {
+        margin-top: 0;
+    }
+
+    .markdown-content ::deep > *:last-child {
+        margin-bottom: 0;
+    }
+
+    .markdown-content ::deep p {
+        margin: 0 0 0.75rem 0;
+    }
+
+    .markdown-content ::deep h1,
+    .markdown-content ::deep h2,
+    .markdown-content ::deep h3,
+    .markdown-content ::deep h4,
+    .markdown-content ::deep h5,
+    .markdown-content ::deep h6 {
+        margin: 1rem 0 0.5rem;
+        font-weight: 600;
+        color: var(--title-color);
+    }
+
+    .markdown-content ::deep ul {
+        margin: 0 0 0.75rem 1.25rem;
+        padding: 0;
+        list-style: disc;
+    }
+
+    .markdown-content ::deep ol {
+        margin: 0 0 0.75rem 1.25rem;
+        padding: 0;
+        list-style: decimal;
+    }
+
+    .markdown-content ::deep li {
+        margin: 0.25rem 0;
+    }
+
+    .markdown-content ::deep blockquote {
+        margin: 0 0 0.75rem 0;
+        padding: 0.5rem 0.75rem;
+        border-left: 3px solid var(--markdown-blockquote-border);
+        background-color: var(--markdown-blockquote-bg);
+    }
+
+    .markdown-content ::deep hr {
+        border: 0;
+        border-top: 1px solid var(--border-color);
+        margin: 1rem 0;
+    }
+
+    .markdown-content ::deep table {
+        border-collapse: collapse;
+        margin: 0 0 0.75rem 0;
+        width: 100%;
+        font-size: 0.875rem;
+    }
+
+    .markdown-content ::deep th,
+    .markdown-content ::deep td {
+        border: 1px solid var(--border-color);
+        padding: 0.35rem 0.5rem;
+        text-align: left;
+    }
+
+    .markdown-content ::deep a {
+        color: var(--accent-color);
+    }
+
+    .markdown-content ::deep code {
+        background-color: var(--markdown-code-bg);
+        padding: 0.1rem 0.3rem;
+        border-radius: 4px;
+        font-size: 0.85em;
+    }
+
+    .markdown-content ::deep pre {
+        background-color: var(--markdown-code-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin: 0 0 0.75rem 0;
+        overflow-x: auto;
+        font-size: 0.85rem;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .markdown-content ::deep .code-block {
+        position: relative;
+        margin: 0 0 0.75rem 0;
+    }
+
+        .markdown-content ::deep .code-block pre {
+            margin: 0;
+            padding-bottom: 2rem;
+        }
+
+    .markdown-content ::deep pre code {
+        background-color: transparent;
+        padding: 0;
+        display: block;
+        white-space: pre;
+    }
+
+        .markdown-content ::deep pre code.hljs {
+            padding: 0;
+        }
+
+    .markdown-content ::deep .code-copy-button {
+        position: absolute;
+        right: 0.6rem;
+        bottom: 0.5rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        background-color: var(--sidebar-color);
+        color: var(--text-color);
+        font-size: 0.7rem;
+        cursor: pointer;
+    }
+
+        .markdown-content ::deep .code-copy-button.copied {
+            color: #10893E;
+        }
