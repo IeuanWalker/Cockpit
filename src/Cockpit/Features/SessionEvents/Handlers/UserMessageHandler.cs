@@ -17,17 +17,31 @@ static class UserMessageHandler
 			return;
 		}
 
-		ChatMessageModel message = new()
-		{
-			Id = Guid.NewGuid().ToString(),
-			Content = evt.Data.Content ?? string.Empty,
-			IsUser = true,
-			Timestamp = evt.Timestamp,
-			Type = MessageTypeEnum.Text,
-			EventType = evt.Type
-		};
+		ChatMessageModel? optimistic = session.Messages.LastOrDefault(m =>
+			m.IsUser && !m.IsComplete && m.Content == (evt.Data.Content ?? string.Empty));
 
-		session.Messages.Add(message);
+		if(optimistic is not null)
+		{
+			// Confirm the optimistic message: update its metadata from the real event
+			optimistic.Id = Guid.NewGuid().ToString();
+			optimistic.Timestamp = evt.Timestamp;
+			optimistic.EventType = evt.Type;
+			optimistic.IsComplete = true;
+		}
+		else
+		{
+			ChatMessageModel message = new()
+			{
+				Id = Guid.NewGuid().ToString(),
+				Content = evt.Data.Content ?? string.Empty,
+				IsUser = true,
+				Timestamp = evt.Timestamp,
+				Type = MessageTypeEnum.Text,
+				EventType = evt.Type
+			};
+			session.Messages.Add(message);
+		}
+
 		session.Status = SessionStatus.Running;
 	}
 }

@@ -388,6 +388,18 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 
 			CurrentSession.Status = SessionStatus.Running;
 
+			// Optimistically add the message immediately so the UI doesn't feel frozen
+			ChatMessageModel optimisticMessage = new()
+			{
+				Content = content,
+				IsUser = true,
+				Timestamp = DateTime.Now,
+				Type = MessageTypeEnum.Text,
+				IsComplete = false
+			};
+			CurrentSession.Messages.Add(optimisticMessage);
+			NotifyStateChanged();
+
 			await sdkSession.SendAsync(new MessageOptions
 			{
 				Prompt = content,
