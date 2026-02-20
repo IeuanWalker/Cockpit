@@ -29,6 +29,7 @@ public partial class TextToSpeechFeature : IDisposable
 
 	public async Task Speak(string messageId, string text)
 	{
+		CancellationTokenSource? localCts = null;
 		await _lock.WaitAsync();
 		try
 		{
@@ -48,13 +49,14 @@ public partial class TextToSpeechFeature : IDisposable
 				OnStateChanged?.Invoke();
 
 				_cts = new CancellationTokenSource();
+				localCts = _cts;
 			}
 			finally
 			{
 				_lock.Release();
 			}
 
-			CancellationToken token = _cts.Token;
+			CancellationToken token = localCts!.Token;
 			string plainText = StripMarkdown(text);
 
 			SpeechOptions options = await BuildSpeechOptionsAsync();
