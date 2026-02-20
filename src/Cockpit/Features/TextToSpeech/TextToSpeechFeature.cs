@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using MauiTts = Microsoft.Maui.Media.TextToSpeech;
+using Microsoft.Maui.Media;
 
 namespace Cockpit.Features.TextToSpeech;
 
@@ -10,8 +10,14 @@ public partial class TextToSpeechFeature
 	public string? ActiveMessageId { get; private set; }
 	public bool IsSpeaking => ActiveMessageId is not null;
 
+	readonly ITextToSpeech _textToSpeech;
 	CancellationTokenSource? _cts;
 	readonly SemaphoreSlim _lock = new(1, 1);
+
+	public TextToSpeechFeature(ITextToSpeech textToSpeech)
+	{
+		_textToSpeech = textToSpeech;
+	}
 
 	public async Task Speak(string messageId, string text)
 	{
@@ -45,7 +51,7 @@ public partial class TextToSpeechFeature
 
 		try
 		{
-			await MauiTts.Default.SpeakAsync(plainText, options, cancelToken: token);
+			await _textToSpeech.SpeakAsync(plainText, options, cancelToken: token);
 		}
 		catch(OperationCanceledException)
 		{
@@ -103,7 +109,7 @@ public partial class TextToSpeechFeature
 		}
 	}
 
-	static async Task<SpeechOptions> BuildSpeechOptionsAsync()
+	protected virtual async Task<SpeechOptions> BuildSpeechOptionsAsync()
 	{
 		SpeechOptions options = new()
 		{
@@ -115,14 +121,14 @@ public partial class TextToSpeechFeature
 		string localeId = UserAppSettings.VoiceLocale;
 		if(!string.IsNullOrEmpty(localeId))
 		{
-			IEnumerable<Locale> locales = await MauiTts.Default.GetLocalesAsync();
+			IEnumerable<Locale> locales = await _textToSpeech.GetLocalesAsync();
 			options.Locale = locales.FirstOrDefault(l => l.Id == localeId);
 		}
 
 		return options;
 	}
 
-	static string StripMarkdown(string markdown)
+	internal static string StripMarkdown(string markdown)
 	{
 		if(string.IsNullOrWhiteSpace(markdown))
 		{
