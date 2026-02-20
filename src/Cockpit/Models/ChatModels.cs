@@ -62,6 +62,11 @@ public class ChatSession
 	/// Terminal state for this session
 	/// </summary>
 	public bool IsTerminalOpen { get; set; }
+
+	/// <summary>
+	/// Synchronizes live session event/message mutations to preserve ordering.
+	/// </summary>
+	public readonly Lock SessionEventLock = new();
 }
 
 public enum SessionStatus

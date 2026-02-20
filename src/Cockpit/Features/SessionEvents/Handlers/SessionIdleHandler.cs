@@ -6,14 +6,17 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SessionIdleHandler
 {
-	internal static void Handle(ChatSession session, DateTimeOffset? eventTimestamp = null, Func<ChatMessageModel, string, Task>? onStreamSummary = null)
+	internal static void Handle(ChatSession session, DateTimeOffset? eventTimestamp = null, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
 	{
 		DateTime now = eventTimestamp?.LocalDateTime ?? DateTime.Now;
 		Debug.WriteLine("SessionIdleHandler - Finalizing activity group");
 
-		if(session.ActiveWorkingGroup is not null && session.ActiveWorkingGroup.Tools.Any())
+		ActivityGroupModel? activeGroup = session.ActiveWorkingGroup;
+
+		bool hasThinkingMessages = activeGroup?.GetEventsSnapshot().Any(e => e.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrWhiteSpace(e.Message)) ?? false;
+		if(activeGroup is not null && (activeGroup.Tools.Any() || hasThinkingMessages || groupStatus == GroupStatusEnum.Error))
 		{
-			ActivityGroupModel group = session.ActiveWorkingGroup;
+			ActivityGroupModel group = activeGroup;
 			Debug.WriteLine($"Finalizing thinking group. Has {group.Tools.Count()} tools");
 
 			// Check if activity message already exists for this group
@@ -50,7 +53,7 @@ static class SessionIdleHandler
 				}
 			}
 
-			group.Status = GroupStatusEnum.Complete;
+			group.Status = groupStatus;
 			group.EndTime = now;
 			group.IsExpanded = false;
 
@@ -58,14 +61,13 @@ static class SessionIdleHandler
 			List<ThinkingEventModel> events = group.GetEventsSnapshot();
 			ThinkingEventModel? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventTypeEnum.Message);
 
-			bool hasSummary = false;
+			ChatMessageModel? summaryMsg = null;
 			if(lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
 			{
 				// Remove the summary from thinking events
 				group.RemoveEvent(lastMessage);
 
-				// Add summary message as streaming - will be progressively revealed
-				ChatMessageModel summaryMsg = new()
+				summaryMsg = new ChatMessageModel
 				{
 					Id = lastMessage.Id ?? Guid.NewGuid().ToString(),
 					Content = string.Empty,
@@ -75,26 +77,19 @@ static class SessionIdleHandler
 					IsStreaming = true,
 					IsComplete = false
 				};
-				session.Messages.Add(summaryMsg);
-				Debug.WriteLine($"Added summary message to chat: {summaryMsg.Id}");
-
-				if(onStreamSummary is not null)
-				{
-					// Stream progressively for the current (visible) session
-					_ = onStreamSummary(summaryMsg, lastMessage.Message);
-				}
-				else
-				{
-					// For background sessions, set the content immediately
-					summaryMsg.Content = lastMessage.Message;
-					summaryMsg.IsStreaming = false;
-					summaryMsg.IsComplete = true;
-				}
-				hasSummary = true;
 			}
 
-			// Add "Session stopped" event to operation list AFTER extracting summary
-			if(hasStoppedTools)
+			// Add termination event to operation list AFTER extracting summary
+			if(groupStatus == GroupStatusEnum.Error)
+			{
+				group.AddEvent(new ThinkingEventModel
+				{
+					Type = ThinkingEventTypeEnum.Message,
+					Message = "Session aborted",
+					Timestamp = now
+				});
+			}
+			else if(hasStoppedTools)
 			{
 				group.AddEvent(new ThinkingEventModel
 				{
@@ -104,60 +99,105 @@ static class SessionIdleHandler
 				});
 			}
 
-			// Insert activity group between initial and summary messages
-			ChatMessageModel activityMessage = new()
-			{
-				IsUser = false,
-				Type = MessageTypeEnum.ActivityGroup,
-				ActivityGroup = group,
-				Timestamp = group.EndTime ?? DateTime.Now,
-				Content = GenerateActivitySummary(group)
-			};
-
+			// Determine anchor index: the position we'll insert after
+			// Priority: InitialMessageId (assistant first msg) > TriggeredByUserMessageId > last non-pending user msg
+			int anchorIndex = -1;
 			if(!string.IsNullOrEmpty(group.InitialMessageId))
 			{
-				int initialIndex = session.Messages.FindIndex(m => m.Id == group.InitialMessageId);
-				if(initialIndex >= 0)
-				{
-					session.Messages.Insert(initialIndex + 1, activityMessage);
-					Debug.WriteLine($"Inserted activity group at index {initialIndex + 1}");
-				}
-				else
-				{
-					int insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
-					session.Messages.Insert(insertIndex, activityMessage);
-				}
+				anchorIndex = session.Messages.FindIndex(m => m.Id == group.InitialMessageId);
 			}
-			else
+			else if(!string.IsNullOrEmpty(group.TriggeredByUserMessageId))
 			{
-				int lastUserIndex = -1;
-				int searchLimit = hasSummary ? session.Messages.Count - 2 : session.Messages.Count - 1;
-				for(int i = searchLimit; i >= 0; i--)
+				anchorIndex = session.Messages.FindIndex(m => m.Id == group.TriggeredByUserMessageId);
+			}
+
+			if(anchorIndex < 0)
+			{
+				// Fallback: find last non-pending, complete user message
+				for(int i = session.Messages.Count - 1; i >= 0; i--)
 				{
-					if(session.Messages[i].IsUser)
+					if(session.Messages[i].IsUser && session.Messages[i].IsComplete && !session.Messages[i].IsPending)
 					{
-						lastUserIndex = i;
+						anchorIndex = i;
 						break;
 					}
 				}
+			}
 
-				int insertIndex = lastUserIndex >= 0 ? lastUserIndex + 1 : hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
-
-				// Ensure we never insert at index 0 if there are messages
-				if(insertIndex == 0 && session.Messages.Count > 0)
+			// Only insert an activity group into chat when there were actual tool operations
+			int activityInsertedAt = -1;
+			if(group.Tools.Any() || groupStatus == GroupStatusEnum.Error)
+			{
+				ChatMessageModel activityMessage = new()
 				{
-					insertIndex = session.Messages.Count;
-					Debug.WriteLine($"WARNING: Attempted to insert activity group at index 0, moved to end");
+					IsUser = false,
+					Type = MessageTypeEnum.ActivityGroup,
+					ActivityGroup = group,
+					Timestamp = group.EndTime ?? DateTime.Now,
+					Content = group.Tools.Any() ? GenerateActivitySummary(group) : "Aborted"
+				};
+
+				int activityIndex;
+				if(anchorIndex >= 0)
+				{
+					activityIndex = anchorIndex + 1;
+				}
+				else if(session.Messages.Count > 0)
+				{
+					activityIndex = session.Messages.Count;
+					Debug.WriteLine($"WARNING: No anchor found, appending activity group");
+				}
+				else
+				{
+					activityIndex = 0;
 				}
 
-				session.Messages.Insert(insertIndex, activityMessage);
-				Debug.WriteLine($"Inserted activity group at index {insertIndex} (lastUserIndex={lastUserIndex}, hasSummary={hasSummary}, Count={session.Messages.Count})");
+				session.Messages.Insert(activityIndex, activityMessage);
+				activityInsertedAt = activityIndex;
+				Debug.WriteLine($"Inserted activity group at index {activityIndex} (anchor={anchorIndex})");
+			}
+
+			// Insert summary: right after activity (if any), otherwise right after anchor, otherwise before first pending
+			if(summaryMsg is not null)
+			{
+				int summaryIndex;
+				if(activityInsertedAt >= 0)
+				{
+					// Place summary right after the activity group
+					summaryIndex = activityInsertedAt + 1;
+				}
+				else if(anchorIndex >= 0)
+				{
+					summaryIndex = anchorIndex + 1;
+				}
+				else
+				{
+					// No anchor — fall back to inserting before the first pending message
+					int pendingIdx = session.Messages.FindIndex(m => m.IsUser && m.IsPending);
+					summaryIndex = pendingIdx >= 0 ? pendingIdx : session.Messages.Count;
+				}
+
+				session.Messages.Insert(summaryIndex, summaryMsg);
+				Debug.WriteLine($"Added summary message to chat at index {summaryIndex}: {summaryMsg.Id}");
+
+				if(onStreamSummary is not null)
+				{
+					// Stream progressively for the current (visible) session
+					_ = onStreamSummary(summaryMsg, lastMessage!.Message);
+				}
+				else
+				{
+					// For background sessions, set the content immediately
+					summaryMsg.Content = lastMessage!.Message;
+					summaryMsg.IsStreaming = false;
+					summaryMsg.IsComplete = true;
+				}
 			}
 
 			// Clear the thinking group
 			session.ActiveWorkingGroup = null;
 		}
-		else if(session.ActiveWorkingGroup is not null)
+		else if(activeGroup is not null)
 		{
 			Debug.WriteLine("Clearing empty thinking group");
 			session.ActiveWorkingGroup = null;

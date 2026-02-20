@@ -11,13 +11,12 @@ static class AbortHandler
 	{
 		logger.LogWarning("Session {SessionId} aborted: {Reason}", session.Id, evt.Data.Reason);
 
-		if(session.ActiveWorkingGroup is not null)
-		{
-			session.ActiveWorkingGroup.Status = GroupStatusEnum.Error;
-			session.ActiveWorkingGroup.EndTime = DateTime.Now;
-			session.ActiveWorkingGroup = null;
-		}
+		SessionIdleHandler.Handle(session, DateTimeOffset.Now, null, GroupStatusEnum.Error);
 
-		session.Status = SessionStatus.Idle;
+		// Clear any pending messages — they will never be processed after an abort
+		foreach(ChatMessageModel msg in session.Messages.Where(m => m.IsPending))
+		{
+			msg.IsPending = false;
+		}
 	}
 }
