@@ -16,31 +16,34 @@
             </button>
         </div>
 
-        <div class="working-content-wrapper">
-            <div id="workingContent" class="working-content">
-                @foreach(var evt in events)
+        @if(events.Count > 0)
+        {
+            <div class="working-content-wrapper">
+                <div id="workingContent" class="working-content">
+                    @foreach(var evt in events)
+                    {
+                        @if(evt.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrEmpty(evt.Message))
+                        {
+                            <div class="working-message">
+                                <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
+                            </div>
+                        }
+                        else if(evt.Type == ThinkingEventTypeEnum.Tool && evt.Tool is not null)
+                        {
+                            <ToolExecutionDetail Tool="evt.Tool" IsLive="true" />
+                        }
+                    }
+                </div>
+
+                @if(_isUserScrolledUpFromWorking)
                 {
-                    @if(evt.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrEmpty(evt.Message))
-                    {
-                        <div class="working-message">
-                            <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
-                        </div>
-                    }
-                    else if(evt.Type == ThinkingEventTypeEnum.Tool && evt.Tool is not null)
-                    {
-                        <ToolExecutionDetail Tool="evt.Tool" IsLive="true" />
-                    }
+                    <button class="scroll-to-bottom-btn working-scroll-btn" @onclick="ScrollToBottomAndResume" title="Scroll to bottom">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
                 }
             </div>
-
-            @if(_isUserScrolledUpFromWorking)
-            {
-                <button class="scroll-to-bottom-btn working-scroll-btn" @onclick="ScrollToBottomAndResume" title="Scroll to bottom">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
-            }
-        </div>
+        }
     </div>
 }

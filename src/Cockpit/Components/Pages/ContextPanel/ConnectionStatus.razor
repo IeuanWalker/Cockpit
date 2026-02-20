@@ -25,10 +25,22 @@
                 </svg>
             </button>
         </div>
-        <div class="max-h-[60vh] overflow-y-auto scrollbar-thin">
+        <div class="overflow-y-auto scrollbar-thin">
             @if(_showPopup)
             {
-                <CodeBlock Code="@_feature.GetResponseJson()" Language="json" />
+                <div class="px-4 py-3 border-b border-vscode-border flex gap-6 text-xs secondary-text">
+                    <div>
+                        <div class="font-medium text-vscode-text mb-0.5">Last checked</div>
+                        <div>@(_feature.LastChecked?.ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</div>
+                    </div>
+                    <div>
+                        <div class="font-medium text-vscode-text mb-0.5">Next check</div>
+                        <div>@(_feature.LastChecked?.AddSeconds(20).ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</div>
+                    </div>
+                </div>
+                <div class="max-h-[50vh] overflow-y-auto scrollbar-thin">
+                    <CodeBlock Code="@_feature.GetResponseJson()" Language="json" />
+                </div>
             }
         </div>
     </div>
