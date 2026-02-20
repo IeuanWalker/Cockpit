@@ -53,4 +53,10 @@ public static class UserAppSettings
 		get => Preferences.Default.Get("RightSidebarWidth", 256);
 		set => Preferences.Default.Set("RightSidebarWidth", value);
 	}
+
+	public static bool TextToSpeechEnabled
+	{
+		get => Preferences.Default.Get("TextToSpeechEnabled", true);
+		set => Preferences.Default.Set("TextToSpeechEnabled", value);
+	}
 }

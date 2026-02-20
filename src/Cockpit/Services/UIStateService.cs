@@ -48,6 +48,17 @@ public class UIStateService
 		}
 	}
 
+	bool _textToSpeechEnabled = UserAppSettings.TextToSpeechEnabled;
+	public bool TextToSpeechEnabled
+	{
+		get => _textToSpeechEnabled;
+		private set
+		{
+			_textToSpeechEnabled = value;
+			UserAppSettings.TextToSpeechEnabled = value;
+		}
+	}
+
 	public void ToggleLeftSidebar()
 	{
 		LeftSidebarCollapsed = !LeftSidebarCollapsed;
@@ -120,6 +131,12 @@ public class UIStateService
 	public void SetEnterToSend(bool value)
 	{
 		SendOnEnter = value;
+		OnStateChanged?.Invoke();
+	}
+
+	public void SetTextToSpeechEnabled(bool value)
+	{
+		TextToSpeechEnabled = value;
 		OnStateChanged?.Invoke();
 	}
 
