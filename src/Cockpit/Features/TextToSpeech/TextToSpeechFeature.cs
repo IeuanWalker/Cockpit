@@ -78,7 +78,7 @@ public partial class TextToSpeechFeature
 		}
 
 		string text = CodeBlockRegex().Replace(markdown, " code block ");
-		text = InlineCodeRegex().Replace(text, string.Empty);
+		text = InlineCodeRegex().Replace(text, "$1");
 		text = HeadingRegex().Replace(text, string.Empty);
 		text = BoldItalicRegex().Replace(text, "$1");
 		text = LinkRegex().Replace(text, "$1");
@@ -95,7 +95,7 @@ public partial class TextToSpeechFeature
 	[GeneratedRegex(@"```[\s\S]*?```", RegexOptions.Multiline)]
 	private static partial Regex CodeBlockRegex();
 
-	[GeneratedRegex(@"`[^`]+`")]
+	[GeneratedRegex(@"`([^`]+)`")]
 	private static partial Regex InlineCodeRegex();
 
 	[GeneratedRegex(@"^#{1,6}\s+", RegexOptions.Multiline)]
