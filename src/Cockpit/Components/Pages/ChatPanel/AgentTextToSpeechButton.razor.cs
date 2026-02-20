@@ -4,19 +4,19 @@ using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ChatPanel;
 
-public partial class ChatMessages : ComponentBase, IDisposable
+public partial class AgentTextToSpeechButton
 {
+	[Inject] TextToSpeechFeature _textToSpeachFeature { get; set; } = default!;
 	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
-	[Inject] TextToSpeechFeature _ttsService { get; set; } = default!;
-	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Parameter] public string MessageId { get; set; } = string.Empty;
+	[Parameter] public string Content { get; set; } = string.Empty;
+	[Parameter] public bool Disabled { get; set; }
 
 	string? _previousSessionId;
 
 	protected override void OnInitialized()
 	{
 		_sessionManager.OnStateChanged += OnStateChanged;
-		_ttsService.OnStateChanged += OnStateChanged;
-		_uiState.OnStateChanged += OnStateChanged;
 		_previousSessionId = _sessionManager.CurrentSession?.Id;
 	}
 
@@ -24,30 +24,25 @@ public partial class ChatMessages : ComponentBase, IDisposable
 	{
 		_ = InvokeAsync(async () =>
 		{
+			// Stop TTS when the user switches to a different session
 			string? currentSessionId = _sessionManager.CurrentSession?.Id;
 			if(currentSessionId != _previousSessionId)
 			{
 				_previousSessionId = currentSessionId;
-				await _ttsService.StopAsync();
+				await _textToSpeachFeature.StopAsync();
 			}
 
 			StateHasChanged();
 		});
 	}
 
-	public void Dispose()
+	async Task OnClick()
 	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
+		await _textToSpeachFeature.SpeakAsync(MessageId, Content);
 	}
 
-	protected virtual void Dispose(bool disposing)
+	public void Dispose()
 	{
-		if(disposing)
-		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
-			_ttsService.OnStateChanged -= OnStateChanged;
-			_uiState.OnStateChanged -= OnStateChanged;
-		}
+		_textToSpeachFeature.OnStateChanged -= OnStateChanged;
 	}
 }

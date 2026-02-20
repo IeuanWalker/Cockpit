@@ -43,7 +43,7 @@
                             @if(_uiState.TextToSpeechEnabled && !message.IsStreaming)
                             {
                                 <div class="message-actions mt-1">
-                                    <TextToSpeechButton MessageId="@message.Id" Content="@message.Content" />
+                                    <AgentTextToSpeechButton MessageId="@message.Id" Content="@message.Content" />
                                 </div>
                             }
                         </div>
