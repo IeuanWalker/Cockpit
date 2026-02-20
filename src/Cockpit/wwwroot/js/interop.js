@@ -76,19 +76,22 @@ window.cockpit = {
             element._smartScrollResizeObserver.disconnect();
         }
 
-        const checkState = function () {
+        const checkState = function (fromUserScroll) {
             const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
             if (element._wasNearBottom !== isNearBottom) {
+                // Only update to "not near bottom" from user-initiated scroll.
+                // Content growth (ResizeObserver/MutationObserver) should never interrupt autoscroll.
+                if (!isNearBottom && !fromUserScroll) return;
                 element._wasNearBottom = isNearBottom;
                 dotnetHelper.invokeMethodAsync(methodName, isNearBottom);
             }
         };
 
-        element._smartScrollHandler = checkState;
+        element._smartScrollHandler = () => checkState(true);
         element.addEventListener('scroll', element._smartScrollHandler);
 
         // Also recheck when content inside grows (tool rows expanding, new messages)
-        element._smartScrollResizeObserver = new ResizeObserver(checkState);
+        element._smartScrollResizeObserver = new ResizeObserver(() => checkState(false));
         // Observe all direct children so any expansion triggers a recheck
         const observeChildren = () => {
             for (const child of element.children) {
@@ -100,7 +103,7 @@ window.cockpit = {
         // Watch for new children being added
         element._smartScrollMutationObserver = new MutationObserver(() => {
             observeChildren();
-            checkState();
+            checkState(false);
         });
         element._smartScrollMutationObserver.observe(element, { childList: true });
 

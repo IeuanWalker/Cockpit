@@ -11,9 +11,11 @@ static class SessionIdleHandler
 		DateTime now = eventTimestamp?.LocalDateTime ?? DateTime.Now;
 		Debug.WriteLine("SessionIdleHandler - Finalizing activity group");
 
-		if(session.ActiveWorkingGroup is not null && (session.ActiveWorkingGroup.Tools.Any() || groupStatus == GroupStatusEnum.Error))
+		ActivityGroupModel? activeGroup = session.ActiveWorkingGroup;
+		bool hasThinkingMessages = activeGroup?.GetEventsSnapshot().Any(e => e.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrWhiteSpace(e.Message)) ?? false;
+		if(activeGroup is not null && (activeGroup.Tools.Any() || hasThinkingMessages || groupStatus == GroupStatusEnum.Error))
 		{
-			ActivityGroupModel group = session.ActiveWorkingGroup;
+			ActivityGroupModel group = activeGroup;
 			Debug.WriteLine($"Finalizing thinking group. Has {group.Tools.Count()} tools");
 
 			// Check if activity message already exists for this group
@@ -113,61 +115,64 @@ static class SessionIdleHandler
 				});
 			}
 
-			// Insert activity group between initial and summary messages
-			ChatMessageModel activityMessage = new()
+			// Only insert an activity group into chat when there were actual tool operations
+			if(group.Tools.Any() || groupStatus == GroupStatusEnum.Error)
 			{
-				IsUser = false,
-				Type = MessageTypeEnum.ActivityGroup,
-				ActivityGroup = group,
-				Timestamp = group.EndTime ?? DateTime.Now,
-				Content = group.Tools.Any() ? GenerateActivitySummary(group) : "Aborted"
-			};
-
-			if(!string.IsNullOrEmpty(group.InitialMessageId))
-			{
-				int initialIndex = session.Messages.FindIndex(m => m.Id == group.InitialMessageId);
-				if(initialIndex >= 0)
+				ChatMessageModel activityMessage = new()
 				{
-					session.Messages.Insert(initialIndex + 1, activityMessage);
-					Debug.WriteLine($"Inserted activity group at index {initialIndex + 1}");
+					IsUser = false,
+					Type = MessageTypeEnum.ActivityGroup,
+					ActivityGroup = group,
+					Timestamp = group.EndTime ?? DateTime.Now,
+					Content = group.Tools.Any() ? GenerateActivitySummary(group) : "Aborted"
+				};
+
+				if(!string.IsNullOrEmpty(group.InitialMessageId))
+				{
+					int initialIndex = session.Messages.FindIndex(m => m.Id == group.InitialMessageId);
+					if(initialIndex >= 0)
+					{
+						session.Messages.Insert(initialIndex + 1, activityMessage);
+						Debug.WriteLine($"Inserted activity group at index {initialIndex + 1}");
+					}
+					else
+					{
+						int insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
+						session.Messages.Insert(insertIndex, activityMessage);
+					}
 				}
 				else
 				{
-					int insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
-					session.Messages.Insert(insertIndex, activityMessage);
-				}
-			}
-			else
-			{
-				int lastUserIndex = -1;
-				int searchLimit = hasSummary ? session.Messages.Count - 2 : session.Messages.Count - 1;
-				for(int i = searchLimit; i >= 0; i--)
-				{
-					// Skip pending or not-yet-confirmed user messages — they belong to a future turn
-					if(session.Messages[i].IsUser && session.Messages[i].IsComplete && !session.Messages[i].IsPending)
+					int lastUserIndex = -1;
+					int searchLimit = hasSummary ? session.Messages.Count - 2 : session.Messages.Count - 1;
+					for(int i = searchLimit; i >= 0; i--)
 					{
-						lastUserIndex = i;
-						break;
+						// Skip pending or not-yet-confirmed user messages — they belong to a future turn
+						if(session.Messages[i].IsUser && session.Messages[i].IsComplete && !session.Messages[i].IsPending)
+						{
+							lastUserIndex = i;
+							break;
+						}
 					}
+
+					int insertIndex = lastUserIndex >= 0 ? lastUserIndex + 1 : hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
+
+					// Ensure we never insert at index 0 if there are messages
+					if(insertIndex == 0 && session.Messages.Count > 0)
+					{
+						insertIndex = session.Messages.Count;
+						Debug.WriteLine($"WARNING: Attempted to insert activity group at index 0, moved to end");
+					}
+
+					session.Messages.Insert(insertIndex, activityMessage);
+					Debug.WriteLine($"Inserted activity group at index {insertIndex} (lastUserIndex={lastUserIndex}, hasSummary={hasSummary}, Count={session.Messages.Count})");
 				}
-
-				int insertIndex = lastUserIndex >= 0 ? lastUserIndex + 1 : hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
-
-				// Ensure we never insert at index 0 if there are messages
-				if(insertIndex == 0 && session.Messages.Count > 0)
-				{
-					insertIndex = session.Messages.Count;
-					Debug.WriteLine($"WARNING: Attempted to insert activity group at index 0, moved to end");
-				}
-
-				session.Messages.Insert(insertIndex, activityMessage);
-				Debug.WriteLine($"Inserted activity group at index {insertIndex} (lastUserIndex={lastUserIndex}, hasSummary={hasSummary}, Count={session.Messages.Count})");
 			}
 
 			// Clear the thinking group
 			session.ActiveWorkingGroup = null;
 		}
-		else if(session.ActiveWorkingGroup is not null)
+		else if(activeGroup is not null)
 		{
 			Debug.WriteLine("Clearing empty thinking group");
 			session.ActiveWorkingGroup = null;

@@ -6,7 +6,7 @@
     <div id="chatMessages" class="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin p-3 space-y-3">
         @if(_sessionManager.CurrentSession?.Messages is not null)
         {
-            @foreach(var message in _sessionManager.CurrentSession.Messages)
+            @foreach(var message in _sessionManager.CurrentSession.Messages.ToList())
             {
                 if(message.Type == MessageTypeEnum.ActivityGroup && message.ActivityGroup is not null)
                 {
@@ -25,16 +25,16 @@
                     <!-- User Message -->
                     <div class="flex justify-end">
                         <div class="max-w-2xl flex flex-col items-end">
-                            <div class="chat-bubble rounded-lg px-4 py-2.5 @(!message.IsComplete ? "sending" : message.IsPending ? "pending" : "")">
+                            <div class="chat-bubble rounded-lg px-4 py-2.5 @(message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")">
                                 <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
                             </div>
-                            @if(!message.IsComplete)
-                            {
-                                <span class="text-xs mt-1 secondary-text italic">Sending...</span>
-                            }
-                            else if(message.IsPending)
+                            @if(message.IsPending)
                             {
                                 <span class="text-xs mt-1 secondary-text italic">Pending...</span>
+                            }
+                            else if(!message.IsComplete)
+                            {
+                                <span class="text-xs mt-1 secondary-text italic">Sending...</span>
                             }
                         </div>
                     </div>

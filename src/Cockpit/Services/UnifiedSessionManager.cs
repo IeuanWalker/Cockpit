@@ -386,6 +386,7 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				throw new InvalidOperationException($"Session {CurrentSession.Id} not found in SDK sessions");
 			}
 
+			bool agentWasBusy = CurrentSession.ActiveWorkingGroup is not null;
 			CurrentSession.Status = SessionStatus.Running;
 
 			// Optimistically add the message immediately so the UI doesn't feel frozen
@@ -395,7 +396,8 @@ public partial class UnifiedSessionManager : ISessionStateProvider
 				IsUser = true,
 				Timestamp = DateTime.Now,
 				Type = MessageTypeEnum.Text,
-				IsComplete = false
+				IsComplete = false,
+				IsPending = agentWasBusy
 			};
 			CurrentSession.Messages.Add(optimisticMessage);
 			NotifyStateChanged();
