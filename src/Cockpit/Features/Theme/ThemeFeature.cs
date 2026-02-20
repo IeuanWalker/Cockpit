@@ -53,6 +53,20 @@ public class ThemeFeature
 	}
 	async Task ApplyTheme()
 	{
+		if(Application.Current?.Windows?.FirstOrDefault()?.Page is MainPage mainPage)
+		{
+			if(GetEffectiveTheme().Equals(ThemeEnum.Light))
+			{
+				await mainPage.InvokeJavaScriptAsync("window.cockpit?.addBodyClass?.('light-theme');");
+			}
+			else
+			{
+				await mainPage.InvokeJavaScriptAsync("window.cockpit?.removeBodyClass?.('light-theme');");
+			}
+
+			return;
+		}
+
 		if(GetEffectiveTheme().Equals(ThemeEnum.Light))
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
