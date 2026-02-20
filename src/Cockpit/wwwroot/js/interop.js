@@ -79,9 +79,12 @@ window.cockpit = {
         const checkState = function (fromUserScroll) {
             const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
             if (element._wasNearBottom !== isNearBottom) {
-                // Only update to "not near bottom" from user-initiated scroll.
                 // Content growth (ResizeObserver/MutationObserver) should never interrupt autoscroll.
-                if (!isNearBottom && !fromUserScroll) return;
+                // If content pushed us away from bottom, scroll back down to maintain the anchor.
+                if (!isNearBottom && !fromUserScroll) {
+                    element.scrollTop = element.scrollHeight;
+                    return;
+                }
                 element._wasNearBottom = isNearBottom;
                 dotnetHelper.invokeMethodAsync(methodName, isNearBottom);
             }
@@ -100,12 +103,17 @@ window.cockpit = {
         };
         observeChildren();
 
-        // Watch for new children being added
+        // Watch for new children AND text content changes (streaming tokens into existing nodes)
         element._smartScrollMutationObserver = new MutationObserver(() => {
             observeChildren();
-            checkState(false);
+            // If already pinned to bottom, scroll instantly without waiting for ResizeObserver
+            if (element._wasNearBottom) {
+                element.scrollTop = element.scrollHeight;
+            } else {
+                checkState(false);
+            }
         });
-        element._smartScrollMutationObserver.observe(element, { childList: true });
+        element._smartScrollMutationObserver.observe(element, { childList: true, subtree: true, characterData: true });
 
         // Initialize state
         const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
