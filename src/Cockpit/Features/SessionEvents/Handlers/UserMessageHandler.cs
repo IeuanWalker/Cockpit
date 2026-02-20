@@ -17,18 +17,21 @@ static class UserMessageHandler
 			return;
 		}
 
-		ChatMessageModel? optimistic = session.Messages.LastOrDefault(m =>
+		string eventMessageId = evt.Id.ToString();
+		ChatMessageModel? optimistic = session.Messages.FirstOrDefault(m =>
+			m.IsUser && !m.IsComplete && m.Id == eventMessageId);
+		optimistic ??= session.Messages.FirstOrDefault(m =>
 			m.IsUser && !m.IsComplete && m.Content == (evt.Data.Content ?? string.Empty));
 
 		if(optimistic is not null)
 		{
 			// Confirm the optimistic message: update its metadata from the real event
-			optimistic.Id = Guid.NewGuid().ToString();
 			optimistic.Timestamp = evt.Timestamp;
 			optimistic.EventType = evt.Type;
 			optimistic.IsComplete = true;
-			// If the agent was busy when this message arrived, mark it as pending
-			optimistic.IsPending = wasAgentBusy;
+			// Keep IsPending=true if already set (optimistic was created while agent was busy),
+			// or set it now if the agent is still busy when the SDK echo arrives
+			optimistic.IsPending = optimistic.IsPending || wasAgentBusy;
 		}
 		else
 		{

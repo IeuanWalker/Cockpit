@@ -12,6 +12,7 @@ static class SessionIdleHandler
 		Debug.WriteLine("SessionIdleHandler - Finalizing activity group");
 
 		ActivityGroupModel? activeGroup = session.ActiveWorkingGroup;
+
 		bool hasThinkingMessages = activeGroup?.GetEventsSnapshot().Any(e => e.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrWhiteSpace(e.Message)) ?? false;
 		if(activeGroup is not null && (activeGroup.Tools.Any() || hasThinkingMessages || groupStatus == GroupStatusEnum.Error))
 		{
@@ -60,14 +61,13 @@ static class SessionIdleHandler
 			List<ThinkingEventModel> events = group.GetEventsSnapshot();
 			ThinkingEventModel? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventTypeEnum.Message);
 
-			bool hasSummary = false;
+			ChatMessageModel? summaryMsg = null;
 			if(lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
 			{
 				// Remove the summary from thinking events
 				group.RemoveEvent(lastMessage);
 
-				// Add summary message as streaming - will be progressively revealed
-				ChatMessageModel summaryMsg = new()
+				summaryMsg = new ChatMessageModel
 				{
 					Id = lastMessage.Id ?? Guid.NewGuid().ToString(),
 					Content = string.Empty,
@@ -77,22 +77,6 @@ static class SessionIdleHandler
 					IsStreaming = true,
 					IsComplete = false
 				};
-				session.Messages.Add(summaryMsg);
-				Debug.WriteLine($"Added summary message to chat: {summaryMsg.Id}");
-
-				if(onStreamSummary is not null)
-				{
-					// Stream progressively for the current (visible) session
-					_ = onStreamSummary(summaryMsg, lastMessage.Message);
-				}
-				else
-				{
-					// For background sessions, set the content immediately
-					summaryMsg.Content = lastMessage.Message;
-					summaryMsg.IsStreaming = false;
-					summaryMsg.IsComplete = true;
-				}
-				hasSummary = true;
 			}
 
 			// Add termination event to operation list AFTER extracting summary
@@ -115,7 +99,33 @@ static class SessionIdleHandler
 				});
 			}
 
+			// Determine anchor index: the position we'll insert after
+			// Priority: InitialMessageId (assistant first msg) > TriggeredByUserMessageId > last non-pending user msg
+			int anchorIndex = -1;
+			if(!string.IsNullOrEmpty(group.InitialMessageId))
+			{
+				anchorIndex = session.Messages.FindIndex(m => m.Id == group.InitialMessageId);
+			}
+			else if(!string.IsNullOrEmpty(group.TriggeredByUserMessageId))
+			{
+				anchorIndex = session.Messages.FindIndex(m => m.Id == group.TriggeredByUserMessageId);
+			}
+
+			if(anchorIndex < 0)
+			{
+				// Fallback: find last non-pending, complete user message
+				for(int i = session.Messages.Count - 1; i >= 0; i--)
+				{
+					if(session.Messages[i].IsUser && session.Messages[i].IsComplete && !session.Messages[i].IsPending)
+					{
+						anchorIndex = i;
+						break;
+					}
+				}
+			}
+
 			// Only insert an activity group into chat when there were actual tool operations
+			int activityInsertedAt = -1;
 			if(group.Tools.Any() || groupStatus == GroupStatusEnum.Error)
 			{
 				ChatMessageModel activityMessage = new()
@@ -127,45 +137,60 @@ static class SessionIdleHandler
 					Content = group.Tools.Any() ? GenerateActivitySummary(group) : "Aborted"
 				};
 
-				if(!string.IsNullOrEmpty(group.InitialMessageId))
+				int activityIndex;
+				if(anchorIndex >= 0)
 				{
-					int initialIndex = session.Messages.FindIndex(m => m.Id == group.InitialMessageId);
-					if(initialIndex >= 0)
-					{
-						session.Messages.Insert(initialIndex + 1, activityMessage);
-						Debug.WriteLine($"Inserted activity group at index {initialIndex + 1}");
-					}
-					else
-					{
-						int insertIndex = hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
-						session.Messages.Insert(insertIndex, activityMessage);
-					}
+					activityIndex = anchorIndex + 1;
+				}
+				else if(session.Messages.Count > 0)
+				{
+					activityIndex = session.Messages.Count;
+					Debug.WriteLine($"WARNING: No anchor found, appending activity group");
 				}
 				else
 				{
-					int lastUserIndex = -1;
-					int searchLimit = hasSummary ? session.Messages.Count - 2 : session.Messages.Count - 1;
-					for(int i = searchLimit; i >= 0; i--)
-					{
-						// Skip pending or not-yet-confirmed user messages — they belong to a future turn
-						if(session.Messages[i].IsUser && session.Messages[i].IsComplete && !session.Messages[i].IsPending)
-						{
-							lastUserIndex = i;
-							break;
-						}
-					}
+					activityIndex = 0;
+				}
 
-					int insertIndex = lastUserIndex >= 0 ? lastUserIndex + 1 : hasSummary ? Math.Max(0, session.Messages.Count - 1) : session.Messages.Count;
+				session.Messages.Insert(activityIndex, activityMessage);
+				activityInsertedAt = activityIndex;
+				Debug.WriteLine($"Inserted activity group at index {activityIndex} (anchor={anchorIndex})");
+			}
 
-					// Ensure we never insert at index 0 if there are messages
-					if(insertIndex == 0 && session.Messages.Count > 0)
-					{
-						insertIndex = session.Messages.Count;
-						Debug.WriteLine($"WARNING: Attempted to insert activity group at index 0, moved to end");
-					}
+			// Insert summary: right after activity (if any), otherwise right after anchor, otherwise before first pending
+			if(summaryMsg is not null)
+			{
+				int summaryIndex;
+				if(activityInsertedAt >= 0)
+				{
+					// Place summary right after the activity group
+					summaryIndex = activityInsertedAt + 1;
+				}
+				else if(anchorIndex >= 0)
+				{
+					summaryIndex = anchorIndex + 1;
+				}
+				else
+				{
+					// No anchor — fall back to inserting before the first pending message
+					int pendingIdx = session.Messages.FindIndex(m => m.IsUser && m.IsPending);
+					summaryIndex = pendingIdx >= 0 ? pendingIdx : session.Messages.Count;
+				}
 
-					session.Messages.Insert(insertIndex, activityMessage);
-					Debug.WriteLine($"Inserted activity group at index {insertIndex} (lastUserIndex={lastUserIndex}, hasSummary={hasSummary}, Count={session.Messages.Count})");
+				session.Messages.Insert(summaryIndex, summaryMsg);
+				Debug.WriteLine($"Added summary message to chat at index {summaryIndex}: {summaryMsg.Id}");
+
+				if(onStreamSummary is not null)
+				{
+					// Stream progressively for the current (visible) session
+					_ = onStreamSummary(summaryMsg, lastMessage!.Message);
+				}
+				else
+				{
+					// For background sessions, set the content immediately
+					summaryMsg.Content = lastMessage!.Message;
+					summaryMsg.IsStreaming = false;
+					summaryMsg.IsComplete = true;
 				}
 			}
 

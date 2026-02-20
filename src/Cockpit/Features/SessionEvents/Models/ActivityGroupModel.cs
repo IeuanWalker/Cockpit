@@ -8,7 +8,8 @@ public class ActivityGroupModel
 	public bool IsExpanded { get; set; } = false;
 	public List<ThinkingEventModel> Events { get; set; } = []; // Chronological list of messages and tools
 	public GroupStatusEnum Status { get; set; } = GroupStatusEnum.Running;
-	public string? InitialMessageId { get; set; } // Track the initial message to insert after it
+	public string? InitialMessageId { get; set; } // Track the initial assistant message to insert after it
+	public string? TriggeredByUserMessageId { get; set; } // Track the user message that triggered this turn
 
 	readonly Lock _eventsLock = new();
 

@@ -41,8 +41,8 @@ public sealed class SessionEventProcessor
 					UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
 					break;
 
-				case AssistantTurnStartEvent:
-					AssistantTurnStartHandler.Handle(session);
+				case AssistantTurnStartEvent turnStart:
+					AssistantTurnStartHandler.Handle(session, turnStart);
 					break;
 
 				case AssistantMessageDeltaEvent deltaMsg:

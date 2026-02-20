@@ -129,6 +129,73 @@ public class UserMessageHandlerTests
 	}
 
 	[Fact]
+	public void Handle_OptimisticMessage_PreservesId_WhenConfirmed()
+	{
+		ChatSession session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+		string optimisticId = "optimistic-1";
+
+		session.Messages.Add(new ChatMessageModel
+		{
+			Id = optimisticId,
+			Content = "Queued message",
+			IsUser = true,
+			IsComplete = false
+		});
+
+		processor.Process(session, new UserMessageEvent
+		{
+			Data = new UserMessageData { Content = "Queued message" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		ChatMessageModel msg = session.Messages.Single(m => m.IsUser && m.Content == "Queued message");
+		msg.Id.ShouldBe(optimisticId);
+		msg.IsComplete.ShouldBeTrue();
+	}
+
+	[Fact]
+	public void Handle_OptimisticMessagesWithSameContent_ConfirmInFifoOrder()
+	{
+		ChatSession session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+
+		ChatMessageModel first = new()
+		{
+			Id = "m1",
+			Content = "and again",
+			IsUser = true,
+			IsComplete = false,
+			IsPending = true
+		};
+		ChatMessageModel second = new()
+		{
+			Id = "m2",
+			Content = "and again",
+			IsUser = true,
+			IsComplete = false,
+			IsPending = true
+		};
+		session.Messages.Add(first);
+		session.Messages.Add(second);
+
+		processor.Process(session, new UserMessageEvent
+		{
+			Data = new UserMessageData { Content = "and again" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		first.IsComplete.ShouldBeTrue();
+		second.IsComplete.ShouldBeFalse();
+
+		processor.Process(session, new UserMessageEvent
+		{
+			Data = new UserMessageData { Content = "and again" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		second.IsComplete.ShouldBeTrue();
+	}
+
+	[Fact]
 	public void AssistantTurnStart_ClearsPendingFromOldestMessage()
 	{
 		// Arrange: two pending messages
@@ -145,6 +212,35 @@ public class UserMessageHandlerTests
 
 		// Assert: only the FIRST pending message is activated
 		pending1.IsPending.ShouldBeFalse();
+		pending2.IsPending.ShouldBeTrue();
+	}
+
+	[Fact]
+	public void AssistantTurnStart_NonInitialTurn_DoesNotClearNextPendingMessage()
+	{
+		ChatSession session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+
+		ChatMessageModel pending1 = new() { Content = "First", IsUser = true, IsComplete = true, IsPending = true };
+		ChatMessageModel pending2 = new() { Content = "Second", IsUser = true, IsComplete = true, IsPending = true };
+		session.Messages.Add(pending1);
+		session.Messages.Add(pending2);
+
+		// Initial turn for first queued message should activate only the first pending message.
+		processor.Process(session, new AssistantTurnStartEvent
+		{
+			Data = new AssistantTurnStartData { TurnId = "0" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		pending1.IsPending.ShouldBeFalse();
+		pending2.IsPending.ShouldBeTrue();
+
+		// Follow-up turn within the same response should NOT activate the next pending message.
+		processor.Process(session, new AssistantTurnStartEvent
+		{
+			Data = new AssistantTurnStartData { TurnId = "1" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
 		pending2.IsPending.ShouldBeTrue();
 	}
 
