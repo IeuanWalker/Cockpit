@@ -39,6 +39,7 @@ public static class MauiProgram
 #endif
 
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
+		builder.Services.AddSingleton<Microsoft.Maui.Media.ITextToSpeech>(Microsoft.Maui.Media.TextToSpeech.Default);
 		builder.Services.AddSingleton<TextToSpeechFeature>();
 
 		// Register application services
