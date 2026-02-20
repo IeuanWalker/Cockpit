@@ -8,6 +8,8 @@ public partial class ConnectionStatus : ComponentBase, IDisposable
 	[Inject] ConnectionFeature _feature { get; set; } = default!;
 
 	bool _showPopup = false;
+	bool _showHistoryPopup = false;
+	readonly HashSet<int> _expandedHistoryIndices = [];
 
 	string _statusClass => _feature.Status switch
 	{
@@ -39,6 +41,23 @@ public partial class ConnectionStatus : ComponentBase, IDisposable
 
 	void OpenPopup() => _showPopup = true;
 	void ClosePopup() => _showPopup = false;
+
+	void OpenHistoryPopup()
+	{
+		_showPopup = false;
+		_expandedHistoryIndices.Clear();
+		_showHistoryPopup = true;
+	}
+
+	void CloseHistoryPopup() => _showHistoryPopup = false;
+
+	void ToggleHistoryItem(int index)
+	{
+		if(!_expandedHistoryIndices.Remove(index))
+		{
+			_expandedHistoryIndices.Add(index);
+		}
+	}
 
 	public void Dispose()
 	{

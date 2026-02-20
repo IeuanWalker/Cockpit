@@ -7,6 +7,8 @@ namespace Cockpit.Features.Connection;
 
 public enum ConnectionHealthStatus { Unknown, Checking, Connected, Disconnected }
 
+public record ConnectionCheckRecord(ConnectionHealthStatus Status, DateTime CheckedAt, string ResponseJson);
+
 /// <summary>
 /// Singleton feature that periodically pings the Copilot backend and exposes connection health state.
 /// </summary>
@@ -22,6 +24,9 @@ public sealed class ConnectionFeature : IDisposable
 	public ConnectionHealthStatus Status { get; private set; } = ConnectionHealthStatus.Unknown;
 	public PingResponse? LastResponse { get; private set; }
 	public DateTime? LastChecked { get; private set; }
+	public IReadOnlyList<ConnectionCheckRecord> History => _history;
+
+	readonly List<ConnectionCheckRecord> _history = [];
 
 	const int PollIntervalSeconds = 20;
 
@@ -61,6 +66,8 @@ public sealed class ConnectionFeature : IDisposable
 		LastResponse = await _clientService.PingAsync();
 		LastChecked = DateTime.Now;
 		Status = LastResponse is not null ? ConnectionHealthStatus.Connected : ConnectionHealthStatus.Disconnected;
+
+		_history.Add(new ConnectionCheckRecord(Status, LastChecked.Value, GetResponseJson()));
 
 		_logger.LogDebug("Ping result: {Status}", Status);
 		OnStatusChanged?.Invoke();
