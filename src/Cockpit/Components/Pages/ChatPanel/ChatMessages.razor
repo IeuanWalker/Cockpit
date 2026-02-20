@@ -25,12 +25,16 @@
                     <!-- User Message -->
                     <div class="flex justify-end">
                         <div class="max-w-2xl flex flex-col items-end">
-                            <div class="chat-bubble rounded-lg px-4 py-2.5 @(!message.IsComplete ? "sending" : "")">
+                            <div class="chat-bubble rounded-lg px-4 py-2.5 @(!message.IsComplete ? "sending" : message.IsPending ? "pending" : "")">
                                 <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
                             </div>
                             @if(!message.IsComplete)
                             {
                                 <span class="text-xs mt-1 secondary-text italic">Sending...</span>
+                            }
+                            else if(message.IsPending)
+                            {
+                                <span class="text-xs mt-1 secondary-text italic">Pending...</span>
                             }
                         </div>
                     </div>

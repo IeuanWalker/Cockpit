@@ -143,7 +143,8 @@ static class SessionIdleHandler
 				int searchLimit = hasSummary ? session.Messages.Count - 2 : session.Messages.Count - 1;
 				for(int i = searchLimit; i >= 0; i--)
 				{
-					if(session.Messages[i].IsUser)
+					// Skip pending or not-yet-confirmed user messages — they belong to a future turn
+					if(session.Messages[i].IsUser && session.Messages[i].IsComplete && !session.Messages[i].IsPending)
 					{
 						lastUserIndex = i;
 						break;

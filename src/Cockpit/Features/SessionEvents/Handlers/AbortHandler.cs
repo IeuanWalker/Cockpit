@@ -12,5 +12,11 @@ static class AbortHandler
 		logger.LogWarning("Session {SessionId} aborted: {Reason}", session.Id, evt.Data.Reason);
 
 		SessionIdleHandler.Handle(session, DateTimeOffset.Now, null, GroupStatusEnum.Error);
+
+		// Clear any pending messages — they will never be processed after an abort
+		foreach(ChatMessageModel msg in session.Messages.Where(m => m.IsPending))
+		{
+			msg.IsPending = false;
+		}
 	}
 }

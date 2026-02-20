@@ -31,12 +31,14 @@ public sealed class SessionEventProcessor
 			switch(evt)
 			{
 				case UserMessageEvent userMsg:
+					// Capture whether the agent was mid-turn before the safety-net finalises the group
+					bool wasAgentBusy = session.ActiveWorkingGroup is not null;
 					// Safety net: finalize any prior group not yet closed by SessionIdleEvent
-					if(session.ActiveWorkingGroup is not null)
+					if(wasAgentBusy)
 					{
 						SessionIdleHandler.Handle(session);
 					}
-					UserMessageHandler.Handle(session, userMsg);
+					UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
 					break;
 
 				case AssistantTurnStartEvent:

@@ -7,7 +7,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class UserMessageHandler
 {
-	internal static void Handle(ChatSession session, UserMessageEvent evt)
+	internal static void Handle(ChatSession session, UserMessageEvent evt, bool wasAgentBusy = false)
 	{
 		Debug.WriteLine("UserMessageHandler");
 		Debug.WriteLine(evt);
@@ -27,6 +27,8 @@ static class UserMessageHandler
 			optimistic.Timestamp = evt.Timestamp;
 			optimistic.EventType = evt.Type;
 			optimistic.IsComplete = true;
+			// If the agent was busy when this message arrived, mark it as pending
+			optimistic.IsPending = wasAgentBusy;
 		}
 		else
 		{
@@ -37,7 +39,8 @@ static class UserMessageHandler
 				IsUser = true,
 				Timestamp = evt.Timestamp,
 				Type = MessageTypeEnum.Text,
-				EventType = evt.Type
+				EventType = evt.Type,
+				IsPending = wasAgentBusy
 			};
 			session.Messages.Add(message);
 		}

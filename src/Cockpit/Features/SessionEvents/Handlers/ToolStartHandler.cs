@@ -33,7 +33,8 @@ static class ToolStartHandler
 			int lastUserIndex = -1;
 			for(int i = session.Messages.Count - 1; i >= 0; i--)
 			{
-				if(session.Messages[i].IsUser)
+				// Skip pending or not-yet-confirmed user messages — they belong to a future turn
+				if(session.Messages[i].IsUser && session.Messages[i].IsComplete && !session.Messages[i].IsPending)
 				{
 					lastUserIndex = i;
 					break;

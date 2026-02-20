@@ -14,6 +14,11 @@ public class ChatMessageModel
 	public string? ReasoningContent { get; set; }
 	public Dictionary<string, object>? Metadata { get; set; }
 	public ActivityGroupModel? ActivityGroup { get; set; }
+	/// <summary>
+	/// True when this user message was sent while the agent was busy (confirmed by SDK but not yet processed).
+	/// Cleared when the agent picks it up (AssistantTurnStartEvent).
+	/// </summary>
+	public bool IsPending { get; set; }
 }
 
 public enum MessageTypeEnum
