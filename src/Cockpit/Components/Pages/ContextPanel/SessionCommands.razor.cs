@@ -1,5 +1,5 @@
 using Cockpit.Features.Permissions;
-using Cockpit.Services;
+using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
@@ -7,7 +7,7 @@ namespace Cockpit.Components.Pages.ContextPanel;
 public sealed partial class SessionCommands : ComponentBase, IDisposable
 {
 	[Inject] SessionPermissionFeature _sessionPermissionFeature { get; set; } = null!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = null!;
+	[Inject] SessionListFeature _sessionManager { get; set; } = null!;
 
 	public List<string> Commands { get; set; } = [];
 

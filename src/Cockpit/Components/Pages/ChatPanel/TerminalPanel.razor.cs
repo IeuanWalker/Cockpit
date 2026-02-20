@@ -1,5 +1,5 @@
 using Cockpit.Features.Terminal;
-using Cockpit.Services;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
@@ -11,7 +11,7 @@ public partial class TerminalPanel : IDisposable
 {
 	[Inject] TerminalFeature _terminalFeature { get; set; } = default!;
 	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
-	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
 	[Inject] ILogger<TerminalPanel> _logger { get; set; } = default!;
 
 	[Parameter] public bool IsOpen { get; set; }

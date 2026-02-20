@@ -23,33 +23,33 @@
         <!-- Settings Content -->
         <div class="settings-popup-content">
             <nav class="settings-menu border-r border-vscode-border">
-                <button class="settings-menu-item @(_activeSection == SettingsSection.Appearance ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSection.Appearance)">
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Appearance ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Appearance)">
                     <span class="text-sm font-medium text-vscode-title">Appearance</span>
                     <span class="text-xs secondary-text">Theme, accent</span>
                 </button>
-                <button class="settings-menu-item @(_activeSection == SettingsSection.Commands ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSection.Commands)">
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Commands ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Commands)">
                     <span class="text-sm font-medium text-vscode-title">Commands</span>
                     <span class="text-xs secondary-text">Allowlist, tools</span>
                 </button>
-                <button class="settings-menu-item @(_activeSection == SettingsSection.Input ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSection.Input)">
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Input ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Input)">
                     <span class="text-sm font-medium text-vscode-title">Input settings</span>
                     <span class="text-xs secondary-text">Enter behavior</span>
                 </button>
-                <button class="settings-menu-item @(_activeSection == SettingsSection.Voice ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSection.Voice)">
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Voice ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Voice)">
                     <span class="text-sm font-medium text-vscode-title">Voice</span>
                     <span class="text-xs secondary-text">Mic, transcription</span>
                 </button>
-                <button class="settings-menu-item @(_activeSection == SettingsSection.Sounds ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSection.Sounds)">
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Sounds ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Sounds)">
                     <span class="text-sm font-medium text-vscode-title">Sounds</span>
                     <span class="text-xs secondary-text">Alerts, feedback</span>
                 </button>
-                <button class="settings-menu-item @(_activeSection == SettingsSection.Diagnostics ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSection.Diagnostics)">
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Diagnostics ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Diagnostics)">
                     <span class="text-sm font-medium text-vscode-title">Diagnostics</span>
                     <span class="text-xs secondary-text">Logs, telemetry</span>
                 </button>
@@ -57,22 +57,22 @@
             <div class="settings-panel">
                 @switch(_activeSection)
                 {
-                    case SettingsSection.Appearance:
+                    case SettingsSectionEnum.Appearance:
                         <AppearanceSettings />
                         break;
-                    case SettingsSection.Input:
+                    case SettingsSectionEnum.Input:
                         <InputSettings />
                         break;
-                    case SettingsSection.Commands:
+                    case SettingsSectionEnum.Commands:
                         <PermissionSettings />
                         break;
-                    case SettingsSection.Voice:
+                    case SettingsSectionEnum.Voice:
                         <VoiceSettings />
                         break;
-                    case SettingsSection.Sounds:
+                    case SettingsSectionEnum.Sounds:
                         <SoundSettings />
                         break;
-                    case SettingsSection.Diagnostics:
+                    case SettingsSectionEnum.Diagnostics:
                         <DiagnosticsSettings />
                         break;
                 }

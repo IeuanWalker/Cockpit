@@ -209,7 +209,7 @@ public class SessionIdleHandlerTests
 		// Final expected order: msg1, [turn1 if any], msg2, activity2, msg3, activity3
 		int finalMsg2Idx = session.Messages.FindIndex(m => m.Id == "msg2");
 		int finalMsg3Idx = session.Messages.FindIndex(m => m.Id == "msg3");
-		List<ChatMessageModel> activities = session.Messages.Where(m => m.Type == MessageTypeEnum.ActivityGroup).ToList();
+		List<ChatMessageModel> activities = [.. session.Messages.Where(m => m.Type == MessageTypeEnum.ActivityGroup)];
 		activities.Count.ShouldBe(2);
 
 		int activity3Idx = session.Messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup && m.ActivityGroup?.Tools.Any(t => t.ToolCallId == "tc3") == true);

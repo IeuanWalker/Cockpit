@@ -1,15 +1,16 @@
 using Cockpit.Features.Permissions;
-using Cockpit.Services;
+using Cockpit.Features.Sessions;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
 public sealed partial class AllowedCommands : ComponentBase, IDisposable
 {
-	[Inject] UIStateService _uiState { get; set; } = null!;
+	[Inject] UIStateFeature _uiState { get; set; } = null!;
 	[Inject] GlobalPermissionFeature _globalPermissionFeature { get; set; } = null!;
 	[Inject] SessionPermissionFeature _sessionPermissionFeature { get; set; } = null!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = null!;
+	[Inject] SessionListFeature _sessionManager { get; set; } = null!;
 
 	public int TotalCommandsCount { get; set; }
 

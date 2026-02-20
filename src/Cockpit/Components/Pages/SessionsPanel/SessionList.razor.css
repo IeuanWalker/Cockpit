@@ -5,3 +5,15 @@
 .session-item:hover .session-delete-btn {
     opacity: 1;
 }
+
+.status-needs-permission {
+    color: #FFA500;
+}
+
+.status-running {
+    color: #FFB900;
+}
+
+.status-finished {
+    color: #10893E;
+}

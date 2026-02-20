@@ -20,10 +20,7 @@ static class AssistantTurnStartHandler
 		if(shouldActivatePendingMessage)
 		{
 			activatedPendingMsg = session.Messages.FirstOrDefault(m => m.IsUser && m.IsPending);
-			if(activatedPendingMsg is not null)
-			{
-				activatedPendingMsg.IsPending = false;
-			}
+			activatedPendingMsg?.IsPending = false;
 		}
 
 		// Create working group immediately so the panel shows while the model thinks

@@ -1,14 +1,18 @@
 using Blazor.Sonner.Extensions;
 using Blazor.Sonner.Services;
+using Cockpit.Features.AppSettings;
 using Cockpit.Features.Connection;
+using Cockpit.Features.CopilotModels;
 using Cockpit.Features.Markdown;
 using Cockpit.Features.Permissions;
+using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
+using Cockpit.Features.Sessions;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.TextToSpeech;
 using Cockpit.Features.Theme;
 using Cockpit.Features.Timestamp;
-using Cockpit.Services;
+using Cockpit.Features.UIState;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -45,39 +49,30 @@ public static class MauiProgram
 		builder.Services.AddSingleton<TextToSpeechFeature>();
 
 		// Register application services
+		builder.Services.AddSingleton<IAppSettingsFeature, AppSettingsFeature>();
 		builder.Services.AddScoped<ThemeFeature>();
 		builder.Services.AddScoped<MarkdownFeature>();
-		builder.Services.AddSingleton<UIStateService>();
+		builder.Services.AddSingleton<UIStateFeature>();
 		builder.Services.AddSingleton<TimestampFeature>();
 		builder.Services.AddSingleton<TerminalFeature>();
 
 		// Register Copilot SDK services
-		builder.Services.AddSingleton<CopilotClientService>();
+		builder.Services.AddSingleton<CopilotClientFeature>();
 		builder.Services.AddSingleton<ConnectionFeature>();
 		builder.Services.AddSingleton<GlobalPermissionFeature>();
 		builder.Services.AddSingleton<SessionPermissionFeature>();
 		builder.Services.AddSingleton<SessionEventProcessor>();
 
-		// Register UnifiedSessionManager first (no PermissionFeature dependency in constructor)
-		builder.Services.AddSingleton<UnifiedSessionManager>();
-		builder.Services.AddSingleton<ISessionStateProvider>(sp => sp.GetRequiredService<UnifiedSessionManager>());
+		// Register session management
+		builder.Services.AddSingleton<SessionListFeature>();
+		builder.Services.AddSingleton<ISessionStateProvider>(sp => sp.GetRequiredService<SessionListFeature>());
+		builder.Services.AddSingleton<SessionFeature>();
 
-		// Register PermissionFeature (depends on ISessionStateProvider)
-		builder.Services.AddSingleton<PermissionFeature>(sp =>
-		{
-			PermissionFeature permissionFeature = new(
-				sp.GetRequiredService<GlobalPermissionFeature>(),
-				sp.GetRequiredService<SessionPermissionFeature>(),
-				sp.GetRequiredService<ISessionStateProvider>(),
-				sp.GetRequiredService<ILogger<PermissionFeature>>());
+		// Register PermissionFeature
+		builder.Services.AddSingleton<PermissionFeature>();
+		builder.Services.AddSingleton<IPermissionHandler>(sp => sp.GetRequiredService<PermissionFeature>());
 
-			// Wire up the circular reference
-			sp.GetRequiredService<UnifiedSessionManager>().SetPermissionFeature(permissionFeature);
-
-			return permissionFeature;
-		});
-
-		builder.Services.AddSingleton<CopilotModelService>();
+		builder.Services.AddSingleton<CopilotModelFeature>();
 
 		return builder.Build();
 	}
@@ -89,7 +84,7 @@ public static class MauiProgram
 /// </summary>
 public class Program
 {
-	public static void Main(string[] args)
+	public static void Main(string[] _)
 	{
 
 	}

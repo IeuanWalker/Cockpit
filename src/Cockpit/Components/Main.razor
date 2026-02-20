@@ -1,6 +1,6 @@
 @using Cockpit.Components.Pages.ChatPanel
 
-@if(SessionManager.CurrentSession is null)
+@if(_sessionManager.CurrentSession is null)
 {
     <NoSelectedSession />
 }

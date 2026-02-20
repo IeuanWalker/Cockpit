@@ -1,18 +1,15 @@
-using Cockpit.Features.Permissions;
-using Cockpit.Services;
+using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components;
 
 public partial class Main : ComponentBase, IDisposable
 {
-	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
-	[Inject] PermissionFeature PermissionFeature { get; set; } = default!;
+	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 
 	protected override async Task OnInitializedAsync()
 	{
-		_ = PermissionFeature;
-		SessionManager.OnStateChanged += OnStateChanged;
+		_sessionManager.OnStateChanged += OnStateChanged;
 	}
 
 	void OnStateChanged()
@@ -30,7 +27,7 @@ public partial class Main : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			SessionManager.OnStateChanged -= OnStateChanged;
+			_sessionManager.OnStateChanged -= OnStateChanged;
 		}
 	}
 }

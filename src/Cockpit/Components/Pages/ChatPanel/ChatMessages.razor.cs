@@ -1,6 +1,7 @@
 using Blazor.Sonner.Services;
+using Cockpit.Features.Sessions;
 using Cockpit.Features.TextToSpeech;
-using Cockpit.Services;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -8,10 +9,10 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class ChatMessages : ComponentBase, IAsyncDisposable
 {
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
 	[Inject] TextToSpeechFeature _textToSpeechFeature { get; set; } = default!;
-	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
 	[Inject] ToastService _toastService { get; set; } = default!;
 
 	DotNetObjectReference<ChatMessages>? _dotNetRef;

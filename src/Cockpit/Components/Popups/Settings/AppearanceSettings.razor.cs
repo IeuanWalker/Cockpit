@@ -1,5 +1,5 @@
 using Cockpit.Features.Theme;
-using Cockpit.Services;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Popups.Settings;
@@ -7,7 +7,7 @@ namespace Cockpit.Components.Popups.Settings;
 public partial class AppearanceSettings : ComponentBase, IDisposable
 {
 	string _customColor = "#0078D4";
-	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
 	[Inject] ThemeFeature _themeService { get; set; } = default!;
 
 	protected override void OnInitialized()

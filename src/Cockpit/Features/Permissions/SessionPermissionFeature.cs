@@ -1,12 +1,12 @@
 using System.Text.Json;
+using Cockpit.Features.Sessions;
 using Cockpit.Models;
-using Cockpit.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Cockpit.Features.Permissions;
 
-public class SessionPermissionFeature
+public sealed class SessionPermissionFeature
 {
 	readonly ISessionStateProvider _sessionStateProvider;
 	readonly ILogger<SessionPermissionFeature> _logger;

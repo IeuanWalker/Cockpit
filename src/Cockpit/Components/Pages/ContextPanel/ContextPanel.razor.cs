@@ -1,4 +1,5 @@
-using Cockpit.Services;
+using Cockpit.Features.UIState;
+
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -7,7 +8,7 @@ namespace Cockpit.Components.Pages.ContextPanel;
 public partial class ContextPanel : ComponentBase, IDisposable
 {
 	DotNetObjectReference<ContextPanel>? _dotNetHelper;
-	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
 	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
 
 	protected override void OnInitialized()

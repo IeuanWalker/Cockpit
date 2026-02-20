@@ -1,12 +1,13 @@
-using Cockpit.Services;
+using Cockpit.Features.Sessions;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class MCPServers : ComponentBase, IDisposable
 {
-	[Inject] UIStateService _uiState { get; set; } = null!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = null!;
+	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 
 	string McpServerUrl => _sessionManager.CurrentSession?.Context?.McpServerUrl ?? string.Empty;
 	bool McpServerConnected => _sessionManager.CurrentSession?.Context?.McpServerConnected ?? false;

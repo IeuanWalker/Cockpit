@@ -1,4 +1,5 @@
-using Cockpit.Services;
+using Cockpit.Features.CopilotModels;
+using Cockpit.Features.Sessions;
 using GitHub.Copilot.SDK;
 using Microsoft.AspNetCore.Components;
 
@@ -6,8 +7,8 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class ModelControl : ComponentBase, IDisposable
 {
-	[Inject] CopilotModelService _modelService { get; set; } = default!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] CopilotModelFeature _copilotModelFeature { get; set; } = default!;
+	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 
 	List<ModelInfo> _availableModels = [];
 	bool _isModelDropdownOpen = false;
@@ -17,7 +18,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 	{
 		_sessionManager.OnStateChanged += OnStateChanged;
 
-		_availableModels = await _modelService.GetModels();
+		_availableModels = await _copilotModelFeature.GetModels();
 		if(_availableModels.Count > 0)
 		{
 			// TODO: Default model logic

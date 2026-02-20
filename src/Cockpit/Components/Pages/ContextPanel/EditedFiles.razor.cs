@@ -1,13 +1,14 @@
+using Cockpit.Features.Sessions;
+using Cockpit.Features.UIState;
 using Cockpit.Models;
-using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class EditedFiles : ComponentBase, IDisposable
 {
-	[Inject] UIStateService _uiState { get; set; } = null!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = null!;
+	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 
 	List<ContextFile> Files => _sessionManager.CurrentSession?.Context?.EditedFiles ?? [];
 

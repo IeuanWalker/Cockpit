@@ -1,5 +1,6 @@
+using Cockpit.Features.Sessions;
 using Cockpit.Features.Timestamp;
-using Cockpit.Services;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
@@ -9,8 +10,8 @@ namespace Cockpit.Components.Pages.ChatPanel;
 public partial class ChatPanel : ComponentBase, IAsyncDisposable
 {
 	[Inject] TimestampFeature _timestampFeature { get; set; } = default!;
-	[Inject] UIStateService _uiState { get; set; } = default!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
+	[Inject] SessionFeature _sessionManager { get; set; } = default!;
 	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
 	[Inject] ILogger<Main> _logger { get; set; } = default!;
 

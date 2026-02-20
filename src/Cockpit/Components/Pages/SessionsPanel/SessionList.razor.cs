@@ -1,6 +1,7 @@
+using Cockpit.Features.Sessions;
 using Cockpit.Features.Timestamp;
+using Cockpit.Features.UIState;
 using Cockpit.Models;
-using Cockpit.Services;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -10,8 +11,8 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 public partial class SessionList : ComponentBase, IDisposable
 {
 	[Inject] TimestampFeature _timestampFeature { get; set; } = default!;
-	[Inject] UIStateService _uiState { get; set; } = default!;
-	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
+	[Inject] SessionFeature _sessionManager { get; set; } = default!;
 
 	bool _showDeleteDialog = false;
 	ChatSession? _sessionToDelete;
@@ -37,21 +38,10 @@ public partial class SessionList : ComponentBase, IDisposable
 	{
 		return session.Status switch
 		{
-			SessionStatus.NeedsPermission => string.Empty,
-			SessionStatus.Running => string.Empty,
-			SessionStatus.Finished => string.Empty,
+			SessionStatus.NeedsPermission => "status-needs-permission",
+			SessionStatus.Running => "status-running",
+			SessionStatus.Finished => "status-finished",
 			_ => "secondary-text"
-		};
-	}
-
-	static string GetSessionStatusStyle(ChatSession session)
-	{
-		return session.Status switch
-		{
-			SessionStatus.NeedsPermission => "color: #FFA500;",
-			SessionStatus.Running => "color: #FFB900;",
-			SessionStatus.Finished => "color: #10893E;",
-			_ => ""
 		};
 	}
 

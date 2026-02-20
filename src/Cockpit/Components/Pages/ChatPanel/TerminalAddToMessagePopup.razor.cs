@@ -1,4 +1,4 @@
-using Cockpit.Services;
+using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
@@ -8,7 +8,7 @@ namespace Cockpit.Components.Pages.ChatPanel;
 public partial class TerminalAddToMessagePopup : ComponentBase
 {
 	[Inject] IJSRuntime _js { get; set; } = default!;
-	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
 	[Inject] ILogger<TerminalAddToMessagePopup> _logger { get; set; } = default!;
 
 	[Parameter] public bool IsOpen { get; set; }

@@ -1,5 +1,5 @@
 using System.Globalization;
-using Cockpit.Services;
+using Cockpit.Features.UIState;
 using CommunityToolkit.Maui.Media;
 using Microsoft.AspNetCore.Components;
 
@@ -7,7 +7,7 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public sealed partial class SpeechToTextControl : ComponentBase, IDisposable
 {
-	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Inject] UIStateFeature _uiState { get; set; } = default!;
 	[Inject] ISpeechToText _speechToText { get; set; } = default!;
 
 	[Parameter]

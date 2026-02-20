@@ -1,15 +1,22 @@
-using Cockpit.Components.Popups.Settings;
+using Cockpit.Features.AppSettings;
 using Cockpit.Features.TextToSpeech;
 
-namespace Cockpit.Services;
+namespace Cockpit.Features.UIState;
 
-public class UIStateService
+public class UIStateFeature
 {
 	readonly TextToSpeechFeature _textToSpeechFeature;
+	readonly IAppSettingsFeature _appSettingsFeature;
 
-	public UIStateService(TextToSpeechFeature textToSpeechFeature)
+	public UIStateFeature(TextToSpeechFeature textToSpeechFeature, IAppSettingsFeature appSettingsFeature)
 	{
 		_textToSpeechFeature = textToSpeechFeature;
+		_appSettingsFeature = appSettingsFeature;
+
+		_leftSidebarWidth = appSettingsFeature.LeftSidebarWidth;
+		_rightSidebarWidth = appSettingsFeature.RightSidebarWidth;
+		_sendOnEnter = appSettingsFeature.SendOnEnter;
+		_textToSpeechEnabled = appSettingsFeature.TextToSpeechEnabled;
 	}
 
 	public event Action? OnStateChanged;
@@ -17,25 +24,25 @@ public class UIStateService
 	public bool LeftSidebarCollapsed { get; private set; } = false;
 	public bool RightSidebarCollapsed { get; private set; } = false;
 
-	int _leftSidebarWidth = UserAppSettings.LeftSidebarWidth;
+	int _leftSidebarWidth;
 	public int LeftSidebarWidth
 	{
 		get => _leftSidebarWidth;
 		private set
 		{
 			_leftSidebarWidth = value;
-			UserAppSettings.LeftSidebarWidth = value;
+			_appSettingsFeature.LeftSidebarWidth = value;
 		}
 	}
 
-	int _rightSidebarWidth = UserAppSettings.RightSidebarWidth;
+	int _rightSidebarWidth;
 	public int RightSidebarWidth
 	{
 		get => _rightSidebarWidth;
 		private set
 		{
 			_rightSidebarWidth = value;
-			UserAppSettings.RightSidebarWidth = value;
+			_appSettingsFeature.RightSidebarWidth = value;
 		}
 	}
 
@@ -43,27 +50,27 @@ public class UIStateService
 
 	public bool IsRecording { get; private set; } = false;
 
-	public SettingsSection? PendingSettingsSection { get; private set; } = null;
+	public SettingsSectionEnum? PendingSettingsSection { get; private set; } = null;
 
-	bool _sendOnEnter = UserAppSettings.SendOnEnter;
+	bool _sendOnEnter;
 	public bool SendOnEnter
 	{
 		get => _sendOnEnter;
 		private set
 		{
 			_sendOnEnter = value;
-			UserAppSettings.SendOnEnter = value;
+			_appSettingsFeature.SendOnEnter = value;
 		}
 	}
 
-	bool _textToSpeechEnabled = UserAppSettings.TextToSpeechEnabled;
+	bool _textToSpeechEnabled;
 	public bool TextToSpeechEnabled
 	{
 		get => _textToSpeechEnabled;
 		private set
 		{
 			_textToSpeechEnabled = value;
-			UserAppSettings.TextToSpeechEnabled = value;
+			_appSettingsFeature.TextToSpeechEnabled = value;
 		}
 	}
 
@@ -106,7 +113,7 @@ public class UIStateService
 		}
 	}
 
-	public void OpenSettingsToSection(SettingsSection section)
+	public void OpenSettingsToSection(SettingsSectionEnum section)
 	{
 		PendingSettingsSection = section;
 		if(!SettingsPopupOpen)

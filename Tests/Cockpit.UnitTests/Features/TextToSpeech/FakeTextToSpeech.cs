@@ -1,4 +1,5 @@
 ﻿using Cockpit.Features.TextToSpeech;
+using Cockpit.Features.AppSettings;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Cockpit.UnitTests.Features.TextToSpeech;
@@ -41,8 +42,26 @@ sealed class FakeTextToSpeech : ITextToSpeech
 sealed class TestableTextToSpeechFeature : TextToSpeechFeature
 {
 	public TestableTextToSpeechFeature(ITextToSpeech textToSpeech)
-		: base(textToSpeech, NullLogger<TextToSpeechFeature>.Instance) { }
+		: base(textToSpeech, NullLogger<TextToSpeechFeature>.Instance, new Blazor.Sonner.Services.ToastService(), new MockAppSettingsFeature()) { }
 
 	protected override Task<SpeechOptions> BuildSpeechOptionsAsync()
 		=> Task.FromResult(new SpeechOptions());
+}
+
+/// <summary>
+/// Mock IAppSettingsFeature for testing.
+/// </summary>
+sealed class MockAppSettingsFeature : IAppSettingsFeature
+{
+	public Cockpit.Features.Theme.ThemeEnum Theme { get; set; }
+	public string AccentColor { get; set; } = "";
+	public string AccentHoverColor { get; set; } = "";
+	public bool SendOnEnter { get; set; }
+	public int LeftSidebarWidth { get; set; }
+	public int RightSidebarWidth { get; set; }
+	public bool TextToSpeechEnabled { get; set; }
+	public float VoiceVolume { get; set; }
+	public float VoicePitch { get; set; }
+	public float VoiceRate { get; set; }
+	public string VoiceLocale { get; set; } = "";
 }
