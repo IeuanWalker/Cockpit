@@ -19,6 +19,76 @@
             <span class="text-sm">Disable text to speech</span>
         </button>
     </div>
+
+    @if (_uiState.TextToSpeechEnabled)
+    {
+        <div class="mt-4 space-y-4">
+            <div>
+                <label class="text-sm font-medium text-vscode-title block mb-1">
+                    Volume <span class="secondary-text">(@_volume.ToString("0.00"))</span>
+                </label>
+                <input type="range" min="0" max="1" step="0.05"
+                       value="@_volume"
+                       @oninput="OnVolumeChanged"
+                       class="w-full" />
+            </div>
+
+            <div>
+                <label class="text-sm font-medium text-vscode-title block mb-1">
+                    Pitch <span class="secondary-text">(@_pitch.ToString("0.00"))</span>
+                </label>
+                <input type="range" min="0" max="2" step="0.05"
+                       value="@_pitch"
+                       @oninput="OnPitchChanged"
+                       class="w-full" />
+            </div>
+
+            <div>
+                <label class="text-sm font-medium text-vscode-title block mb-1">
+                    Rate <span class="secondary-text">(@_rate.ToString("0.00"))</span>
+                </label>
+                <input type="range" min="0.1" max="2" step="0.05"
+                       value="@_rate"
+                       @oninput="OnRateChanged"
+                       class="w-full" />
+            </div>
+
+            @if (_locales.Any())
+            {
+                <div>
+                    <label class="text-sm font-medium text-vscode-title block mb-1">Locale</label>
+                    <select value="@_localeId"
+                            @onchange="OnLocaleChanged"
+                            class="w-full px-3 py-2 rounded text-sm"
+                            style="border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                        <option value="">Default</option>
+                        @foreach (var locale in _locales.OrderBy(l => l.Name))
+                        {
+                            <option value="@locale.Id">@locale.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <div class="flex gap-2">
+                <button @onclick="TestVoice"
+                        class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center"
+                        style="border: 1px solid var(--border-color); color: var(--text-color);">
+                    <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="text-sm">Test voice</span>
+                </button>
+                <button @onclick="ResetToDefaults"
+                        class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center"
+                        style="border: 1px solid var(--border-color); color: var(--text-color);">
+                    <svg class="icon-sm mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span class="text-sm">Reset defaults</span>
+                </button>
+            </div>
+        </div>
+    }
 </div>
-
-

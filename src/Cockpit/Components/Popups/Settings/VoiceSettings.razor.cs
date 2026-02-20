@@ -1,15 +1,83 @@
+using Cockpit.Features.TextToSpeech;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
+using MauiTts = Microsoft.Maui.Media.TextToSpeech;
 
 namespace Cockpit.Components.Popups.Settings;
 
 public partial class VoiceSettings : ComponentBase, IDisposable
 {
 	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Inject] TextToSpeechFeature _textToSpeechFeature { get; set; } = default!;
+
+	IEnumerable<Locale> _locales = [];
+	float _volume = UserAppSettings.VoiceVolume;
+	float _pitch = UserAppSettings.VoicePitch;
+	float _rate = UserAppSettings.VoiceRate;
+	string _localeId = UserAppSettings.VoiceLocale;
 
 	protected override void OnInitialized()
 	{
 		_uiState.OnStateChanged += OnStateChanged;
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if(firstRender)
+		{
+			_locales = await MauiTts.Default.GetLocalesAsync();
+			await InvokeAsync(StateHasChanged);
+		}
+	}
+
+	void OnVolumeChanged(ChangeEventArgs e)
+	{
+		if(float.TryParse(e.Value?.ToString(), out float value))
+		{
+			_volume = value;
+			UserAppSettings.VoiceVolume = value;
+		}
+	}
+
+	void OnPitchChanged(ChangeEventArgs e)
+	{
+		if(float.TryParse(e.Value?.ToString(), out float value))
+		{
+			_pitch = value;
+			UserAppSettings.VoicePitch = value;
+		}
+	}
+
+	void OnRateChanged(ChangeEventArgs e)
+	{
+		if(float.TryParse(e.Value?.ToString(), out float value))
+		{
+			_rate = value;
+			UserAppSettings.VoiceRate = value;
+		}
+	}
+
+	void OnLocaleChanged(ChangeEventArgs e)
+	{
+		_localeId = e.Value?.ToString() ?? string.Empty;
+		UserAppSettings.VoiceLocale = _localeId;
+	}
+
+	void ResetToDefaults()
+	{
+		_volume = UserAppSettings.DefaultVoiceVolume;
+		_pitch = UserAppSettings.DefaultVoicePitch;
+		_rate = UserAppSettings.DefaultVoiceRate;
+		_localeId = UserAppSettings.DefaultVoiceLocale;
+		UserAppSettings.VoiceVolume = _volume;
+		UserAppSettings.VoicePitch = _pitch;
+		UserAppSettings.VoiceRate = _rate;
+		UserAppSettings.VoiceLocale = _localeId;
+	}
+
+	async Task TestVoice()
+	{
+		await _textToSpeechFeature.Speak("__test__", "Hello! This is a test of the text to speech settings.");
 	}
 
 	void OnStateChanged()

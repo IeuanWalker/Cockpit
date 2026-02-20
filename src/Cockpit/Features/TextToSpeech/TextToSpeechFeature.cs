@@ -41,9 +41,11 @@ public partial class TextToSpeechFeature
 		CancellationToken token = _cts.Token;
 		string plainText = StripMarkdown(text);
 
+		SpeechOptions options = await BuildSpeechOptionsAsync();
+
 		try
 		{
-			await MauiTts.Default.SpeakAsync(plainText, cancelToken: token);
+			await MauiTts.Default.SpeakAsync(plainText, options, cancelToken: token);
 		}
 		catch(OperationCanceledException)
 		{
@@ -99,6 +101,25 @@ public partial class TextToSpeechFeature
 			ActiveMessageId = null;
 			OnStateChanged?.Invoke();
 		}
+	}
+
+	static async Task<SpeechOptions> BuildSpeechOptionsAsync()
+	{
+		SpeechOptions options = new()
+		{
+			Volume = UserAppSettings.VoiceVolume,
+			Pitch = UserAppSettings.VoicePitch,
+			Rate = UserAppSettings.VoiceRate,
+		};
+
+		string localeId = UserAppSettings.VoiceLocale;
+		if(!string.IsNullOrEmpty(localeId))
+		{
+			IEnumerable<Locale> locales = await MauiTts.Default.GetLocalesAsync();
+			options.Locale = locales.FirstOrDefault(l => l.Id == localeId);
+		}
+
+		return options;
 	}
 
 	static string StripMarkdown(string markdown)

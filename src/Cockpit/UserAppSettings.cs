@@ -59,4 +59,28 @@ public static class UserAppSettings
 		get => Preferences.Default.Get("TextToSpeechEnabled", false);
 		set => Preferences.Default.Set("TextToSpeechEnabled", value);
 	}
+
+	public static float VoiceVolume
+	{
+		get => Preferences.Default.Get("voiceVolume", 1.0f);
+		set => Preferences.Default.Set("voiceVolume", value);
+	}
+
+	public static float VoicePitch
+	{
+		get => Preferences.Default.Get("voicePitch", 1.0f);
+		set => Preferences.Default.Set("voicePitch", value);
+	}
+
+	public static float VoiceRate
+	{
+		get => Preferences.Default.Get("voiceRate", 0.2f);
+		set => Preferences.Default.Set("voiceRate", value);
+	}
+
+	public static string VoiceLocale
+	{
+		get => Preferences.Default.Get("voiceLocale", string.Empty);
+		set => Preferences.Default.Set("voiceLocale", value);
+	}
 }
