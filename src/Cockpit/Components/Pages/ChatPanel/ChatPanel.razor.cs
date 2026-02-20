@@ -114,7 +114,10 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	{
 		string? path = SessionManager.CurrentSession?.WorkspacePath
 						?? SessionManager.CurrentSession?.WorkingDirectory;
-		if(string.IsNullOrEmpty(path)) return;
+		if(string.IsNullOrEmpty(path))
+		{
+			return;
+		}
 
 		try
 		{
