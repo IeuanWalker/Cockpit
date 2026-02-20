@@ -1,4 +1,5 @@
 ﻿using Cockpit.Features.TextToSpeech;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Cockpit.UnitTests.Features.TextToSpeech;
 
@@ -39,7 +40,8 @@ sealed class FakeTextToSpeech : ITextToSpeech
 /// </summary>
 sealed class TestableTextToSpeechFeature : TextToSpeechFeature
 {
-	public TestableTextToSpeechFeature(ITextToSpeech textToSpeech) : base(textToSpeech) { }
+	public TestableTextToSpeechFeature(ITextToSpeech textToSpeech)
+		: base(textToSpeech, NullLogger<TextToSpeechFeature>.Instance) { }
 
 	protected override Task<SpeechOptions> BuildSpeechOptionsAsync()
 		=> Task.FromResult(new SpeechOptions());

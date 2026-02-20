@@ -1,6 +1,8 @@
 using Cockpit.Features.TextToSpeech;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Maui.Media;
+using System.Globalization;
 
 namespace Cockpit.Components.Popups.Settings;
 
@@ -31,7 +33,7 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 
 	void OnVolumeChanged(ChangeEventArgs e)
 	{
-		if(float.TryParse(e.Value?.ToString(), out float value))
+		if(float.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
 		{
 			_volume = value;
 			UserAppSettings.VoiceVolume = value;
@@ -40,7 +42,7 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 
 	void OnPitchChanged(ChangeEventArgs e)
 	{
-		if(float.TryParse(e.Value?.ToString(), out float value))
+		if(float.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
 		{
 			_pitch = value;
 			UserAppSettings.VoicePitch = value;
@@ -49,7 +51,7 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 
 	void OnRateChanged(ChangeEventArgs e)
 	{
-		if(float.TryParse(e.Value?.ToString(), out float value))
+		if(float.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
 		{
 			_rate = value;
 			UserAppSettings.VoiceRate = value;

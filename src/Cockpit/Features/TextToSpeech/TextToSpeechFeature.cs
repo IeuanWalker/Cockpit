@@ -1,4 +1,7 @@
 using System.Text.RegularExpressions;
+using Blazor.Sonner.Services;
+using Microsoft.Extensions.Logging;
+using Microsoft.Maui.Media;
 
 namespace Cockpit.Features.TextToSpeech;
 
@@ -14,12 +17,16 @@ public partial class TextToSpeechFeature : IDisposable
 	public bool IsSpeaking => ActiveMessageId is not null;
 
 	readonly ITextToSpeech _textToSpeech;
+	readonly ILogger<TextToSpeechFeature> _logger;
+	readonly ToastService? _toastService;
 	CancellationTokenSource? _cts;
 	readonly SemaphoreSlim _lock = new(1, 1);
 
-	public TextToSpeechFeature(ITextToSpeech textToSpeech)
+	public TextToSpeechFeature(ITextToSpeech textToSpeech, ILogger<TextToSpeechFeature> logger, ToastService? toastService = null)
 	{
 		_textToSpeech = textToSpeech;
+		_logger = logger;
+		_toastService = toastService;
 	}
 
 	public async Task<IEnumerable<Locale>> GetLocales()
@@ -29,70 +36,63 @@ public partial class TextToSpeechFeature : IDisposable
 
 	public async Task Speak(string messageId, string text)
 	{
-		CancellationTokenSource? localCts = null;
+		CancellationToken token = default;
+
 		await _lock.WaitAsync();
 		try
 		{
+			// If same message is speaking, stop it
+			if(ActiveMessageId == messageId)
+			{
+				await StopCore();
+				return;
+			}
+
+			// Stop any current speech first
+			await StopCore();
+
+			ActiveMessageId = messageId;
+			OnStateChanged?.Invoke();
+
+			_cts = new CancellationTokenSource();
+			token = _cts.Token;  // Capture while holding lock to avoid race with Stop()
+		}
+		finally
+		{
+			_lock.Release();
+		}
+
+		string plainText = StripMarkdown(text);
+
+		try
+		{
+			SpeechOptions options = await BuildSpeechOptionsAsync();
+			await _textToSpeech.SpeakAsync(plainText, options, cancelToken: token);
+		}
+		catch(OperationCanceledException)
+		{
+			// Expected when stopped
+		}
+		catch(Exception ex)
+		{
+			_logger.LogError(ex, "Text-to-speech error");
+			_toastService?.Error("Text-to-Speech Error", opts => opts.Description = ex.Message);
+		}
+		finally
+		{
+			await _lock.WaitAsync();
 			try
 			{
-				// If same message is speaking, stop it
 				if(ActiveMessageId == messageId)
 				{
-					await StopCore();
-					return;
+					ActiveMessageId = null;
+					OnStateChanged?.Invoke();
 				}
-
-				// Stop any current speech first
-				await StopCore();
-
-				ActiveMessageId = messageId;
-				OnStateChanged?.Invoke();
-
-				_cts = new CancellationTokenSource();
-				localCts = _cts;
 			}
 			finally
 			{
 				_lock.Release();
 			}
-
-			CancellationToken token = localCts!.Token;
-			string plainText = StripMarkdown(text);
-
-			SpeechOptions options = await BuildSpeechOptionsAsync();
-
-			try
-			{
-				await _textToSpeech.SpeakAsync(plainText, options, cancelToken: token);
-			}
-			catch(OperationCanceledException)
-			{
-				// Expected when stopped
-			}
-			catch
-			{
-				// Ignore other errors
-			}
-			finally
-			{
-				await _lock.WaitAsync();
-				try
-				{
-					if(ActiveMessageId == messageId)
-					{
-						ActiveMessageId = null;
-						OnStateChanged?.Invoke();
-					}
-				}
-				finally
-				{
-					_lock.Release();
-				}
-			}
-		}
-		catch(Exception)
-		{
-			_lock.Release();
 		}
 	}
 
