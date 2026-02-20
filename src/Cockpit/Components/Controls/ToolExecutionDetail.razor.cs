@@ -1,22 +1,22 @@
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Services;
+using Cockpit.Features.Timestamp;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Controls;
 
 public sealed partial class ToolExecutionDetail : IDisposable
 {
+	[Inject] TimestampFeature _timestampFeature { get; set; } = default!;
+
 	[Parameter]
 	public ToolExecutionModel Tool { get; set; } = default!;
 
 	[Parameter]
 	public bool IsLive { get; set; }
 
-	[Inject] TimestampService TimestampService { get; set; } = default!;
-
 	protected override void OnInitialized()
 	{
-		TimestampService.OnTick += OnTick;
+		_timestampFeature.OnTick += OnTick;
 	}
 
 	void OnTick()
@@ -29,7 +29,7 @@ public sealed partial class ToolExecutionDetail : IDisposable
 
 	public void Dispose()
 	{
-		TimestampService.OnTick -= OnTick;
+		_timestampFeature.OnTick -= OnTick;
 	}
 
 	void ToggleExpanded()

@@ -1,3 +1,4 @@
+using Cockpit.Features.Timestamp;
 using Cockpit.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
@@ -7,11 +8,11 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class ChatPanel : ComponentBase, IAsyncDisposable
 {
-	[Inject] TimestampService TimestampService { get; set; } = default!;
-	[Inject] UIStateService UIState { get; set; } = default!;
-	[Inject] UnifiedSessionManager SessionManager { get; set; } = default!;
-	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
-	[Inject] ILogger<Main> Logger { get; set; } = default!;
+	[Inject] TimestampFeature _timestampFeature { get; set; } = default!;
+	[Inject] UIStateService _uiState { get; set; } = default!;
+	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
+	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
+	[Inject] ILogger<Main> _logger { get; set; } = default!;
 
 	bool _shouldScrollToBottom = false;
 	bool _isUserScrolledUpFromChat = false;
@@ -21,11 +22,11 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 
 	protected override async Task OnInitializedAsync()
 	{
-		SessionManager.OnStateChanged += OnStateChanged;
-		TimestampService.OnTick += OnTimestampTick;
+		_sessionManager.OnStateChanged += OnStateChanged;
+		_timestampFeature.OnTick += OnTimestampTick;
 
 		// Load existing sessions from SDK
-		await SessionManager.LoadExistingSessionsAsync();
+		await _sessionManager.LoadExistingSessionsAsync();
 	}
 
 	void OnTimestampTick()
@@ -42,8 +43,8 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 			await SetupSmartScroll();
 
 			// Initialize message count
-			_lastMessageCount = SessionManager.CurrentSession?.Messages?.Count ?? 0;
-			_lastSessionId = SessionManager.CurrentSession?.Id;
+			_lastMessageCount = _sessionManager.CurrentSession?.Messages?.Count ?? 0;
+			_lastSessionId = _sessionManager.CurrentSession?.Id;
 		}
 
 		if(_shouldScrollToBottom && !_isUserScrolledUpFromChat)
@@ -55,8 +56,8 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 
 	void OnStateChanged()
 	{
-		string? currentSessionId = SessionManager.CurrentSession?.Id;
-		int currentMessageCount = SessionManager.CurrentSession?.Messages?.Count ?? 0;
+		string? currentSessionId = _sessionManager.CurrentSession?.Id;
+		int currentMessageCount = _sessionManager.CurrentSession?.Messages?.Count ?? 0;
 
 		if(currentSessionId != _lastSessionId)
 		{
@@ -68,7 +69,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		if(currentMessageCount > _lastMessageCount)
 		{
 			_shouldScrollToBottom = true;
-			if(SessionManager.CurrentSession?.Messages.LastOrDefault()?.IsUser == true)
+			if(_sessionManager.CurrentSession?.Messages.LastOrDefault()?.IsUser == true)
 			{
 				// Always jump to latest when user sends a message
 				_isUserScrolledUpFromChat = false;
@@ -84,11 +85,11 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "chatMessages");
+			await _jsRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "chatMessages");
 		}
 		catch(Exception ex)
 		{
-			Logger.LogDebug(ex, "Failed to scroll chat messages to bottom");
+			_logger.LogDebug(ex, "Failed to scroll chat messages to bottom");
 		}
 	}
 
@@ -96,11 +97,11 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged");
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged");
 		}
 		catch(Exception ex)
 		{
-			Logger.LogDebug(ex, "Failed to setup smart scroll for chat messages");
+			_logger.LogDebug(ex, "Failed to setup smart scroll for chat messages");
 		}
 	}
 
@@ -112,8 +113,8 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 
 	void OpenWorkspaceFolder()
 	{
-		string? path = SessionManager.CurrentSession?.WorkspacePath
-						?? SessionManager.CurrentSession?.WorkingDirectory;
+		string? path = _sessionManager.CurrentSession?.WorkspacePath
+						?? _sessionManager.CurrentSession?.WorkingDirectory;
 		if(string.IsNullOrEmpty(path))
 		{
 			return;
@@ -129,32 +130,32 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		}
 		catch(Exception ex)
 		{
-			Logger.LogDebug(ex, "Failed to open workspace folder");
+			_logger.LogDebug(ex, "Failed to open workspace folder");
 		}
 	}
 
 	void ToggleTerminalPanel()
 	{
-		if(SessionManager.CurrentSession is not null)
+		if(_sessionManager.CurrentSession is not null)
 		{
-			SessionManager.CurrentSession.IsTerminalOpen = !SessionManager.CurrentSession.IsTerminalOpen;
+			_sessionManager.CurrentSession.IsTerminalOpen = !_sessionManager.CurrentSession.IsTerminalOpen;
 			StateHasChanged();
 		}
 	}
 
 	public async ValueTask DisposeAsync()
 	{
-		SessionManager.OnStateChanged -= OnStateChanged;
-		TimestampService.OnTick -= OnTimestampTick;
+		_sessionManager.OnStateChanged -= OnStateChanged;
+		_timestampFeature.OnTick -= OnTimestampTick;
 
 		// Cleanup smart scroll
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
+			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
 		}
 		catch(Exception ex)
 		{
-			Logger.LogDebug(ex, "Failed to cleanup smart scroll for chat messages");
+			_logger.LogDebug(ex, "Failed to cleanup smart scroll for chat messages");
 		}
 
 		_dotNetRef?.Dispose();

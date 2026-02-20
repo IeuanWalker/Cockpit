@@ -1,3 +1,4 @@
+using Cockpit.Features.Timestamp;
 using Cockpit.Models;
 using Cockpit.Services;
 using Humanizer;
@@ -8,7 +9,7 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 
 public partial class SessionList : ComponentBase, IDisposable
 {
-	[Inject] TimestampService _timestampService { get; set; } = default!;
+	[Inject] TimestampFeature _timestampFeature { get; set; } = default!;
 	[Inject] UIStateService _uiState { get; set; } = default!;
 	[Inject] UnifiedSessionManager _sessionManager { get; set; } = default!;
 
@@ -19,7 +20,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	{
 		_sessionManager.OnStateChanged += OnStateChanged;
 		_uiState.OnStateChanged += OnStateChanged;
-		_timestampService.OnTick += OnStateChanged;
+		_timestampFeature.OnTick += OnStateChanged;
 	}
 
 	void OnStateChanged()
@@ -96,7 +97,7 @@ public partial class SessionList : ComponentBase, IDisposable
 		{
 			_sessionManager.OnStateChanged -= OnStateChanged;
 			_uiState.OnStateChanged -= OnStateChanged;
-			_timestampService.OnTick -= OnStateChanged;
+			_timestampFeature.OnTick -= OnStateChanged;
 		}
 	}
 }
