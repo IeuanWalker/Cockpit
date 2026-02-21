@@ -9,7 +9,6 @@ using Cockpit.Features.Terminal;
 using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
-using SessionContextModel = Cockpit.Models.SessionContext;
 
 namespace Cockpit.Features.Sessions;
 
@@ -91,7 +90,14 @@ public partial class SessionFeature
 							Status = SessionStatus.Idle,
 							Model = defaultModel,
 							ReasoningEffort = defaultModel.DefaultReasoningEffort,
-							Context = SessionContextModel.CreateDefault(metadata.Context?.Cwd, metadata.Context?.Branch)
+							Context = new()
+							{
+								CurrentWorkingDirectory = metadata.Context?.Cwd ?? string.Empty,
+								WorkspacePath = null,
+								GitRoot = metadata.Context?.GitRoot,
+								Repository = metadata.Context?.Repository,
+								Branch = metadata.Context?.Branch
+							}
 						};
 
 						_sessionListFeature.AddSession(chatSession);
@@ -136,7 +142,7 @@ public partial class SessionFeature
 		}
 	}
 
-	public async Task<ChatSession> CreateNewSessionAsync(string? workingDirectory = null)
+	public async Task<ChatSession> CreateNewSessionAsync(string workingDirectory)
 	{
 		try
 		{
@@ -172,9 +178,14 @@ public partial class SessionFeature
 				CreatedAt = DateTime.Now,
 				LastActivity = DateTime.Now,
 				Status = SessionStatus.Idle,
-				WorkspacePath = sdkSession.WorkspacePath,
-				WorkingDirectory = workingDirectory,
-				Context = SessionContextModel.CreateDefault(workingDirectory ?? sdkSession.WorkspacePath),
+				Context = new()
+				{
+					CurrentWorkingDirectory = workingDirectory,
+					WorkspacePath = sdkSession.WorkspacePath,
+					GitRoot = null,
+					Repository = null,
+					Branch = null
+				},
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				IsResumed = true
@@ -265,7 +276,7 @@ public partial class SessionFeature
 
 			session.Status = SessionStatus.Idle;
 			session.IsResumed = true;
-			session.WorkspacePath = sdkSession.WorkspacePath;
+			session.Context.WorkspacePath = sdkSession.WorkspacePath;
 			SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 
 			sdkSession.On(evt =>
@@ -437,7 +448,7 @@ public partial class SessionFeature
 					ReasoningEffort = newReasoningEffort,
 					Streaming = true,
 					InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
-					WorkingDirectory = chatSession?.WorkingDirectory,
+					WorkingDirectory = chatSession?.Context.CurrentWorkingDirectory,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest
 				};
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);

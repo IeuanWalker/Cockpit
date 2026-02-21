@@ -2,21 +2,18 @@ using System.Collections.Concurrent;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.SessionEvents.Models;
 using GitHub.Copilot.SDK;
-using SessionContextModel = Cockpit.Models.SessionContext;
 
 namespace Cockpit.Models;
 
 public class ChatSession
 {
-	public string Id { get; set; } = Guid.NewGuid().ToString();
-	public string Title { get; set; } = "New Session";
-	public DateTime CreatedAt { get; set; } = DateTime.Now;
-	public DateTime LastActivity { get; set; } = DateTime.Now;
+	public required string Id { get; set; }
+	public required string Title { get; set; }
+	public required DateTime CreatedAt { get; set; }
+	public required DateTime LastActivity { get; set; }
 	public SessionStatus Status { get; set; } = SessionStatus.Active;
 	public List<ChatMessageModel> Messages { get; set; } = [];
-	public string? WorkspacePath { get; set; }
-	public string? WorkingDirectory { get; set; }
-	public SessionContextModel Context { get; set; } = SessionContextModel.CreateDefault();
+	public required SessionContext Context { get; set; }
 	public required ModelInfo Model { get; set; }
 	public string? ReasoningEffort { get; set; }
 	public ActivityGroupModel? ActiveWorkingGroup { get; set; }
@@ -78,19 +75,4 @@ public enum SessionStatus
 	Finished,
 	Error,
 	Archived
-}
-
-public class ContextFile
-{
-	public string Name { get; set; } = string.Empty;
-	public string Path { get; set; } = string.Empty;
-	public FileStatus Status { get; set; } = FileStatus.Unmodified;
-}
-
-public enum FileStatus
-{
-	Unmodified,
-	Modified,
-	Added,
-	Deleted
 }

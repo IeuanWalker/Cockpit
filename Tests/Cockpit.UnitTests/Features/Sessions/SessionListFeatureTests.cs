@@ -15,7 +15,17 @@ public class SessionListFeatureTests
 		Id = id,
 		Title = title,
 		Status = SessionStatus.Idle,
-		Model = testModel
+		CreatedAt = DateTime.UtcNow,
+		LastActivity = DateTime.UtcNow,
+		Model = testModel,
+		Context = new()
+		{
+			CurrentWorkingDirectory = "",
+			WorkspacePath = null,
+			GitRoot = null,
+			Branch = null,
+			Repository = null
+		}
 	};
 
 	static SessionListFeature CreateFeature() => new(NullLogger<SessionListFeature>.Instance);

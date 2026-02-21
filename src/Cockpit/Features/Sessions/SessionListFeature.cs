@@ -1,6 +1,5 @@
 using Cockpit.Models;
 using Microsoft.Extensions.Logging;
-using SessionContextModel = Cockpit.Models.SessionContext;
 
 namespace Cockpit.Features.Sessions;
 
@@ -22,7 +21,6 @@ public class SessionListFeature : ISessionStateProvider
 
 	public void SetCurrentSession(ChatSession session)
 	{
-		session.Context ??= SessionContextModel.CreateDefault();
 		CurrentSession = session;
 		NotifyStateChanged();
 	}

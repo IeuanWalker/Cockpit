@@ -10,7 +10,22 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class ToolCompleteHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new() { Model = testModel };
+	static ChatSession CreateSession() => new()
+	{
+		Id = "sessionId",
+		Title = "Test Session",
+		CreatedAt = DateTime.UtcNow,
+		LastActivity = DateTime.UtcNow,
+		Model = testModel,
+		Context = new()
+		{
+			CurrentWorkingDirectory = "",
+			WorkspacePath = null,
+			GitRoot = null,
+			Branch = null,
+			Repository = null
+		}
+	};
 	static SessionEventProcessor CreateProcessor() => new(NullLogger<SessionEventProcessor>.Instance);
 
 	[Fact]

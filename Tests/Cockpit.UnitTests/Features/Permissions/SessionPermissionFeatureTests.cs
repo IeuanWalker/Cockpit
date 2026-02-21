@@ -26,8 +26,18 @@ public class SessionPermissionFeatureTests
 			_sessions.Add(new ChatSession
 			{
 				Id = sessionId,
+				Title = $"Session {sessionId}",
+				CreatedAt = DateTime.UtcNow,
+				LastActivity = DateTime.UtcNow,
 				Model = testModel,
-				WorkspacePath = workspacePath
+				Context = new()
+				{
+					WorkspacePath = workspacePath,
+					CurrentWorkingDirectory = string.Empty,
+					GitRoot = null,
+					Branch = null,
+					Repository = null
+				}
 			});
 		}
 
@@ -387,9 +397,18 @@ public class SessionPermissionFeatureTests
 		ChatSession session = new()
 		{
 			Id = sessionId,
+			Title = $"Session {sessionId}",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
 			Model = testModel,
-			WorkspacePath = workspacePath,
-			Context = Models.SessionContext.CreateDefault()
+			Context = new()
+			{
+				WorkspacePath = workspacePath,
+				CurrentWorkingDirectory = string.Empty,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
 		};
 
 		try

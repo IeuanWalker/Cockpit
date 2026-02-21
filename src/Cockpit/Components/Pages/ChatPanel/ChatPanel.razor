@@ -12,35 +12,23 @@
             </svg>
         </button>
         <h1 class="text-vscode-title font-semibold text-sm flex items-center">
-            @if(_sessionManager.CurrentSession is not null && !string.IsNullOrEmpty(_sessionManager.CurrentSession.WorkspacePath ?? _sessionManager.CurrentSession.WorkingDirectory))
-            {
-                <button @onclick="OpenWorkspaceFolder"
-                        class="relative group flex items-center rounded px-1 -mx-1"
-                        title="Open workspace folder">
-                    <span class="flex items-center group-hover:opacity-90 transition-opacity">
-                        @_sessionManager.CurrentSession.Title
-                        <span class="ml-2 status-badge @(_sessionManager.CurrentSession.Status.ToString().ToLower())">
-                            @_sessionManager.CurrentSession.Status
-                        </span>
+            <button @onclick="OpenWorkspaceFolder"
+                    class="relative group flex items-center rounded px-1 -mx-1"
+                    title="Open workspace folder">
+                <span class="flex items-center group-hover:opacity-90 transition-opacity">
+                    @_sessionManager.CurrentSession?.Title
+                    <span class="ml-2 status-badge @(_sessionManager.CurrentSession?.Status.ToString().ToLower())">
+                        @_sessionManager.CurrentSession?.Status
                     </span>
-                    <span class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-90 transition-opacity rounded"
-                          style="background: var(--sidebar-color);">
-                        <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-                        </svg>
-                    </span>
-                </button>
-            }
-            else
-            {
-                @(_sessionManager.CurrentSession?.Title ?? "No Session")
-                @if(_sessionManager.CurrentSession is not null)
-                {
-                    <span class="ml-2 status-badge @(_sessionManager.CurrentSession.Status.ToString().ToLower())">
-                        @_sessionManager.CurrentSession.Status
-                    </span>
-                }
-            }
+                </span>
+                <span class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-90 transition-opacity rounded"
+                      style="background: var(--sidebar-color);">
+                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+                    </svg>
+                </span>
+            </button>
+
         </h1>
     </div>
 
@@ -65,7 +53,7 @@
 <TerminalPanel @key="@_sessionManager.CurrentSession?.Id"
                IsOpen="@(_sessionManager.CurrentSession?.IsTerminalOpen == true)"
                SessionId="@(_sessionManager.CurrentSession?.Id ?? string.Empty)"
-               WorkingDirectory="@_sessionManager.CurrentSession?.WorkingDirectory" />
+               WorkingDirectory="@_sessionManager.CurrentSession?.Context.CurrentWorkingDirectory" />
 
 <ChatMessages />
 

@@ -9,7 +9,7 @@ public partial class GitBranch : ComponentBase, IDisposable
 	[Inject] UIStateFeature _uiState { get; set; } = null!;
 	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 
-	string CurrentBranch => _sessionManager.CurrentSession?.Context?.CurrentBranch ?? string.Empty;
+	string CurrentBranch => _sessionManager.CurrentSession?.Context?.Branch ?? string.Empty;
 
 	protected override void OnInitialized()
 	{

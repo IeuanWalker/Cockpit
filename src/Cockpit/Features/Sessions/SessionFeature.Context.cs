@@ -9,7 +9,7 @@ public partial class SessionFeature
 			return;
 		}
 
-		_sessionListFeature.CurrentSession.Context.CurrentDirectory = directory;
+		_sessionListFeature.CurrentSession.Context.CurrentWorkingDirectory = directory;
 		_sessionListFeature.NotifyStateChanged();
 	}
 

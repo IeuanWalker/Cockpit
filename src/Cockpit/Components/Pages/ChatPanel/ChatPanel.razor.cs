@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
@@ -114,18 +115,16 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 
 	void OpenWorkspaceFolder()
 	{
-		string? path = _sessionManager.CurrentSession?.WorkspacePath
-						?? _sessionManager.CurrentSession?.WorkingDirectory;
-		if(string.IsNullOrEmpty(path))
+		if(string.IsNullOrEmpty(_sessionManager.CurrentSession?.Context.WorkspacePath))
 		{
 			return;
 		}
 
 		try
 		{
-			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+			Process.Start(new ProcessStartInfo
 			{
-				FileName = path,
+				FileName = _sessionManager.CurrentSession.Context.WorkspacePath,
 				UseShellExecute = true
 			});
 		}
