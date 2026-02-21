@@ -177,57 +177,69 @@ public sealed partial class SessionFeature
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
-
-			IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
-			_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
-
-			SessionModel tempSession = new()
+			bool registered = false;
+			try
 			{
-				Id = sessionId,
-				Title = session.Title,
-				Status = SessionStatusEnum.Idle,
-				Model = session.Model,
-				ReasoningEffort = session.ReasoningEffort,
-				Context = session.Context,
-				LastActivity = session.LastActivity,
-				CreatedAt = session.CreatedAt
-			};
+				IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
+				_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 
-			await Task.Run(() =>
-			{
-				foreach(SessionEvent evt in events)
+				SessionModel tempSession = new()
 				{
-					_processor.Process(tempSession, evt);
+					Id = sessionId,
+					Title = session.Title,
+					Status = SessionStatusEnum.Idle,
+					Model = session.Model,
+					ReasoningEffort = session.ReasoningEffort,
+					Context = session.Context,
+					LastActivity = session.LastActivity,
+					CreatedAt = session.CreatedAt
+				};
+
+				await Task.Run(() =>
+				{
+					foreach(SessionEvent evt in events)
+					{
+						_processor.Process(tempSession, evt);
+					}
+
+					if(tempSession.ActiveWorkingGroup is not null)
+					{
+						_processor.FinalizeOpenGroup(tempSession);
+					}
+				});
+
+				session.Messages = tempSession.Messages;
+				session.ActiveWorkingGroup = null;
+				session.LastActivity = tempSession.LastActivity;
+				if(session.Title != tempSession.Title)
+				{
+					session.Title = tempSession.Title;
 				}
 
-				if(tempSession.ActiveWorkingGroup is not null)
-				{
-					_processor.FinalizeOpenGroup(tempSession);
-				}
-			});
+				session.Status = SessionStatusEnum.Idle;
+				session.SdkState = SdkSessionStateEnum.Loaded;
+				session.Context.WorkspacePath = sdkSession.WorkspacePath;
+				SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 
-			session.Messages = tempSession.Messages;
-			session.ActiveWorkingGroup = null;
-			session.LastActivity = tempSession.LastActivity;
-			if(session.Title != tempSession.Title)
-			{
-				session.Title = tempSession.Title;
+				_sdkRegistry.Register(sdkSession, evt =>
+				{
+					_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
+					HandleSessionEvent(sdkSession.SessionId, evt);
+				});
+				registered = true;
+
+				await SwitchCurrentSessionAsync(session);
+				_logger.LogInformation("Successfully loaded session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
+				return true;
 			}
-
-			session.Status = SessionStatusEnum.Idle;
-			session.SdkState = SdkSessionStateEnum.Loaded;
-			session.Context.WorkspacePath = sdkSession.WorkspacePath;
-			SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
-
-			_sdkRegistry.Register(sdkSession, evt =>
+			finally
 			{
-				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
-				HandleSessionEvent(sdkSession.SessionId, evt);
-			});
-
-			await SwitchCurrentSessionAsync(session);
-			_logger.LogInformation("Successfully loaded session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
-			return true;
+				if(!registered)
+				{
+					await sdkSession.DisposeAsync();
+					session.SdkState = SdkSessionStateEnum.NotLoaded;
+				}
+			}
 		}
 		catch(Exception ex) when(ex.Message.Equals("Communication error with Copilot CLI: Request session.resume failed with message: Session file is corrupted or incompatible"))
 		{
