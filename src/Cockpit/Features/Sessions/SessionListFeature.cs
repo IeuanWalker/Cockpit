@@ -8,7 +8,7 @@ public class SessionListFeature : ISessionStateProvider
 
 	public event Action? OnStateChanged;
 
-	public IReadOnlyList<SessionModel> Sessions => _sessions.OrderByDescending(x => x.LastActivity).ToList();
+	public IReadOnlyList<SessionModel> Sessions => _sessions;
 
 	public SessionModel? CurrentSession { get; private set; }
 

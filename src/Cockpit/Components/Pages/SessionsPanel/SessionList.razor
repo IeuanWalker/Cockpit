@@ -1,6 +1,6 @@
 ﻿@using Cockpit.Components.Popups
 @using Cockpit.Features.Sessions.Models
-@foreach(var session in _sessionManager.Sessions)
+@foreach(var session in _sessionManager.Sessions.OrderByDescending(x => x.LastActivity).ToList())
 {
     var isActive = _sessionManager.CurrentSession?.Id == session.Id;
     <div class="session-item px-3 py-1.5 hover:bg-vscode-hover cursor-pointer @(isActive ? "bg-vscode-active" : "") border-l-2 @(isActive ? "" : "border-transparent") flex items-center justify-between group relative @(session.SdkState == SdkSessionStateEnum.Loading ? "pointer-events-none" : "")"
