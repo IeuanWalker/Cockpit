@@ -113,7 +113,7 @@ public sealed partial class GitFeature
 	/// Watches a git repository for file changes and invokes <paramref name="onChanged"/> when changes are detected.
 	/// Dispose the returned handle to stop watching.
 	/// </summary>
-	public IDisposable Watch(string gitRoot, Action onChanged)
+	public IDisposable Watch(string gitRoot, Func<Task> onChanged)
 	{
 		FileSystemWatcher watcher = new(gitRoot)
 		{
@@ -124,7 +124,27 @@ public sealed partial class GitFeature
 
 		// Debounce to avoid flooding callbacks on bulk changes
 		System.Timers.Timer debounce = new(300) { AutoReset = false };
-		debounce.Elapsed += (_, _) => onChanged();
+		bool running = false;
+		debounce.Elapsed += async (_, _) =>
+		{
+			if(running)
+			{
+				return;
+			}
+
+			running = true;
+
+			try
+			{
+				await onChanged();
+			}
+			catch(Exception ex)
+			{
+				_logger.LogError(ex, "GitFeature.Watch callback exception");
+			}
+
+			running = false;
+		};
 
 		watcher.Changed += handler;
 		watcher.Created += handler;
@@ -189,7 +209,7 @@ public sealed partial class GitFeature
 				CreateNoWindow = true
 			};
 
-			foreach (var arg in arguments)
+			foreach(var arg in arguments)
 			{
 				psi.ArgumentList.Add(arg);
 			}
