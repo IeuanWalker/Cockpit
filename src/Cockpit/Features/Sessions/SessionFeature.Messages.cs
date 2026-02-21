@@ -18,7 +18,7 @@ public sealed partial class SessionFeature
 		{
 			if(CurrentSession.RequiresRestart)
 			{
-				await RestartSessionWithPendingConfig();
+				await RestartSessionWithPendingConfig(CurrentSession);
 			}
 
 			if(CurrentSession.SdkState == SdkSessionStateEnum.Loaded)

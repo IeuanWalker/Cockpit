@@ -381,9 +381,9 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	async Task RestartSessionWithPendingConfig()
+	async Task RestartSessionWithPendingConfig(SessionModel session)
 	{
-		if(CurrentSession is null || !CurrentSession.RequiresRestart)
+		if(session.RequiresRestart)
 		{
 			return;
 		}
@@ -392,41 +392,36 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogInformation(
 				"Restarting session {SessionId} with model {Model} and reasoning effort {ReasoningEffort}",
-				CurrentSession.Id,
-				CurrentSession.Model.Id,
-				CurrentSession.ReasoningEffort ?? "default"
+				session.Id,
+				session.Model.Id,
+				session.ReasoningEffort ?? "default"
 			);
 
 			await RestartSession(
-				CurrentSession.Id,
-				CurrentSession.Model.Id,
-				CurrentSession.ReasoningEffort
+				session.Id,
+				session.Model.Id,
+				session.ReasoningEffort
 			);
 
-			CurrentSession.RequiresRestart = false;
+			session.RequiresRestart = false;
 
-			_logger.LogInformation("Session {SessionId} restarted successfully", CurrentSession.Id);
+			_logger.LogInformation("Session {SessionId} restarted successfully", session.Id);
 			_sessionListFeature.NotifyStateChanged();
 		}
 		catch(Exception ex)
 		{
-			_logger.LogError(ex, "Failed to restart session {SessionId}", CurrentSession.Id);
+			_logger.LogError(ex, "Failed to restart session {SessionId}", session.Id);
 			throw;
 		}
 	}
 
 	public async Task AbortSession(string sessionId)
 	{
-		if(CurrentSession is null)
-		{
-			return;
-		}
-
 		try
 		{
 			if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
 			{
-				throw new InvalidOperationException($"Session {CurrentSession.Id} not found in SDK sessions");
+				throw new InvalidOperationException($"Session {sessionId} not found in SDK sessions");
 			}
 
 			await sdkSession.AbortAsync();
