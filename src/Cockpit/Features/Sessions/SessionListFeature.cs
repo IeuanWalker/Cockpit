@@ -26,6 +26,7 @@ public class SessionListFeature : ISessionStateProvider
 	internal void RemoveSession(string sessionId)
 	{
 		SessionModel? session = _sessions.FirstOrDefault(s => s.Id == sessionId);
+
 		if(session is null)
 		{
 			return;
@@ -40,5 +41,4 @@ public class SessionListFeature : ISessionStateProvider
 	}
 
 	public void NotifyStateChanged() => OnStateChanged?.Invoke();
-
 }
