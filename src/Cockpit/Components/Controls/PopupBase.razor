@@ -1,0 +1,27 @@
+﻿<div class="settings-overlay @(Show ? "active" : "")" @onclick="Close"></div>
+<div class="settings-popup @(Show ? "active" : "")">
+    <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl w-[500px] max-w-[90vw]">
+        <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between">
+            <h3 class="text-vscode-title font-semibold flex items-center">
+                @HeaderLeft
+                @Title
+            </h3>
+            <div class="flex items-center gap-1">
+                @HeaderRight
+                <button @onclick="Close" class="p-1 hover:bg-vscode-hover rounded">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="overflow-y-auto scrollbar-thin">
+            @if(Show)
+            {
+                @Content
+            }
+        </div>
+    </div>
+</div>
+
+

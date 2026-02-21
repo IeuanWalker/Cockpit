@@ -1,15 +1,13 @@
 using Cockpit.Features.Connection;
 using Microsoft.AspNetCore.Components;
 
-namespace Cockpit.Components.Pages.ContextPanel;
+namespace Cockpit.Components.Pages.ContextPanel.ConnectionStatus;
 
-public partial class ConnectionStatus : ComponentBase, IDisposable
+public partial class ConnectionStatusBanner : ComponentBase, IDisposable
 {
 	[Inject] ConnectionFeature _connectionFeature { get; set; } = default!;
 
 	bool _showPopup = false;
-	bool _showHistoryPopup = false;
-	readonly HashSet<int> _expandedHistoryIndices = [];
 
 	string _statusClass => _connectionFeature.Status switch
 	{
@@ -41,23 +39,6 @@ public partial class ConnectionStatus : ComponentBase, IDisposable
 
 	void OpenPopup() => _showPopup = true;
 	void ClosePopup() => _showPopup = false;
-
-	void OpenHistoryPopup()
-	{
-		_showPopup = false;
-		_expandedHistoryIndices.Clear();
-		_showHistoryPopup = true;
-	}
-
-	void CloseHistoryPopup() => _showHistoryPopup = false;
-
-	void ToggleHistoryItem(int index)
-	{
-		if(!_expandedHistoryIndices.Remove(index))
-		{
-			_expandedHistoryIndices.Add(index);
-		}
-	}
 
 	public void Dispose()
 	{
