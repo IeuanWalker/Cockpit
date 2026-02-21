@@ -3,7 +3,7 @@ namespace Cockpit.Features.Sessions.Models;
 /// <summary>
 /// Tracks the SDK connection lifecycle of a session.
 /// </summary>
-public enum SdkSessionState
+public enum SdkSessionStateEnum
 {
 	/// <summary>Session exists in the list but has no SDK connection yet.</summary>
 	NotLoaded,

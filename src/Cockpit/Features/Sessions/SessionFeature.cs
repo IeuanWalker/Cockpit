@@ -24,20 +24,6 @@ public sealed partial class SessionFeature : IDisposable
 	readonly IPermissionHandler _permissionHandler;
 	readonly GitFeature _gitFeature;
 	readonly SdkSessionRegistry _sdkRegistry;
-
-	IDisposable? _currentWatcher;
-
-	// Pass-through convenience properties so components only need to inject SessionFeature
-	public SessionModel? CurrentSession => _sessionListFeature.CurrentSession;
-	public IReadOnlyList<SessionModel> Sessions => _sessionListFeature.Sessions;
-	public event Action? OnStateChanged
-	{
-		add => _sessionListFeature.OnStateChanged += value;
-		remove => _sessionListFeature.OnStateChanged -= value;
-	}
-	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.ActiveWorkingGroup;
-	public bool IsWorking => CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatusEnum.Running;
-
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
 		ILogger<SessionFeature> logger,
@@ -62,9 +48,22 @@ public sealed partial class SessionFeature : IDisposable
 		_sdkRegistry = sdkRegistry;
 	}
 
+	IDisposable? _currentWatcher;
+
+	public SessionModel? CurrentSession => _sessionListFeature.CurrentSession;
+	public IReadOnlyList<SessionModel> Sessions => _sessionListFeature.Sessions;
+	public event Action? OnStateChanged
+	{
+		add => _sessionListFeature.OnStateChanged += value;
+		remove => _sessionListFeature.OnStateChanged -= value;
+	}
+	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.ActiveWorkingGroup;
+	public bool IsWorking => CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatusEnum.Running;
+
 	void HandleSessionEvent(string sessionId, SessionEvent evt)
 	{
 		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+
 		if(session is null)
 		{
 			return;

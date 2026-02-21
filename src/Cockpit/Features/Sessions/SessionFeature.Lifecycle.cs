@@ -29,36 +29,38 @@ public sealed partial class SessionFeature
 
 			foreach(SessionMetadata metadata in sessionMetadataList)
 			{
-				if(!_sessionListFeature.Sessions.Any(s => s.Id == metadata.SessionId))
+				if(_sessionListFeature.Sessions.Any(s => s.Id == metadata.SessionId))
 				{
-					try
-					{
-						SessionModel chatSession = new()
-						{
-							Id = metadata.SessionId,
-							Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
-							CreatedAt = metadata.StartTime,
-							LastActivity = metadata.ModifiedTime,
-							Status = SessionStatusEnum.Idle,
-							Model = defaultModel,
-							ReasoningEffort = defaultModel.DefaultReasoningEffort,
-							Context = new()
-							{
-								CurrentWorkingDirectory = metadata.Context?.Cwd ?? string.Empty,
-								WorkspacePath = null,
-								GitRoot = metadata.Context?.GitRoot,
-								Repository = metadata.Context?.Repository,
-								Branch = metadata.Context?.Branch
-							}
-						};
+					continue;
+				}
 
-						_sessionListFeature.AddSession(chatSession);
-						_logger.LogInformation("Loaded session {SessionId}", chatSession.Id);
-					}
-					catch(Exception ex)
+				try
+				{
+					SessionModel chatSession = new()
 					{
-						_logger.LogWarning(ex, "Failed to load session {SessionId}", metadata.SessionId);
-					}
+						Id = metadata.SessionId,
+						Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
+						CreatedAt = metadata.StartTime,
+						LastActivity = metadata.ModifiedTime,
+						Status = SessionStatusEnum.Idle,
+						Model = defaultModel,
+						ReasoningEffort = defaultModel.DefaultReasoningEffort,
+						Context = new()
+						{
+							CurrentWorkingDirectory = metadata.Context?.Cwd ?? string.Empty,
+							WorkspacePath = null,
+							GitRoot = metadata.Context?.GitRoot,
+							Repository = metadata.Context?.Repository,
+							Branch = metadata.Context?.Branch
+						}
+					};
+
+					_sessionListFeature.AddSession(chatSession);
+					_logger.LogInformation("Loaded session {SessionId}", chatSession.Id);
+				}
+				catch(Exception ex)
+				{
+					_logger.LogWarning(ex, "Failed to load session {SessionId}", metadata.SessionId);
 				}
 			}
 
@@ -82,13 +84,17 @@ public sealed partial class SessionFeature
 				Model = defaultModel.Id,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				Streaming = true,
-				InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
+				InfiniteSessions = new InfiniteSessionConfig
+				{
+					Enabled = true
+				},
 				WorkingDirectory = workingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest
 			};
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.CreateSessionAsync(config);
+
 			_sdkRegistry.Register(sdkSession, evt =>
 			{
 				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
@@ -116,10 +122,11 @@ public sealed partial class SessionFeature
 				},
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
-				SdkState = SdkSessionState.Resumed
+				SdkState = SdkSessionStateEnum.Resumed
 			};
 
-			_sessionListFeature.AddSession(chatSession); await SwitchCurrentSessionAsync(chatSession);
+			_sessionListFeature.AddSession(chatSession);
+			await SwitchCurrentSessionAsync(chatSession);
 
 			return chatSession;
 		}
@@ -147,7 +154,7 @@ public sealed partial class SessionFeature
 				return false;
 			}
 
-			if(session.SdkState != SdkSessionState.NotLoaded)
+			if(session.SdkState != SdkSessionStateEnum.NotLoaded)
 			{
 				_logger.LogInformation("Session {SessionId} already loaded or loading, switching to it", sessionId);
 				await SwitchCurrentSessionAsync(session);
@@ -165,7 +172,7 @@ public sealed partial class SessionFeature
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest
 			};
 
-			session.SdkState = SdkSessionState.Loading;
+			session.SdkState = SdkSessionStateEnum.Loading;
 			_sessionListFeature.NotifyStateChanged();
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -208,7 +215,7 @@ public sealed partial class SessionFeature
 			}
 
 			session.Status = SessionStatusEnum.Idle;
-			session.SdkState = SdkSessionState.Loaded;
+			session.SdkState = SdkSessionStateEnum.Loaded;
 			session.Context.WorkspacePath = sdkSession.WorkspacePath;
 			SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 
@@ -226,7 +233,7 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
 			SessionModel? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-			failedSession?.SdkState = SdkSessionState.NotLoaded;
+			failedSession?.SdkState = SdkSessionStateEnum.NotLoaded;
 			_sessionListFeature.NotifyStateChanged();
 			_toastService.Error("Session Unavailable", opts =>
 			{
@@ -238,7 +245,7 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogError(ex, "Failed to load session {SessionId}", sessionId);
 			SessionModel? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-			failedSession?.SdkState = SdkSessionState.NotLoaded;
+			failedSession?.SdkState = SdkSessionStateEnum.NotLoaded;
 			_sessionListFeature.NotifyStateChanged();
 			return false;
 		}
@@ -258,13 +265,13 @@ public sealed partial class SessionFeature
 			return false;
 		}
 
-		if(session.SdkState == SdkSessionState.Resumed)
+		if(session.SdkState == SdkSessionStateEnum.Resumed)
 		{
 			_logger.LogInformation("Session {SessionId} already resumed", sessionId);
 			return true;
 		}
 
-		if(session.SdkState != SdkSessionState.Loaded)
+		if(session.SdkState != SdkSessionStateEnum.Loaded)
 		{
 			bool loaded = await LoadSession(sessionId);
 			if(!loaded)
@@ -273,10 +280,7 @@ public sealed partial class SessionFeature
 			}
 		}
 
-		// The session was loaded via LoadSession (DisableResume=true) which suppresses the
-		// session.resume event. The existing SDK session is fully functional for sending messages,
-		// so just promote the state — no need to create a new SDK session.
-		session.SdkState = SdkSessionState.Resumed;
+		session.SdkState = SdkSessionStateEnum.Resumed;
 		_logger.LogInformation("Session {SessionId} promoted from loaded to resumed", sessionId);
 		return true;
 	}
@@ -317,7 +321,10 @@ public sealed partial class SessionFeature
 					Model = newModelId,
 					ReasoningEffort = newReasoningEffort,
 					Streaming = true,
-					InfiniteSessions = new InfiniteSessionConfig { Enabled = true },
+					InfiniteSessions = new InfiniteSessionConfig
+					{
+						Enabled = true
+					},
 					WorkingDirectory = chatSession?.Context.CurrentWorkingDirectory,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest
 				};

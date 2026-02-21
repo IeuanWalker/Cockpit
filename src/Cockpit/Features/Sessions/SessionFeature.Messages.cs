@@ -21,7 +21,7 @@ public sealed partial class SessionFeature
 				await RestartSessionWithPendingConfig();
 			}
 
-			if(CurrentSession.SdkState == SdkSessionState.Loaded)
+			if(CurrentSession.SdkState == SdkSessionStateEnum.Loaded)
 			{
 				bool resumed = await ResumeSession(CurrentSession.Id);
 				if(!resumed)

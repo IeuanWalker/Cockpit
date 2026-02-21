@@ -3,10 +3,10 @@
 @foreach(var session in _sessionManager.Sessions)
 {
     var isActive = _sessionManager.CurrentSession?.Id == session.Id;
-    <div class="session-item px-3 py-1.5 hover:bg-vscode-hover cursor-pointer @(isActive ? "bg-vscode-active" : "") border-l-2 @(isActive ? "" : "border-transparent") flex items-center justify-between group relative @(session.SdkState == SdkSessionState.Loading ? "pointer-events-none" : "")"
+    <div class="session-item px-3 py-1.5 hover:bg-vscode-hover cursor-pointer @(isActive ? "bg-vscode-active" : "") border-l-2 @(isActive ? "" : "border-transparent") flex items-center justify-between group relative @(session.SdkState == SdkSessionStateEnum.Loading ? "pointer-events-none" : "")"
          style="@(isActive ? "border-left-color: var(--accent-color);" : "")"
          @onclick="() => SelectSession(session)">
-        @if(session.SdkState == SdkSessionState.Loading)
+        @if(session.SdkState == SdkSessionStateEnum.Loading)
         {
             <div class="absolute inset-0 flex items-center justify-center gap-1.5 z-10" style="background: var(--vscode-sideBar-background, rgba(0,0,0,0.4)); opacity: 0.85;">
                 <svg class="w-3 h-3 animate-spin secondary-text flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,7 +15,7 @@
                 <span class="text-xs secondary-text">Loading...</span>
             </div>
         }
-        <div class="flex-1 min-w-0 @(session.SdkState == SdkSessionState.Loading ? "opacity-30" : "")">
+        <div class="flex-1 min-w-0 @(session.SdkState == SdkSessionStateEnum.Loading ? "opacity-30" : "")">
             <div class="text-xs @(isActive ? "font-medium text-vscode-title" : "") truncate">@session.Title</div>
             <div class="text-xs mt-0.5 flex items-center @GetSessionStatusClass(session)">
                 @if(session.Status == SessionStatusEnum.NeedsPermission)
