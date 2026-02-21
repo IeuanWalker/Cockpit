@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Git;
 
-public class GitFeature
+public sealed partial class GitFeature
 {
 	readonly ILogger<GitFeature> _logger;
 	public GitFeature(ILogger<GitFeature> logger)
@@ -16,13 +16,13 @@ public class GitFeature
 	/// Resolves git context (root, repository, branch) for a given working directory.
 	/// Returns a <see cref="GitContext"/> with null fields if the directory is not a git repo.
 	/// </summary>
-	public async Task<GitContext> GetContextAsync(string workingDirectory)
+	public async Task<GitContext> GetContext(string workingDirectory)
 	{
 		try
 		{
-			string? gitRoot = await RunCommandAsync(workingDirectory, "rev-parse --show-toplevel");
-			string? branch = await RunCommandAsync(workingDirectory, "rev-parse --abbrev-ref HEAD");
-			string? remoteUrl = await RunCommandAsync(workingDirectory, "remote get-url origin");
+			string? gitRoot = await RunCommand(workingDirectory, "rev-parse --show-toplevel");
+			string? branch = await RunCommand(workingDirectory, "rev-parse --abbrev-ref HEAD");
+			string? remoteUrl = await RunCommand(workingDirectory, "remote get-url origin");
 
 			string? repository = null;
 			if(!string.IsNullOrEmpty(remoteUrl))
@@ -42,15 +42,20 @@ public class GitFeature
 	}
 
 	/// <summary>
+	/// Returns the current branch name for a git repository, or null if not in a repo.
+	/// </summary>
+	public Task<string?> GetBranch(string gitRoot) => RunCommand(gitRoot, "rev-parse --abbrev-ref HEAD");
+
+	/// <summary>
 	/// Returns the list of changed files (staged + unstaged) in a git repository.
 	/// </summary>
-	public async Task<List<GitChangedFileModel>> GetChangedFilesAsync(string gitRoot)
+	public async Task<List<GitChangedFileModel>> GetChangedFiles(string gitRoot)
 	{
 		List<GitChangedFileModel> results = [];
 
 		try
 		{
-			string? output = await RunCommandAsync(gitRoot, "status --porcelain");
+			string? output = await RunCommand(gitRoot, "status --porcelain");
 			if(string.IsNullOrEmpty(output))
 			{
 				return results;
@@ -139,7 +144,7 @@ public class GitFeature
 		return new GitWatcher(watcher, debounce);
 	}
 
-	async Task<string?> RunCommandAsync(string workingDirectory, string arguments)
+	async Task<string?> RunCommand(string workingDirectory, string arguments)
 	{
 		try
 		{

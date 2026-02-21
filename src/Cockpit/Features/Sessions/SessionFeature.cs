@@ -27,7 +27,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly GitFeature _gitFeature;
 
 	readonly ConcurrentDictionary<string, CopilotSession> _sdkSessions = new();
-	readonly ConcurrentDictionary<string, IDisposable> _gitWatchers = new();
+	IDisposable? _currentWatcher;
 
 	// Pass-through convenience properties so components only need to inject SessionFeature
 	public SessionModel? CurrentSession => _sessionListFeature.CurrentSession;
@@ -174,7 +174,7 @@ public sealed partial class SessionFeature : IDisposable
 
 			_sdkSessions.TryAdd(sdkSession.SessionId, sdkSession);
 
-			GitContext gitContext = await _gitFeature.GetContextAsync(workingDirectory);
+			GitContext gitContext = await _gitFeature.GetContext(workingDirectory);
 
 			SessionModel chatSession = new()
 			{
@@ -199,13 +199,7 @@ public sealed partial class SessionFeature : IDisposable
 			};
 
 			_sessionListFeature.AddSession(chatSession);
-			_sessionListFeature.SetCurrentSession(chatSession);
-
-			if(gitContext.IsGitRepo)
-			{
-				chatSession.Context.EditedFiles = await _gitFeature.GetChangedFilesAsync(gitContext.GitRoot!);
-				StartGitWatcher(chatSession);
-			}
+			await SwitchCurrentSessionAsync(chatSession);
 
 			return chatSession;
 		}
@@ -230,7 +224,7 @@ public sealed partial class SessionFeature : IDisposable
 			if(session.IsResumed)
 			{
 				_logger.LogInformation("Session {SessionId} already resumed, switching to it", sessionId);
-				_sessionListFeature.SetCurrentSession(session);
+				await SwitchCurrentSessionAsync(session);
 				return true;
 			}
 
@@ -299,15 +293,7 @@ public sealed partial class SessionFeature : IDisposable
 			});
 			_sdkSessions.AddOrUpdate(sdkSession.SessionId, sdkSession, (_, _) => sdkSession);
 
-			// SetCurrentSession handles EnsureSessionContext + CurrentSession assignment + NotifyStateChanged
-			_sessionListFeature.SetCurrentSession(session);
-
-			if(session.Context.GitRoot is not null)
-			{
-				session.Context.EditedFiles = await _gitFeature.GetChangedFilesAsync(session.Context.GitRoot);
-				StartGitWatcher(session);
-			}
-
+			await SwitchCurrentSessionAsync(session);
 			_logger.LogInformation("Successfully resumed session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
 			return true;
 		}
@@ -505,7 +491,6 @@ public sealed partial class SessionFeature : IDisposable
 				await sdkSession.DisposeAsync();
 			}
 
-			StopGitWatcher(sessionId);
 			_terminalFeature.CloseSession(sessionId);
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -548,52 +533,41 @@ public sealed partial class SessionFeature : IDisposable
 		}
 	}
 
-	void StartGitWatcher(SessionModel session)
+	async Task SwitchCurrentSessionAsync(SessionModel session)
 	{
-		if(session.Context.GitRoot is null)
+		_currentWatcher?.Dispose();
+		_currentWatcher = null;
+
+		_sessionListFeature.SetCurrentSession(session);
+
+		if(session.Context.GitRoot is not null)
 		{
-			return;
-		}
-
-		string gitRoot = session.Context.GitRoot;
-		string sessionId = session.Id;
-
-		IDisposable watcher = _gitFeature.Watch(gitRoot, async () =>
-		{
-			SessionModel? s = _sessionListFeature.Sessions.FirstOrDefault(x => x.Id == sessionId);
-			if(s is null)
-			{
-				return;
-			}
-
-			s.Context.EditedFiles = await _gitFeature.GetChangedFilesAsync(gitRoot);
+			string gitRoot = session.Context.GitRoot;
+			session.Context.EditedFiles = await _gitFeature.GetChangedFiles(gitRoot);
 			_sessionListFeature.NotifyStateChanged();
-		});
 
-		if(_gitWatchers.TryRemove(sessionId, out IDisposable? old))
-		{
-			old.Dispose();
-		}
+			_currentWatcher = _gitFeature.Watch(gitRoot, async () =>
+			{
+				if(_sessionListFeature.CurrentSession?.Id != session.Id)
+				{
+					return;
+				}
 
-		_gitWatchers.TryAdd(sessionId, watcher);
-	}
+				string? branch = await _gitFeature.GetBranch(gitRoot);
+				if(branch is not null && branch != session.Context.Branch)
+				{
+					session.Context.Branch = branch;
+				}
 
-	void StopGitWatcher(string sessionId)
-	{
-		if(_gitWatchers.TryRemove(sessionId, out IDisposable? watcher))
-		{
-			watcher.Dispose();
+				session.Context.EditedFiles = await _gitFeature.GetChangedFiles(gitRoot);
+				_sessionListFeature.NotifyStateChanged();
+			});
 		}
 	}
 
 	public void Dispose()
 	{
-		foreach(IDisposable watcher in _gitWatchers.Values)
-		{
-			watcher.Dispose();
-		}
-
-		_gitWatchers.Clear();
+		_currentWatcher?.Dispose();
 		GC.SuppressFinalize(this);
 	}
 }
