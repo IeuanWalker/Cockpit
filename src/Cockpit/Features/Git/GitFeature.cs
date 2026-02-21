@@ -173,7 +173,9 @@ public sealed partial class GitFeature
 		string fullPath = Path.Combine(gitRoot, filePath);
 
 		if(status == GitFileStatus.Untracked)
+		{
 			return await GetUntrackedFileDiffAsync(gitRoot, filePath);
+		}
 
 		// For Added files (staged but never committed), git diff HEAD fails because HEAD
 		// has no record of the file. Try --cached (index vs HEAD) first, then fall back
@@ -182,14 +184,19 @@ public sealed partial class GitFeature
 		{
 			string? cached = await RunCommand(gitRoot, "diff", "--cached", "--", fullPath);
 			if(!string.IsNullOrEmpty(cached))
+			{
 				return cached;
+			}
+
 			return await GetUntrackedFileDiffAsync(gitRoot, filePath);
 		}
 
 		// working-tree vs index (unstaged changes); if nothing unstaged, try index vs HEAD (staged-only)
 		string? diff = await RunCommand(gitRoot, "diff", "--", fullPath);
 		if(!string.IsNullOrEmpty(diff))
+		{
 			return diff;
+		}
 
 		return await RunCommand(gitRoot, "diff", "--cached", "--", fullPath);
 	}

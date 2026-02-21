@@ -1,0 +1,77 @@
+@using Cockpit.Features.Git.Models
+@using Cockpit.Components.Controls.GitDiff
+
+@if(IsOpen)
+{
+	<div class="settings-overlay active" @onclick="Close"></div>
+
+	<div class="popup-container" @onclick:stopPropagation="true">
+
+		<!-- Title bar -->
+		<div class="popup-titlebar border-b border-vscode-border">
+			<span class="text-vscode-title font-semibold text-sm">Edited Files (@Files.Count)</span>
+			<div class="flex items-center gap-2">
+				<div class="view-toggle">
+					<button class="toggle-btn @(!_splitView ? "active" : "")" @onclick='() => SetSplitView(false)'>Inline</button>
+					<button class="toggle-btn @(_splitView ? "active" : "")" @onclick='() => SetSplitView(true)'>Split</button>
+				</div>
+				<button class="popup-action-btn"
+				        @onclick="RevealFile"
+				        disabled="@(_selectedFile is null || _selectedFile.Status == GitFileStatus.Deleted)"
+				        title="Reveal in file explorer">
+					<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+					</svg>
+					<span>Reveal</span>
+				</button>
+				<button class="popup-action-btn" @onclick="Close" title="Close">
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+			</div>
+		</div>
+
+		<!-- Body -->
+		<div class="popup-body">
+
+			<!-- File tree -->
+			<div class="popup-file-tree scrollbar-thin">
+				@if(!Files.Any())
+				{
+					<div class="px-3 py-4 text-center secondary-text text-xs">No edited files</div>
+				}
+				@foreach(var file in Files)
+				{
+					var treeBorder = file.Status switch
+					{
+						GitFileStatus.Modified  => "border-yellow-500",
+						GitFileStatus.Added     => "border-green-500",
+						GitFileStatus.Deleted   => "border-red-500",
+						GitFileStatus.Renamed   => "border-blue-500",
+						_                       => "border-transparent"
+					};
+					var (treeBadge, treeBadgeClass) = file.Status switch
+					{
+						GitFileStatus.Modified  => ("M", "bg-yellow-600"),
+						GitFileStatus.Added     => ("A", "bg-green-600"),
+						GitFileStatus.Deleted   => ("D", "bg-red-600"),
+						GitFileStatus.Renamed   => ("R", "bg-blue-600"),
+						_                       => ("U", "bg-gray-600")
+					};
+					<div class="popup-file-item border-l-2 @treeBorder @(_selectedFile == file ? "selected" : "")"
+					     @onclick="() => SelectFile(file)">
+						<span class="text-xs truncate flex-1 min-w-0 @(file.Status == GitFileStatus.Deleted ? "line-through secondary-text" : "text-vscode-text")">@file.Name</span>
+						<span class="ml-2 text-xs @treeBadgeClass text-white px-1 rounded flex-shrink-0">@treeBadge</span>
+					</div>
+				}
+			</div>
+
+			<!-- Diff viewer -->
+			<GitDiffViewer Diff="@_selectedFile?.Diff"
+			               FilePath="@_selectedFilePath"
+			               SplitView="@_splitView" />
+
+		</div>
+	</div>
+}
