@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Cockpit.Features.Sessions;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 

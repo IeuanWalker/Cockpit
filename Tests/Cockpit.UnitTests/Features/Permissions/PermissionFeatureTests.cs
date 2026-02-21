@@ -1,7 +1,7 @@
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;

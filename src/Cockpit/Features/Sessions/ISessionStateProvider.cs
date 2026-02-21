@@ -1,4 +1,4 @@
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 
 namespace Cockpit.Features.Sessions;
 

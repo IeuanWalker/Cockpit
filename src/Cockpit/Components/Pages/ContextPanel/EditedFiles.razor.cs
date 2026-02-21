@@ -1,6 +1,6 @@
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.UIState;
-using Cockpit.Models;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;

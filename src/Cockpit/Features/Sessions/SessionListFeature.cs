@@ -1,4 +1,4 @@
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;

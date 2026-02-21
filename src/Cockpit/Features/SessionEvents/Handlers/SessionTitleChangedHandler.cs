@@ -1,4 +1,4 @@
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 
 namespace Cockpit.Features.SessionEvents.Handlers;

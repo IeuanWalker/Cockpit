@@ -3,7 +3,7 @@ using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.SessionEvents.Models;
 using GitHub.Copilot.SDK;
 
-namespace Cockpit.Models;
+namespace Cockpit.Features.Sessions.Models;
 
 public class ChatSession
 {

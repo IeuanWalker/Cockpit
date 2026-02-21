@@ -5,8 +5,8 @@ using Cockpit.Features.Permissions;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Terminal;
-using Cockpit.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
@@ -160,7 +160,6 @@ public partial class SessionFeature
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.CreateSessionAsync(config);
-
 			sdkSession.On(evt =>
 			{
 				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);

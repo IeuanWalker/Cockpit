@@ -1,7 +1,7 @@
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
-using Cockpit.Models;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;

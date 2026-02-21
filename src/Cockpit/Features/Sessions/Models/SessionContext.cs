@@ -1,4 +1,4 @@
-namespace Cockpit.Models;
+namespace Cockpit.Features.Sessions.Models;
 
 public class SessionContext
 {
