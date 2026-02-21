@@ -1,4 +1,5 @@
 using Cockpit.Features.Connection;
+using Cockpit.Components.Controls;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel.ConnectionStatus;
@@ -10,8 +11,10 @@ public partial class ConnectionStatusHistoryPopup
 	{
 		_connectionFeature = connectionFeature;
 	}
-	[Parameter] public bool Show { get; set; }
-	[Parameter] public EventCallback OnClose { get; set; }
+
+	PopupBase _popup = default!;
+
+	public void Open() => _popup.Open();
 
 	string _statusClass => _connectionFeature.Status switch
 	{

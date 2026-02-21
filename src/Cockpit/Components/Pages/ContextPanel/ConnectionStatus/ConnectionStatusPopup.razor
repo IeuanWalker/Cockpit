@@ -1,7 +1,7 @@
-﻿@using Cockpit.Components.Controls
+@using Cockpit.Components.Controls
 @using Cockpit.Features.Connection
 
-<PopupBase Show="@Show" Title="Connection Status" OnClose="OnClose">
+<PopupBase @ref="_popup" Title="Connection Status">
     <HeaderLeft>
         <span class="connection-dot @_statusClass" style="width:10px;height:10px;display:inline-block;border-radius:50%;flex-shrink:0;margin-right:8px"></span>
     </HeaderLeft>
@@ -27,4 +27,4 @@
     </Content>
 </PopupBase>
 
-<ConnectionStatusHistoryPopup Show="@_showHistory" OnClose="CloseHistoryPopup" />
+<ConnectionStatusHistoryPopup @ref="_historyPopup" />

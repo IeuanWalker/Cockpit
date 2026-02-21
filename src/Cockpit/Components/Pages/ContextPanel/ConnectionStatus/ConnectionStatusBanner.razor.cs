@@ -7,7 +7,8 @@ public partial class ConnectionStatusBanner : ComponentBase, IDisposable
 {
 	[Inject] ConnectionFeature _connectionFeature { get; set; } = default!;
 
-	bool _showPopup = false;
+	ConnectionStatusPopup _popup = default!;
+
 
 	string _statusClass => _connectionFeature.Status switch
 	{
@@ -37,8 +38,8 @@ public partial class ConnectionStatusBanner : ComponentBase, IDisposable
 
 	void OnStatusChanged() => InvokeAsync(StateHasChanged);
 
-	void OpenPopup() => _showPopup = true;
-	void ClosePopup() => _showPopup = false;
+	void OpenPopup() => _popup.Open();
+
 
 	public void Dispose()
 	{

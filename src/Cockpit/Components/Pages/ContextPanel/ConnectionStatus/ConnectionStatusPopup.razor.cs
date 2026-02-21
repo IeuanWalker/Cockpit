@@ -1,5 +1,5 @@
+using Cockpit.Components.Controls;
 using Cockpit.Features.Connection;
-using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel.ConnectionStatus;
 
@@ -10,10 +10,11 @@ public partial class ConnectionStatusPopup
 	{
 		_connectionFeature = connectionFeature;
 	}
-	[Parameter] public bool Show { get; set; }
-	[Parameter] public EventCallback OnClose { get; set; }
 
-	bool _showHistory;
+	PopupBase _popup = default!;
+	ConnectionStatusHistoryPopup _historyPopup = default!;
+
+	public void Open() => _popup.Open();
 
 	string _statusClass => _connectionFeature.Status switch
 	{
@@ -23,11 +24,9 @@ public partial class ConnectionStatusPopup
 		_ => "checking"
 	};
 
-	async Task OpenHistoryPopup()
+	void OpenHistoryPopup()
 	{
-		_showHistory = true;
-		await OnClose.InvokeAsync();
+		_popup.Close();
+		_historyPopup.Open();
 	}
-
-	void CloseHistoryPopup() => _showHistory = false;
 }

@@ -1,7 +1,7 @@
 ﻿@using Cockpit.Components.Controls
 @using Cockpit.Features.Connection
 
-<PopupBase Show="@Show" Title="Connection History" OnClose="OnClose">
+<PopupBase @ref="_popup" Title="Connection History">
     <Content>
         @if(!_connectionFeature.History.Any())
         {

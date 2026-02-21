@@ -1,5 +1,5 @@
-﻿<div class="settings-overlay @(Show ? "active" : "")" @onclick="Close"></div>
-<div class="settings-popup @(Show ? "active" : "")">
+﻿<div class="settings-overlay @(_show ? "active" : "")" @onclick="Close"></div>
+<div class="settings-popup @(_show ? "active" : "")">
     <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl w-[500px] max-w-[90vw]">
         <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between">
             <h3 class="text-vscode-title font-semibold flex items-center">
@@ -16,7 +16,7 @@
             </div>
         </div>
         <div class="overflow-y-auto scrollbar-thin">
-            @if(Show)
+            @if(_show)
             {
                 @Content
             }

@@ -4,16 +4,22 @@ namespace Cockpit.Components.Controls;
 
 public partial class PopupBase
 {
-	[Parameter] public bool Show { get; set; }
-	[Parameter] public EventCallback OnClose { get; set; }
 	[Parameter] public string Title { get; set; } = string.Empty;
 	[Parameter] public RenderFragment? HeaderLeft { get; set; }
 	[Parameter] public RenderFragment? HeaderRight { get; set; }
 	[Parameter] public RenderFragment? Content { get; set; }
 
-	async Task Close()
+	bool _show;
+
+	public void Open()
 	{
-		Show = false;
-		await OnClose.InvokeAsync();
+		_show = true;
+		StateHasChanged();
+	}
+
+	public void Close()
+	{
+		_show = false;
+		StateHasChanged();
 	}
 }
