@@ -18,7 +18,7 @@ public class PermissionFeatureTests
 
 		public void AddSession(SessionModel session) => _sessions.Add(session);
 
-		public IReadOnlyList<SessionModel> GetSessions() => _sessions;
+		public IReadOnlyList<SessionModel> Sessions => _sessions;
 
 		public void NotifyStateChanged()
 		{
@@ -299,7 +299,7 @@ public class PermissionFeatureTests
 		SessionPermissionFeature sessionFeature = new(stateProvider);
 		SessionModel session = new()
 		{
-			Id = "sessionId",
+			Id = "session1",
 			Title = "Test Session",
 			CreatedAt = DateTime.UtcNow,
 			LastActivity = DateTime.UtcNow,

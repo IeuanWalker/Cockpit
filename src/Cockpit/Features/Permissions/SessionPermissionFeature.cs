@@ -19,7 +19,7 @@ public sealed class SessionPermissionFeature
 
 	SessionModel? GetSession(string sessionId)
 	{
-		return _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
+		return _sessionStateProvider.Sessions.FirstOrDefault(s => s.Id == sessionId);
 	}
 
 	static string? GetCommandsFilePath(SessionModel session)

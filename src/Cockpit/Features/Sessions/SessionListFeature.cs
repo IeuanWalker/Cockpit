@@ -1,23 +1,16 @@
 using Cockpit.Features.Sessions.Models;
-using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;
 
 public class SessionListFeature : ISessionStateProvider
 {
-	readonly ILogger<SessionListFeature> _logger;
-
 	readonly List<SessionModel> _sessions = [];
 
 	public event Action? OnStateChanged;
 
 	public IReadOnlyList<SessionModel> Sessions => _sessions;
-	public SessionModel? CurrentSession { get; private set; }
 
-	public SessionListFeature(ILogger<SessionListFeature> logger)
-	{
-		_logger = logger;
-	}
+	public SessionModel? CurrentSession { get; private set; }
 
 	public void SetCurrentSession(SessionModel session)
 	{
@@ -48,5 +41,4 @@ public class SessionListFeature : ISessionStateProvider
 
 	public void NotifyStateChanged() => OnStateChanged?.Invoke();
 
-	IReadOnlyList<SessionModel> ISessionStateProvider.GetSessions() => _sessions;
 }

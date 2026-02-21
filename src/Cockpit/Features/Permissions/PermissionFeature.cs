@@ -165,10 +165,10 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 	{
 		try
 		{
-			SessionModel? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == invocation.SessionId);
+			SessionModel? session = _sessionStateProvider.Sessions.FirstOrDefault(s => s.Id == invocation.SessionId);
 			if(session is null)
 			{
-				_logger.LogWarning("ChatSession not found for SDK session {SessionId}", invocation.SessionId);
+				_logger.LogWarning("SessionModel not found for SDK session {SessionId}", invocation.SessionId);
 				return new PermissionRequestResult
 				{
 					Kind = "denied"
@@ -199,7 +199,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 	void UpdateSessionOnPermissionResolved(string sessionId, string requestId)
 	{
-		SessionModel? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
+		SessionModel? session = _sessionStateProvider.Sessions.FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
 		{
 			return;
@@ -226,7 +226,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 	void UpdateSessionOnPermissionRequested(string sessionId, PermissionRequestModel request)
 	{
-		SessionModel? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
+		SessionModel? session = _sessionStateProvider.Sessions.FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
 		{
 			return;

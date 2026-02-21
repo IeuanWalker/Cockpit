@@ -41,7 +41,7 @@ public class SessionPermissionFeatureTests
 			});
 		}
 
-		public IReadOnlyList<SessionModel> GetSessions() => _sessions;
+		public IReadOnlyList<SessionModel> Sessions => _sessions;
 		public void NotifyStateChanged() { }
 	}
 
