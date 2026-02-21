@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Cockpit.Features.Sessions;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -17,28 +17,22 @@ public sealed class SessionPermissionFeature
 		_logger = logger ?? NullLogger<SessionPermissionFeature>.Instance;
 	}
 
-	ChatSession? GetSession(string sessionId)
+	SessionModel? GetSession(string sessionId)
 	{
-		return _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
+		return _sessionStateProvider.Sessions.FirstOrDefault(s => s.Id == sessionId);
 	}
 
-	static SessionContext GetOrCreateContext(ChatSession session)
+	static string? GetCommandsFilePath(SessionModel session)
 	{
-		session.Context ??= SessionContext.CreateDefault(session.WorkingDirectory ?? session.WorkspacePath);
-		return session.Context;
-	}
-
-	static string? GetCommandsFilePath(ChatSession session)
-	{
-		if(string.IsNullOrWhiteSpace(session.WorkspacePath))
+		if(string.IsNullOrWhiteSpace(session.Context.WorkspacePath))
 		{
 			return null;
 		}
 
-		return Path.Combine(session.WorkspacePath, "Cockpit", "session-commands.json");
+		return Path.Combine(session.Context.WorkspacePath, "Cockpit", "session-commands.json");
 	}
 
-	public static bool TryRestoreSessionCommands(ChatSession session, ILogger logger)
+	public static bool TryRestoreSessionCommands(SessionModel session, ILogger logger)
 	{
 		string? commandsFilePath = GetCommandsFilePath(session);
 		if(string.IsNullOrWhiteSpace(commandsFilePath))
@@ -62,17 +56,16 @@ public sealed class SessionPermissionFeature
 			string json = File.ReadAllText(commandsFilePath);
 			List<string>? commands = JsonSerializer.Deserialize<List<string>>(json);
 
-			SessionContext context = GetOrCreateContext(session);
-			lock(context.SessionPermissionCommandsLock)
+			lock(session.Context.SessionPermissionCommandsLock)
 			{
-				context.SessionPermissionCommands.Clear();
+				session.Context.SessionPermissionCommands.Clear();
 				if(commands is not null)
 				{
 					foreach(string command in commands)
 					{
-						if(!context.SessionPermissionCommands.Contains(command))
+						if(!session.Context.SessionPermissionCommands.Contains(command))
 						{
-							context.SessionPermissionCommands.Add(command);
+							session.Context.SessionPermissionCommands.Add(command);
 						}
 					}
 				}
@@ -87,7 +80,7 @@ public sealed class SessionPermissionFeature
 		}
 	}
 
-	void SaveSessionCommands(ChatSession session)
+	void SaveSessionCommands(SessionModel session)
 	{
 		string? commandsFilePath = GetCommandsFilePath(session);
 		if(string.IsNullOrWhiteSpace(commandsFilePath))
@@ -106,10 +99,9 @@ public sealed class SessionPermissionFeature
 			Directory.CreateDirectory(commandsDirectory);
 
 			List<string> commandsSnapshot;
-			SessionContext context = GetOrCreateContext(session);
-			lock(context.SessionPermissionCommandsLock)
+			lock(session.Context.SessionPermissionCommandsLock)
 			{
-				commandsSnapshot = [.. context.SessionPermissionCommands];
+				commandsSnapshot = [.. session.Context.SessionPermissionCommands];
 			}
 
 			string json = JsonSerializer.Serialize(commandsSnapshot, new JsonSerializerOptions
@@ -127,49 +119,46 @@ public sealed class SessionPermissionFeature
 
 	public bool HasPermission(string sessionId, string command)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return false;
 		}
 
-		SessionContext context = GetOrCreateContext(session);
-		lock(context.SessionPermissionCommandsLock)
+		lock(session.Context.SessionPermissionCommandsLock)
 		{
-			return context.SessionPermissionCommands.Contains(command);
+			return session.Context.SessionPermissionCommands.Contains(command);
 		}
 	}
 
 	public bool HasPermissions(string sessionId, List<string> commands)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return false;
 		}
 
-		SessionContext context = GetOrCreateContext(session);
-		lock(context.SessionPermissionCommandsLock)
+		lock(session.Context.SessionPermissionCommandsLock)
 		{
-			return commands.All(cmd => context.SessionPermissionCommands.Contains(cmd));
+			return commands.All(cmd => session.Context.SessionPermissionCommands.Contains(cmd));
 		}
 	}
 
 	public void Add(string sessionId, string command)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return;
 		}
 
 		bool modified = false;
-		SessionContext context = GetOrCreateContext(session);
-		lock(context.SessionPermissionCommandsLock)
+		lock(session.Context.SessionPermissionCommandsLock)
 		{
-			if(!context.SessionPermissionCommands.Contains(command))
+			if(!session.Context.SessionPermissionCommands.Contains(command))
 			{
-				context.SessionPermissionCommands.Add(command);
+				session.Context.SessionPermissionCommands.Add(command);
 				modified = true;
 			}
 		}
@@ -183,21 +172,20 @@ public sealed class SessionPermissionFeature
 
 	public void Add(string sessionId, List<string> commands)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return;
 		}
 
 		bool modified = false;
-		SessionContext context = GetOrCreateContext(session);
-		lock(context.SessionPermissionCommandsLock)
+		lock(session.Context.SessionPermissionCommandsLock)
 		{
 			foreach(string command in commands)
 			{
-				if(!context.SessionPermissionCommands.Contains(command))
+				if(!session.Context.SessionPermissionCommands.Contains(command))
 				{
-					context.SessionPermissionCommands.Add(command);
+					session.Context.SessionPermissionCommands.Add(command);
 					modified = true;
 				}
 			}
@@ -212,17 +200,16 @@ public sealed class SessionPermissionFeature
 
 	public void Remove(string sessionId, string command)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return;
 		}
 
 		bool modified = false;
-		SessionContext context = GetOrCreateContext(session);
-		lock(context.SessionPermissionCommandsLock)
+		lock(session.Context.SessionPermissionCommandsLock)
 		{
-			modified = context.SessionPermissionCommands.Remove(command);
+			modified = session.Context.SessionPermissionCommands.Remove(command);
 		}
 
 		if(modified)
@@ -234,34 +221,32 @@ public sealed class SessionPermissionFeature
 
 	public List<string> GetAll(string sessionId)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return [];
 		}
 
-		SessionContext context = GetOrCreateContext(session);
-		lock(context.SessionPermissionCommandsLock)
+		lock(session.Context.SessionPermissionCommandsLock)
 		{
-			return [.. context.SessionPermissionCommands];
+			return [.. session.Context.SessionPermissionCommands];
 		}
 	}
 
 	public void Clear(string sessionId)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return;
 		}
 
 		bool modified = false;
-		SessionContext context = GetOrCreateContext(session);
-		lock(context.SessionPermissionCommandsLock)
+		lock(session.Context.SessionPermissionCommandsLock)
 		{
-			if(context.SessionPermissionCommands.Count > 0)
+			if(session.Context.SessionPermissionCommands.Count > 0)
 			{
-				context.SessionPermissionCommands.Clear();
+				session.Context.SessionPermissionCommands.Clear();
 				modified = true;
 			}
 		}

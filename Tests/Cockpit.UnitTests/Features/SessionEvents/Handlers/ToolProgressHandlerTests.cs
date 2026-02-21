@@ -1,6 +1,6 @@
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
@@ -10,14 +10,29 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class ToolProgressHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new() { Model = testModel };
+	static SessionModel CreateSession() => new()
+	{
+		Id = "sessionId",
+		Title = "Test Session",
+		CreatedAt = DateTime.UtcNow,
+		LastActivity = DateTime.UtcNow,
+		Model = testModel,
+		Context = new()
+		{
+			CurrentWorkingDirectory = "",
+			WorkspacePath = null,
+			GitRoot = null,
+			Branch = null,
+			Repository = null
+		}
+	};
 	static SessionEventProcessor CreateProcessor() => new(NullLogger<SessionEventProcessor>.Instance);
 
 	[Fact]
 	public void Handle_UpdatesProgressMessage()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		processor.Process(session, new ToolExecutionStartEvent
@@ -42,7 +57,7 @@ public class ToolProgressHandlerTests
 	public void Handle_WithNoActiveGroup_IsIgnored()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act & Assert — no group, should not throw

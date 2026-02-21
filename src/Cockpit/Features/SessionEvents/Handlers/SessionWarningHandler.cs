@@ -1,5 +1,5 @@
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
@@ -7,7 +7,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SessionWarningHandler
 {
-	internal static void Handle(ChatSession session, SessionWarningEvent evt, ILogger logger)
+	internal static void Handle(SessionModel session, SessionWarningEvent evt, ILogger logger)
 	{
 		logger.LogWarning("Session {SessionId} warning [{WarningType}]: {Message}",
 			session.Id, evt.Data.WarningType, evt.Data.Message);

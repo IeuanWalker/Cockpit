@@ -1,6 +1,6 @@
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
@@ -10,14 +10,29 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class ToolStartHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new() { Model = testModel };
+	static SessionModel CreateSession() => new()
+	{
+		Id = "sessionId",
+		Title = "Test Session",
+		CreatedAt = DateTime.UtcNow,
+		LastActivity = DateTime.UtcNow,
+		Model = testModel,
+		Context = new()
+		{
+			CurrentWorkingDirectory = "",
+			WorkspacePath = null,
+			GitRoot = null,
+			Branch = null,
+			Repository = null
+		}
+	};
 	static SessionEventProcessor CreateProcessor() => new(NullLogger<SessionEventProcessor>.Instance);
 
 	[Fact]
 	public void Handle_CreatesActivityGroup()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		ToolExecutionStartEvent evt = new()
 		{
@@ -40,7 +55,7 @@ public class ToolStartHandlerTests
 	public void Handle_ReusesExistingGroup()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		ActivityGroupModel existing = new() { Status = GroupStatusEnum.Running };
 		session.ActiveWorkingGroup = existing;
@@ -63,7 +78,7 @@ public class ToolStartHandlerTests
 	public void Handle_WithParentCallId_NestsUnderParent()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// First: start a parent tool
@@ -96,7 +111,7 @@ public class ToolStartHandlerTests
 	public void Handle_TracksInitialMessageId()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Simulate a turn: user message then assistant message

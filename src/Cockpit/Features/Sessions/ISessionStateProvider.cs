@@ -1,4 +1,4 @@
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 
 namespace Cockpit.Features.Sessions;
 
@@ -10,7 +10,7 @@ public interface ISessionStateProvider
 	/// <summary>
 	/// Get all chat sessions
 	/// </summary>
-	IReadOnlyList<ChatSession> GetSessions();
+	IReadOnlyList<SessionModel> Sessions { get; }
 
 	/// <summary>
 	/// Notify that session state has changed

@@ -1,17 +1,13 @@
-using System.Diagnostics;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 
 namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class ToolCompleteHandler
 {
-	internal static void Handle(ChatSession session, ToolExecutionCompleteEvent evt)
+	internal static void Handle(SessionModel session, ToolExecutionCompleteEvent evt)
 	{
-		Debug.WriteLine("ToolCompleteHandler");
-		Debug.WriteLine(evt);
-
 		if(evt.Data is null || session.ActiveWorkingGroup is null)
 		{
 			return;

@@ -1,17 +1,13 @@
-using System.Diagnostics;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 
 namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SessionErrorHandler
 {
-	internal static void Handle(ChatSession session, SessionErrorEvent evt)
+	internal static void Handle(SessionModel session, SessionErrorEvent evt)
 	{
-		Debug.WriteLine("SessionErrorHandler");
-		Debug.WriteLine(evt);
-
 		if(evt.Data is null)
 		{
 			return;
@@ -28,6 +24,6 @@ static class SessionErrorHandler
 		};
 
 		session.Messages.Add(message);
-		session.Status = SessionStatus.Error;
+		session.Status = SessionStatusEnum.Error;
 	}
 }

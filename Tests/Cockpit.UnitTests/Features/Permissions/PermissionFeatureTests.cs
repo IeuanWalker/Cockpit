@@ -1,7 +1,7 @@
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
@@ -14,11 +14,11 @@ public class PermissionFeatureTests
 
 	class TestSessionStateProvider : ISessionStateProvider
 	{
-		readonly List<ChatSession> _sessions = [];
+		readonly List<SessionModel> _sessions = [];
 
-		public void AddSession(ChatSession session) => _sessions.Add(session);
+		public void AddSession(SessionModel session) => _sessions.Add(session);
 
-		public IReadOnlyList<ChatSession> GetSessions() => _sessions;
+		public IReadOnlyList<SessionModel> Sessions => _sessions;
 
 		public void NotifyStateChanged()
 		{
@@ -103,7 +103,22 @@ public class PermissionFeatureTests
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		const string sessionId = "session1";
-		stateProvider.AddSession(new ChatSession { Id = sessionId, Model = testModel });
+		stateProvider.AddSession(new SessionModel
+		{
+			Id = sessionId,
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
+		});
 		sessionFeature.Add(sessionId, "npm");
 
 		PermissionRequestModel request = new()
@@ -138,7 +153,22 @@ public class PermissionFeatureTests
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		const string sessionId = "session1";
-		stateProvider.AddSession(new ChatSession { Id = sessionId, Model = testModel });
+		stateProvider.AddSession(new SessionModel
+		{
+			Id = sessionId,
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
+		});
 		sessionFeature.Add(sessionId, "npm");
 		globalFeature.Add("npm");
 
@@ -215,10 +245,21 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session = new()
+		SessionModel session = new()
 		{
-			Id = "session1",
-			Model = testModel
+			Id = "sessionId",
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
 		};
 		stateProvider.AddSession(session);
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
@@ -256,10 +297,21 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session = new()
+		SessionModel session = new()
 		{
 			Id = "session1",
-			Model = testModel
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
 		};
 		stateProvider.AddSession(session);
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
@@ -297,10 +349,21 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session = new()
+		SessionModel session = new()
 		{
 			Id = "session1",
-			Model = testModel
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
 		};
 		stateProvider.AddSession(session);
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
@@ -338,10 +401,21 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session = new()
+		SessionModel session = new()
 		{
 			Id = "session1",
-			Model = testModel
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
 		};
 		stateProvider.AddSession(session);
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
@@ -379,15 +453,37 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session1 = new()
+		SessionModel session1 = new()
 		{
 			Id = "session1",
-			Model = testModel
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
 		};
-		ChatSession session2 = new()
+		SessionModel session2 = new()
 		{
 			Id = "session2",
-			Model = testModel
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
 		};
 		stateProvider.AddSession(session1);
 		stateProvider.AddSession(session2);
@@ -441,15 +537,37 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session1 = new()
+		SessionModel session1 = new()
 		{
 			Id = "session1",
-			Model = testModel
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
 		};
-		ChatSession session2 = new()
+		SessionModel session2 = new()
 		{
 			Id = "session2",
-			Model = testModel
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
 		};
 		stateProvider.AddSession(session1);
 		stateProvider.AddSession(session2);
@@ -505,10 +623,21 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session = new()
+		SessionModel session = new()
 		{
 			Id = "session1",
-			Model = testModel
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
 		};
 		stateProvider.AddSession(session);
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);

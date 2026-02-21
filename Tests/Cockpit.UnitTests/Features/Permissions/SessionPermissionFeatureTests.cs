@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Sessions;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
@@ -14,7 +14,7 @@ public class SessionPermissionFeatureTests
 
 	class TestSessionStateProvider : ISessionStateProvider
 	{
-		readonly List<ChatSession> _sessions = [];
+		readonly List<SessionModel> _sessions = [];
 
 		public void AddSession(string sessionId, string? workspacePath = null)
 		{
@@ -23,15 +23,25 @@ public class SessionPermissionFeatureTests
 				return;
 			}
 
-			_sessions.Add(new ChatSession
+			_sessions.Add(new SessionModel
 			{
 				Id = sessionId,
+				Title = $"Session {sessionId}",
+				CreatedAt = DateTime.UtcNow,
+				LastActivity = DateTime.UtcNow,
 				Model = testModel,
-				WorkspacePath = workspacePath
+				Context = new()
+				{
+					WorkspacePath = workspacePath,
+					CurrentWorkingDirectory = string.Empty,
+					GitRoot = null,
+					Branch = null,
+					Repository = null
+				}
 			});
 		}
 
-		public IReadOnlyList<ChatSession> GetSessions() => _sessions;
+		public IReadOnlyList<SessionModel> Sessions => _sessions;
 		public void NotifyStateChanged() { }
 	}
 
@@ -384,12 +394,21 @@ public class SessionPermissionFeatureTests
 		Directory.CreateDirectory(permissionsDirectory);
 		File.WriteAllText(permissionsFilePath, JsonSerializer.Serialize(new[] { "npm", "git" }));
 
-		ChatSession session = new()
+		SessionModel session = new()
 		{
 			Id = sessionId,
+			Title = $"Session {sessionId}",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
 			Model = testModel,
-			WorkspacePath = workspacePath,
-			Context = Models.SessionContext.CreateDefault()
+			Context = new()
+			{
+				WorkspacePath = workspacePath,
+				CurrentWorkingDirectory = string.Empty,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
 		};
 
 		try

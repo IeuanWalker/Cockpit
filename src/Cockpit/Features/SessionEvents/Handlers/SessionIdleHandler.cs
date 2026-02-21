@@ -1,15 +1,14 @@
 using System.Diagnostics;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 
 namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SessionIdleHandler
 {
-	internal static void Handle(ChatSession session, DateTimeOffset? eventTimestamp = null, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
+	internal static void Handle(SessionModel session, DateTimeOffset? eventTimestamp = null, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
 	{
 		DateTime now = eventTimestamp?.LocalDateTime ?? DateTime.Now;
-		Debug.WriteLine("SessionIdleHandler - Finalizing activity group");
 
 		ActivityGroupModel? activeGroup = session.ActiveWorkingGroup;
 
@@ -27,6 +26,7 @@ static class SessionIdleHandler
 			{
 				Debug.WriteLine($"Activity message already exists for group {group.Id}, skipping insertion");
 				session.ActiveWorkingGroup = null;
+				session.Status = SessionStatusEnum.Idle;
 				return;
 			}
 
@@ -207,7 +207,7 @@ static class SessionIdleHandler
 			Debug.WriteLine("No active thinking group to finalize");
 		}
 
-		session.Status = SessionStatus.Idle;
+		session.Status = SessionStatusEnum.Idle;
 	}
 
 	static string GenerateActivitySummary(ActivityGroupModel group)

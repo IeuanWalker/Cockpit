@@ -1,7 +1,7 @@
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
-using Cockpit.Models;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -15,7 +15,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	[Inject] SessionFeature _sessionManager { get; set; } = default!;
 
 	bool _showDeleteDialog = false;
-	ChatSession? _sessionToDelete;
+	SessionModel? _sessionToDelete;
 
 	protected override void OnInitialized()
 	{
@@ -29,18 +29,18 @@ public partial class SessionList : ComponentBase, IDisposable
 		InvokeAsync(StateHasChanged);
 	}
 
-	async Task SelectSession(ChatSession session)
+	async Task SelectSession(SessionModel session)
 	{
-		await _sessionManager.ResumeSessionAsync(session.Id);
+		await _sessionManager.LoadSession(session.Id);
 	}
 
-	static string GetSessionStatusClass(ChatSession session)
+	static string GetSessionStatusClass(SessionModel session)
 	{
 		return session.Status switch
 		{
-			SessionStatus.NeedsPermission => "status-needs-permission",
-			SessionStatus.Running => "status-running",
-			SessionStatus.Finished => "status-finished",
+			SessionStatusEnum.NeedsPermission => "status-needs-permission",
+			SessionStatusEnum.Running => "status-running",
+			SessionStatusEnum.Finished => "status-finished",
 			_ => "secondary-text"
 		};
 	}
@@ -50,7 +50,7 @@ public partial class SessionList : ComponentBase, IDisposable
 		return dateTime.Humanize();
 	}
 
-	void ShowDeleteDialog(ChatSession session, MouseEventArgs _)
+	void ShowDeleteDialog(SessionModel session, MouseEventArgs _)
 	{
 		_sessionToDelete = session;
 		_showDeleteDialog = true;
@@ -61,7 +61,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	{
 		if(_sessionToDelete is not null)
 		{
-			await _sessionManager.DeleteSessionAsync(_sessionToDelete.Id);
+			await _sessionManager.DeleteSession(_sessionToDelete.Id);
 		}
 		_showDeleteDialog = false;
 		_sessionToDelete = null;

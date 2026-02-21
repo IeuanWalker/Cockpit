@@ -1,6 +1,6 @@
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
@@ -10,14 +10,29 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class SessionIdleHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new() { Model = testModel };
+	static SessionModel CreateSession() => new()
+	{
+		Id = "sessionId",
+		Title = "Test Session",
+		CreatedAt = DateTime.UtcNow,
+		LastActivity = DateTime.UtcNow,
+		Model = testModel,
+		Context = new()
+		{
+			CurrentWorkingDirectory = "",
+			WorkspacePath = null,
+			GitRoot = null,
+			Branch = null,
+			Repository = null
+		}
+	};
 	static SessionEventProcessor CreateProcessor() => new(NullLogger<SessionEventProcessor>.Instance);
 
 	[Fact]
 	public void Handle_FinalizesGroupAndSetsIdle()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		session.Messages.Add(new ChatMessageModel { IsUser = true, Content = "Do something" });
 
@@ -40,7 +55,7 @@ public class SessionIdleHandlerTests
 		});
 
 		// Assert
-		session.Status.ShouldBe(SessionStatus.Idle);
+		session.Status.ShouldBe(SessionStatusEnum.Idle);
 		session.ActiveWorkingGroup.ShouldBeNull();
 		session.Messages.ShouldContain(m => m.Type == MessageTypeEnum.ActivityGroup);
 	}
@@ -49,8 +64,8 @@ public class SessionIdleHandlerTests
 	public void Handle_WithNoGroup_SetsIdle()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
-		session.Status = SessionStatus.Running;
+		SessionModel session = CreateSession();
+		session.Status = SessionStatusEnum.Running;
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act
@@ -61,14 +76,14 @@ public class SessionIdleHandlerTests
 		});
 
 		// Assert
-		session.Status.ShouldBe(SessionStatus.Idle);
+		session.Status.ShouldBe(SessionStatusEnum.Idle);
 	}
 
 	[Fact]
 	public void Handle_RunningToolsMarkedAsErrorOnFinalization()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		session.Messages.Add(new ChatMessageModel { IsUser = true });
 		SessionEventProcessor processor = CreateProcessor();
 
@@ -94,7 +109,7 @@ public class SessionIdleHandlerTests
 	public void Handle_ActivityMessageInsertedAfterInitialMessage()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Build a full turn: user → assistant → tools → idle
@@ -134,7 +149,7 @@ public class SessionIdleHandlerTests
 		// IsPending is cleared before the previous session.idle fires.
 		// Expected order: msg1 → ops1 → response1 → msg2 → ops2 → response2 → msg3 → ops3 → response3
 
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// --- Turn 1: msg1 sent, agent is working ---

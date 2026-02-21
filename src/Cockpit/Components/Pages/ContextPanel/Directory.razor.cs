@@ -9,7 +9,7 @@ public partial class Directory : ComponentBase, IDisposable
 	[Inject] UIStateFeature _uiState { get; set; } = null!;
 	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 
-	string CurrentDirectory => _sessionManager.CurrentSession?.Context?.CurrentDirectory ?? string.Empty;
+	string CurrentDirectory => _sessionManager.CurrentSession?.Context?.CurrentWorkingDirectory ?? string.Empty;
 
 	protected override void OnInitialized()
 	{

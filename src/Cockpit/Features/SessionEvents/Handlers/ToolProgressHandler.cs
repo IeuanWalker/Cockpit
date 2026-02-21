@@ -1,12 +1,12 @@
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 
 namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class ToolProgressHandler
 {
-	internal static void Handle(ChatSession session, ToolExecutionProgressEvent evt)
+	internal static void Handle(SessionModel session, ToolExecutionProgressEvent evt)
 	{
 		if(session.ActiveWorkingGroup is null)
 		{

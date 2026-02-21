@@ -3,6 +3,7 @@ using Blazor.Sonner.Services;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Connection;
 using Cockpit.Features.CopilotModels;
+using Cockpit.Features.Git;
 using Cockpit.Features.Markdown;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Sdk;
@@ -55,6 +56,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<UIStateFeature>();
 		builder.Services.AddSingleton<TimestampFeature>();
 		builder.Services.AddSingleton<TerminalFeature>();
+		builder.Services.AddSingleton<GitFeature>();
 
 		// Register Copilot SDK services
 		builder.Services.AddSingleton<CopilotClientFeature>();
@@ -64,6 +66,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<SessionEventProcessor>();
 
 		// Register session management
+		builder.Services.AddSingleton<SdkSessionRegistry>();
 		builder.Services.AddSingleton<SessionListFeature>();
 		builder.Services.AddSingleton<ISessionStateProvider>(sp => sp.GetRequiredService<SessionListFeature>());
 		builder.Services.AddSingleton<SessionFeature>();

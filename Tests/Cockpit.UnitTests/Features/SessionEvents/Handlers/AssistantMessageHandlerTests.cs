@@ -1,5 +1,5 @@
 using Cockpit.Features.SessionEvents;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
@@ -9,14 +9,29 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class AssistantMessageHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new() { Model = testModel };
+	static SessionModel CreateSession() => new()
+	{
+		Id = "sessionId",
+		Title = "Test Session",
+		CreatedAt = DateTime.UtcNow,
+		LastActivity = DateTime.UtcNow,
+		Model = testModel,
+		Context = new()
+		{
+			CurrentWorkingDirectory = "",
+			WorkspacePath = null,
+			GitRoot = null,
+			Branch = null,
+			Repository = null
+		}
+	};
 	static SessionEventProcessor CreateProcessor() => new(NullLogger<SessionEventProcessor>.Instance);
 
 	[Fact]
 	public void Handle_FinalizesStreamingMessage()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		const string messageId = "msg1";
 
@@ -51,7 +66,7 @@ public class AssistantMessageHandlerTests
 	public void Handle_WithNoStreamingMessage_AddsDirectly()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act
@@ -72,7 +87,7 @@ public class AssistantMessageHandlerTests
 	public void Handle_DuringActiveGroup_GoesToThinkingPanel()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Open a working group

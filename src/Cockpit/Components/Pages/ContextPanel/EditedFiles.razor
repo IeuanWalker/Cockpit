@@ -1,4 +1,6 @@
-﻿<div class="border-b border-vscode-border">
+@using Cockpit.Features.Git.Models
+
+<div class="border-b border-vscode-border">
     <button class="w-full px-3 py-2 flex items-center justify-between hover:bg-vscode-hover text-left" @onclick='() => _uiState.ToggleDropdown("files")'>
         <div class="flex items-center">
             <svg class="icon-xs mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
@@ -15,23 +17,23 @@
         {
             var borderColor = file.Status switch
             {
-                FileStatus.Modified => "border-yellow-500",
-                FileStatus.Added => "border-green-500",
-                FileStatus.Deleted => "border-red-500",
+                GitFileStatus.Modified => "border-yellow-500",
+                GitFileStatus.Added => "border-green-500",
+                GitFileStatus.Deleted => "border-red-500",
                 _ => "border-transparent"
             };
             var statusBadge = file.Status switch
             {
-                FileStatus.Modified => ("M", "bg-yellow-600"),
-                FileStatus.Added => ("A", "bg-green-600"),
-                FileStatus.Deleted => ("D", "bg-red-600"),
+                GitFileStatus.Modified => ("M", "bg-yellow-600"),
+                GitFileStatus.Added => ("A", "bg-green-600"),
+                GitFileStatus.Deleted => ("D", "bg-red-600"),
                 _ => ("", "")
             };
             var iconColor = file.Status switch
             {
-                FileStatus.Modified => "text-blue-400",
-                FileStatus.Added => "text-green-400",
-                FileStatus.Deleted => "text-red-400",
+                GitFileStatus.Modified => "text-blue-400",
+                GitFileStatus.Added => "text-green-400",
+                GitFileStatus.Deleted => "text-red-400",
                 _ => "text-blue-400"
             };
 
@@ -42,7 +44,7 @@
                             <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
                         </svg>
                         <div class="flex-1 min-w-0">
-                            <div class="text-xs truncate @(file.Status == FileStatus.Deleted ? "line-through secondary-text" : "")">@file.Name</div>
+                            <div class="text-xs truncate @(file.Status == GitFileStatus.Deleted ? "line-through secondary-text" : "")">@file.Name</div>
                         </div>
                     </div>
                     @if(!string.IsNullOrEmpty(statusBadge.Item1))

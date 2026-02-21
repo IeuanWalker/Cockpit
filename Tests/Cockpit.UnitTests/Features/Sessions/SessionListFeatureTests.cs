@@ -1,7 +1,6 @@
 using Cockpit.Features.Sessions;
-using Cockpit.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
-using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Sessions;
@@ -10,22 +9,32 @@ public class SessionListFeatureTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
 
-	static ChatSession MakeSession(string id, string title = "Test") => new()
+	static SessionModel MakeSession(string id, string title = "Test") => new()
 	{
 		Id = id,
 		Title = title,
-		Status = SessionStatus.Idle,
-		Model = testModel
+		Status = SessionStatusEnum.Idle,
+		CreatedAt = DateTime.UtcNow,
+		LastActivity = DateTime.UtcNow,
+		Model = testModel,
+		Context = new()
+		{
+			CurrentWorkingDirectory = "",
+			WorkspacePath = null,
+			GitRoot = null,
+			Branch = null,
+			Repository = null
+		}
 	};
 
-	static SessionListFeature CreateFeature() => new(NullLogger<SessionListFeature>.Instance);
+	static SessionListFeature CreateFeature() => new();
 
 	[Fact]
 	public void AddSession_InsertsAtFront()
 	{
 		SessionListFeature feature = CreateFeature();
-		ChatSession first = MakeSession("a");
-		ChatSession second = MakeSession("b");
+		SessionModel first = MakeSession("a");
+		SessionModel second = MakeSession("b");
 
 		feature.AddSession(first);
 		feature.AddSession(second);
@@ -38,7 +47,7 @@ public class SessionListFeatureTests
 	public void SetCurrentSession_UpdatesCurrentAndFiresEvent()
 	{
 		SessionListFeature feature = CreateFeature();
-		ChatSession session = MakeSession("x");
+		SessionModel session = MakeSession("x");
 		feature.AddSession(session);
 
 		bool eventFired = false;
@@ -51,23 +60,10 @@ public class SessionListFeatureTests
 	}
 
 	[Fact]
-	public void SetCurrentSession_EnsuresContextIsInitialized()
-	{
-		SessionListFeature feature = CreateFeature();
-		ChatSession session = MakeSession("x");
-		session.Context = null!;
-		feature.AddSession(session);
-
-		feature.SetCurrentSession(session);
-
-		session.Context.ShouldNotBeNull();
-	}
-
-	[Fact]
 	public void RemoveSession_RemovesExistingSession()
 	{
 		SessionListFeature feature = CreateFeature();
-		ChatSession session = MakeSession("del");
+		SessionModel session = MakeSession("del");
 		feature.AddSession(session);
 
 		feature.RemoveSession("del");
@@ -89,8 +85,8 @@ public class SessionListFeatureTests
 	public void RemoveSession_AdvancesCurrentSession_WhenCurrentDeleted()
 	{
 		SessionListFeature feature = CreateFeature();
-		ChatSession first = MakeSession("first");
-		ChatSession second = MakeSession("second");
+		SessionModel first = MakeSession("first");
+		SessionModel second = MakeSession("second");
 
 		feature.AddSession(first);
 		feature.AddSession(second);
@@ -105,7 +101,7 @@ public class SessionListFeatureTests
 	public void RemoveSession_SetsCurrentToNull_WhenLastSessionDeleted()
 	{
 		SessionListFeature feature = CreateFeature();
-		ChatSession session = MakeSession("only");
+		SessionModel session = MakeSession("only");
 		feature.AddSession(session);
 		feature.SetCurrentSession(session);
 
@@ -119,8 +115,8 @@ public class SessionListFeatureTests
 	public void RemoveSession_DoesNotChangeCurrentSession_WhenDifferentSessionDeleted()
 	{
 		SessionListFeature feature = CreateFeature();
-		ChatSession kept = MakeSession("kept");
-		ChatSession removed = MakeSession("removed");
+		SessionModel kept = MakeSession("kept");
+		SessionModel removed = MakeSession("removed");
 
 		feature.AddSession(kept);
 		feature.AddSession(removed);
@@ -153,7 +149,7 @@ public class SessionListFeatureTests
 		feature.AddSession(MakeSession("b"));
 
 		ISessionStateProvider provider = feature;
-		provider.GetSessions().Count.ShouldBe(2);
+		provider.Sessions.Count.ShouldBe(2);
 	}
 
 	[Fact]
