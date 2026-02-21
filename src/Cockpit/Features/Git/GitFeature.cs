@@ -21,9 +21,9 @@ public sealed partial class GitFeature
 	{
 		try
 		{
-			string? gitRoot = await RunCommand(workingDirectory, "rev-parse --show-toplevel");
-			string? branch = await RunCommand(workingDirectory, "rev-parse --abbrev-ref HEAD");
-			string? remoteUrl = await RunCommand(workingDirectory, "remote get-url origin");
+			string? gitRoot = await RunCommand(workingDirectory, "rev-parse", "--show-toplevel");
+			string? branch = await RunCommand(workingDirectory, "rev-parse", "--abbrev-ref", "HEAD");
+			string? remoteUrl = await RunCommand(workingDirectory, "remote", "get-url", "origin");
 
 			string? repository = null;
 			if(!string.IsNullOrEmpty(remoteUrl))
@@ -45,7 +45,7 @@ public sealed partial class GitFeature
 	/// <summary>
 	/// Returns the current branch name for a git repository, or null if not in a repo.
 	/// </summary>
-	public Task<string?> GetBranch(string gitRoot) => RunCommand(gitRoot, "rev-parse --abbrev-ref HEAD");
+	public Task<string?> GetBranch(string gitRoot) => RunCommand(gitRoot, "rev-parse", "--abbrev-ref", "HEAD");
 
 	/// <summary>
 	/// Returns the list of changed files (staged + unstaged) in a git repository.
@@ -56,7 +56,7 @@ public sealed partial class GitFeature
 
 		try
 		{
-			string? output = await RunCommand(gitRoot, "status --porcelain");
+			string? output = await RunCommand(gitRoot, "status", "--porcelain");
 			if(string.IsNullOrEmpty(output))
 			{
 				return results;
@@ -95,7 +95,7 @@ public sealed partial class GitFeature
 					Status = status,
 					Diff = status == GitFileStatus.Untracked
 						? await GetUntrackedFileDiffAsync(gitRoot, filePath)
-						: await RunCommand(gitRoot, $"diff HEAD -- \"{filePath}\"")
+						: await RunCommand(gitRoot, "diff", "HEAD", "--", filePath)
 				};
 
 				results.Add(file);
@@ -176,11 +176,11 @@ public sealed partial class GitFeature
 		}
 	}
 
-	async Task<string?> RunCommand(string workingDirectory, string arguments)
+	async Task<string?> RunCommand(string workingDirectory, params string[] arguments)
 	{
 		try
 		{
-			ProcessStartInfo psi = new("git", arguments)
+			ProcessStartInfo psi = new("git")
 			{
 				WorkingDirectory = workingDirectory,
 				RedirectStandardOutput = true,
@@ -188,6 +188,11 @@ public sealed partial class GitFeature
 				UseShellExecute = false,
 				CreateNoWindow = true
 			};
+
+			foreach (var arg in arguments)
+			{
+				psi.ArgumentList.Add(arg);
+			}
 
 			using Process process = Process.Start(psi)!;
 			string output = await process.StandardOutput.ReadToEndAsync();
