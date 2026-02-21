@@ -1,18 +1,15 @@
-﻿<div class="border-b border-vscode-border">
-    <button class="w-full px-3 py-2 flex items-center justify-between hover:bg-vscode-hover text-left" @onclick='() => _uiState.ToggleDropdown("mcp")'>
-        <div class="flex items-center">
-            <svg class="icon-xs mr-2 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
-                <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
-                <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
-            </svg>
-            <span class="text-xs font-medium">MCP Server</span>
-        </div>
-        <svg class="w-3 h-3 transform transition-transform @(_uiState.IsDropdownOpen("mcp") ? "rotate-180" : "")" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+﻿@using Cockpit.Components.Controls
+
+<Expander>
+    <Icon>
+        <svg class="icon-xs mr-2 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
+            <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
+            <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
         </svg>
-    </button>
-    <div class="dropdown-content @(_uiState.IsDropdownOpen("mcp") ? "open" : "")">
+    </Icon>
+    <Title>MCP Server</Title>
+    <Content>
         <div class="px-3 py-1.5 hover:bg-vscode-hover cursor-pointer">
             <div class="flex items-center justify-between">
                 <span class="text-xs">@McpServerUrl</span>
@@ -23,5 +20,5 @@
         <div class="px-3 pb-2">
             <button class="text-xs hover:underline" style="color: var(--accent-color);">Configure...</button>
         </div>
-    </div>
-</div>
+    </Content>
+</Expander>

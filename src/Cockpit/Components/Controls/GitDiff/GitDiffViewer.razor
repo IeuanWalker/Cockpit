@@ -1,0 +1,87 @@
+@using Cockpit.Components.Controls.GitDiff.Models
+@using Cockpit.Features.Git
+@using Cockpit.Features.Git.Models
+
+<div class="gitdiff-panel">
+    @if(_parsedDiff is not null && _parsedDiff.Hunks.Count > 0)
+    {
+        <div class="gitdiff-panel-header border-b border-vscode-border">
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+                <span class="font-semibold text-sm text-vscode-title">@_fileName</span>
+                @if(_parsedDiff.LinesAdded > 0)
+                {
+                    <span class="text-xs font-medium diff-added-count flex-shrink-0">+@_parsedDiff.LinesAdded</span>
+                }
+                @if(_parsedDiff.LinesRemoved > 0)
+                {
+                    <span class="text-xs font-medium diff-removed-count flex-shrink-0">-@_parsedDiff.LinesRemoved</span>
+                }
+            </div>
+            <span class="text-xs secondary-text truncate ml-4 max-w-xs" title="@FilePath">@FilePath</span>
+        </div>
+
+        @if(SplitView && (GitFileStatus?.Equals(GitFileStatusEnum.Modified) ?? false))
+        {
+            <div class="gitdiff-split-wrapper" @key="@((FilePath ?? "") + "-split")">
+                <div id="@_diffLeftId" class="gitdiff-split-pane scrollbar-thin">
+                    <table class="gitdiff-table">
+                        <colgroup><col class="col-linenum" /><col class="col-content" /></colgroup>
+                        @foreach(var hunk in _parsedDiff.Hunks)
+                        {
+                            <tr class="hunk-header-row"><td colspan="2" class="hunk-header-cell">@hunk.Header</td></tr>
+                            @foreach(var row in _splitRows[hunk])
+                            {
+                                <tr>
+                                    <td class="line-num">@row.Left?.OldLineNumber</td>
+                                    <td class="diff-cell @(row.Left is null ? "split-empty" : row.Left.Type == DiffLineTypeEnum.Removed ? "removed" : "context")">@(row.Left?.Content ?? string.Empty)</td>
+                                </tr>
+                            }
+                        }
+                    </table>
+                </div>
+                <div class="gitdiff-split-divider"></div>
+                <div id="@_diffRightId" class="gitdiff-split-pane scrollbar-thin">
+                    <table class="gitdiff-table">
+                        <colgroup><col class="col-linenum" /><col class="col-content" /></colgroup>
+                        @foreach(var hunk in _parsedDiff.Hunks)
+                        {
+                            <tr class="hunk-header-row"><td colspan="2" class="hunk-header-cell">@hunk.Header</td></tr>
+                            @foreach(var row in _splitRows[hunk])
+                            {
+                                <tr>
+                                    <td class="line-num">@row.Right?.NewLineNumber</td>
+                                    <td class="diff-cell @(row.Right is null ? "split-empty" : row.Right.Type == DiffLineTypeEnum.Added ? "added" : "context")">@(row.Right?.Content ?? string.Empty)</td>
+                                </tr>
+                            }
+                        }
+                    </table>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div id="@_diffInlineId" class="gitdiff-scroll scrollbar-thin" @key="@((FilePath ?? "") + "-inline")">
+                <table class="gitdiff-table">
+                    <colgroup><col class="col-linenum" /><col class="col-content" /></colgroup>
+                    @foreach(var hunk in _parsedDiff.Hunks)
+                    {
+                        <tr class="hunk-header-row"><td colspan="2" class="hunk-header-cell">@hunk.Header</td></tr>
+                        @foreach(var line in hunk.Lines)
+                        {
+                            <tr class="@(line.Type == DiffLineTypeEnum.Removed ? "diff-row-removed" : line.Type == DiffLineTypeEnum.Added ? "diff-row-added" : "")">
+                                <td class="line-num">@(line.NewLineNumber ?? line.OldLineNumber)</td>
+                                <td class="diff-cell @(line.Type == DiffLineTypeEnum.Removed ? "removed" : line.Type == DiffLineTypeEnum.Added ? "added" : "context")"><span class="diff-prefix">@(line.Type == DiffLineTypeEnum.Removed ? "-" : line.Type == DiffLineTypeEnum.Added ? "+" : " ")</span>@line.Content</td>
+                            </tr>
+                        }
+                    }
+                </table>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="flex items-center justify-center flex-1 secondary-text text-sm">
+            @(string.IsNullOrEmpty(Diff) ? "No diff available for this file" : "Empty diff")
+        </div>
+    }
+</div>

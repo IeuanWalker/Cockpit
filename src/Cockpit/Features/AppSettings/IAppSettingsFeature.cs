@@ -10,6 +10,7 @@ public interface IAppSettingsFeature
 	bool SendOnEnter { get; set; }
 	int LeftSidebarWidth { get; set; }
 	int RightSidebarWidth { get; set; }
+	bool DiffSplitView { get; set; }
 	bool TextToSpeechEnabled { get; set; }
 	float VoiceVolume { get; set; }
 	float VoicePitch { get; set; }

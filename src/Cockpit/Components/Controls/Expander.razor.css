@@ -1,0 +1,13 @@
+.dropdown-content {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.15s ease;
+}
+
+    .dropdown-content > * {
+        overflow: hidden;
+    }
+
+    .dropdown-content.open {
+        grid-template-rows: 1fr;
+    }

@@ -1,51 +1,39 @@
+@using Cockpit.Components.Controls
 @using Cockpit.Features.Git.Models
+@using Cockpit.Components.Popups
 
-<div class="border-b border-vscode-border">
-    <button class="w-full px-3 py-2 flex items-center justify-between hover:bg-vscode-hover text-left" @onclick='() => _uiState.ToggleDropdown("files")'>
-        <div class="flex items-center">
-            <svg class="icon-xs mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
-            </svg>
-            <span class="text-xs font-medium">Edited Files (@Files.Count)</span>
-        </div>
-        <svg class="w-3 h-3 transform transition-transform @(_uiState.IsDropdownOpen("files") ? "rotate-180" : "")" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+<Expander>
+    <Icon>
+        <svg class="icon-xs mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
         </svg>
-    </button>
-    <div class="dropdown-content @(_uiState.IsDropdownOpen("files") ? "open" : "")">
+    </Icon>
+    <Title>Edited Files (@Files.Count)</Title>
+    <Content>
         @foreach(var file in Files)
         {
             var borderColor = file.Status switch
             {
-                GitFileStatus.Modified => "border-yellow-500",
-                GitFileStatus.Added => "border-green-500",
-                GitFileStatus.Deleted => "border-red-500",
-                _ => "border-transparent"
+                GitFileStatusEnum.Modified => "border-yellow-500",
+                GitFileStatusEnum.Added => "border-green-500",
+                GitFileStatusEnum.Deleted => "border-red-500",
+                GitFileStatusEnum.Renamed => "border-blue-500",
+                _ => "border-gray-600"
             };
             var statusBadge = file.Status switch
             {
-                GitFileStatus.Modified => ("M", "bg-yellow-600"),
-                GitFileStatus.Added => ("A", "bg-green-600"),
-                GitFileStatus.Deleted => ("D", "bg-red-600"),
-                _ => ("", "")
-            };
-            var iconColor = file.Status switch
-            {
-                GitFileStatus.Modified => "text-blue-400",
-                GitFileStatus.Added => "text-green-400",
-                GitFileStatus.Deleted => "text-red-400",
-                _ => "text-blue-400"
+                GitFileStatusEnum.Modified => ("M", "bg-yellow-600"),
+                GitFileStatusEnum.Added => ("A", "bg-green-600"),
+                GitFileStatusEnum.Deleted => ("D", "bg-red-600"),
+                GitFileStatusEnum.Renamed => ("R", "bg-blue-600"),
+                _ => ("U", "bg-gray-600")
             };
 
-            <div class="px-3 py-1.5 hover:bg-vscode-hover cursor-pointer border-l-2 @borderColor">
+            <div class="px-3 py-1.5 hover:bg-vscode-hover cursor-pointer border-l-2 @borderColor"
+                 @onclick="() => OpenDiffPopup(file)">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center flex-1 min-w-0">
-                        <svg class="w-3 h-3 mr-1.5 flex-shrink-0 @iconColor" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
-                        </svg>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-xs truncate @(file.Status == GitFileStatus.Deleted ? "line-through secondary-text" : "")">@file.Name</div>
-                        </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs truncate @(file.Status == GitFileStatusEnum.Deleted ? "line-through secondary-text" : "")">@file.Name</div>
                     </div>
                     @if(!string.IsNullOrEmpty(statusBadge.Item1))
                     {
@@ -54,5 +42,9 @@
                 </div>
             </div>
         }
-    </div>
-</div>
+    </Content>
+</Expander>
+
+<EditedFilesPopup IsOpen="_isDiffPopupOpen"
+                  InitialSelectedFile="_diffPopupInitialFile"
+                  OnClose="CloseDiffPopup" />
