@@ -3,26 +3,18 @@
 
 @if(IsOpen)
 {
-	<!-- Overlay -->
 	<div class="settings-overlay active" @onclick="Close"></div>
 
-	<!-- Popup -->
 	<div class="diff-popup-container" @onclick:stopPropagation="true">
 
 		<!-- Title bar -->
 		<div class="diff-titlebar border-b border-vscode-border">
-			<span class="text-vscode-title font-semibold text-sm">
-				Edited Files (@Files.Count)
-			</span>
+			<span class="text-vscode-title font-semibold text-sm">Edited Files (@Files.Count)</span>
 			<div class="flex items-center gap-2">
-
-				<!-- Inline / Split toggle -->
 				<div class="view-toggle">
 					<button class="toggle-btn @(!_splitView ? "active" : "")" @onclick='() => SetSplitView(false)'>Inline</button>
 					<button class="toggle-btn @(_splitView ? "active" : "")" @onclick='() => SetSplitView(true)'>Split</button>
 				</div>
-
-				<!-- Reveal in file explorer -->
 				<button class="diff-action-btn"
 				        @onclick="RevealFile"
 				        disabled="@(_selectedFile is null || _selectedFile.Status == GitFileStatus.Deleted)"
@@ -32,18 +24,15 @@
 					</svg>
 					<span>Reveal</span>
 				</button>
-
-				<!-- Close -->
 				<button class="diff-action-btn" @onclick="Close" title="Close">
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 					</svg>
 				</button>
-
 			</div>
 		</div>
 
-		<!-- Body: file tree + diff panel -->
+		<!-- Body -->
 		<div class="diff-content">
 
 			<!-- File tree -->
@@ -54,7 +43,7 @@
 				}
 				@foreach(var file in Files)
 				{
-					var borderColor = file.Status switch
+					var treeBorder = file.Status switch
 					{
 						GitFileStatus.Modified  => "border-yellow-500",
 						GitFileStatus.Added     => "border-green-500",
@@ -62,7 +51,7 @@
 						GitFileStatus.Renamed   => "border-blue-500",
 						_                       => "border-transparent"
 					};
-					var (badge, badgeClass) = file.Status switch
+					var (treeBadge, treeBadgeClass) = file.Status switch
 					{
 						GitFileStatus.Modified  => ("M", "bg-yellow-600"),
 						GitFileStatus.Added     => ("A", "bg-green-600"),
@@ -70,12 +59,10 @@
 						GitFileStatus.Renamed   => ("R", "bg-blue-600"),
 						_                       => ("U", "bg-gray-600")
 					};
-					<div class="diff-file-item border-l-2 @borderColor @(_selectedFile == file ? "selected" : "")"
+					<div class="diff-file-item border-l-2 @treeBorder @(_selectedFile == file ? "selected" : "")"
 					     @onclick="() => SelectFile(file)">
-						<span class="text-xs truncate flex-1 min-w-0 @(file.Status == GitFileStatus.Deleted ? "line-through secondary-text" : "text-vscode-text")">
-							@file.Name
-						</span>
-						<span class="ml-2 text-xs @badgeClass text-white px-1 rounded flex-shrink-0">@badge</span>
+						<span class="text-xs truncate flex-1 min-w-0 @(file.Status == GitFileStatus.Deleted ? "line-through secondary-text" : "text-vscode-text")">@file.Name</span>
+						<span class="ml-2 text-xs @treeBadgeClass text-white px-1 rounded flex-shrink-0">@treeBadge</span>
 					</div>
 				}
 			</div>
@@ -84,88 +71,81 @@
 			<div class="diff-panel">
 				@if(_selectedFile is not null)
 				{
-					var (statusLabel, statusClass) = _selectedFile.Status switch
-					{
-						GitFileStatus.Modified  => ("Modified",  "bg-yellow-600"),
-						GitFileStatus.Added     => ("Added",     "bg-green-600"),
-						GitFileStatus.Deleted   => ("Deleted",   "bg-red-600"),
-						GitFileStatus.Renamed   => ("Renamed",   "bg-blue-600"),
-						_                       => ("Untracked", "bg-gray-600")
-					};
-
-					<!-- Diff panel header -->
 					<div class="diff-panel-header border-b border-vscode-border">
 						<div class="flex items-center gap-2 min-w-0 flex-1">
 							<span class="font-semibold text-sm text-vscode-title">@_selectedFile.Name</span>
-							<span class="text-xs @statusClass text-white px-1.5 py-0.5 rounded flex-shrink-0">@statusLabel</span>
-							@if(_parsedDiff is not null)
+							<span class="text-xs @SelectedStatusClass text-white px-1.5 py-0.5 rounded flex-shrink-0">@SelectedStatusLabel</span>
+							@if(_parsedDiff is not null && _parsedDiff.LinesAdded > 0)
 							{
-								@if(_parsedDiff.LinesAdded > 0)
-								{
-									<span class="text-xs font-medium diff-added-count flex-shrink-0">+@_parsedDiff.LinesAdded</span>
-								}
-								@if(_parsedDiff.LinesRemoved > 0)
-								{
-									<span class="text-xs font-medium diff-removed-count flex-shrink-0">-@_parsedDiff.LinesRemoved</span>
-								}
+								<span class="text-xs font-medium diff-added-count flex-shrink-0">+@_parsedDiff.LinesAdded</span>
+							}
+							@if(_parsedDiff is not null && _parsedDiff.LinesRemoved > 0)
+							{
+								<span class="text-xs font-medium diff-removed-count flex-shrink-0">-@_parsedDiff.LinesRemoved</span>
 							}
 						</div>
 						<span class="text-xs secondary-text truncate ml-4 max-w-xs" title="@_selectedFile.Path">@_selectedFile.Path</span>
 					</div>
 
-					<!-- Diff content -->
 					@if(_parsedDiff is not null && _parsedDiff.Hunks.Count > 0)
 					{
-						<div class="diff-scroll scrollbar-thin" @key="_selectedFile.Path">
-							<table class="diff-table @(_splitView ? "split" : "inline")">
-								@if(_splitView)
-								{
-									<colgroup>
-										<col class="col-linenum" />
-										<col class="col-content" />
-										<col class="col-linenum" />
-										<col class="col-content" />
-									</colgroup>
-									@foreach(var hunk in _parsedDiff.Hunks)
-									{
-										<tr class="hunk-header-row">
-											<td colspan="4" class="hunk-header-cell">@hunk.Header</td>
-										</tr>
-										@foreach(var row in _splitRows[hunk])
+						@if(_splitView)
+						{
+							<div class="diff-split-wrapper" @key="@(_selectedFile.Path + "-split")">
+								<div id="@_diffLeftId" class="diff-split-pane scrollbar-thin">
+									<table class="diff-table">
+										<colgroup><col class="col-linenum" /><col class="col-content" /></colgroup>
+										@foreach(var hunk in _parsedDiff.Hunks)
 										{
-											<tr>
-												<td class="line-num">@row.Left?.OldLineNumber</td>
-												<td class="diff-cell @(row.Left is null ? "split-empty" : row.Left.Type == DiffLineType.Removed ? "removed" : "context")">@(row.Left?.Content ?? string.Empty)</td>
-												<td class="line-num split-divider">@row.Right?.NewLineNumber</td>
-												<td class="diff-cell @(row.Right is null ? "split-empty" : row.Right.Type == DiffLineType.Added ? "added" : "context")">@(row.Right?.Content ?? string.Empty)</td>
-											</tr>
+											<tr class="hunk-header-row"><td colspan="2" class="hunk-header-cell">@hunk.Header</td></tr>
+											@foreach(var row in _splitRows[hunk])
+											{
+												<tr>
+													<td class="line-num">@row.Left?.OldLineNumber</td>
+													<td class="diff-cell @(row.Left is null ? "split-empty" : row.Left.Type == DiffLineType.Removed ? "removed" : "context")">@(row.Left?.Content ?? string.Empty)</td>
+												</tr>
+											}
 										}
-									}
-								}
-								else
-								{
-									<colgroup>
-										<col class="col-linenum" />
-										<col class="col-linenum" />
-										<col class="col-content" />
-									</colgroup>
+									</table>
+								</div>
+								<div class="diff-split-divider"></div>
+								<div id="@_diffRightId" class="diff-split-pane scrollbar-thin">
+									<table class="diff-table">
+										<colgroup><col class="col-linenum" /><col class="col-content" /></colgroup>
+										@foreach(var hunk in _parsedDiff.Hunks)
+										{
+											<tr class="hunk-header-row"><td colspan="2" class="hunk-header-cell">@hunk.Header</td></tr>
+											@foreach(var row in _splitRows[hunk])
+											{
+												<tr>
+													<td class="line-num">@row.Right?.NewLineNumber</td>
+													<td class="diff-cell @(row.Right is null ? "split-empty" : row.Right.Type == DiffLineType.Added ? "added" : "context")">@(row.Right?.Content ?? string.Empty)</td>
+												</tr>
+											}
+										}
+									</table>
+								</div>
+							</div>
+						}
+						else
+						{
+							<div id="@_diffInlineId" class="diff-scroll scrollbar-thin" @key="@(_selectedFile.Path + "-inline")">
+								<table class="diff-table">
+									<colgroup><col class="col-linenum" /><col class="col-content" /></colgroup>
 									@foreach(var hunk in _parsedDiff.Hunks)
 									{
-										<tr class="hunk-header-row">
-											<td colspan="3" class="hunk-header-cell">@hunk.Header</td>
-										</tr>
+										<tr class="hunk-header-row"><td colspan="2" class="hunk-header-cell">@hunk.Header</td></tr>
 										@foreach(var line in hunk.Lines)
 										{
 											<tr class="@(line.Type == DiffLineType.Removed ? "diff-row-removed" : line.Type == DiffLineType.Added ? "diff-row-added" : "")">
-												<td class="line-num">@line.OldLineNumber</td>
-												<td class="line-num">@line.NewLineNumber</td>
+												<td class="line-num">@(line.NewLineNumber ?? line.OldLineNumber)</td>
 												<td class="diff-cell @(line.Type == DiffLineType.Removed ? "removed" : line.Type == DiffLineType.Added ? "added" : "context")"><span class="diff-prefix">@(line.Type == DiffLineType.Removed ? "-" : line.Type == DiffLineType.Added ? "+" : " ")</span>@line.Content</td>
 											</tr>
 										}
 									}
-								}
-							</table>
-						</div>
+								</table>
+							</div>
+						}
 					}
 					else
 					{

@@ -40,6 +40,12 @@ public class AppSettingsFeature : IAppSettingsFeature
 		set => UserAppSettings.RightSidebarWidth = value;
 	}
 
+	public bool DiffSplitView
+	{
+		get => UserAppSettings.DiffSplitView;
+		set => UserAppSettings.DiffSplitView = value;
+	}
+
 	public bool TextToSpeechEnabled
 	{
 		get => UserAppSettings.TextToSpeechEnabled;

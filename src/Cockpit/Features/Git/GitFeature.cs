@@ -93,9 +93,7 @@ public sealed partial class GitFeature
 					Name = Path.GetFileName(filePath),
 					Path = filePath,
 					Status = status,
-					Diff = status == GitFileStatus.Untracked
-						? await GetUntrackedFileDiffAsync(gitRoot, filePath)
-						: await RunCommand(gitRoot, "diff", "HEAD", "--", filePath)
+					Diff = await GetDiffAsync(gitRoot, filePath, status)
 				};
 
 				results.Add(file);
@@ -170,6 +168,32 @@ public sealed partial class GitFeature
 		}
 	}
 
+	async Task<string?> GetDiffAsync(string gitRoot, string filePath, GitFileStatus status)
+	{
+		string fullPath = Path.Combine(gitRoot, filePath);
+
+		if(status == GitFileStatus.Untracked)
+			return await GetUntrackedFileDiffAsync(gitRoot, filePath);
+
+		// For Added files (staged but never committed), git diff HEAD fails because HEAD
+		// has no record of the file. Try --cached (index vs HEAD) first, then fall back
+		// to reading the file directly.
+		if(status == GitFileStatus.Added)
+		{
+			string? cached = await RunCommand(gitRoot, "diff", "--cached", "--", fullPath);
+			if(!string.IsNullOrEmpty(cached))
+				return cached;
+			return await GetUntrackedFileDiffAsync(gitRoot, filePath);
+		}
+
+		// working-tree vs index (unstaged changes); if nothing unstaged, try index vs HEAD (staged-only)
+		string? diff = await RunCommand(gitRoot, "diff", "--", fullPath);
+		if(!string.IsNullOrEmpty(diff))
+			return diff;
+
+		return await RunCommand(gitRoot, "diff", "--cached", "--", fullPath);
+	}
+
 	async Task<string?> GetUntrackedFileDiffAsync(string gitRoot, string filePath)
 	{
 		try
@@ -218,7 +242,7 @@ public sealed partial class GitFeature
 			string output = await process.StandardOutput.ReadToEndAsync();
 			await process.WaitForExitAsync();
 
-			return process.ExitCode == 0 ? output.Trim() : null;
+			return process.ExitCode == 0 ? output.TrimEnd() : null;
 		}
 		catch
 		{

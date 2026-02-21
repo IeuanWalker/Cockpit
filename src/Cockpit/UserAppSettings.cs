@@ -84,4 +84,10 @@ public static class UserAppSettings
 		get => Preferences.Default.Get("VoiceLocale", string.Empty);
 		set => Preferences.Default.Set("VoiceLocale", value);
 	}
+
+	public static bool DiffSplitView
+	{
+		get => Preferences.Default.Get("DiffSplitView", false);
+		set => Preferences.Default.Set("DiffSplitView", value);
+	}
 }

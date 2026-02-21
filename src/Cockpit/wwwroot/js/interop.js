@@ -277,6 +277,57 @@ window.cockpit = {
             element._resizeObserver.disconnect();
             delete element._resizeObserver;
         }
+    },
+
+    highlightDiffCells: function (containerId, language) {        if (!window.hljs) return;
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const lang = hljs.getLanguage(language) ? language : 'plaintext';
+
+        container.querySelectorAll('td.diff-cell').forEach(cell => {
+            // Preserve the ± prefix span (inline view only)
+            const prefix = cell.querySelector('.diff-prefix');
+            const prefixHtml = prefix ? prefix.outerHTML : '';
+            const rawText = prefix
+                ? cell.textContent.substring(prefix.textContent.length)
+                : cell.textContent;
+
+            try {
+                const result = hljs.highlight(rawText, { language: lang, ignoreIllegals: true });
+                cell.innerHTML = prefixHtml + result.value;
+            } catch (_) { /* ignore */ }
+        });
+    },
+
+    setupSplitDiffScroll: function (leftId, rightId) {
+        const left = document.getElementById(leftId);
+        const right = document.getElementById(rightId);
+        if (!left || !right) return;
+
+        // Clean up any previous listeners on these elements
+        if (left._splitScrollHandler) left.removeEventListener('scroll', left._splitScrollHandler);
+        if (right._splitScrollHandler) right.removeEventListener('scroll', right._splitScrollHandler);
+
+        let syncing = false;
+
+        left._splitScrollHandler = () => {
+            if (syncing) return;
+            syncing = true;
+            right.scrollLeft = left.scrollLeft;
+            right.scrollTop = left.scrollTop;
+            syncing = false;
+        };
+        right._splitScrollHandler = () => {
+            if (syncing) return;
+            syncing = true;
+            left.scrollLeft = right.scrollLeft;
+            left.scrollTop = right.scrollTop;
+            syncing = false;
+        };
+
+        left.addEventListener('scroll', left._splitScrollHandler);
+        right.addEventListener('scroll', right._splitScrollHandler);
     }
 };
 
