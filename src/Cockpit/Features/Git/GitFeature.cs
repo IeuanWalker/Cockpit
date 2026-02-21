@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using Cockpit.Features.Git.Models;
 using Microsoft.Extensions.Logging;
 
@@ -87,12 +88,17 @@ public sealed partial class GitFeature
 					_ => GitFileStatus.Modified
 				};
 
-				results.Add(new GitChangedFileModel
+				GitChangedFileModel file = new()
 				{
 					Name = Path.GetFileName(filePath),
 					Path = filePath,
-					Status = status
-				});
+					Status = status,
+					Diff = status == GitFileStatus.Untracked
+						? await GetUntrackedFileDiffAsync(gitRoot, filePath)
+						: await RunCommand(gitRoot, $"diff HEAD -- \"{filePath}\"")
+				};
+
+				results.Add(file);
 			}
 		}
 		catch(Exception ex)
@@ -120,18 +126,6 @@ public sealed partial class GitFeature
 		System.Timers.Timer debounce = new(300) { AutoReset = false };
 		debounce.Elapsed += (_, _) => onChanged();
 
-		FileSystemEventHandler handler = (_, e) =>
-		{
-			// Ignore internal git object churn
-			if(e.FullPath.Contains(Path.DirectorySeparatorChar + ".git" + Path.DirectorySeparatorChar + "objects"))
-			{
-				return;
-			}
-
-			debounce.Stop();
-			debounce.Start();
-		};
-
 		watcher.Changed += handler;
 		watcher.Created += handler;
 		watcher.Deleted += handler;
@@ -142,6 +136,44 @@ public sealed partial class GitFeature
 		};
 
 		return new GitWatcher(watcher, debounce);
+
+		void handler(object _, FileSystemEventArgs e)
+		{
+			// Ignore internal git object churn
+			if(e.FullPath.Contains(Path.DirectorySeparatorChar + ".git" + Path.DirectorySeparatorChar + "objects"))
+			{
+				return;
+			}
+
+			debounce.Stop();
+			debounce.Start();
+		}
+	}
+
+	async Task<string?> GetUntrackedFileDiffAsync(string gitRoot, string filePath)
+	{
+		try
+		{
+			string fullPath = Path.Combine(gitRoot, filePath);
+			string content = await File.ReadAllTextAsync(fullPath);
+			// Format as a pseudo-diff so consumers can treat all diffs uniformly
+			string[] lines = content.Split('\n');
+			StringBuilder sb = new();
+			sb.AppendLine($"--- /dev/null");
+			sb.AppendLine($"+++ b/{filePath}");
+			sb.AppendLine($"@@ -0,0 +1,{lines.Length} @@");
+			foreach(string line in lines)
+			{
+				sb.Append('+');
+				sb.AppendLine(line);
+			}
+
+			return sb.ToString();
+		}
+		catch
+		{
+			return null;
+		}
 	}
 
 	async Task<string?> RunCommand(string workingDirectory, string arguments)
