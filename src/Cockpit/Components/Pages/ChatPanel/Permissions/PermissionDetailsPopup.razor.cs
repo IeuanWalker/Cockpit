@@ -1,24 +1,21 @@
 using System.Text.Json;
+using Cockpit.Components.Controls;
 using Cockpit.Features.Permissions.Models;
 using Microsoft.AspNetCore.Components;
 
-namespace Cockpit.Components.Popups;
+namespace Cockpit.Components.Pages.ChatPanel.Permissions;
 
 public partial class PermissionDetailsPopup
 {
-	[Parameter]
-	public bool IsOpen { get; set; }
-
 	[Parameter]
 	public PermissionRequestModel? Request { get; set; }
 
 	[Parameter]
 	public EventCallback OnClose { get; set; }
 
-	async Task Close()
-	{
-		await OnClose.InvokeAsync();
-	}
+	PopupBase _popup = default!;
+
+	public void Open() => _popup.Open();
 
 	string FormatAsJson(string input)
 	{
