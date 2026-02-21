@@ -12,6 +12,9 @@ public partial class EditedFiles : ComponentBase, IDisposable
 
 	List<GitChangedFileModel> Files => _sessionManager.CurrentSession?.Context?.EditedFiles ?? [];
 
+	bool _isDiffPopupOpen;
+	GitChangedFileModel? _diffPopupInitialFile;
+
 	protected override void OnInitialized()
 	{
 		_sessionManager.OnStateChanged += OnStateChanged;
@@ -20,6 +23,18 @@ public partial class EditedFiles : ComponentBase, IDisposable
 	void OnStateChanged()
 	{
 		InvokeAsync(StateHasChanged);
+	}
+
+	void OpenDiffPopup(GitChangedFileModel? initialFile)
+	{
+		_diffPopupInitialFile = initialFile;
+		_isDiffPopupOpen = true;
+	}
+
+	void CloseDiffPopup()
+	{
+		_isDiffPopupOpen = false;
+		_diffPopupInitialFile = null;
 	}
 
 	public void Dispose()

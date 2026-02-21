@@ -1,4 +1,5 @@
 @using Cockpit.Features.Git.Models
+@using Cockpit.Components.Popups
 
 <div class="border-b border-vscode-border">
     <button class="w-full px-3 py-2 flex items-center justify-between hover:bg-vscode-hover text-left" @onclick='() => _uiState.ToggleDropdown("files")'>
@@ -8,9 +9,22 @@
             </svg>
             <span class="text-xs font-medium">Edited Files (@Files.Count)</span>
         </div>
-        <svg class="w-3 h-3 transform transition-transform @(_uiState.IsDropdownOpen("files") ? "rotate-180" : "")" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-        </svg>
+        <div class="flex items-center gap-1">
+            @if(Files.Count > 0)
+            {
+                <div class="p-0.5 rounded hover:bg-vscode-hover cursor-pointer"
+                        @onclick:stopPropagation="true"
+                        @onclick="() => OpenDiffPopup(null)"
+                        title="View diff">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                </div>
+            }
+            <svg class="w-3 h-3 transform transition-transform @(_uiState.IsDropdownOpen("files") ? "rotate-180" : "")" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+        </div>
     </button>
     <div class="dropdown-content @(_uiState.IsDropdownOpen("files") ? "open" : "")">
         @foreach(var file in Files)
@@ -37,7 +51,8 @@
                 _ => "text-blue-400"
             };
 
-            <div class="px-3 py-1.5 hover:bg-vscode-hover cursor-pointer border-l-2 @borderColor">
+            <div class="px-3 py-1.5 hover:bg-vscode-hover cursor-pointer border-l-2 @borderColor"
+                 @onclick="() => OpenDiffPopup(file)">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center flex-1 min-w-0">
                         <svg class="w-3 h-3 mr-1.5 flex-shrink-0 @iconColor" fill="currentColor" viewBox="0 0 20 20">
@@ -56,3 +71,7 @@
         }
     </div>
 </div>
+
+<GitDiffPopup IsOpen="_isDiffPopupOpen"
+              InitialSelectedFile="_diffPopupInitialFile"
+              OnClose="CloseDiffPopup" />
