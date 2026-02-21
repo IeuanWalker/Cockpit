@@ -1,3 +1,4 @@
+using Cockpit.Features.Git.Models;
 using Cockpit.Features.Sessions.Models;
 
 namespace Cockpit.Features.Sessions;
@@ -28,13 +29,18 @@ public sealed partial class SessionFeature
 			}
 
 			string? branch = await _gitFeature.GetBranch(gitRoot);
-			if(branch is not null && branch != session.Context.Branch)
-			{
-				session.Context.Branch = branch;
-			}
+			List<GitChangedFileModel> editedFiles = await _gitFeature.GetChangedFiles(gitRoot);
 
-			session.Context.EditedFiles = await _gitFeature.GetChangedFiles(gitRoot);
-			_sessionListFeature.NotifyStateChanged();
+			MainThread.BeginInvokeOnMainThread(() =>
+			{
+				if(branch is not null && branch != session.Context.Branch)
+				{
+					session.Context.Branch = branch;
+				}
+
+				session.Context.EditedFiles = editedFiles;
+				_sessionListFeature.NotifyStateChanged();
+			});
 		});
 	}
 }
