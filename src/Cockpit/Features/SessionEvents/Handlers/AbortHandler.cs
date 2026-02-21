@@ -9,8 +9,6 @@ static class AbortHandler
 {
 	internal static void Handle(SessionModel session, AbortEvent evt, ILogger logger)
 	{
-		logger.LogWarning("Session {SessionId} aborted: {Reason}", session.Id, evt.Data.Reason);
-
 		SessionIdleHandler.Handle(session, DateTimeOffset.Now, null, GroupStatusEnum.Error);
 
 		// Clear any pending messages — they will never be processed after an abort

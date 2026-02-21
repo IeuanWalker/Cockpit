@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
@@ -9,9 +8,6 @@ static class AssistantMessageDeltaHandler
 {
 	internal static void Handle(SessionModel session, AssistantMessageDeltaEvent evt)
 	{
-		Debug.WriteLine("AssistantMessageDeltaHandler");
-		Debug.WriteLine(evt);
-
 		if(evt.Data is null)
 		{
 			return;

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
@@ -9,9 +8,6 @@ static class AssistantReasoningHandler
 {
 	internal static void Handle(SessionModel session, AssistantReasoningEvent evt)
 	{
-		Debug.WriteLine("AssistantReasoningHandler");
-		Debug.WriteLine(evt);
-
 		if(evt.Data is null)
 		{
 			return;

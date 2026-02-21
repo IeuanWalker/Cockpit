@@ -38,78 +38,96 @@ public sealed class SessionEventProcessor
 					{
 						SessionIdleHandler.Handle(session);
 					}
+					_logger.LogDebug("Session {SessionId} user message: {Content}", session.Id, userMsg.Data?.Content?[..Math.Min(50, userMsg.Data.Content?.Length ?? 0)]);
 					UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
 					break;
 
 				case AssistantTurnStartEvent turnStart:
+					_logger.LogDebug("Session {SessionId} assistant turn started: {TurnId}", session.Id, turnStart.Data?.TurnId);
 					AssistantTurnStartHandler.Handle(session, turnStart);
 					break;
 
 				case AssistantMessageDeltaEvent deltaMsg:
+					_logger.LogDebug("Session {SessionId} assistant message delta: {MessageId}", session.Id, deltaMsg.Data?.MessageId);
 					AssistantMessageDeltaHandler.Handle(session, deltaMsg);
 					break;
 
 				case AssistantMessageEvent assistantMsg:
+					_logger.LogDebug("Session {SessionId} assistant message: {MessageId}", session.Id, assistantMsg.Data?.MessageId);
 					AssistantMessageHandler.Handle(session, assistantMsg);
 					break;
 
 				case AssistantReasoningDeltaEvent reasoningDelta:
-					////	AssistantReasoningDeltaHandler.Handle(session, reasoningDelta);
+					_logger.LogDebug("Session {SessionId} assistant reasoning delta", session.Id);
 					break;
 
 				case AssistantReasoningEvent reasoning:
+					_logger.LogDebug("Session {SessionId} assistant reasoning", session.Id);
 					AssistantReasoningHandler.Handle(session, reasoning);
 					break;
 
 				case ToolExecutionStartEvent toolStart:
+					_logger.LogDebug("Session {SessionId} tool start: {ToolName}", session.Id, toolStart.Data?.ToolName);
 					ToolStartHandler.Handle(session, toolStart);
 					break;
 
 				case ToolExecutionCompleteEvent toolComplete:
+					_logger.LogDebug("Session {SessionId} tool complete: {ToolCallId}", session.Id, toolComplete.Data?.ToolCallId);
 					ToolCompleteHandler.Handle(session, toolComplete);
 					break;
 
 				case ToolExecutionProgressEvent toolProgress:
+					_logger.LogDebug("Session {SessionId} tool progress: {ToolCallId}", session.Id, toolProgress.Data?.ToolCallId);
 					ToolProgressHandler.Handle(session, toolProgress);
 					break;
 
 				case ToolExecutionPartialResultEvent toolPartial:
+					_logger.LogDebug("Session {SessionId} tool partial result: {ToolCallId}", session.Id, toolPartial.Data?.ToolCallId);
 					ToolPartialResultHandler.Handle(session, toolPartial);
 					break;
 
 				case SubagentStartedEvent subagentStarted:
+					_logger.LogDebug("Session {SessionId} subagent started: {AgentName}", session.Id, subagentStarted.Data?.AgentName);
 					SubagentStartedHandler.Handle(session, subagentStarted);
 					break;
 
 				case SubagentCompletedEvent subagentCompleted:
+					_logger.LogDebug("Session {SessionId} subagent completed: {AgentName}", session.Id, subagentCompleted.Data?.AgentName);
 					SubagentCompletedHandler.Handle(session, subagentCompleted);
 					break;
 
 				case SubagentFailedEvent subagentFailed:
+					_logger.LogDebug("Session {SessionId} subagent failed: {AgentName}", session.Id, subagentFailed.Data?.AgentName);
 					SubagentFailedHandler.Handle(session, subagentFailed);
 					break;
 
 				case SessionIdleEvent idleEvt:
+					_logger.LogDebug("Session {SessionId} idle", session.Id);
 					SessionIdleHandler.Handle(session, idleEvt.Timestamp, onStreamSummary);
 					break;
 
 				case SessionErrorEvent error:
+					_logger.LogDebug("Session {SessionId} error: {Message}", session.Id, error.Data?.Message);
 					SessionErrorHandler.Handle(session, error);
 					break;
 
 				case SessionTitleChangedEvent titleChanged:
+					_logger.LogDebug("Session {SessionId} title changed: {Title}", session.Id, titleChanged.Data?.Title);
 					SessionTitleChangedHandler.Handle(session, titleChanged);
 					break;
 
 				case AbortEvent abort:
+					_logger.LogDebug("Session {SessionId} abort", session.Id);
 					AbortHandler.Handle(session, abort, _logger);
 					break;
 
 				case SessionShutdownEvent shutdown:
+					_logger.LogDebug("Session {SessionId} shutdown", session.Id);
 					SessionShutdownHandler.Handle(session, shutdown, _logger);
 					break;
 
 				case SessionWarningEvent warning:
+					_logger.LogDebug("Session {SessionId} warning: {Message}", session.Id, warning.Data?.Message);
 					SessionWarningHandler.Handle(session, warning, _logger);
 					break;
 
@@ -122,7 +140,6 @@ public sealed class SessionEventProcessor
 						session.Id, compaction.Data?.TokensRemoved);
 					break;
 
-				// Tier 2 — informational logging only
 				case AssistantIntentEvent intent:
 					_logger.LogDebug("Session {SessionId} assistant intent: {Intent}", session.Id, intent.Data?.Intent);
 					break;

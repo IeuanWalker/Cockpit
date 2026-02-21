@@ -66,6 +66,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<SessionEventProcessor>();
 
 		// Register session management
+		builder.Services.AddSingleton<SdkSessionRegistry>();
 		builder.Services.AddSingleton<SessionListFeature>();
 		builder.Services.AddSingleton<ISessionStateProvider>(sp => sp.GetRequiredService<SessionListFeature>());
 		builder.Services.AddSingleton<SessionFeature>();

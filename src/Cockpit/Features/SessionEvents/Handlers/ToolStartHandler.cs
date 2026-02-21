@@ -9,9 +9,6 @@ static class ToolStartHandler
 {
 	internal static void Handle(SessionModel session, ToolExecutionStartEvent evt)
 	{
-		Debug.WriteLine("ToolStartHandler");
-		Debug.WriteLine(evt);
-
 		if(evt.Data is null)
 		{
 			return;
