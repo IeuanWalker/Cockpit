@@ -10,7 +10,7 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class ToolStartHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new()
+	static SessionModel CreateSession() => new()
 	{
 		Id = "sessionId",
 		Title = "Test Session",
@@ -32,7 +32,7 @@ public class ToolStartHandlerTests
 	public void Handle_CreatesActivityGroup()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		ToolExecutionStartEvent evt = new()
 		{
@@ -55,7 +55,7 @@ public class ToolStartHandlerTests
 	public void Handle_ReusesExistingGroup()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		ActivityGroupModel existing = new() { Status = GroupStatusEnum.Running };
 		session.ActiveWorkingGroup = existing;
@@ -78,7 +78,7 @@ public class ToolStartHandlerTests
 	public void Handle_WithParentCallId_NestsUnderParent()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// First: start a parent tool
@@ -111,7 +111,7 @@ public class ToolStartHandlerTests
 	public void Handle_TracksInitialMessageId()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Simulate a turn: user message then assistant message

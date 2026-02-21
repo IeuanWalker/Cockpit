@@ -17,12 +17,12 @@ public sealed class SessionPermissionFeature
 		_logger = logger ?? NullLogger<SessionPermissionFeature>.Instance;
 	}
 
-	ChatSession? GetSession(string sessionId)
+	SessionModel? GetSession(string sessionId)
 	{
 		return _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
 	}
 
-	static string? GetCommandsFilePath(ChatSession session)
+	static string? GetCommandsFilePath(SessionModel session)
 	{
 		if(string.IsNullOrWhiteSpace(session.Context.WorkspacePath))
 		{
@@ -32,7 +32,7 @@ public sealed class SessionPermissionFeature
 		return Path.Combine(session.Context.WorkspacePath, "Cockpit", "session-commands.json");
 	}
 
-	public static bool TryRestoreSessionCommands(ChatSession session, ILogger logger)
+	public static bool TryRestoreSessionCommands(SessionModel session, ILogger logger)
 	{
 		string? commandsFilePath = GetCommandsFilePath(session);
 		if(string.IsNullOrWhiteSpace(commandsFilePath))
@@ -80,7 +80,7 @@ public sealed class SessionPermissionFeature
 		}
 	}
 
-	void SaveSessionCommands(ChatSession session)
+	void SaveSessionCommands(SessionModel session)
 	{
 		string? commandsFilePath = GetCommandsFilePath(session);
 		if(string.IsNullOrWhiteSpace(commandsFilePath))
@@ -119,7 +119,7 @@ public sealed class SessionPermissionFeature
 
 	public bool HasPermission(string sessionId, string command)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return false;
@@ -133,7 +133,7 @@ public sealed class SessionPermissionFeature
 
 	public bool HasPermissions(string sessionId, List<string> commands)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return false;
@@ -147,7 +147,7 @@ public sealed class SessionPermissionFeature
 
 	public void Add(string sessionId, string command)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return;
@@ -172,7 +172,7 @@ public sealed class SessionPermissionFeature
 
 	public void Add(string sessionId, List<string> commands)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return;
@@ -200,7 +200,7 @@ public sealed class SessionPermissionFeature
 
 	public void Remove(string sessionId, string command)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return;
@@ -221,7 +221,7 @@ public sealed class SessionPermissionFeature
 
 	public List<string> GetAll(string sessionId)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return [];
@@ -235,7 +235,7 @@ public sealed class SessionPermissionFeature
 
 	public void Clear(string sessionId)
 	{
-		ChatSession? session = GetSession(sessionId);
+		SessionModel? session = GetSession(sessionId);
 		if(session is null)
 		{
 			return;

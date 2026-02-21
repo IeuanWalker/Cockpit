@@ -165,7 +165,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 	{
 		try
 		{
-			ChatSession? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == invocation.SessionId);
+			SessionModel? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == invocation.SessionId);
 			if(session is null)
 			{
 				_logger.LogWarning("ChatSession not found for SDK session {SessionId}", invocation.SessionId);
@@ -199,7 +199,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 	void UpdateSessionOnPermissionResolved(string sessionId, string requestId)
 	{
-		ChatSession? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
+		SessionModel? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
 		{
 			return;
@@ -216,7 +216,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			// Restore previous status only when all permissions are resolved
 			if(session.PendingPermissionRequests.IsEmpty)
 			{
-				session.Status = session.PreviousStatus ?? SessionStatus.Idle;
+				session.Status = session.PreviousStatus ?? SessionStatusEnum.Idle;
 			}
 		}
 
@@ -226,7 +226,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 	void UpdateSessionOnPermissionRequested(string sessionId, PermissionRequestModel request)
 	{
-		ChatSession? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
+		SessionModel? session = _sessionStateProvider.GetSessions().FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
 		{
 			return;
@@ -248,7 +248,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			if(session.PendingPermissionRequests.Count == 1)
 			{
 				session.PreviousStatus = session.Status;
-				session.Status = SessionStatus.NeedsPermission;
+				session.Status = SessionStatusEnum.NeedsPermission;
 			}
 		}
 

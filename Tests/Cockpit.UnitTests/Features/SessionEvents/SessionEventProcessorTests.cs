@@ -15,7 +15,7 @@ namespace Cockpit.UnitTests.Features.SessionEvents;
 public class SessionEventProcessorTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new()
+	static SessionModel CreateSession() => new()
 	{
 		Id = "sessionId",
 		Title = "Test Session",
@@ -37,7 +37,7 @@ public class SessionEventProcessorTests
 	public void Process_UserMessage_WhenGroupOpen_FinalizesGroupFirst()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		ActivityGroupModel group = new() { Status = GroupStatusEnum.Running };
@@ -66,7 +66,7 @@ public class SessionEventProcessorTests
 	public void Process_UserMessage_UpdatesLastActivity()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		DateTime beforeTest = DateTime.Now.AddSeconds(-1);
 		session.LastActivity = beforeTest;
 		SessionEventProcessor processor = CreateProcessor();
@@ -86,7 +86,7 @@ public class SessionEventProcessorTests
 	public void Process_AssistantTurnEnd_UpdatesLastActivity()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		DateTime beforeTest = DateTime.Now.AddSeconds(-1);
 		session.LastActivity = beforeTest;
 		SessionEventProcessor processor = CreateProcessor();
@@ -106,7 +106,7 @@ public class SessionEventProcessorTests
 	public void Process_InformationalEvent_DoesNotUpdateLastActivity()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		DateTime fixedTime = new(2020, 1, 1);
 		session.LastActivity = fixedTime;
 		SessionEventProcessor processor = CreateProcessor();
@@ -126,7 +126,7 @@ public class SessionEventProcessorTests
 	public void FinalizeOpenGroup_WithOpenGroup_FinalizesIt()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		session.Messages.Add(new ChatMessageModel { IsUser = true });
 
@@ -141,14 +141,14 @@ public class SessionEventProcessorTests
 
 		// Assert
 		session.ActiveWorkingGroup.ShouldBeNull();
-		session.Status.ShouldBe(SessionStatus.Idle);
+		session.Status.ShouldBe(SessionStatusEnum.Idle);
 	}
 
 	[Fact]
 	public void FinalizeOpenGroup_WithNoGroup_DoesNotThrow()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act & Assert
@@ -159,7 +159,7 @@ public class SessionEventProcessorTests
 	public void Process_WhenNoMatchingGroup_DoesNotPropagate()
 	{
 		// ToolComplete with no active group — handler exits early; processor must not throw
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		Should.NotThrow(() => processor.Process(session, new ToolExecutionCompleteEvent

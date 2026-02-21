@@ -6,7 +6,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SubagentCompletedHandler
 {
-	internal static void Handle(ChatSession session, SubagentCompletedEvent evt)
+	internal static void Handle(SessionModel session, SubagentCompletedEvent evt)
 	{
 		if(session.ActiveWorkingGroup is null)
 		{

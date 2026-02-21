@@ -7,7 +7,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class UserMessageHandler
 {
-	internal static void Handle(ChatSession session, UserMessageEvent evt, bool wasAgentBusy = false)
+	internal static void Handle(SessionModel session, UserMessageEvent evt, bool wasAgentBusy = false)
 	{
 		Debug.WriteLine("UserMessageHandler");
 		Debug.WriteLine(evt);
@@ -46,6 +46,6 @@ static class UserMessageHandler
 			session.Messages.Add(message);
 		}
 
-		session.Status = SessionStatus.Running;
+		session.Status = SessionStatusEnum.Running;
 	}
 }

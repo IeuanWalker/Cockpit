@@ -7,10 +7,10 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class AssistantTurnStartHandler
 {
-	internal static void Handle(ChatSession session, AssistantTurnStartEvent evt)
+	internal static void Handle(SessionModel session, AssistantTurnStartEvent evt)
 	{
 		Debug.WriteLine("AssistantTurnStartHandler");
-		session.Status = SessionStatus.Running;
+		session.Status = SessionStatusEnum.Running;
 
 		// A single user prompt can produce multiple assistant.turn_start events ("0", "1", ...).
 		// Only consume a pending message at the first turn start for that prompt.

@@ -6,7 +6,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class ToolProgressHandler
 {
-	internal static void Handle(ChatSession session, ToolExecutionProgressEvent evt)
+	internal static void Handle(SessionModel session, ToolExecutionProgressEvent evt)
 	{
 		if(session.ActiveWorkingGroup is null)
 		{

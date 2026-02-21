@@ -7,7 +7,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class AbortHandler
 {
-	internal static void Handle(ChatSession session, AbortEvent evt, ILogger logger)
+	internal static void Handle(SessionModel session, AbortEvent evt, ILogger logger)
 	{
 		logger.LogWarning("Session {SessionId} aborted: {Reason}", session.Id, evt.Data.Reason);
 

@@ -6,7 +6,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class ToolPartialResultHandler
 {
-	internal static void Handle(ChatSession session, ToolExecutionPartialResultEvent evt)
+	internal static void Handle(SessionModel session, ToolExecutionPartialResultEvent evt)
 	{
 		if(session.ActiveWorkingGroup is null)
 		{

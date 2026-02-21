@@ -9,7 +9,7 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class SessionTitleChangedHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new()
+	static SessionModel CreateSession() => new()
 	{
 		Id = "sessionId",
 		Title = "Test Session",
@@ -31,7 +31,7 @@ public class SessionTitleChangedHandlerTests
 	public void Handle_UpdatesSessionTitle()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act

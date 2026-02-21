@@ -10,7 +10,7 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class UserMessageHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new()
+	static SessionModel CreateSession() => new()
 	{
 		Id = "sessionId",
 		Title = "Test Session",
@@ -32,7 +32,7 @@ public class UserMessageHandlerTests
 	public void Handle_AddsMessageToSession()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		UserMessageEvent evt = new()
 		{
@@ -53,7 +53,7 @@ public class UserMessageHandlerTests
 	public void Handle_SetsStatusToRunning()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		UserMessageEvent evt = new()
 		{
@@ -65,14 +65,14 @@ public class UserMessageHandlerTests
 		processor.Process(session, evt);
 
 		// Assert
-		session.Status.ShouldBe(SessionStatus.Running);
+		session.Status.ShouldBe(SessionStatusEnum.Running);
 	}
 
 	[Fact]
 	public void Handle_MarksMessagePending_WhenAgentWasBusy()
 	{
 		// Arrange: session has an active working group (agent is mid-turn)
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		session.ActiveWorkingGroup = new ActivityGroupModel { Status = GroupStatusEnum.Running };
 
@@ -95,7 +95,7 @@ public class UserMessageHandlerTests
 	public void Handle_DoesNotMarkPending_WhenAgentIsIdle()
 	{
 		// Arrange: no active working group
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		UserMessageEvent evt = new()
@@ -115,7 +115,7 @@ public class UserMessageHandlerTests
 	public void Handle_OptimisticMessage_MarkedPending_WhenAgentWasBusy()
 	{
 		// Arrange: optimistic message added while agent was busy
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		session.ActiveWorkingGroup = new ActivityGroupModel { Status = GroupStatusEnum.Running };
 
@@ -146,7 +146,7 @@ public class UserMessageHandlerTests
 	[Fact]
 	public void Handle_OptimisticMessage_PreservesId_WhenConfirmed()
 	{
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		string optimisticId = "optimistic-1";
 
@@ -172,7 +172,7 @@ public class UserMessageHandlerTests
 	[Fact]
 	public void Handle_OptimisticMessagesWithSameContent_ConfirmInFifoOrder()
 	{
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		ChatMessageModel first = new()
@@ -214,7 +214,7 @@ public class UserMessageHandlerTests
 	public void AssistantTurnStart_ClearsPendingFromOldestMessage()
 	{
 		// Arrange: two pending messages
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		ChatMessageModel pending1 = new() { Content = "First", IsUser = true, IsComplete = true, IsPending = true };
@@ -233,7 +233,7 @@ public class UserMessageHandlerTests
 	[Fact]
 	public void AssistantTurnStart_NonInitialTurn_DoesNotClearNextPendingMessage()
 	{
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		ChatMessageModel pending1 = new() { Content = "First", IsUser = true, IsComplete = true, IsPending = true };
@@ -263,7 +263,7 @@ public class UserMessageHandlerTests
 	public void FullPendingFlow_SecondMessageActivatesAfterFirstTurnCompletes()
 	{
 		// Arrange: first user message and agent's turn is running
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// First message

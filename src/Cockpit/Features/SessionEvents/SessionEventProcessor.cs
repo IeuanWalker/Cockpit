@@ -8,7 +8,7 @@ namespace Cockpit.Features.SessionEvents;
 
 /// <summary>
 /// Entry point for all SDK session event processing. Routes events to the appropriate static handler.
-/// Handlers mutate <see cref="ChatSession"/> state only — UI notification is the caller's responsibility.
+/// Handlers mutate <see cref="SessionModel"/> state only — UI notification is the caller's responsibility.
 /// </summary>
 public sealed class SessionEventProcessor
 {
@@ -24,7 +24,7 @@ public sealed class SessionEventProcessor
 	/// Pass <paramref name="onStreamSummary"/> to stream the idle-event summary progressively;
 	/// pass <c>null</c> for background (non-visible) sessions.
 	/// </summary>
-	public void Process(ChatSession session, SessionEvent evt, Func<ChatMessageModel, string, Task>? onStreamSummary = null)
+	public void Process(SessionModel session, SessionEvent evt, Func<ChatMessageModel, string, Task>? onStreamSummary = null)
 	{
 		try
 		{
@@ -248,5 +248,5 @@ public sealed class SessionEventProcessor
 	/// <summary>
 	/// Finalizes any open <see cref="ActivityGroup"/> on the session (e.g. after abrupt termination during replay).
 	/// </summary>
-	public void FinalizeOpenGroup(ChatSession session) => SessionIdleHandler.Handle(session);
+	public void FinalizeOpenGroup(SessionModel session) => SessionIdleHandler.Handle(session);
 }

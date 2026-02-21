@@ -9,7 +9,7 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class AssistantMessageHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new()
+	static SessionModel CreateSession() => new()
 	{
 		Id = "sessionId",
 		Title = "Test Session",
@@ -31,7 +31,7 @@ public class AssistantMessageHandlerTests
 	public void Handle_FinalizesStreamingMessage()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		const string messageId = "msg1";
 
@@ -66,7 +66,7 @@ public class AssistantMessageHandlerTests
 	public void Handle_WithNoStreamingMessage_AddsDirectly()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act
@@ -87,7 +87,7 @@ public class AssistantMessageHandlerTests
 	public void Handle_DuringActiveGroup_GoesToThinkingPanel()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Open a working group

@@ -14,7 +14,7 @@ public class SessionPermissionFeatureTests
 
 	class TestSessionStateProvider : ISessionStateProvider
 	{
-		readonly List<ChatSession> _sessions = [];
+		readonly List<SessionModel> _sessions = [];
 
 		public void AddSession(string sessionId, string? workspacePath = null)
 		{
@@ -23,7 +23,7 @@ public class SessionPermissionFeatureTests
 				return;
 			}
 
-			_sessions.Add(new ChatSession
+			_sessions.Add(new SessionModel
 			{
 				Id = sessionId,
 				Title = $"Session {sessionId}",
@@ -41,7 +41,7 @@ public class SessionPermissionFeatureTests
 			});
 		}
 
-		public IReadOnlyList<ChatSession> GetSessions() => _sessions;
+		public IReadOnlyList<SessionModel> GetSessions() => _sessions;
 		public void NotifyStateChanged() { }
 	}
 
@@ -394,7 +394,7 @@ public class SessionPermissionFeatureTests
 		Directory.CreateDirectory(permissionsDirectory);
 		File.WriteAllText(permissionsFilePath, JsonSerializer.Serialize(new[] { "npm", "git" }));
 
-		ChatSession session = new()
+		SessionModel session = new()
 		{
 			Id = sessionId,
 			Title = $"Session {sessionId}",

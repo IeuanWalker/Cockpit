@@ -10,7 +10,7 @@ public partial class EditedFiles : ComponentBase, IDisposable
 	[Inject] UIStateFeature _uiState { get; set; } = null!;
 	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 
-	List<ContextFile> Files => _sessionManager.CurrentSession?.Context?.EditedFiles ?? [];
+	List<SessionContextFileModel> Files => _sessionManager.CurrentSession?.Context?.EditedFiles ?? [];
 
 	protected override void OnInitialized()
 	{

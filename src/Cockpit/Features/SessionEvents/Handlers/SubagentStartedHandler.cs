@@ -6,7 +6,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SubagentStartedHandler
 {
-	internal static void Handle(ChatSession session, SubagentStartedEvent evt)
+	internal static void Handle(SessionModel session, SubagentStartedEvent evt)
 	{
 		session.ActiveWorkingGroup ??= new ActivityGroupModel
 		{

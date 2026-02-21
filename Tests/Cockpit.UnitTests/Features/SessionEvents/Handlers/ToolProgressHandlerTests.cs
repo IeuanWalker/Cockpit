@@ -10,7 +10,7 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class ToolProgressHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new()
+	static SessionModel CreateSession() => new()
 	{
 		Id = "sessionId",
 		Title = "Test Session",
@@ -32,7 +32,7 @@ public class ToolProgressHandlerTests
 	public void Handle_UpdatesProgressMessage()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		processor.Process(session, new ToolExecutionStartEvent
@@ -57,7 +57,7 @@ public class ToolProgressHandlerTests
 	public void Handle_WithNoActiveGroup_IsIgnored()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act & Assert — no group, should not throw

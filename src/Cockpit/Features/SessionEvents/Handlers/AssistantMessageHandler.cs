@@ -7,7 +7,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class AssistantMessageHandler
 {
-	internal static void Handle(ChatSession session, AssistantMessageEvent evt)
+	internal static void Handle(SessionModel session, AssistantMessageEvent evt)
 	{
 		Debug.WriteLine("AssistantMessageHandler");
 		Debug.WriteLine(evt);

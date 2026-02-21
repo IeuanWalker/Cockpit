@@ -9,7 +9,7 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class SessionErrorHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new()
+	static SessionModel CreateSession() => new()
 	{
 		Id = "sessionId",
 		Title = "Test Session",
@@ -31,7 +31,7 @@ public class SessionErrorHandlerTests
 	public void Handle_SetsErrorStatus()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act
@@ -42,14 +42,14 @@ public class SessionErrorHandlerTests
 		});
 
 		// Assert
-		session.Status.ShouldBe(SessionStatus.Error);
+		session.Status.ShouldBe(SessionStatusEnum.Error);
 	}
 
 	[Fact]
 	public void Handle_AddsErrorMessageToSession()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act

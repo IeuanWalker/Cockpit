@@ -14,11 +14,11 @@ public class PermissionFeatureTests
 
 	class TestSessionStateProvider : ISessionStateProvider
 	{
-		readonly List<ChatSession> _sessions = [];
+		readonly List<SessionModel> _sessions = [];
 
-		public void AddSession(ChatSession session) => _sessions.Add(session);
+		public void AddSession(SessionModel session) => _sessions.Add(session);
 
-		public IReadOnlyList<ChatSession> GetSessions() => _sessions;
+		public IReadOnlyList<SessionModel> GetSessions() => _sessions;
 
 		public void NotifyStateChanged()
 		{
@@ -103,7 +103,7 @@ public class PermissionFeatureTests
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		const string sessionId = "session1";
-		stateProvider.AddSession(new ChatSession
+		stateProvider.AddSession(new SessionModel
 		{
 			Id = sessionId,
 			Title = "Test Session",
@@ -153,7 +153,7 @@ public class PermissionFeatureTests
 		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		const string sessionId = "session1";
-		stateProvider.AddSession(new ChatSession
+		stateProvider.AddSession(new SessionModel
 		{
 			Id = sessionId,
 			Title = "Test Session",
@@ -245,7 +245,7 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session = new()
+		SessionModel session = new()
 		{
 			Id = "sessionId",
 			Title = "Test Session",
@@ -297,7 +297,7 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session = new()
+		SessionModel session = new()
 		{
 			Id = "sessionId",
 			Title = "Test Session",
@@ -349,7 +349,7 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session = new()
+		SessionModel session = new()
 		{
 			Id = "session1",
 			Title = "Test Session",
@@ -401,7 +401,7 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session = new()
+		SessionModel session = new()
 		{
 			Id = "session1",
 			Title = "Test Session",
@@ -453,7 +453,7 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session1 = new()
+		SessionModel session1 = new()
 		{
 			Id = "session1",
 			Title = "Test Session",
@@ -469,7 +469,7 @@ public class PermissionFeatureTests
 				Repository = null
 			}
 		};
-		ChatSession session2 = new()
+		SessionModel session2 = new()
 		{
 			Id = "session2",
 			Title = "Test Session",
@@ -537,7 +537,7 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session1 = new()
+		SessionModel session1 = new()
 		{
 			Id = "session1",
 			Title = "Test Session",
@@ -553,7 +553,7 @@ public class PermissionFeatureTests
 				Repository = null
 			}
 		};
-		ChatSession session2 = new()
+		SessionModel session2 = new()
 		{
 			Id = "session2",
 			Title = "Test Session",
@@ -623,7 +623,7 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		ChatSession session = new()
+		SessionModel session = new()
 		{
 			Id = "session1",
 			Title = "Test Session",

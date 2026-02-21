@@ -7,7 +7,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SessionErrorHandler
 {
-	internal static void Handle(ChatSession session, SessionErrorEvent evt)
+	internal static void Handle(SessionModel session, SessionErrorEvent evt)
 	{
 		Debug.WriteLine("SessionErrorHandler");
 		Debug.WriteLine(evt);
@@ -28,6 +28,6 @@ static class SessionErrorHandler
 		};
 
 		session.Messages.Add(message);
-		session.Status = SessionStatus.Error;
+		session.Status = SessionStatusEnum.Error;
 	}
 }

@@ -6,7 +6,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SessionIdleHandler
 {
-	internal static void Handle(ChatSession session, DateTimeOffset? eventTimestamp = null, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
+	internal static void Handle(SessionModel session, DateTimeOffset? eventTimestamp = null, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
 	{
 		DateTime now = eventTimestamp?.LocalDateTime ?? DateTime.Now;
 		Debug.WriteLine("SessionIdleHandler - Finalizing activity group");
@@ -207,7 +207,7 @@ static class SessionIdleHandler
 			Debug.WriteLine("No active thinking group to finalize");
 		}
 
-		session.Status = SessionStatus.Idle;
+		session.Status = SessionStatusEnum.Idle;
 	}
 
 	static string GenerateActivitySummary(ActivityGroupModel group)

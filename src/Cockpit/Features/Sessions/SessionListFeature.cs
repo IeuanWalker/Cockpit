@@ -7,32 +7,32 @@ public class SessionListFeature : ISessionStateProvider
 {
 	readonly ILogger<SessionListFeature> _logger;
 
-	readonly List<ChatSession> _sessions = [];
+	readonly List<SessionModel> _sessions = [];
 
 	public event Action? OnStateChanged;
 
-	public IReadOnlyList<ChatSession> Sessions => _sessions;
-	public ChatSession? CurrentSession { get; private set; }
+	public IReadOnlyList<SessionModel> Sessions => _sessions;
+	public SessionModel? CurrentSession { get; private set; }
 
 	public SessionListFeature(ILogger<SessionListFeature> logger)
 	{
 		_logger = logger;
 	}
 
-	public void SetCurrentSession(ChatSession session)
+	public void SetCurrentSession(SessionModel session)
 	{
 		CurrentSession = session;
 		NotifyStateChanged();
 	}
 
-	internal void AddSession(ChatSession session)
+	internal void AddSession(SessionModel session)
 	{
 		_sessions.Insert(0, session);
 	}
 
 	internal void RemoveSession(string sessionId)
 	{
-		ChatSession? session = _sessions.FirstOrDefault(s => s.Id == sessionId);
+		SessionModel? session = _sessions.FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
 		{
 			return;
@@ -48,5 +48,5 @@ public class SessionListFeature : ISessionStateProvider
 
 	public void NotifyStateChanged() => OnStateChanged?.Invoke();
 
-	IReadOnlyList<ChatSession> ISessionStateProvider.GetSessions() => _sessions;
+	IReadOnlyList<SessionModel> ISessionStateProvider.GetSessions() => _sessions;
 }

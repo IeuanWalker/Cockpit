@@ -7,7 +7,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class AssistantReasoningHandler
 {
-	internal static void Handle(ChatSession session, AssistantReasoningEvent evt)
+	internal static void Handle(SessionModel session, AssistantReasoningEvent evt)
 	{
 		Debug.WriteLine("AssistantReasoningHandler");
 		Debug.WriteLine(evt);

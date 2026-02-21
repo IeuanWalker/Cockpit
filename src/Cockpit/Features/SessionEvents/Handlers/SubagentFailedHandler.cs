@@ -6,7 +6,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SubagentFailedHandler
 {
-	internal static void Handle(ChatSession session, SubagentFailedEvent evt)
+	internal static void Handle(SessionModel session, SubagentFailedEvent evt)
 	{
 		if(session.ActiveWorkingGroup is null)
 		{

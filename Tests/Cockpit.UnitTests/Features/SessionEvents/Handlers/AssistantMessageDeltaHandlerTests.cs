@@ -9,7 +9,7 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class AssistantMessageDeltaHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new()
+	static SessionModel CreateSession() => new()
 	{
 		Id = "sessionId",
 		Title = "Test Session",
@@ -31,7 +31,7 @@ public class AssistantMessageDeltaHandlerTests
 	public void Handle_CreatesStreamingMessage()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act
@@ -51,7 +51,7 @@ public class AssistantMessageDeltaHandlerTests
 	public void Handle_AccumulatesContentAcrossDeltas()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		const string messageId = "msg1";
 
@@ -76,7 +76,7 @@ public class AssistantMessageDeltaHandlerTests
 	public void Handle_DuringActiveGroup_DoesNotAddToMessages()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Open a working group first

@@ -15,7 +15,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	[Inject] SessionFeature _sessionManager { get; set; } = default!;
 
 	bool _showDeleteDialog = false;
-	ChatSession? _sessionToDelete;
+	SessionModel? _sessionToDelete;
 
 	protected override void OnInitialized()
 	{
@@ -29,18 +29,18 @@ public partial class SessionList : ComponentBase, IDisposable
 		InvokeAsync(StateHasChanged);
 	}
 
-	async Task SelectSession(ChatSession session)
+	async Task SelectSession(SessionModel session)
 	{
 		await _sessionManager.ResumeSessionAsync(session.Id);
 	}
 
-	static string GetSessionStatusClass(ChatSession session)
+	static string GetSessionStatusClass(SessionModel session)
 	{
 		return session.Status switch
 		{
-			SessionStatus.NeedsPermission => "status-needs-permission",
-			SessionStatus.Running => "status-running",
-			SessionStatus.Finished => "status-finished",
+			SessionStatusEnum.NeedsPermission => "status-needs-permission",
+			SessionStatusEnum.Running => "status-running",
+			SessionStatusEnum.Finished => "status-finished",
 			_ => "secondary-text"
 		};
 	}
@@ -50,7 +50,7 @@ public partial class SessionList : ComponentBase, IDisposable
 		return dateTime.Humanize();
 	}
 
-	void ShowDeleteDialog(ChatSession session, MouseEventArgs _)
+	void ShowDeleteDialog(SessionModel session, MouseEventArgs _)
 	{
 		_sessionToDelete = session;
 		_showDeleteDialog = true;

@@ -7,7 +7,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SessionWarningHandler
 {
-	internal static void Handle(ChatSession session, SessionWarningEvent evt, ILogger logger)
+	internal static void Handle(SessionModel session, SessionWarningEvent evt, ILogger logger)
 	{
 		logger.LogWarning("Session {SessionId} warning [{WarningType}]: {Message}",
 			session.Id, evt.Data.WarningType, evt.Data.Message);

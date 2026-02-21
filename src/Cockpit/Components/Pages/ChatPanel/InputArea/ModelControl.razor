@@ -5,9 +5,9 @@
     <div class="relative">
         <div class="relative group">
             <button @onclick="ToggleModelDropdown"
-                    class="rounded px-2 py-0.5 text-xs focus:outline-none flex items-center space-x-1 transition-opacity duration-200 @(_sessionManager.CurrentSession?.Status == SessionStatus.Running || _sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0 ? "opacity-50 cursor-not-allowed" : "")"
+                    class="rounded px-2 py-0.5 text-xs focus:outline-none flex items-center space-x-1 transition-opacity duration-200 @(_sessionManager.CurrentSession?.Status == SessionStatusEnum.Running || _sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0 ? "opacity-50 cursor-not-allowed" : "")"
                     style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color); min-width: 150px;"
-                    disabled="@(_sessionManager.CurrentSession?.Status == SessionStatus.Running || _sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)"
+                    disabled="@(_sessionManager.CurrentSession?.Status == SessionStatusEnum.Running || _sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)"
                     onmouseover="if(_sessionManager.IsWorking) { var tooltip = document.getElementById('model-switcher-tooltip'); tooltip.style.display = 'block'; }"
                     onmouseout="if(_sessionManager.IsWorking) { var tooltip = document.getElementById('model-switcher-tooltip'); tooltip.style.display = 'none'; }">
                 <span class="flex-1 text-left">@GetDisplayModelName() (<span style="color: @GetMultiplierColor(GetDisplayModelMultiplier())">@(GetDisplayModelMultiplier().ToString("0.0"))x</span>)</span>
@@ -15,7 +15,7 @@
                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                 </svg>
             </button>
-            @if(_sessionManager.CurrentSession?.Status == SessionStatus.Running)
+            @if(_sessionManager.CurrentSession?.Status == SessionStatusEnum.Running)
             {
                 <div id="model-switcher-tooltip" class="absolute left-0 bottom-full mb-1 px-2 py-1 rounded bg-vscode-tooltip text-xs text-white shadow-lg z-50 hidden group-hover:block">
                     You can't change model while the agent is working
@@ -48,9 +48,9 @@
             <div class="relative group">
                 <button @onclick="ToggleReasoningEffortDropdown"
                         data-reasoning-picker
-                        class="rounded px-2 py-0.5 text-xs focus:outline-none flex items-center space-x-1 transition-opacity duration-200 @(_sessionManager.CurrentSession?.Status == SessionStatus.Running ? "opacity-50 cursor-not-allowed" : "")"
+                        class="rounded px-2 py-0.5 text-xs focus:outline-none flex items-center space-x-1 transition-opacity duration-200 @(_sessionManager.CurrentSession?.Status == SessionStatusEnum.Running ? "opacity-50 cursor-not-allowed" : "")"
                         style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color); min-width: 100px;"
-                        disabled="@(_sessionManager.CurrentSession?.Status == SessionStatus.Running)"
+                        disabled="@(_sessionManager.CurrentSession?.Status == SessionStatusEnum.Running)"
                         onmouseover="if(_sessionManager.CurrentSession?.Status == SessionStatus.AgentRunning) { var tooltip = document.getElementById('reasoning-switcher-tooltip'); tooltip.style.display = 'block'; }"
                         onmouseout="if(_sessionManager.CurrentSession?.Status == SessionStatus.AgentRunning) { var tooltip = document.getElementById('reasoning-switcher-tooltip'); tooltip.style.display = 'none'; }">
                     <span class="flex-1 text-left">@GetSelectedReasoningEffortDisplay()</span>
@@ -58,7 +58,7 @@
                         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                     </svg>
                 </button>
-                @if(_sessionManager.CurrentSession?.Status == SessionStatus.Running)
+                @if(_sessionManager.CurrentSession?.Status == SessionStatusEnum.Running)
                 {
                     <div id="reasoning-switcher-tooltip" class="absolute left-0 bottom-full mb-1 px-2 py-1 rounded bg-vscode-tooltip text-xs text-white shadow-lg z-50 hidden group-hover:block">
                         You can't change reasoning while the agent is working

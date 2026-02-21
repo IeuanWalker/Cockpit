@@ -7,7 +7,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class ToolCompleteHandler
 {
-	internal static void Handle(ChatSession session, ToolExecutionCompleteEvent evt)
+	internal static void Handle(SessionModel session, ToolExecutionCompleteEvent evt)
 	{
 		Debug.WriteLine("ToolCompleteHandler");
 		Debug.WriteLine(evt);

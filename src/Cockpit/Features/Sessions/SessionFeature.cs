@@ -26,8 +26,8 @@ public partial class SessionFeature
 	readonly ConcurrentDictionary<string, CopilotSession> _sdkSessions = new();
 
 	// Pass-through convenience properties so components only need to inject SessionFeature
-	public ChatSession? CurrentSession => _sessionListFeature.CurrentSession;
-	public IReadOnlyList<ChatSession> Sessions => _sessionListFeature.Sessions;
+	public SessionModel? CurrentSession => _sessionListFeature.CurrentSession;
+	public IReadOnlyList<SessionModel> Sessions => _sessionListFeature.Sessions;
 	public event Action? OnStateChanged
 	{
 		add => _sessionListFeature.OnStateChanged += value;
@@ -81,13 +81,13 @@ public partial class SessionFeature
 				{
 					try
 					{
-						ChatSession chatSession = new()
+						SessionModel chatSession = new()
 						{
 							Id = metadata.SessionId,
 							Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
 							CreatedAt = metadata.StartTime,
 							LastActivity = metadata.ModifiedTime,
-							Status = SessionStatus.Idle,
+							Status = SessionStatusEnum.Idle,
 							Model = defaultModel,
 							ReasoningEffort = defaultModel.DefaultReasoningEffort,
 							Context = new()
@@ -121,7 +121,7 @@ public partial class SessionFeature
 
 	void HandleSessionEvent(string sessionId, SessionEvent evt)
 	{
-		ChatSession? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
 		{
 			return;
@@ -142,7 +142,7 @@ public partial class SessionFeature
 		}
 	}
 
-	public async Task<ChatSession> CreateNewSessionAsync(string workingDirectory)
+	public async Task<SessionModel> CreateNewSessionAsync(string workingDirectory)
 	{
 		try
 		{
@@ -168,7 +168,7 @@ public partial class SessionFeature
 
 			_sdkSessions.TryAdd(sdkSession.SessionId, sdkSession);
 
-			ChatSession chatSession = new()
+			SessionModel chatSession = new()
 			{
 				Id = sdkSession.SessionId,
 				Title = !string.IsNullOrEmpty(workingDirectory)
@@ -176,7 +176,7 @@ public partial class SessionFeature
 					: "New Session",
 				CreatedAt = DateTime.Now,
 				LastActivity = DateTime.Now,
-				Status = SessionStatus.Idle,
+				Status = SessionStatusEnum.Idle,
 				Context = new()
 				{
 					CurrentWorkingDirectory = workingDirectory,
@@ -206,7 +206,7 @@ public partial class SessionFeature
 	{
 		try
 		{
-			ChatSession? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+			SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 			if(session is null)
 			{
 				_logger.LogWarning("Session {SessionId} not found", sessionId);
@@ -239,11 +239,11 @@ public partial class SessionFeature
 			IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
 			_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 
-			ChatSession tempSession = new()
+			SessionModel tempSession = new()
 			{
 				Id = sessionId,
 				Title = session.Title,
-				Status = SessionStatus.Idle,
+				Status = SessionStatusEnum.Idle,
 				Model = session.Model,
 				ReasoningEffort = session.ReasoningEffort,
 				Context = session.Context,
@@ -273,7 +273,7 @@ public partial class SessionFeature
 				session.Title = tempSession.Title;
 			}
 
-			session.Status = SessionStatus.Idle;
+			session.Status = SessionStatusEnum.Idle;
 			session.IsResumed = true;
 			session.Context.WorkspacePath = sdkSession.WorkspacePath;
 			SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
@@ -294,7 +294,7 @@ public partial class SessionFeature
 		catch(Exception ex) when(ex.Message.Equals("Communication error with Copilot CLI: Request session.resume failed with message: Session file is corrupted or incompatible"))
 		{
 			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
-			ChatSession? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+			SessionModel? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 			failedSession?.IsResuming = false;
 			_sessionListFeature.NotifyStateChanged();
 			_toastService.Error("Session Unavailable", opts =>
@@ -306,7 +306,7 @@ public partial class SessionFeature
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to resume session {SessionId}", sessionId);
-			ChatSession? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+			SessionModel? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 			failedSession?.IsResuming = false;
 			_sessionListFeature.NotifyStateChanged();
 			return false;
@@ -336,7 +336,7 @@ public partial class SessionFeature
 			lock(CurrentSession.SessionEventLock)
 			{
 				bool agentWasBusy = CurrentSession.ActiveWorkingGroup is not null;
-				CurrentSession.Status = SessionStatus.Running;
+				CurrentSession.Status = SessionStatusEnum.Running;
 
 				optimisticMessage = new ChatMessageModel
 				{
@@ -371,7 +371,7 @@ public partial class SessionFeature
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to send message");
-			CurrentSession.Status = SessionStatus.Error;
+			CurrentSession.Status = SessionStatusEnum.Error;
 			_sessionListFeature.NotifyStateChanged();
 		}
 	}
@@ -419,7 +419,7 @@ public partial class SessionFeature
 				throw new InvalidOperationException($"Session {sessionId} not found");
 			}
 
-			ChatSession? chatSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+			SessionModel? chatSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 
 			await existingSession.DisposeAsync();
 			_logger.LogInformation("Destroyed session {SessionId} for restart", sessionId);

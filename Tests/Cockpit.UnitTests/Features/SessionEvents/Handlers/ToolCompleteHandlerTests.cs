@@ -10,7 +10,7 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 public class ToolCompleteHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
-	static ChatSession CreateSession() => new()
+	static SessionModel CreateSession() => new()
 	{
 		Id = "sessionId",
 		Title = "Test Session",
@@ -32,7 +32,7 @@ public class ToolCompleteHandlerTests
 	public void Handle_UpdatesToolStatusToSuccess()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		processor.Process(session, new ToolExecutionStartEvent
@@ -58,7 +58,7 @@ public class ToolCompleteHandlerTests
 	public void Handle_WithNoActiveGroup_IsIgnored()
 	{
 		// Arrange
-		ChatSession session = CreateSession();
+		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act & Assert — no group, should not throw

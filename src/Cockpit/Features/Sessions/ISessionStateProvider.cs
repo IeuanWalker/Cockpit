@@ -10,7 +10,7 @@ public interface ISessionStateProvider
 	/// <summary>
 	/// Get all chat sessions
 	/// </summary>
-	IReadOnlyList<ChatSession> GetSessions();
+	IReadOnlyList<SessionModel> GetSessions();
 
 	/// <summary>
 	/// Notify that session state has changed

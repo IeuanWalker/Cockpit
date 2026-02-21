@@ -7,7 +7,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class ToolStartHandler
 {
-	internal static void Handle(ChatSession session, ToolExecutionStartEvent evt)
+	internal static void Handle(SessionModel session, ToolExecutionStartEvent evt)
 	{
 		Debug.WriteLine("ToolStartHandler");
 		Debug.WriteLine(evt);
