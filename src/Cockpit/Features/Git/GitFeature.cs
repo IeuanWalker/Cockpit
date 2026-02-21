@@ -79,13 +79,13 @@ public sealed partial class GitFeature
 					filePath = filePath.Split(" -> ")[1];
 				}
 
-				GitFileStatus status = (staged, unstaged) switch
+				GitFileStatusEnum status = (staged, unstaged) switch
 				{
-					('?', '?') => GitFileStatus.Untracked,
-					('A', _) => GitFileStatus.Added,
-					('D', _) or (_, 'D') => GitFileStatus.Deleted,
-					('R', _) => GitFileStatus.Renamed,
-					_ => GitFileStatus.Modified
+					('?', '?') => GitFileStatusEnum.Untracked,
+					('A', _) => GitFileStatusEnum.Added,
+					('D', _) or (_, 'D') => GitFileStatusEnum.Deleted,
+					('R', _) => GitFileStatusEnum.Renamed,
+					_ => GitFileStatusEnum.Modified
 				};
 
 				GitChangedFileModel file = new()
@@ -168,11 +168,11 @@ public sealed partial class GitFeature
 		}
 	}
 
-	async Task<string?> GetDiffAsync(string gitRoot, string filePath, GitFileStatus status)
+	async Task<string?> GetDiffAsync(string gitRoot, string filePath, GitFileStatusEnum status)
 	{
 		string fullPath = Path.Combine(gitRoot, filePath);
 
-		if(status == GitFileStatus.Untracked)
+		if(status == GitFileStatusEnum.Untracked)
 		{
 			return await GetUntrackedFileDiffAsync(gitRoot, filePath);
 		}
@@ -180,7 +180,7 @@ public sealed partial class GitFeature
 		// For Added files (staged but never committed), git diff HEAD fails because HEAD
 		// has no record of the file. Try --cached (index vs HEAD) first, then fall back
 		// to reading the file directly.
-		if(status == GitFileStatus.Added)
+		if(status == GitFileStatusEnum.Added)
 		{
 			string? cached = await RunCommand(gitRoot, "diff", "--cached", "--", fullPath);
 			if(!string.IsNullOrEmpty(cached))

@@ -1,5 +1,6 @@
 @using Cockpit.Components.Controls.GitDiff.Models
 @using Cockpit.Features.Git
+@using Cockpit.Features.Git.Models
 
 <div class="gitdiff-panel">
     @if(_parsedDiff is not null && _parsedDiff.Hunks.Count > 0)
@@ -19,7 +20,7 @@
             <span class="text-xs secondary-text truncate ml-4 max-w-xs" title="@FilePath">@FilePath</span>
         </div>
 
-        @if(SplitView)
+        @if(SplitView && (GitFileStatus?.Equals(GitFileStatusEnum.Modified) ?? false))
         {
             <div class="gitdiff-split-wrapper" @key="@((FilePath ?? "") + "-split")">
                 <div id="@_diffLeftId" class="gitdiff-split-pane scrollbar-thin">

@@ -1,4 +1,5 @@
 using Cockpit.Components.Controls.GitDiff.Models;
+using Cockpit.Features.Git.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -11,6 +12,7 @@ public partial class GitDiffViewer : ComponentBase
 	[Parameter] public string? Diff { get; set; }
 	[Parameter] public string? FilePath { get; set; }
 	[Parameter] public bool SplitView { get; set; }
+	[Parameter] public GitFileStatusEnum? GitFileStatus { get; set; }
 
 	ParsedDiffModel? _parsedDiff;
 	Dictionary<DiffHunkModel, List<SplitRowModel>> _splitRows = [];
