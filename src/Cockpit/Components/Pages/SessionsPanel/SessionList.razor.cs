@@ -31,7 +31,7 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	async Task SelectSession(SessionModel session)
 	{
-		await _sessionManager.ResumeSession(session.Id);
+		await _sessionManager.LoadSession(session.Id);
 	}
 
 	static string GetSessionStatusClass(SessionModel session)

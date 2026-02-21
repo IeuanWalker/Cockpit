@@ -21,6 +21,15 @@ public sealed partial class SessionFeature
 				await RestartSessionWithPendingConfig();
 			}
 
+			if(CurrentSession.SdkState == SdkSessionState.Loaded)
+			{
+				bool resumed = await ResumeSession(CurrentSession.Id);
+				if(!resumed)
+				{
+					return;
+				}
+			}
+
 			if(!_sdkRegistry.TryGet(CurrentSession.Id, out CopilotSession? sdkSession))
 			{
 				throw new InvalidOperationException($"Session {CurrentSession.Id} not found in SDK sessions");

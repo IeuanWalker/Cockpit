@@ -32,14 +32,9 @@ public class SessionModel
 	public SessionStatusEnum? PreviousStatus { get; set; }
 
 	/// <summary>
-	/// Whether this session has an active SDK connection
+	/// Tracks the SDK connection lifecycle of this session.
 	/// </summary>
-	public bool IsResumed { get; set; }
-
-	/// <summary>
-	/// Whether this session is currently loading/replaying history (shows loading indicator in UI)
-	/// </summary>
-	public bool IsResuming { get; set; }
+	public SdkSessionState SdkState { get; set; } = SdkSessionState.NotLoaded;
 	public bool RequiresRestart { get; set; }
 	public bool IsYolo { get; set; }
 	public bool IsTerminalOpen { get; set; }

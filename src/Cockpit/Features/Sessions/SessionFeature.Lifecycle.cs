@@ -116,11 +116,10 @@ public sealed partial class SessionFeature
 				},
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
-				IsResumed = true
+				SdkState = SdkSessionState.Resumed
 			};
 
-			_sessionListFeature.AddSession(chatSession);
-			await SwitchCurrentSessionAsync(chatSession);
+			_sessionListFeature.AddSession(chatSession); await SwitchCurrentSessionAsync(chatSession);
 
 			return chatSession;
 		}
@@ -131,7 +130,13 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	public async Task<bool> ResumeSession(string sessionId)
+	/// <summary>
+	/// Loads a session by replaying its history into the UI with <c>DisableResume=true</c>, which
+	/// suppresses the <c>session.resume</c> event so that merely viewing a session does not update
+	/// <c>LastActivity</c>. The SDK session is registered and ready to send messages; calling
+	/// <see cref="ResumeSession"/> on first message send simply promotes the flags.
+	/// </summary>
+	public async Task<bool> LoadSession(string sessionId)
 	{
 		try
 		{
@@ -142,24 +147,25 @@ public sealed partial class SessionFeature
 				return false;
 			}
 
-			if(session.IsResumed)
+			if(session.SdkState != SdkSessionState.NotLoaded)
 			{
-				_logger.LogInformation("Session {SessionId} already resumed, switching to it", sessionId);
+				_logger.LogInformation("Session {SessionId} already loaded or loading, switching to it", sessionId);
 				await SwitchCurrentSessionAsync(session);
 				return true;
 			}
 
-			_logger.LogInformation("Resuming session {SessionId}", sessionId);
+			_logger.LogInformation("Loading session {SessionId}", sessionId);
 
 			ResumeSessionConfig config = new()
 			{
 				Model = session.Model.Id,
 				ReasoningEffort = session.ReasoningEffort,
 				Streaming = true,
+				DisableResume = true,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest
 			};
 
-			session.IsResuming = true;
+			session.SdkState = SdkSessionState.Loading;
 			_sessionListFeature.NotifyStateChanged();
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -193,7 +199,6 @@ public sealed partial class SessionFeature
 				}
 			});
 
-			session.IsResuming = false;
 			session.Messages = tempSession.Messages;
 			session.ActiveWorkingGroup = null;
 			session.LastActivity = tempSession.LastActivity;
@@ -203,7 +208,7 @@ public sealed partial class SessionFeature
 			}
 
 			session.Status = SessionStatusEnum.Idle;
-			session.IsResumed = true;
+			session.SdkState = SdkSessionState.Loaded;
 			session.Context.WorkspacePath = sdkSession.WorkspacePath;
 			SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 
@@ -214,14 +219,14 @@ public sealed partial class SessionFeature
 			});
 
 			await SwitchCurrentSessionAsync(session);
-			_logger.LogInformation("Successfully resumed session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
+			_logger.LogInformation("Successfully loaded session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
 			return true;
 		}
 		catch(Exception ex) when(ex.Message.Equals("Communication error with Copilot CLI: Request session.resume failed with message: Session file is corrupted or incompatible"))
 		{
 			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
 			SessionModel? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-			failedSession?.IsResuming = false;
+			failedSession?.SdkState = SdkSessionState.NotLoaded;
 			_sessionListFeature.NotifyStateChanged();
 			_toastService.Error("Session Unavailable", opts =>
 			{
@@ -231,12 +236,49 @@ public sealed partial class SessionFeature
 		}
 		catch(Exception ex)
 		{
-			_logger.LogError(ex, "Failed to resume session {SessionId}", sessionId);
+			_logger.LogError(ex, "Failed to load session {SessionId}", sessionId);
 			SessionModel? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-			failedSession?.IsResuming = false;
+			failedSession?.SdkState = SdkSessionState.NotLoaded;
 			_sessionListFeature.NotifyStateChanged();
 			return false;
 		}
+	}
+
+	/// <summary>
+	/// Promotes a loaded session to fully resumed by flipping flags. Call this before sending the first
+	/// message on a session that was loaded via <see cref="LoadSession"/>. If the session has not been
+	/// loaded yet, delegates to <see cref="LoadSession"/> first.
+	/// </summary>
+	public async Task<bool> ResumeSession(string sessionId)
+	{
+		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+		if(session is null)
+		{
+			_logger.LogWarning("Session {SessionId} not found", sessionId);
+			return false;
+		}
+
+		if(session.SdkState == SdkSessionState.Resumed)
+		{
+			_logger.LogInformation("Session {SessionId} already resumed", sessionId);
+			return true;
+		}
+
+		if(session.SdkState != SdkSessionState.Loaded)
+		{
+			bool loaded = await LoadSession(sessionId);
+			if(!loaded)
+			{
+				return false;
+			}
+		}
+
+		// The session was loaded via LoadSession (DisableResume=true) which suppresses the
+		// session.resume event. The existing SDK session is fully functional for sending messages,
+		// so just promote the state — no need to create a new SDK session.
+		session.SdkState = SdkSessionState.Resumed;
+		_logger.LogInformation("Session {SessionId} promoted from loaded to resumed", sessionId);
+		return true;
 	}
 
 	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, CancellationToken cancellationToken = default)
@@ -375,7 +417,7 @@ public sealed partial class SessionFeature
 
 		try
 		{
-			if(!_sdkRegistry.TryRemove(sessionId, out CopilotSession? sdkSession))
+			if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
 			{
 				throw new InvalidOperationException($"Session {CurrentSession.Id} not found in SDK sessions");
 			}
