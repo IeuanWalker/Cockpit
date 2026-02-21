@@ -1,8 +1,8 @@
 ﻿@using Cockpit.Components.Popups
 @using Cockpit.Features.Sessions.Models
-@foreach(var session in _sessionManager.Sessions.OrderByDescending(x => x.LastActivity).ToList())
+@foreach(var session in _sessionFeature.Sessions)
 {
-    var isActive = _sessionManager.CurrentSession?.Id == session.Id;
+    var isActive = _sessionFeature.CurrentSession?.Id == session.Id;
     <div class="session-item px-3 py-1.5 hover:bg-vscode-hover cursor-pointer @(isActive ? "bg-vscode-active" : "") border-l-2 @(isActive ? "" : "border-transparent") flex items-center justify-between group relative @(session.SdkState == SdkSessionStateEnum.Loading ? "pointer-events-none" : "")"
          style="@(isActive ? "border-left-color: var(--accent-color);" : "")"
          @onclick="() => SelectSession(session)">
@@ -56,8 +56,4 @@
     </div>
 }
 
-<!-- Delete Confirmation Dialog -->
-<DeleteSessionPopup IsOpen="_showDeleteDialog"
-                    SessionTitle="@_sessionToDelete?.Title"
-                    OnConfirm="ConfirmDelete"
-                    OnCancel="CancelDelete" />
+<DeleteSessionPopup @ref="_deleteSessionPopup" />
