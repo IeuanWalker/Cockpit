@@ -166,6 +166,11 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 
 	async Task StopSession()
 	{
-		await _sessionManager.AbortCurrentSessionAsync();
+		if(_sessionManager.CurrentSession?.Id is null)
+		{
+			return;
+		}
+
+		await _sessionManager.AbortSession(_sessionManager.CurrentSession.Id);
 	}
 }

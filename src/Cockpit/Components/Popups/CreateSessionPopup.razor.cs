@@ -94,7 +94,7 @@ public partial class CreateSessionPopup : ComponentBase, IDisposable
 
 		try
 		{
-			await _sessionFeature.CreateNewSessionAsync(_selectedPath);
+			await _sessionFeature.CreateSession(_selectedPath);
 		}
 		catch(Exception ex)
 		{

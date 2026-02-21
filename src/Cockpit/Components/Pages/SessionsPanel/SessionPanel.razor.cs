@@ -31,7 +31,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	protected override async Task OnInitializedAsync()
 	{
 		_isLoadingSessions = true;
-		await _sessionManager.LoadExistingSessionsAsync();
+		await _sessionManager.LoadExistingSessions();
 		_isLoadingSessions = false;
 	}
 
@@ -46,7 +46,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		_isRefreshingSessions = true;
 		try
 		{
-			Task loadTask = _sessionManager.LoadExistingSessionsAsync();
+			Task loadTask = _sessionManager.LoadExistingSessions();
 			Task delayTask = Task.Delay(1000);
 			await Task.WhenAll(loadTask, delayTask);
 		}

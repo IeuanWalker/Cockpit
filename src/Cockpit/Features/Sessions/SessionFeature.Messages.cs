@@ -18,7 +18,7 @@ public sealed partial class SessionFeature
 		{
 			if(CurrentSession.RequiresRestart)
 			{
-				await RestartSessionWithPendingConfigAsync();
+				await RestartSessionWithPendingConfig();
 			}
 
 			if(!_sdkRegistry.TryGet(CurrentSession.Id, out CopilotSession? sdkSession))

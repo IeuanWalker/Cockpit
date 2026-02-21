@@ -8,7 +8,7 @@ namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
-	public async Task LoadExistingSessionsAsync()
+	public async Task LoadExistingSessions()
 	{
 		try
 		{
@@ -71,7 +71,7 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	public async Task<SessionModel> CreateNewSessionAsync(string workingDirectory)
+	public async Task<SessionModel> CreateSession(string workingDirectory)
 	{
 		try
 		{
@@ -131,7 +131,7 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	public async Task<bool> ResumeSessionAsync(string sessionId)
+	public async Task<bool> ResumeSession(string sessionId)
 	{
 		try
 		{
@@ -239,7 +239,7 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	public async Task RestartSessionAsync(string sessionId, string newModelId, string? newReasoningEffort = null, CancellationToken cancellationToken = default)
+	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -303,7 +303,7 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	public async Task DeleteSessionAsync(string sessionId)
+	public async Task DeleteSession(string sessionId)
 	{
 		try
 		{
@@ -332,7 +332,7 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	async Task RestartSessionWithPendingConfigAsync()
+	async Task RestartSessionWithPendingConfig()
 	{
 		if(CurrentSession is null || !CurrentSession.RequiresRestart)
 		{
@@ -348,7 +348,7 @@ public sealed partial class SessionFeature
 				CurrentSession.ReasoningEffort ?? "default"
 			);
 
-			await RestartSessionAsync(
+			await RestartSession(
 				CurrentSession.Id,
 				CurrentSession.Model.Id,
 				CurrentSession.ReasoningEffort
@@ -366,7 +366,7 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	public async Task AbortCurrentSessionAsync()
+	public async Task AbortSession(string sessionId)
 	{
 		if(CurrentSession is null)
 		{
@@ -375,7 +375,7 @@ public sealed partial class SessionFeature
 
 		try
 		{
-			if(!_sdkRegistry.TryGet(CurrentSession.Id, out CopilotSession? sdkSession))
+			if(!_sdkRegistry.TryRemove(sessionId, out CopilotSession? sdkSession))
 			{
 				throw new InvalidOperationException($"Session {CurrentSession.Id} not found in SDK sessions");
 			}

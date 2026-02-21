@@ -28,7 +28,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		_timestampFeature.OnTick += OnTimestampTick;
 
 		// Load existing sessions from SDK
-		await _sessionManager.LoadExistingSessionsAsync();
+		await _sessionManager.LoadExistingSessions();
 	}
 
 	void OnTimestampTick()

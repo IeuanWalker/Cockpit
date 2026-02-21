@@ -31,7 +31,7 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	async Task SelectSession(SessionModel session)
 	{
-		await _sessionManager.ResumeSessionAsync(session.Id);
+		await _sessionManager.ResumeSession(session.Id);
 	}
 
 	static string GetSessionStatusClass(SessionModel session)
@@ -61,7 +61,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	{
 		if(_sessionToDelete is not null)
 		{
-			await _sessionManager.DeleteSessionAsync(_sessionToDelete.Id);
+			await _sessionManager.DeleteSession(_sessionToDelete.Id);
 		}
 		_showDeleteDialog = false;
 		_sessionToDelete = null;
