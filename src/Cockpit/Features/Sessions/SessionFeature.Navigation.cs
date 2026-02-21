@@ -33,11 +33,15 @@ public sealed partial class SessionFeature
 
 			MainThread.BeginInvokeOnMainThread(() =>
 			{
+				if(_sessionListFeature.CurrentSession?.Id != session.Id)
+				{
+					return;
+				}
+
 				if(branch is not null && branch != session.Context.Branch)
 				{
 					session.Context.Branch = branch;
 				}
-
 				session.Context.EditedFiles = editedFiles;
 				_sessionListFeature.NotifyStateChanged();
 			});
