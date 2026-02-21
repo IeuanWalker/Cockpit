@@ -1,3 +1,4 @@
+using Cockpit.Components.Controls;
 using Cockpit.Features.Sessions;
 using CommunityToolkit.Maui.Storage;
 using Microsoft.AspNetCore.Components;
@@ -5,38 +6,40 @@ using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Popups;
 
-public partial class CreateSessionPopup : ComponentBase, IDisposable
+public partial class CreateSessionPopup : ComponentBase
 {
-	[Inject] SessionFeature _sessionFeature { get; set; } = default!;
+	readonly SessionFeature _sessionFeature;
 
-	bool _isOpen = false;
-	string _selectedPath = string.Empty;
-	string? _errorMessage;
-	readonly List<string> _recentDirectories = [];
-
-	protected override void OnInitialized()
+	public CreateSessionPopup(SessionFeature sessionFeature)
 	{
-		LoadRecentDirectories();
+		_sessionFeature = sessionFeature;
 	}
+
+	public string SelectedPath { get; set; } = string.Empty;
+	public string? ErrorMessage { get; set; } = string.Empty;
+	public List<string> RecentDirectories { get; set; } = [];
+	PopupBase _popup = default!;
 
 	public void Open()
 	{
-		_selectedPath = string.Empty;
-		_errorMessage = null;
-		_isOpen = true;
-		StateHasChanged();
-	}
+		SelectedPath = string.Empty;
+		ErrorMessage = null;
+		RecentDirectories = [.. _sessionFeature.Sessions
+			.OrderByDescending(s => s.LastActivity)
+			.Where(x => !string.IsNullOrWhiteSpace(x.Context.CurrentWorkingDirectory))
+			.Select(s => s.Context.CurrentWorkingDirectory)
+			.Distinct()
+			.Take(5)];
 
-	public void Close()
-	{
-		_isOpen = false;
+		_popup.Open();
+
 		StateHasChanged();
 	}
 
 	void SelectPath(string path)
 	{
-		_selectedPath = path;
-		_errorMessage = null;
+		SelectedPath = path;
+		ErrorMessage = null;
 		StateHasChanged();
 	}
 
@@ -47,14 +50,14 @@ public partial class CreateSessionPopup : ComponentBase, IDisposable
 			FolderPickerResult result = await FolderPicker.Default.PickAsync();
 			if(result.IsSuccessful)
 			{
-				_selectedPath = result.Folder.Path;
-				_errorMessage = null;
+				SelectedPath = result.Folder.Path;
+				ErrorMessage = null;
 			}
 			else
 			{
 				if(result.Exception is not OperationCanceledException)
 				{
-					_errorMessage = $"Failed to open directory picker: {result.Exception.Message}";
+					ErrorMessage = $"Failed to open directory picker: {result.Exception.Message}";
 				}
 			}
 
@@ -62,21 +65,21 @@ public partial class CreateSessionPopup : ComponentBase, IDisposable
 		}
 		catch(Exception ex)
 		{
-			_errorMessage = $"Failed to open directory picker: {ex.Message}";
+			ErrorMessage = $"Failed to open directory picker: {ex.Message}";
 			StateHasChanged();
 		}
 	}
 
 	bool IsValidDirectory()
 	{
-		if(string.IsNullOrWhiteSpace(_selectedPath))
+		if(string.IsNullOrWhiteSpace(SelectedPath))
 		{
 			return false;
 		}
 
 		try
 		{
-			return Directory.Exists(_selectedPath);
+			return Directory.Exists(SelectedPath);
 		}
 		catch
 		{
@@ -88,57 +91,21 @@ public partial class CreateSessionPopup : ComponentBase, IDisposable
 	{
 		if(!IsValidDirectory())
 		{
-			_errorMessage = "Please select a valid directory";
+			ErrorMessage = "Please select a valid directory";
 			return;
 		}
 
 		try
 		{
-			await _sessionFeature.CreateSession(_selectedPath);
+			await _sessionFeature.CreateSession(SelectedPath);
+			_popup.Close();
+
 		}
 		catch(Exception ex)
 		{
-			Console.Error.WriteLine($"Failed to create session: {ex.Message}");
-		}
-
-		Close();
-
-		// Save to recent directories
-		SaveToRecentDirectories(_selectedPath);
-	}
-
-	void Cancel()
-	{
-		_selectedPath = string.Empty;
-		_errorMessage = null;
-		Close();
-	}
-
-	void LoadRecentDirectories()
-	{
-		// TODO: Load previous sessions
-	}
-
-	void SaveToRecentDirectories(string path)
-	{
-		if(!_recentDirectories.Contains(path))
-		{
-			_recentDirectories.Insert(0, path);
-			if(_recentDirectories.Count > 5)
-			{
-				_recentDirectories.RemoveAt(_recentDirectories.Count - 1);
-			}
+			ErrorMessage = $"Error creating session: {ex.Message}";
 		}
 	}
 
-	public void Dispose()
-	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
-	}
-
-	protected virtual void Dispose(bool disposing)
-	{
-		// Cleanup if needed
-	}
+	void Cancel() => _popup.Close();
 }

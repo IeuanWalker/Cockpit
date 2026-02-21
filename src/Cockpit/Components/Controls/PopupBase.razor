@@ -2,10 +2,18 @@
 <div class="settings-popup @(_show ? "active" : "")">
     <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl w-[500px] max-w-[90vw]">
         <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between">
-            <h3 class="text-vscode-title font-semibold flex items-center">
-                @HeaderLeft
-                @Title
-            </h3>
+            @if(TitleArea is null)
+            {
+                <h3 class="text-vscode-title font-semibold flex items-center">
+                    @HeaderLeft
+                    @Title
+                </h3>
+            }
+            else
+            {
+                @TitleArea
+            }
+
             <div class="flex items-center gap-1">
                 @HeaderRight
                 <button @onclick="Close" class="p-1 hover:bg-vscode-hover rounded">
@@ -21,6 +29,7 @@
                 @Content
             }
         </div>
+        @Footer
     </div>
 </div>
 

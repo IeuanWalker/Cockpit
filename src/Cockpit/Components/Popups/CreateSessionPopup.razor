@@ -1,80 +1,74 @@
-<!-- Working Directory Overlay -->
-<div class="settings-overlay @(_isOpen ? "active" : "")" @onclick="Cancel"></div>
+@using Cockpit.Components.Controls
 
-<!-- Working Directory Dialog -->
-@if(_isOpen)
-{
-    <div class="settings-popup active">
-        <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl w-[600px] max-h-[80vh] flex flex-col" @onclick:stopPropagation="true">
-            <!-- Header -->
-            <div class="px-6 py-4 border-b border-vscode-border">
-                <h2 class="text-lg font-semibold text-vscode-title">Select Working Directory</h2>
-                <p class="text-sm text-vscode-secondary mt-1">Choose a directory for the Copilot session context</p>
-            </div>
+<PopupBase @ref="_popup">
+    <TitleArea>
+        <div>
+            <h2 class="text-lg font-semibold text-vscode-title">Select Working Directory</h2>
+            <p class="text-sm text-vscode-secondary mt-1">Choose a directory for the Copilot session context</p>
+        </div>
+    </TitleArea>
+    <Content>
+        <div class="flex-1 overflow-y-auto p-4">
+            <div class="space-y-4">
+                <!-- Current Path Display -->
+                <div>
+                    <label class="block text-sm font-medium text-vscode-title mb-2">Selected Directory</label>
+                    <div class="flex gap-2">
+                        <input type="text"
+                               @bind="SelectedPath"
+                               @bind:event="oninput"
+                               class="flex-1 px-3 py-2 rounded text-sm focus:outline-none"
+                               style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);"
+                               placeholder="Enter directory path or browse..." />
+                        <button @onclick="BrowseDirectory"
+                                class="btn-primary px-4 py-2 rounded">
+                            Browse
+                        </button>
+                    </div>
+                </div>
 
-            <!-- Content -->
-            <div class="flex-1 overflow-y-auto p-6">
-                <div class="space-y-4">
-                    <!-- Current Path Display -->
+                <!-- Recent Directories -->
+                @if(RecentDirectories.Any())
+                {
                     <div>
-                        <label class="block text-sm font-medium text-vscode-title mb-2">Selected Directory</label>
-                        <div class="flex gap-2">
-                            <input type="text"
-                                   @bind="_selectedPath"
-                                   @bind:event="oninput"
-                                   class="flex-1 px-3 py-2 rounded text-sm focus:outline-none"
-                                   style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);"
-                                   placeholder="Enter directory path or browse..." />
-                            <button @onclick="BrowseDirectory"
-                                    class="btn-primary px-4 py-2 rounded">
-                                Browse
-                            </button>
+                        <label class="block text-sm font-medium text-vscode-title mb-2">Recent</label>
+                        <div class="space-y-1">
+                            @foreach(var recent in RecentDirectories)
+                            {
+                                <button @onclick="() => SelectPath(recent)"
+                                        class="w-full text-left px-3 py-2 rounded hover:bg-vscode-hover text-sm flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                                    </svg>
+                                    <span class="truncate">@Path.GetFileName(recent)</span>
+                                    <span class="ml-auto text-vscode-secondary text-xs truncate max-w-xs">@recent</span>
+                                </button>
+                            }
                         </div>
                     </div>
+                }
 
-                    <!-- Recent Directories -->
-                    @if(_recentDirectories.Any())
-                    {
-                        <div>
-                            <label class="block text-sm font-medium text-vscode-title mb-2">Recent</label>
-                            <div class="space-y-1">
-                                @foreach(var recent in _recentDirectories)
-                                {
-                                    <button @onclick="() => SelectPath(recent)"
-                                            class="w-full text-left px-3 py-2 rounded hover:bg-vscode-hover text-sm flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                        </svg>
-                                        <span class="truncate">@Path.GetFileName(recent)</span>
-                                        <span class="ml-auto text-vscode-secondary text-xs truncate max-w-xs">@recent</span>
-                                    </button>
-                                }
-                            </div>
-                        </div>
-                    }
-
-                    @if(!string.IsNullOrEmpty(_errorMessage))
-                    {
-                        <div class="p-3 bg-red-500 bg-opacity-10 border border-red-500 rounded text-sm text-red-400">
-                            @_errorMessage
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="px-6 py-4 border-t border-vscode-border flex justify-end gap-3">
-                <button @onclick="Cancel"
-                        class="px-4 py-2 rounded text-sm hover:bg-vscode-hover">
-                    Cancel
-                </button>
-                <button @onclick="Confirm"
-                        disabled="@(!IsValidDirectory())"
-                        class="px-4 py-2 rounded text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        style="background-color: var(--accent-color); color: white;">
-                    Select Directory
-                </button>
+                @if(!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="p-3 bg-red-500 bg-opacity-10 border border-red-500 rounded text-sm text-red-400">
+                        @ErrorMessage
+                    </div>
+                }
             </div>
         </div>
-    </div>
-}
+    </Content>
+    <Footer>
+        <div class="px-3 py-4 border-t border-vscode-border flex justify-end gap-3">
+            <button @onclick="Cancel"
+                    class="px-4 py-2 rounded text-sm hover:bg-vscode-hover">
+                Cancel
+            </button>
+            <button @onclick="Confirm"
+                    disabled="@(!IsValidDirectory())"
+                    class="px-4 py-2 rounded text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    style="background-color: var(--accent-color); color: white;">
+                Select Directory
+            </button>
+        </div>
+    </Footer>
+</PopupBase>
