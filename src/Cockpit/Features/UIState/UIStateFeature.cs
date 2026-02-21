@@ -166,23 +166,4 @@ public class UIStateFeature
 	{
 		OnAppendChatInput?.Invoke(text);
 	}
-
-	readonly Dictionary<string, bool> _dropdownStates = [];
-
-	public void ToggleDropdown(string dropdownId)
-	{
-		_dropdownStates[dropdownId] = !_dropdownStates.TryGetValue(dropdownId, out bool value) || (_dropdownStates[dropdownId] = !value);
-		OnStateChanged?.Invoke();
-	}
-
-	public bool IsDropdownOpen(string dropdownId)
-	{
-		return _dropdownStates.TryGetValue(dropdownId, out bool isOpen) && isOpen;
-	}
-
-	public void SetDropdownOpen(string dropdownId, bool isOpen)
-	{
-		_dropdownStates[dropdownId] = isOpen;
-		OnStateChanged?.Invoke();
-	}
 }

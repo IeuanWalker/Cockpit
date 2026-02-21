@@ -126,16 +126,6 @@ body,
         background: var(--hover-color);
     }
 
-.dropdown-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-}
-
-    .dropdown-content.open {
-        max-height: 500px;
-    }
-
 .sidebar.collapsed {
     width: 0 !important;
     min-width: 0 !important;

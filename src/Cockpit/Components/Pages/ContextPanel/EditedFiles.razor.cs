@@ -1,13 +1,11 @@
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Sessions;
-using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class EditedFiles : ComponentBase, IDisposable
 {
-	[Inject] UIStateFeature _uiState { get; set; } = null!;
 	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 
 	List<GitChangedFileModel> Files => _sessionManager.CurrentSession?.Context?.EditedFiles ?? [];
