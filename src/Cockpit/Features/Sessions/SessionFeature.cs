@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using Blazor.Sonner.Services;
 using Cockpit.Features.CopilotModels;
+using Cockpit.Features.Git;
+using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
@@ -12,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;
 
-public partial class SessionFeature
+public sealed partial class SessionFeature : IDisposable
 {
 	readonly CopilotClientFeature _clientFeature;
 	readonly ILogger<SessionFeature> _logger;
@@ -22,8 +24,10 @@ public partial class SessionFeature
 	readonly TerminalFeature _terminalFeature;
 	readonly SessionListFeature _sessionListFeature;
 	readonly IPermissionHandler _permissionHandler;
+	readonly GitFeature _gitFeature;
 
 	readonly ConcurrentDictionary<string, CopilotSession> _sdkSessions = new();
+	readonly ConcurrentDictionary<string, IDisposable> _gitWatchers = new();
 
 	// Pass-through convenience properties so components only need to inject SessionFeature
 	public SessionModel? CurrentSession => _sessionListFeature.CurrentSession;
@@ -44,7 +48,8 @@ public partial class SessionFeature
 		TerminalFeature terminalFeature,
 		SessionEventProcessor processor,
 		SessionListFeature sessionListFeature,
-		IPermissionHandler permissionHandler)
+		IPermissionHandler permissionHandler,
+		GitFeature gitFeature)
 	{
 		_clientFeature = clientFeature;
 		_logger = logger;
@@ -54,6 +59,7 @@ public partial class SessionFeature
 		_processor = processor;
 		_sessionListFeature = sessionListFeature;
 		_permissionHandler = permissionHandler;
+		_gitFeature = gitFeature;
 	}
 
 	public async Task LoadExistingSessionsAsync()
@@ -168,6 +174,8 @@ public partial class SessionFeature
 
 			_sdkSessions.TryAdd(sdkSession.SessionId, sdkSession);
 
+			GitContext gitContext = await _gitFeature.GetContextAsync(workingDirectory);
+
 			SessionModel chatSession = new()
 			{
 				Id = sdkSession.SessionId,
@@ -181,9 +189,9 @@ public partial class SessionFeature
 				{
 					CurrentWorkingDirectory = workingDirectory,
 					WorkspacePath = sdkSession.WorkspacePath,
-					GitRoot = null,
-					Repository = null,
-					Branch = null
+					GitRoot = gitContext.GitRoot,
+					Repository = gitContext.Repository,
+					Branch = gitContext.Branch
 				},
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
@@ -192,6 +200,12 @@ public partial class SessionFeature
 
 			_sessionListFeature.AddSession(chatSession);
 			_sessionListFeature.SetCurrentSession(chatSession);
+
+			if(gitContext.IsGitRepo)
+			{
+				chatSession.Context.EditedFiles = await _gitFeature.GetChangedFilesAsync(gitContext.GitRoot!);
+				StartGitWatcher(chatSession);
+			}
 
 			return chatSession;
 		}
@@ -287,6 +301,12 @@ public partial class SessionFeature
 
 			// SetCurrentSession handles EnsureSessionContext + CurrentSession assignment + NotifyStateChanged
 			_sessionListFeature.SetCurrentSession(session);
+
+			if(session.Context.GitRoot is not null)
+			{
+				session.Context.EditedFiles = await _gitFeature.GetChangedFilesAsync(session.Context.GitRoot);
+				StartGitWatcher(session);
+			}
 
 			_logger.LogInformation("Successfully resumed session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
 			return true;
@@ -485,6 +505,7 @@ public partial class SessionFeature
 				await sdkSession.DisposeAsync();
 			}
 
+			StopGitWatcher(sessionId);
 			_terminalFeature.CloseSession(sessionId);
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -525,5 +546,54 @@ public partial class SessionFeature
 		{
 			_logger.LogError(ex, "Failed to abort session");
 		}
+	}
+
+	void StartGitWatcher(SessionModel session)
+	{
+		if(session.Context.GitRoot is null)
+		{
+			return;
+		}
+
+		string gitRoot = session.Context.GitRoot;
+		string sessionId = session.Id;
+
+		IDisposable watcher = _gitFeature.Watch(gitRoot, async () =>
+		{
+			SessionModel? s = _sessionListFeature.Sessions.FirstOrDefault(x => x.Id == sessionId);
+			if(s is null)
+			{
+				return;
+			}
+
+			s.Context.EditedFiles = await _gitFeature.GetChangedFilesAsync(gitRoot);
+			_sessionListFeature.NotifyStateChanged();
+		});
+
+		if(_gitWatchers.TryRemove(sessionId, out IDisposable? old))
+		{
+			old.Dispose();
+		}
+
+		_gitWatchers.TryAdd(sessionId, watcher);
+	}
+
+	void StopGitWatcher(string sessionId)
+	{
+		if(_gitWatchers.TryRemove(sessionId, out IDisposable? watcher))
+		{
+			watcher.Dispose();
+		}
+	}
+
+	public void Dispose()
+	{
+		foreach(IDisposable watcher in _gitWatchers.Values)
+		{
+			watcher.Dispose();
+		}
+
+		_gitWatchers.Clear();
+		GC.SuppressFinalize(this);
 	}
 }

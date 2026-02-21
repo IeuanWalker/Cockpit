@@ -1,19 +1,11 @@
+using Cockpit.Features.Git.Models;
+
 namespace Cockpit.Features.Sessions.Models;
 
 public class SessionContext
 {
 	public SessionContext()
 	{
-		// TODO: Remove temp data
-		EditedFiles =
-		[
-			new SessionContextFileModel { Name = "MyComponent.tsx", Path = "src/components/MyComponent.tsx", Status = FileStatusEnum.Modified },
-			new SessionContextFileModel { Name = "useCustomHook.ts", Path = "src/hooks/useCustomHook.ts", Status = FileStatusEnum.Added },
-			new SessionContextFileModel { Name = "App.tsx", Path = "src/App.tsx", Status = FileStatusEnum.Modified },
-			new SessionContextFileModel { Name = "OldComponent.jsx", Path = "src/components/OldComponent.jsx", Status = FileStatusEnum.Deleted },
-			new SessionContextFileModel { Name = "package.json", Path = "package.json", Status = FileStatusEnum.Modified }
-		];
-
 		AgentSkills = ["Code Generation", "File Operations", "Git Operations", "Web Search"];
 		McpServerUrl = "localhost:8080";
 		McpServerConnected = true;
@@ -23,7 +15,7 @@ public class SessionContext
 	public required string? GitRoot { get; set; }
 	public required string? Repository { get; set; }
 	public required string? Branch { get; set; }
-	public List<SessionContextFileModel> EditedFiles { get; set; } = [];
+	public List<GitChangedFileModel> EditedFiles { get; set; } = [];
 	public List<string> AllowedCommands { get; set; } = [];
 	public List<string> SessionPermissionCommands { get; set; } = [];
 	public readonly Lock SessionPermissionCommandsLock = new();

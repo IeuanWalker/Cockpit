@@ -1,5 +1,5 @@
+using Cockpit.Features.Git.Models;
 using Cockpit.Features.Sessions;
-using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
@@ -10,7 +10,7 @@ public partial class EditedFiles : ComponentBase, IDisposable
 	[Inject] UIStateFeature _uiState { get; set; } = null!;
 	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 
-	List<SessionContextFileModel> Files => _sessionManager.CurrentSession?.Context?.EditedFiles ?? [];
+	List<GitChangedFileModel> Files => _sessionManager.CurrentSession?.Context?.EditedFiles ?? [];
 
 	protected override void OnInitialized()
 	{

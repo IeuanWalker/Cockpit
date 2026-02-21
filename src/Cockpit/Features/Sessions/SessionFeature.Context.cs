@@ -1,6 +1,6 @@
 namespace Cockpit.Features.Sessions;
 
-public partial class SessionFeature
+public sealed partial class SessionFeature
 {
 	public void SetCurrentSessionContextDirectory(string directory)
 	{
