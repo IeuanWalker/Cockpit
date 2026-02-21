@@ -395,7 +395,7 @@ public sealed partial class SessionFeature
 
 	async Task RestartSessionWithPendingConfig(SessionModel session)
 	{
-		if(session.RequiresRestart)
+		if(!session.RequiresRestart)
 		{
 			return;
 		}
