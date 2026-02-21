@@ -1,5 +1,5 @@
-﻿using Cockpit.Features.TextToSpeech;
-using Cockpit.Features.AppSettings;
+﻿using Cockpit.Features.AppSettings;
+using Cockpit.Features.TextToSpeech;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Cockpit.UnitTests.Features.TextToSpeech;
