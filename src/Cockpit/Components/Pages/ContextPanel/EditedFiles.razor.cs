@@ -1,3 +1,4 @@
+using Cockpit.Components.Popups;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
@@ -10,8 +11,7 @@ public partial class EditedFiles : ComponentBase, IDisposable
 
 	List<GitChangedFileModel> Files => _sessionManager.CurrentSession?.Context?.EditedFiles ?? [];
 
-	bool _isDiffPopupOpen;
-	GitChangedFileModel? _diffPopupInitialFile;
+	EditedFilesPopup _diffPopup = default!;
 
 	protected override void OnInitialized()
 	{
@@ -25,14 +25,7 @@ public partial class EditedFiles : ComponentBase, IDisposable
 
 	void OpenDiffPopup(GitChangedFileModel? initialFile)
 	{
-		_diffPopupInitialFile = initialFile;
-		_isDiffPopupOpen = true;
-	}
-
-	void CloseDiffPopup()
-	{
-		_isDiffPopupOpen = false;
-		_diffPopupInitialFile = null;
+		_diffPopup.Open(initialFile);
 	}
 
 	public void Dispose()

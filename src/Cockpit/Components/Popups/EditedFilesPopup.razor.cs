@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Cockpit.Components.Controls;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Sessions;
@@ -11,15 +12,11 @@ public partial class EditedFilesPopup : ComponentBase, IDisposable
 	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 	[Inject] IAppSettingsFeature _appSettings { get; set; } = default!;
 
-	[Parameter] public bool IsOpen { get; set; }
-	[Parameter] public GitChangedFileModel? InitialSelectedFile { get; set; }
-	[Parameter] public EventCallback OnClose { get; set; }
-
 	List<GitChangedFileModel> Files => _sessionManager.CurrentSession?.Context?.EditedFiles ?? [];
 
+	PopupBase _popup = default!;
 	GitChangedFileModel? _selectedFile;
 	bool _splitView;
-	bool _wasOpen;
 
 	string? _selectedFilePath =>
 		_selectedFile is null ? null :
@@ -33,17 +30,14 @@ public partial class EditedFilesPopup : ComponentBase, IDisposable
 		_sessionManager.OnStateChanged += OnStateChanged;
 	}
 
-	protected override void OnParametersSet()
+	public void Open(GitChangedFileModel? initialFile = null)
 	{
-		if(IsOpen && !_wasOpen)
+		GitChangedFileModel? initial = initialFile ?? Files.FirstOrDefault();
+		if(initial is not null)
 		{
-			GitChangedFileModel? initial = InitialSelectedFile ?? Files.FirstOrDefault();
-			if(initial is not null)
-			{
-				SelectFile(initial);
-			}
+			SelectFile(initial);
 		}
-		_wasOpen = IsOpen;
+		_popup.Open();
 	}
 
 	void OnStateChanged()
@@ -63,8 +57,6 @@ public partial class EditedFilesPopup : ComponentBase, IDisposable
 		_splitView = split;
 		_appSettings.DiffSplitView = split;
 	}
-
-	async Task Close() => await OnClose.InvokeAsync();
 
 	void RevealFile()
 	{

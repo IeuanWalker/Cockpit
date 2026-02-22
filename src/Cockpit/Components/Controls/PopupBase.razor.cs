@@ -11,6 +11,7 @@ public partial class PopupBase
 	[Parameter] public RenderFragment? Content { get; set; }
 	[Parameter] public RenderFragment? Footer { get; set; }
 	[Parameter] public string PopupStyle { get; set; } = string.Empty;
+	[Parameter] public bool FullHeight { get; set; }
 
 	bool _show;
 

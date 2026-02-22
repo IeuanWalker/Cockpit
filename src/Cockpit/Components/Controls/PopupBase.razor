@@ -1,6 +1,6 @@
 ﻿<div class="popup-overlay @(_show ? "active" : "")" @onclick="Close"></div>
 <div class="popup  w-[500px] max-w-[90vw] @(_show ? "active" : "")" style="@PopupStyle">
-    <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl">
+    <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl @(FullHeight ? "h-full flex flex-col" : "")">
         <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between">
             @if(TitleArea is null)
             {
@@ -23,7 +23,7 @@
                 </button>
             </div>
         </div>
-        <div class="overflow-y-auto scrollbar-thin">
+        <div class="@(FullHeight ? "flex-1 overflow-hidden" : "overflow-y-auto scrollbar-thin")">
             @if(_show)
             {
                 @Content
