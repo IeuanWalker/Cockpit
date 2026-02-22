@@ -167,7 +167,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 			foreach(FileResult result in results)
 			{
-				string ext = Path.GetExtension(result.FileName).TrimStart('.').ToLowerInvariant();
+				string ext = FileUtil.GetNormalizedExtension(result.FileName);
 				string mimeType = result.ContentType ?? FileUtil.GetMimeType(ext);
 
 				// Use the original file path — don't copy it, the user may want the agent to edit it
