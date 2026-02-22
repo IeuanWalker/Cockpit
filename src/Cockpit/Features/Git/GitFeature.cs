@@ -69,6 +69,12 @@ public sealed partial class GitFeature
 					continue;
 				}
 
+				// New folder not file, ignore
+				if(line.Last().Equals('/'))
+				{
+					continue;
+				}
+
 				char staged = line[0];
 				char unstaged = line[1];
 				string filePath = line[3..].Trim();
