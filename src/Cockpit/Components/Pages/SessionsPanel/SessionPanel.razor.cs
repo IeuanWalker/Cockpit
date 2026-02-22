@@ -34,11 +34,21 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	SessionList? _sessionList;
 	DeleteSessionPopup? _deletePopup;
 
+	int _timestampTick = 0;
+
 	protected override void OnInitialized()
 	{
 		_sessionFeature.OnStateChanged += OnStateChanged;
 		_uiStateFeature.OnStateChanged += OnStateChanged;
-		_timestampFeature.OnTick += OnStateChanged;
+		_timestampFeature.OnTick += OnTimestampTick;
+	}
+
+	void OnTimestampTick()
+	{
+		if(Interlocked.Increment(ref _timestampTick) % 60 == 0)
+		{
+			OnStateChanged();
+		}
 	}
 
 	void OnStateChanged()
@@ -148,7 +158,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		{
 			_sessionFeature.OnStateChanged -= OnStateChanged;
 			_uiStateFeature.OnStateChanged -= OnStateChanged;
-			_timestampFeature.OnTick -= OnStateChanged;
+			_timestampFeature.OnTick -= OnTimestampTick;
 			_dotNetHelper?.Dispose();
 		}
 	}

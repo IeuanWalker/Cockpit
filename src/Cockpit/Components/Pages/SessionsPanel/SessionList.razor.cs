@@ -147,11 +147,21 @@ public partial class SessionList : ComponentBase, IDisposable
 		}
 	}
 
+	int _timestampTick = 0;
+
 	protected override void OnInitialized()
 	{
 		_sessionFeature.OnStateChanged += OnStateChanged;
 		_uiState.OnStateChanged += OnStateChanged;
-		_timestampFeature.OnTick += OnStateChanged;
+		_timestampFeature.OnTick += OnTimestampTick;
+	}
+
+	void OnTimestampTick()
+	{
+		if(Interlocked.Increment(ref _timestampTick) % 60 == 0)
+		{
+			OnStateChanged();
+		}
 	}
 
 	void OnStateChanged()
@@ -187,7 +197,7 @@ public partial class SessionList : ComponentBase, IDisposable
 		{
 			_sessionFeature.OnStateChanged -= OnStateChanged;
 			_uiState.OnStateChanged -= OnStateChanged;
-			_timestampFeature.OnTick -= OnStateChanged;
+			_timestampFeature.OnTick -= OnTimestampTick;
 		}
 	}
 }
