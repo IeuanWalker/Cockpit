@@ -2,9 +2,9 @@ using Blazor.Sonner.Extensions;
 using Blazor.Sonner.Services;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Connection;
-using Cockpit.Features.CopilotModels;
 using Cockpit.Features.Git;
 using Cockpit.Features.Markdown;
+using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
@@ -75,7 +75,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<PermissionFeature>();
 		builder.Services.AddSingleton<IPermissionHandler>(sp => sp.GetRequiredService<PermissionFeature>());
 
-		builder.Services.AddSingleton<CopilotModelFeature>();
+		builder.Services.AddSingleton<ModelFeature>();
 
 		return builder.Build();
 	}

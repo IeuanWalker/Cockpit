@@ -16,8 +16,11 @@ public sealed partial class SessionFeature
 
 		try
 		{
-			if(CurrentSession.RequiresRestart)
+			if(CurrentSession.ModelChanged)
 			{
+				await _modelFeature.SaveSessionModelSettings(CurrentSession);
+				CurrentSession.ModelChanged = false;
+
 				await RestartSessionWithPendingConfig(CurrentSession);
 			}
 

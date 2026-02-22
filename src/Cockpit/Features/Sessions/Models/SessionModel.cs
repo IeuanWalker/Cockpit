@@ -35,7 +35,7 @@ public class SessionModel
 	/// Tracks the SDK connection lifecycle of this session.
 	/// </summary>
 	public SdkSessionStateEnum SdkState { get; set; } = SdkSessionStateEnum.NotLoaded;
-	public bool RequiresRestart { get; set; }
+	public bool ModelChanged { get; set; }
 	public bool IsYolo { get; set; }
 	public bool IsTerminalOpen { get; set; }
 

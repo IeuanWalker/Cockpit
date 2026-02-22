@@ -1,6 +1,6 @@
 using Blazor.Sonner.Services;
-using Cockpit.Features.CopilotModels;
 using Cockpit.Features.Git;
+using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
@@ -17,7 +17,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly CopilotClientFeature _clientFeature;
 	readonly ILogger<SessionFeature> _logger;
 	readonly ToastService _toastService;
-	readonly CopilotModelFeature _copilotModelFeature;
+	readonly ModelFeature _modelFeature;
 	readonly SessionEventProcessor _processor;
 	readonly TerminalFeature _terminalFeature;
 	readonly SessionListFeature _sessionListFeature;
@@ -28,7 +28,7 @@ public sealed partial class SessionFeature : IDisposable
 		CopilotClientFeature clientFeature,
 		ILogger<SessionFeature> logger,
 		ToastService toastService,
-		CopilotModelFeature copilotModelFeature,
+		ModelFeature modelFeature,
 		TerminalFeature terminalFeature,
 		SessionEventProcessor processor,
 		SessionListFeature sessionListFeature,
@@ -39,7 +39,7 @@ public sealed partial class SessionFeature : IDisposable
 		_clientFeature = clientFeature;
 		_logger = logger;
 		_toastService = toastService;
-		_copilotModelFeature = copilotModelFeature;
+		_modelFeature = modelFeature;
 		_terminalFeature = terminalFeature;
 		_processor = processor;
 		_sessionListFeature = sessionListFeature;

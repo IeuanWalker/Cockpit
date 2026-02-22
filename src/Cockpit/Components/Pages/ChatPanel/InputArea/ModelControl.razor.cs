@@ -1,4 +1,4 @@
-using Cockpit.Features.CopilotModels;
+using Cockpit.Features.Models;
 using Cockpit.Features.Sessions;
 using GitHub.Copilot.SDK;
 using Microsoft.AspNetCore.Components;
@@ -7,7 +7,7 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class ModelControl : ComponentBase, IDisposable
 {
-	[Inject] CopilotModelFeature _copilotModelFeature { get; set; } = default!;
+	[Inject] ModelFeature _copilotModelFeature { get; set; } = default!;
 	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
 
 	List<ModelInfo> _availableModels = [];
@@ -19,12 +19,6 @@ public partial class ModelControl : ComponentBase, IDisposable
 		_sessionManager.OnStateChanged += OnStateChanged;
 
 		_availableModels = await _copilotModelFeature.GetModels();
-		if(_availableModels.Count > 0)
-		{
-			// TODO: Default model logic
-			_sessionManager.CurrentSession?.Model = _availableModels[0];
-			UpdateReasoningEffortForSelectedModel();
-		}
 	}
 
 	void OnStateChanged()
@@ -53,7 +47,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 		// Update model and mark session for restart
 		_sessionManager.CurrentSession.Model = model;
-		_sessionManager.CurrentSession.RequiresRestart = true;
+		_sessionManager.CurrentSession.ModelChanged = true;
 
 		_isModelDropdownOpen = false;
 
@@ -75,7 +69,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		if(currentEffort != newEffort)
 		{
 			_sessionManager.CurrentSession.ReasoningEffort = newEffort;
-			_sessionManager.CurrentSession.RequiresRestart = true;
+			_sessionManager.CurrentSession.ModelChanged = true;
 		}
 	}
 
@@ -100,7 +94,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 		// Update reasoning effort and mark session for restart
 		_sessionManager.CurrentSession.ReasoningEffort = effort;
-		_sessionManager.CurrentSession.RequiresRestart = true;
+		_sessionManager.CurrentSession.ModelChanged = true;
 
 		_isReasoningEffortDropdownOpen = false;
 	}
