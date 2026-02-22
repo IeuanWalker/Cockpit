@@ -78,4 +78,8 @@
     <PackageReference Include="Porta.Pty" Version="1.0.7" />
     <PackageReference Include="XtermBlazor" Version="2.3.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Features\Attachments\" />
+  </ItemGroup>
 </Project>

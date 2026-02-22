@@ -1,5 +1,6 @@
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
+using Cockpit.Utilities;
 using GitHub.Copilot.SDK;
 
 namespace Cockpit.Features.SessionEvents.Handlers;
@@ -12,6 +13,8 @@ static class UserMessageHandler
 		{
 			return;
 		}
+
+		List<AttachmentModel>? attachments = ConvertAttachments(evt.Data.Attachments);
 
 		string eventMessageId = evt.Id.ToString();
 		ChatMessageModel? optimistic = session.Messages.FirstOrDefault(m => m.IsUser && !m.IsComplete && m.Id == eventMessageId);
@@ -26,6 +29,8 @@ static class UserMessageHandler
 			// Keep IsPending=true if already set (optimistic was created while agent was busy),
 			// or set it now if the agent is still busy when the SDK echo arrives
 			optimistic.IsPending = optimistic.IsPending || wasAgentBusy;
+			// Fill in attachments from event if the optimistic message didn't already have them
+			optimistic.Attachments ??= attachments;
 		}
 		else
 		{
@@ -37,11 +42,35 @@ static class UserMessageHandler
 				Timestamp = evt.Timestamp,
 				Type = MessageTypeEnum.Text,
 				EventType = evt.Type,
-				IsPending = wasAgentBusy
+				IsPending = wasAgentBusy,
+				Attachments = attachments
 			};
 			session.Messages.Add(message);
 		}
 
 		session.Status = SessionStatusEnum.Running;
+	}
+
+	static List<AttachmentModel>? ConvertAttachments(UserMessageDataAttachmentsItem[]? items)
+	{
+		if(items is null || items.Length == 0)
+		{
+			return null;
+		}
+
+		List<AttachmentModel> result = [];
+		foreach(UserMessageDataAttachmentsItem item in items)
+		{
+			if(item is UserMessageDataAttachmentsItemFile file)
+			{
+				string filePath = file.Path ?? string.Empty;
+				string fileName = file.DisplayName ?? Path.GetFileName(filePath);
+				string ext = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant();
+				string mimeType = FileUtil.GetMimeType(ext);
+				result.Add(new AttachmentModel(fileName, filePath, null, mimeType));
+			}
+		}
+
+		return result.Count > 0 ? result : null;
 	}
 }

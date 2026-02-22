@@ -1,4 +1,5 @@
 using Blazor.Sonner.Services;
+using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.TextToSpeech;
 using Cockpit.Features.UIState;
@@ -71,6 +72,34 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 
 			StateHasChanged();
 		});
+	}
+
+	readonly HashSet<ChatMessageModel> _expandedAttachments = [];
+
+	void ToggleAttachments(ChatMessageModel message)
+	{
+		if(!_expandedAttachments.Remove(message))
+		{
+			_expandedAttachments.Add(message);
+		}
+		StateHasChanged();
+	}
+
+	static string GetAttachmentLabel(int imageCount, int fileCount)
+	{
+		List<string> parts = [];
+		if(imageCount > 0) parts.Add($"{imageCount} image{(imageCount > 1 ? "s" : "")}");
+		if(fileCount > 0) parts.Add($"{fileCount} file{(fileCount > 1 ? "s" : "")}");
+		return string.Join(", ", parts);
+	}
+
+	async Task OpenLightbox(string src, string alt)
+	{
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("cockpit.showImageLightbox", src, alt);
+		}
+		catch { /* ignore if JS unavailable */ }
 	}
 
 	public async ValueTask DisposeAsync()

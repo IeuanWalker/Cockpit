@@ -7,7 +7,7 @@ namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
-	public async Task SendMessageAsync(string content, List<UserMessageDataAttachmentsItem>? attachments = null)
+	public async Task SendMessageAsync(string content, List<AttachmentModel>? attachments = null)
 	{
 		if(CurrentSession is null)
 		{
@@ -48,16 +48,29 @@ public sealed partial class SessionFeature
 					Timestamp = DateTime.UtcNow,
 					Type = MessageTypeEnum.Text,
 					IsComplete = false,
-					IsPending = agentWasBusy
+					IsPending = agentWasBusy,
+					Attachments = attachments?.Count > 0 ? attachments : null
 				};
 				CurrentSession.Messages.Add(optimisticMessage);
 			}
 			_sessionListFeature.NotifyStateChanged();
 
+			List<UserMessageDataAttachmentsItem>? sdkAttachments = null;
+			if(attachments?.Count > 0)
+			{
+				sdkAttachments = attachments
+					.Select(a => (UserMessageDataAttachmentsItem)new UserMessageDataAttachmentsItemFile
+					{
+						Path = a.FilePath,
+						DisplayName = a.FileName
+					})
+					.ToList();
+			}
+
 			string sentMessageId = await sdkSession.SendAsync(new MessageOptions
 			{
 				Prompt = content,
-				Attachments = attachments
+				Attachments = sdkAttachments
 			});
 
 			if(!string.IsNullOrWhiteSpace(sentMessageId) && optimisticMessage is not null)
