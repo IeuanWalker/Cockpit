@@ -53,7 +53,6 @@
                               rows="1" placeholder="Ask Copilot anything..." disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)"></textarea>
                 </div>
                 <div class="flex items-end space-x-1 p-2 border-l border-vscode-border self-stretch">
-                    <input type="file" id="attachFileInput" accept="image/*,*/*" multiple style="display:none" />
                     <button @onclick="AttachFiles" class="p-1.5 hover:bg-vscode-hover rounded" title="Attach file" disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
                         <svg class="icon-xs secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
