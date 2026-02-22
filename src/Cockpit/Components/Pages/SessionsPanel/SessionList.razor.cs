@@ -29,9 +29,9 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	string _searchText = string.Empty;
 	bool _showFilterPanel = false;
-	HashSet<string> _filterCwds = new(StringComparer.OrdinalIgnoreCase);
-	HashSet<string> _filterRepos = new(StringComparer.OrdinalIgnoreCase);
-	HashSet<string> _expandedCwdGroups = new(StringComparer.OrdinalIgnoreCase);
+	readonly HashSet<string> _filterCwds = new(StringComparer.OrdinalIgnoreCase);
+	readonly HashSet<string> _filterRepos = new(StringComparer.OrdinalIgnoreCase);
+	readonly HashSet<string> _expandedCwdGroups = new(StringComparer.OrdinalIgnoreCase);
 
 	protected override void OnParametersSet()
 	{
