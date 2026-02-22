@@ -132,7 +132,7 @@ public sealed partial class ModelFeature : IDisposable
 
 		try
 		{
-			string json = File.ReadAllText(modelSettingsFilePath);
+			string json = await File.ReadAllTextAsync(modelSettingsFilePath);
 			Dictionary<string, string>? modelSettings = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
 
 			if(modelSettings is null)
