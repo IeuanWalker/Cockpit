@@ -10,6 +10,7 @@
                        @bind="_searchText"
                        @bind:event="oninput"
                        placeholder="Search sessions..."
+                       aria-label="Search sessions"
                        class="w-full px-2 py-1 rounded text-xs focus:outline-none"
                        style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);" />
                 @if(!string.IsNullOrEmpty(_searchText))
