@@ -345,11 +345,6 @@ window.cockpit = {
         }
     },
 
-    clickElement: function (elementId) {
-        const element = document.getElementById(elementId);
-        if (element) element.click();
-    },
-
     setupImagePaste: function (inputId, dotnetRef) {
         const element = document.getElementById(inputId);
         if (!element) return;
