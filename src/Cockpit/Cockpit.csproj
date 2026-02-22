@@ -79,7 +79,4 @@
     <PackageReference Include="XtermBlazor" Version="2.3.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Features\Attachments\" />
-  </ItemGroup>
 </Project>
