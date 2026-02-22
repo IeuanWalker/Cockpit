@@ -18,6 +18,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	// Brief yield to allow Blazor to flush the binding update before resizing
 	const int textareaResizeYieldMs = 10;
+	const long maxImagePreviewBytes = 10 * 1024 * 1024; // 10 MB
 	bool _subscribedToUIState;
 	DotNetObjectReference<ChatInputArea>? _dotNetRef;
 	bool _pastSetup;
@@ -183,14 +184,22 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 				string? dataUri = null;
 				if(mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
 				{
-					byte[] fileBytes;
-					using(Stream sourceStream = await result.OpenReadAsync())
+					FileInfo fileInfo = new(filePath);
+					if(fileInfo.Exists && fileInfo.Length <= maxImagePreviewBytes)
 					{
-						using MemoryStream ms = new();
-						await sourceStream.CopyToAsync(ms);
-						fileBytes = ms.ToArray();
+						byte[] fileBytes;
+						using(Stream sourceStream = await result.OpenReadAsync())
+						{
+							using MemoryStream ms = new();
+							await sourceStream.CopyToAsync(ms);
+							fileBytes = ms.ToArray();
+						}
+						dataUri = $"data:{mimeType};base64,{Convert.ToBase64String(fileBytes)}";
 					}
-					dataUri = $"data:{mimeType};base64,{Convert.ToBase64String(fileBytes)}";
+					else if(fileInfo.Exists)
+					{
+						_logger.LogWarning("Image '{FileName}' ({SizeBytes} bytes) exceeds the {LimitBytes}-byte preview limit; preview will not be generated", result.FileName, fileInfo.Length, maxImagePreviewBytes);
+					}
 				}
 
 				lock(session.PendingAttachmentsLock)
