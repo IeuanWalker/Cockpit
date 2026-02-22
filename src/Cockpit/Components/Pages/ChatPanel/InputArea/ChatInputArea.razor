@@ -22,8 +22,8 @@
                                      class="rounded-md object-cover border border-vscode-border cursor-zoom-in" style="height:64px;max-width:96px"
                                      @onclick="@(async () => await OpenLightbox(previewSrc ?? string.Empty, att.FileName))" />
                                 <button @onclick="() => RemoveAttachment(idx)"
-                                        class="absolute -top-1.5 -right-1.5 bg-vscode-sidebar border border-vscode-border rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs leading-none"
-                                        title="Remove">
+                                        class="absolute -top-1.5 -right-1.5 bg-vscode-sidebar border border-vscode-border rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-xs leading-none"
+                                        aria-label="@($"Remove {att.FileName}")">
                                     ×
                                 </button>
                             </div>
@@ -36,8 +36,8 @@
                                 </svg>
                                 <span class="truncate">@att.FileName</span>
                                 <button @onclick="() => RemoveAttachment(idx)"
-                                        class="absolute -top-1.5 -right-1.5 bg-vscode-sidebar border border-vscode-border rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs leading-none"
-                                        title="Remove">
+                                        class="absolute -top-1.5 -right-1.5 bg-vscode-sidebar border border-vscode-border rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-xs leading-none"
+                                        aria-label="@($"Remove {att.FileName}")">
                                     ×
                                 </button>
                             </div>
