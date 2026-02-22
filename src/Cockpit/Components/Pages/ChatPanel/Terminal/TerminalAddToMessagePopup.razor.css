@@ -1,13 +1,11 @@
 
 ::deep .code-block-pre {
+    display: contents;
     border: none;
     margin: 0;
     border-radius: 0;
     margin-right: -1rem;
     margin-left: -1rem;
     margin-bottom: -0.75rem;
+    overflow: hidden
 }
-
-    ::deep .code-block-pre::-webkit-scrollbar-corner {
-        background: transparent; /* or match your background */
-    }
