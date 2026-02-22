@@ -153,7 +153,7 @@ public sealed partial class ModelFeature : IDisposable
 
 				session.Model = model;
 
-				if(session.Model.SupportedReasoningEfforts?.Count > 0)
+				if(session.Model.SupportedReasoningEfforts is null || session.Model.SupportedReasoningEfforts.Count == 0)
 				{
 					return true;
 				}
