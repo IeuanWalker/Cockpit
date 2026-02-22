@@ -113,7 +113,7 @@ public sealed partial class ModelFeature : IDisposable
 		}
 		catch(Exception ex)
 		{
-			_logger.LogWarning(ex, "Failed to persist session commands for session {SessionId}", session.Id);
+			_logger.LogWarning(ex, "Failed to persist session model settings for session {SessionId}", session.Id);
 		}
 	}
 
