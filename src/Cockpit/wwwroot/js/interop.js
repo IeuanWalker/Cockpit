@@ -420,7 +420,11 @@ window.cockpit = {
             overlay = document.createElement('div');
             overlay.id = '_cockpit_lightbox';
             overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
-            overlay.addEventListener('click', () => overlay.remove());
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay) {
+                    overlay.remove();
+                }
+            });
 
             const img = document.createElement('img');
             img.id = '_cockpit_lightbox_img';
