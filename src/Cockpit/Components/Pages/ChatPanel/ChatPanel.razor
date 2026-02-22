@@ -36,8 +36,8 @@
 
     <div class="flex items-center ml-auto">
         <!-- Terminal button -->
-        <button @onclick="ToggleTerminalPanel" class="p-1.5 hover:bg-vscode-hover rounded" title="@(_sessionManager.CurrentSession?.IsTerminalOpen == true ? "Close Terminal" : "Open Terminal")">
-            <svg class="icon-sm" fill="none" stroke="@(_sessionManager.CurrentSession?.IsTerminalOpen == true ? "var(--accent-color)" : "currentColor")" viewBox="0 0 24 24">
+        <button @onclick="ToggleTerminalPanel" class="p-1.5 rounded @(_sessionManager.CurrentSession?.IsTerminalOpen == true ? "hover:opacity-75" : "hover:bg-vscode-hover")" style="@(_sessionManager.CurrentSession?.IsTerminalOpen == true ? "background-color: var(--accent-color);" : string.Empty)" title="@(_sessionManager.CurrentSession?.IsTerminalOpen == true ? "Close Terminal" : "Open Terminal")">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2" />
                 <path d="M8 9l3 3-3 3" stroke-width="2" />
                 <path d="M13 15h3" stroke-width="2" />
