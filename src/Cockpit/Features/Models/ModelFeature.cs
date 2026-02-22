@@ -177,7 +177,7 @@ public sealed partial class ModelFeature : IDisposable
 		}
 		catch(Exception ex)
 		{
-			_logger.LogWarning(ex, "Failed to restore session commands for session {SessionId} from {Path}", session.Id, modelSettingsFilePath);
+			_logger.LogWarning(ex, "Failed to restore model settings for session {SessionId} from {Path}", session.Id, modelSettingsFilePath);
 			return false;
 		}
 	}
