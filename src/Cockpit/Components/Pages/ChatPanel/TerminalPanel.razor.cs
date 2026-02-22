@@ -9,14 +9,28 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class TerminalPanel : IDisposable
 {
-	[Inject] TerminalFeature _terminalFeature { get; set; } = default!;
-	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] ILogger<TerminalPanel> _logger { get; set; } = default!;
-
 	[Parameter] public bool IsOpen { get; set; }
 	[Parameter] public string SessionId { get; set; } = string.Empty;
 	[Parameter] public string? WorkingDirectory { get; set; }
+
+	readonly TerminalFeature _terminalFeature;
+	readonly IJSRuntime _jsRuntime;
+	readonly UIStateFeature _uiStateFeature;
+	readonly ILogger<TerminalPanel> _logger;
+
+	public TerminalPanel(
+		TerminalFeature terminalFeature,
+		IJSRuntime jsRuntime,
+		UIStateFeature uiStateFeature,
+		ILogger<TerminalPanel> logger)
+	{
+		_terminalFeature = terminalFeature;
+		_jsRuntime = jsRuntime;
+		_uiStateFeature = uiStateFeature;
+		_logger = logger;
+	}
+
+
 
 	const int domLayoutSettleDelayMs = 100; // Delay to allow DOM layout to settle after resize
 	bool _disposed;
@@ -38,16 +52,15 @@ public partial class TerminalPanel : IDisposable
 		FontFamily = "Consolas, 'Courier New', monospace"
 	};
 
-	bool _showAddToMessagePopup;
+	TerminalAddToMessagePopup _terminalAddToMessagePopup = default!;
 
-	void OpenAddToMessagePopup() => _showAddToMessagePopup = true;
-	void CloseAddToMessagePopup() => _showAddToMessagePopup = false;
+	async void OpenAddToMessagePopup() => await _terminalAddToMessagePopup.Open();
 
 	protected override void OnInitialized()
 	{
 		_terminalId = $"terminal-{SessionId}";
 		_terminalFeature.OnDataReceived += OnTerminalData;
-		_uiState.OnStateChanged += OnUIStateChanged;
+		_uiStateFeature.OnStateChanged += OnUIStateChanged;
 	}
 
 	protected override void OnParametersSet()
@@ -273,7 +286,7 @@ public partial class TerminalPanel : IDisposable
 				_resizeCts?.Cancel();
 				_resizeCts?.Dispose();
 				_terminalFeature.OnDataReceived -= OnTerminalData;
-				_uiState.OnStateChanged -= OnUIStateChanged;
+				_uiStateFeature.OnStateChanged -= OnUIStateChanged;
 				_dotNetRef?.Dispose();
 				//! Important: Don't close the session - keep it alive for when we switch back
 			}

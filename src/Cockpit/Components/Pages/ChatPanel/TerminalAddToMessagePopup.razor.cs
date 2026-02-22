@@ -1,3 +1,4 @@
+using Cockpit.Components.Controls;
 using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
@@ -7,60 +8,72 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class TerminalAddToMessagePopup : ComponentBase
 {
-	[Inject] IJSRuntime _js { get; set; } = default!;
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] ILogger<TerminalAddToMessagePopup> _logger { get; set; } = default!;
-
-	[Parameter] public bool IsOpen { get; set; }
 	[Parameter] public string TerminalId { get; set; } = string.Empty;
 	[Parameter] public string SessionId { get; set; } = string.Empty;
-	[Parameter] public EventCallback OnClose { get; set; }
 
-	bool _wasOpen;
-	int _selectedLineCount = 50;
-	int _totalLineCount;
-	string _previewText = string.Empty;
+	readonly IJSRuntime _jsRuntime;
+	readonly UIStateFeature _uiStateFeature;
+	readonly ILogger<TerminalAddToMessagePopup> _logger;
+
+	public TerminalAddToMessagePopup(
+		IJSRuntime jsRuntime,
+		UIStateFeature uiStateFeature,
+		ILogger<TerminalAddToMessagePopup> logger)
+	{
+		_jsRuntime = jsRuntime;
+		_uiStateFeature = uiStateFeature;
+		_logger = logger;
+	}
+
+	public int SelectedLineCount { get; set; } = 50;
+	public int TotalLineCount { get; set; }
+	public string PreviewText { get; set; } = string.Empty;
+
+	PopupBase _popup = default!;
+
+	public async Task Open()
+	{
+		PreviewText = string.Empty;
+		SelectedLineCount = 50;
+
+		_popup.Open();
+
+		await OnParametersSetAsync();
+	}
 
 	protected override async Task OnParametersSetAsync()
 	{
-		if(IsOpen && !_wasOpen)
-		{
-			_totalLineCount = await GetRenderedLineCount();
-			_selectedLineCount = Math.Min(100, _totalLineCount > 0 ? _totalLineCount : 100);
-			await UpdatePreview();
-		}
-		else if(!IsOpen)
-		{
-			_previewText = string.Empty;
-		}
-		_wasOpen = IsOpen;
+		TotalLineCount = await GetRenderedLineCount();
+		SelectedLineCount = Math.Min(100, TotalLineCount > 0 ? TotalLineCount : 100);
+		await UpdatePreview();
 	}
 
 	async Task UpdatePreview()
 	{
-		if(_selectedLineCount > 0)
+		if(SelectedLineCount > 0)
 		{
 			try
 			{
-				_previewText = await _js.InvokeAsync<string>("xtermInterop.getTerminalText", TerminalId, _selectedLineCount);
+				PreviewText = await _jsRuntime.InvokeAsync<string>("xtermInterop.getTerminalText", TerminalId, SelectedLineCount);
 			}
 			catch(Exception ex)
 			{
 				_logger.LogDebug(ex, "Failed to get terminal text for session {SessionId}", SessionId);
-				_previewText = string.Empty;
+				PreviewText = string.Empty;
 			}
 		}
 		else
 		{
-			_previewText = string.Empty;
+			PreviewText = string.Empty;
 		}
+		await InvokeAsync(StateHasChanged);
 	}
 
 	async Task<int> GetRenderedLineCount()
 	{
 		try
 		{
-			string text = await _js.InvokeAsync<string>("xtermInterop.getTerminalText", TerminalId, int.MaxValue);
+			string text = await _jsRuntime.InvokeAsync<string>("xtermInterop.getTerminalText", TerminalId, int.MaxValue);
 			return string.IsNullOrEmpty(text) ? 0 : text.Split('\n').Length;
 		}
 		catch
@@ -71,15 +84,16 @@ public partial class TerminalAddToMessagePopup : ComponentBase
 
 	async Task HandleClose()
 	{
-		await OnClose.InvokeAsync();
+		_popup.Close();
 	}
 
 	async Task HandleConfirm()
 	{
-		if(!string.IsNullOrEmpty(_previewText))
+		if(!string.IsNullOrEmpty(PreviewText))
 		{
-			_uiState.AppendChatInput($"Terminal output:\n```\n{_previewText}\n```");
+			_uiStateFeature.AppendChatInput($"Terminal output:\n```\n{PreviewText}\n```");
 		}
-		await OnClose.InvokeAsync();
+
+		_popup.Close();
 	}
 }

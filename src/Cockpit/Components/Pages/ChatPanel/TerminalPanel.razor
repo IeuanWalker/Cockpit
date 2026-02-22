@@ -47,7 +47,6 @@
 }
 
 <!-- Add to Message Popup -->
-<TerminalAddToMessagePopup IsOpen="@_showAddToMessagePopup"
+<TerminalAddToMessagePopup @ref="_terminalAddToMessagePopup"
                            TerminalId="@_terminalId"
-                           SessionId="@SessionId"
-                           OnClose="CloseAddToMessagePopup" />
+                           SessionId="@SessionId" />
