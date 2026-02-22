@@ -1,0 +1,73 @@
+@using Cockpit.Features.Sessions.Models
+@using Microsoft.AspNetCore.Components.Web
+
+<div class="session-item px-3 py-1.5 hover:bg-vscode-hover cursor-pointer @(IsActive ? "bg-vscode-active" : "") border-l-2 @(IsActive ? "" : "border-transparent") flex items-center justify-between group relative @(Session.SdkState == SdkSessionStateEnum.Loading ? "pointer-events-none" : "")"
+     style="@(IsActive ? "border-left-color: var(--accent-color);" : "")"
+     @onclick="HandleSelect">
+    @if(Session.SdkState == SdkSessionStateEnum.Loading)
+    {
+        <div class="absolute inset-0 flex items-center justify-center gap-1.5 z-10" style="background: var(--vscode-sideBar-background, rgba(0,0,0,0.4)); opacity: 0.85;">
+            <svg class="w-3 h-3 animate-spin secondary-text flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span class="text-xs secondary-text">Loading...</span>
+        </div>
+    }
+    <div class="flex-1 min-w-0 @(Session.SdkState == SdkSessionStateEnum.Loading ? "opacity-30" : "")">
+        <div class="text-xs @(IsActive ? "font-medium text-vscode-title" : "") truncate">@Session.Title</div>
+        <div class="text-xs mt-0.5 flex items-center @GetSessionStatusClass(Session)">
+            @if(Session.Status == SessionStatusEnum.NeedsPermission)
+            {
+                <svg class="w-3 h-3 mr-1 inline" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <span class="truncate">Permission required</span>
+            }
+            else if(Session.Status == SessionStatusEnum.Running)
+            {
+                <svg class="w-3 h-3 mr-1 animate-spin inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span class="truncate">Agent running...</span>
+            }
+            else if(Session.Status == SessionStatusEnum.Finished)
+            {
+                <svg class="w-3 h-3 mr-1 inline" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span class="truncate">Agent finished • @TimeAgo</span>
+            }
+            else
+            {
+                @TimeAgo
+            }
+        </div>
+    </div>
+    <button @onclick="HandleDelete"
+            @onclick:stopPropagation="true"
+            class="session-delete-btn opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded ml-2 flex-shrink-0"
+            title="Delete session">
+        <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+    </button>
+</div>
+
+@code {
+    [Parameter] public required SessionModel Session { get; set; }
+    [Parameter] public bool IsActive { get; set; }
+    [Parameter] public EventCallback<SessionModel> OnSelect { get; set; }
+    [Parameter] public EventCallback<MouseEventArgs> OnDelete { get; set; }
+    [Parameter] public required string TimeAgo { get; set; }
+
+    static string GetSessionStatusClass(SessionModel session) => session.Status switch
+    {
+        SessionStatusEnum.NeedsPermission => "status-needs-permission",
+        SessionStatusEnum.Running => "status-running",
+        SessionStatusEnum.Finished => "status-finished",
+        _ => "secondary-text"
+    };
+
+    async Task HandleSelect() => await OnSelect.InvokeAsync(Session);
+    async Task HandleDelete(MouseEventArgs e) => await OnDelete.InvokeAsync(e);
+}

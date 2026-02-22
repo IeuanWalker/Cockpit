@@ -1,6 +1,9 @@
 using Cockpit.Components.Popups;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Models;
+using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
+using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -11,14 +14,18 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	[Inject] UIStateFeature _uiState { get; set; } = default!;
 	[Inject] SessionFeature _sessionManager { get; set; } = default!;
 	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
+	[Inject] TimestampFeature _timestampFeature { get; set; } = default!;
 
 	DotNetObjectReference<SessionPanel>? _dotNetHelper;
 	CreateSessionPopup? _createSessionPopup;
+	SessionList? _sessionList;
+	DeleteSessionPopup? _pastDeletePopup;
 
 	protected override void OnInitialized()
 	{
 		_sessionManager.OnStateChanged += OnStateChanged;
 		_uiState.OnStateChanged += OnStateChanged;
+		_timestampFeature.OnTick += OnStateChanged;
 	}
 
 	void OnStateChanged()
@@ -36,6 +43,19 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	}
 
 	bool _isRefreshingSessions = false;
+	bool _showSearch = false;
+	bool _pastSessionsExpanded = false;
+
+	bool IsSearchActive => _sessionList?.IsSearchActive ?? false;
+
+	IEnumerable<SessionModel> PastSessions => _sessionManager.Sessions
+		.Where(s => (DateTime.UtcNow - s.LastActivity).TotalDays > 7)
+		.OrderByDescending(s => s.LastActivity);
+
+	static string GetTimeAgo(DateTime dateTime) => dateTime.Humanize();
+
+	void ToggleSearch() => _showSearch = !_showSearch;
+
 	async Task RefreshSessions()
 	{
 		if(_isRefreshingSessions)
@@ -83,6 +103,16 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		}
 	}
 
+	void ShowPastDeleteDialog(SessionModel session, Microsoft.AspNetCore.Components.Web.MouseEventArgs _)
+	{
+		_pastDeletePopup?.Open(session.Id);
+		StateHasChanged();
+	}
+
+	async Task SelectPastSession(SessionModel session)
+	{
+		await _sessionManager.LoadSession(session.Id);
+	}
 
 	public void Dispose()
 	{
@@ -96,6 +126,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		{
 			_sessionManager.OnStateChanged -= OnStateChanged;
 			_uiState.OnStateChanged -= OnStateChanged;
+			_timestampFeature.OnTick -= OnStateChanged;
 			_dotNetHelper?.Dispose();
 		}
 	}

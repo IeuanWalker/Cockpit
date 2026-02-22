@@ -1,0 +1,19 @@
+.session-delete-btn {
+    transition: opacity 0.2s ease-in-out;
+}
+
+.session-item:hover .session-delete-btn {
+    opacity: 1;
+}
+
+.status-needs-permission {
+    color: #FFA500;
+}
+
+.status-running {
+    color: #FFB900;
+}
+
+.status-finished {
+    color: #10893E;
+}
