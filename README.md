@@ -9,12 +9,12 @@
 - Manage multiple sessions simultaneously
 - Integrated terminal
 - Git diff viewer
-- Image and attachement support
+- Image and attachment support
 - Clean chat history, without hiding anything
 - Global/ session command handling
+- Works directly with the CLI, start a session in the cli, pick it up in Cockpit _(and vice-versa)_
 
-### Requirment
-- [Copilot subscription](https://github.com/features/copilot)
+### Requirement
+- Have a [Copilot subscription](https://github.com/features/copilot)
 - [Github Copilot CLI](https://github.com/features/copilot/cli) installed
     - And set up, i.e. `gh auth login` ran
-And 
