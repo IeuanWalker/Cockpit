@@ -43,6 +43,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	void OnStateChanged()
 	{
+		RefreshPastSessions();
 		InvokeAsync(StateHasChanged);
 	}
 
@@ -52,6 +53,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	{
 		_isLoadingSessions = true;
 		await _sessionFeature.LoadExistingSessions();
+		RefreshPastSessions();
 		_isLoadingSessions = false;
 	}
 
@@ -61,9 +63,15 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	bool IsSearchActive => _sessionList?.IsSearchActive ?? false;
 
-	IEnumerable<SessionModel> PastSessions => _sessionFeature.Sessions
-		.Where(s => (DateTime.UtcNow - s.LastActivity).TotalDays > 7)
-		.OrderByDescending(s => s.LastActivity);
+	List<SessionModel> _pastSessions = [];
+
+	void RefreshPastSessions()
+	{
+		DateTime now = DateTime.UtcNow;
+		_pastSessions = [.. _sessionFeature.Sessions
+			.Where(s => (now - s.LastActivity).TotalDays > 7)
+			.OrderByDescending(s => s.LastActivity)];
+	}
 
 	static string GetTimeAgo(DateTime dateTime) => dateTime.Humanize();
 
@@ -82,6 +90,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 			Task loadTask = _sessionFeature.LoadExistingSessions();
 			Task delayTask = Task.Delay(1000);
 			await Task.WhenAll(loadTask, delayTask);
+			RefreshPastSessions();
 		}
 		finally
 		{
