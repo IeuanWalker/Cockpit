@@ -1,0 +1,24 @@
+.session-delete-overlay {
+    transition: opacity 0.15s ease-in-out;
+}
+
+.session-item:hover .session-delete-overlay {
+    opacity: 1;
+    background: linear-gradient(to right, transparent, var(--hover-color) 60%);
+}
+
+.session-item.bg-vscode-active .session-delete-overlay {
+    background: linear-gradient(to right, transparent, var(--active-color) 60%);
+}
+
+.status-needs-permission {
+    color: #FFA500;
+}
+
+.status-running {
+    color: #FFB900;
+}
+
+.status-finished {
+    color: #10893E;
+}

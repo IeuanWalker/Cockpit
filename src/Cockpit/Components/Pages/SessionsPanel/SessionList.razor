@@ -1,59 +1,179 @@
 ﻿@using Cockpit.Components.Popups
 @using Cockpit.Features.Sessions.Models
-@foreach(var session in _sessionFeature.Sessions)
+
+@if(ShowSearch)
 {
-    var isActive = _sessionFeature.CurrentSession?.Id == session.Id;
-    <div class="session-item px-3 py-1.5 hover:bg-vscode-hover cursor-pointer @(isActive ? "bg-vscode-active" : "") border-l-2 @(isActive ? "" : "border-transparent") flex items-center justify-between group relative @(session.SdkState == SdkSessionStateEnum.Loading ? "pointer-events-none" : "")"
-         style="@(isActive ? "border-left-color: var(--accent-color);" : "")"
-         @onclick="() => SelectSession(session)">
-        @if(session.SdkState == SdkSessionStateEnum.Loading)
-        {
-            <div class="absolute inset-0 flex items-center justify-center gap-1.5 z-10" style="background: var(--vscode-sideBar-background, rgba(0,0,0,0.4)); opacity: 0.85;">
-                <svg class="w-3 h-3 animate-spin secondary-text flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    <div class="px-2 py-1.5 border-b border-vscode-border">
+        <div class="flex items-center gap-1">
+            <div class="flex-1 relative">
+                <input type="text"
+                       @bind="_searchText"
+                       @bind:event="oninput"
+                       placeholder="Search sessions..."
+                       aria-label="Search sessions"
+                       class="w-full px-2 py-1 rounded text-xs focus:outline-none"
+                       style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);" />
+                @if(!string.IsNullOrEmpty(_searchText))
+                {
+                    <button @onclick="() => _searchText = string.Empty"
+                            class="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-vscode-hover rounded">
+                        <svg class="w-3 h-3 secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                }
+            </div>
+            <button @onclick="ToggleFilterPanel"
+                    class="p-1 rounded flex-shrink-0 @(_showFilterPanel || HasActiveFilters ? "hover:opacity-75" : "hover:bg-vscode-hover")"
+                    style="@(_showFilterPanel || HasActiveFilters ? "background-color: var(--accent-color);" : string.Empty)"
+                    title="Filter">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
-                <span class="text-xs secondary-text">Loading...</span>
+            </button>
+        </div>
+        @if(_showFilterPanel)
+        {
+            <div class="mt-1.5 border border-vscode-border rounded p-2 text-xs space-y-1" style="background-color: var(--vscode-sideBar-background, var(--bg-color));">
+                @if(UniqueCwds.Any())
+                {
+                    <div>
+                        <div class="secondary-text font-medium mb-1 uppercase tracking-wide" style="font-size: 10px;">Working Directory</div>
+                        @foreach(var group in GroupedCwds)
+                        {
+                            var items = group.ToList();
+                            var allSelected = items.All(cwd => _filterCwds.Contains(cwd));
+                            var anySelected = items.Any(cwd => _filterCwds.Contains(cwd));
+                            var isMulti = items.Count > 1;
+                            var isExpanded = _expandedCwdGroups.Contains(group.Key);
+                            var groupActive = allSelected || anySelected;
+
+                            <!-- Group header row -->
+                            <div class="flex items-center gap-0.5">
+                                <button @onclick="() => ToggleCwdGroup(group)"
+                                        role="checkbox"
+                                        aria-checked="@(allSelected ? "true" : anySelected ? "mixed" : "false")"
+                                        class="flex-1 flex items-center gap-1.5 py-0.5 px-1 hover:bg-vscode-hover rounded text-left min-w-0"
+                                        title="@string.Join("\n", items)">
+                                    <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"
+                                              fill="@(allSelected || anySelected ? "var(--accent-color)" : "none")"
+                                              stroke="@(allSelected || anySelected ? "var(--accent-color)" : "currentColor")"
+                                              stroke-width="2" />
+                                        @if(allSelected)
+                                        {
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" stroke="white" fill="none" d="M6 12l4 4 8-8" />
+                                        }
+                                        else if(anySelected)
+                                        {
+                                            <line x1="7" y1="12" x2="17" y2="12" stroke-width="2.5" stroke-linecap="round" stroke="white" />
+                                        }
+                                    </svg>
+                                    <span class="truncate text-xs text-vscode-title">@group.Key</span>
+                                    @if(isMulti)
+                                    {
+                                        <span class="text-xs secondary-text flex-shrink-0">(@items.Count)</span>
+                                    }
+                                </button>
+                                @if(isMulti)
+                                {
+                                    <button @onclick="() => ToggleCwdGroupExpand(group.Key)"
+                                            class="p-0.5 hover:bg-vscode-hover rounded flex-shrink-0"
+                                            title="@(isExpanded ? "Collapse" : "Expand")">
+                                        <svg class="w-3 h-3 secondary-text transition-transform @(isExpanded ? "" : "-rotate-90")" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                }
+                            </div>
+
+                            <!-- Individual items (only for multi-path groups when expanded) -->
+                            @if(isMulti && isExpanded)
+                            {
+                                @foreach(var cwd in items)
+                                {
+                                    var cwdActive = _filterCwds.Contains(cwd);
+                                    <button @onclick="() => ToggleCwdFilter(cwd)"
+                                            role="checkbox"
+                                            aria-checked="@(cwdActive ? "true" : "false")"
+                                            class="w-full flex items-center gap-1.5 py-0.5 pl-5 pr-1 hover:bg-vscode-hover rounded text-left">
+                                        <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24">
+                                            <rect x="3" y="3" width="18" height="18" rx="2"
+                                                  fill="@(cwdActive ? "var(--accent-color)" : "none")"
+                                                  stroke="@(cwdActive ? "var(--accent-color)" : "currentColor")"
+                                                  stroke-width="2" />
+                                            @if(cwdActive)
+                                            {
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" stroke="white" fill="none" d="M6 12l4 4 8-8" />
+                                            }
+                                        </svg>
+                                        <span class="truncate text-xs secondary-text" title="@cwd">@cwd</span>
+                                    </button>
+                                }
+                            }
+                        }
+                    </div>
+                }
+                @if(UniqueRepos.Any())
+                {
+                    <div>
+                        <div class="secondary-text font-medium mb-1 uppercase tracking-wide" style="font-size: 10px;">Repository</div>
+                        @foreach(var repo in UniqueRepos)
+                        {
+                            var repoActive = _filterRepos.Contains(repo);
+                            <button @onclick="() => ToggleRepoFilter(repo)"
+                                    role="checkbox"
+                                    aria-checked="@(repoActive ? "true" : "false")"
+                                    class="w-full flex items-center gap-1.5 py-0.5 px-1 hover:bg-vscode-hover rounded text-left">
+                                <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"
+                                          fill="@(repoActive ? "var(--accent-color)" : "none")"
+                                          stroke="@(repoActive ? "var(--accent-color)" : "currentColor")"
+                                          stroke-width="2" />
+                                    @if(repoActive)
+                                    {
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" stroke="white" fill="none" d="M6 12l4 4 8-8" />
+                                    }
+                                </svg>
+                                <span class="truncate text-xs text-vscode-title" title="@repo">@repo</span>
+                            </button>
+                        }
+                    </div>
+                }
+                @if(!UniqueCwds.Any() && !UniqueRepos.Any())
+                {
+                    <span class="secondary-text">No filter options available</span>
+                }
             </div>
         }
-        <div class="flex-1 min-w-0 @(session.SdkState == SdkSessionStateEnum.Loading ? "opacity-30" : "")">
-            <div class="text-xs @(isActive ? "font-medium text-vscode-title" : "") truncate">@session.Title</div>
-            <div class="text-xs mt-0.5 flex items-center @GetSessionStatusClass(session)">
-                @if(session.Status == SessionStatusEnum.NeedsPermission)
-                {
-                    <svg class="w-3 h-3 mr-1 inline" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="truncate">Permission required</span>
-                }
-                else if(session.Status == SessionStatusEnum.Running)
-                {
-                    <svg class="w-3 h-3 mr-1 animate-spin inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span class="truncate">Agent running...</span>
-                }
-                else if(session.Status == SessionStatusEnum.Finished)
-                {
-                    <svg class="w-3 h-3 mr-1 inline" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                    </svg>
-                    <span class="truncate">Agent finished • @GetTimeAgo(session.LastActivity)</span>
-                }
-                else
-                {
-                    @GetTimeAgo(session.LastActivity)
-                }
-            </div>
-        </div>
-        <button @onclick="(e) => ShowDeleteDialog(session, e)"
-                @onclick:stopPropagation="true"
-                class="session-delete-btn opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded ml-2 flex-shrink-0"
-                title="Delete session">
-            <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-        </button>
     </div>
 }
 
-<DeleteSessionPopup @ref="_deleteSessionPopup" />
+@if(IsSearchActive)
+{
+    @foreach(var session in FilteredSessions)
+    {
+        <SessionListItem Session="@session"
+                         IsActive="@(_sessionFeature.CurrentSession?.Id == session.Id)"
+                         OnSelect="SelectSession"
+                         OnDelete="@(e => ShowDeleteDialog(session, e))"
+                         TimeAgo="@GetTimeAgo(session.LastActivity)" />
+    }
+    @if(!FilteredSessions.Any())
+    {
+        <div class="px-3 py-4 text-center">
+            <span class="secondary-text text-xs">No sessions found</span>
+        </div>
+    }
+}
+else
+{
+    @foreach(var session in RecentSessions)
+    {
+        <SessionListItem Session="@session"
+                         IsActive="@(_sessionFeature.CurrentSession?.Id == session.Id)"
+                         OnSelect="SelectSession"
+                         OnDelete="@(e => ShowDeleteDialog(session, e))"
+                         TimeAgo="@GetTimeAgo(session.LastActivity)" />
+    }
+}

@@ -1,23 +1,24 @@
 @using Cockpit.Components.Popups
-<div id="leftSidebar" class="sidebar @(_uiState.LeftSidebarCollapsed ? "collapsed" : "") w-56 bg-vscode-sidebar border-r border-vscode-border flex flex-col" style="width: @(_uiState.LeftSidebarWidth)px">
+<div id="leftSidebar" class="sidebar @(_uiStateFeature.LeftSidebarCollapsed ? "collapsed" : "") w-56 bg-vscode-sidebar border-r border-vscode-border flex flex-col" style="width: @(_uiStateFeature.LeftSidebarWidth)px">
     <!-- Sidebar Header -->
     <div class="h-10 px-3 py-2 border-b border-vscode-border flex items-center justify-between">
         <h2 class="text-vscode-title font-semibold text-xs flex items-center">
-            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-                <circle cx="12" cy="12" r="3" />
-            </svg>
             SESSIONS
         </h2>
         <div class="flex items-center gap-1">
-            <button @onclick="RefreshSessions" class="p-1 hover:bg-vscode-hover rounded" title="Refresh Sessions">
-                <svg class="w-3 h-3 @(_isRefreshingSessions ? "animate-spin" : "")" fill="none" stroke="@(_isRefreshingSessions ? "var(--accent-color)" : "currentColor")" viewBox="0 0 24 24">
+            <button @onclick="ToggleSearch" class="p-1 rounded @(_showSearch ? "hover:opacity-75" : "hover:bg-vscode-hover")" style="@(_showSearch ? "background-color: var(--accent-color);" : string.Empty)" title="Search Sessions">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
+                </svg>
+            </button>
+            <button @onclick="RefreshSessions" class="p-1 rounded @(_isRefreshingSessions ? string.Empty : "hover:bg-vscode-hover")" style="@(_isRefreshingSessions ? "background-color: var(--accent-color);" : string.Empty)" title="Refresh Sessions">
+                <svg class="w-3 h-3 @(_isRefreshingSessions ? "animate-spin-reverse" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
             </button>
-            @if(_sessionManager.CurrentSession is not null)
+            @if(_sessionFeature.CurrentSession is not null)
             {
-                <button @onclick="_uiState.ToggleLeftSidebar" class="p-1 hover:bg-vscode-hover rounded" title="Collapse">
+                <button @onclick="_uiStateFeature.ToggleLeftSidebar" class="p-1 hover:bg-vscode-hover rounded" title="Collapse">
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
                     </svg>
@@ -32,15 +33,42 @@
         {
             <SessionListSkeleton />
         }
-        else if(_sessionManager.Sessions.Count == 0)
+        else if(_sessionFeature.Sessions.Count == 0)
         {
             <NoSessions />
         }
         else
         {
-            <SessionList />
+            <SessionList @ref="_sessionList" DeletePopup="@_deletePopup" ShowSearch="@_showSearch" />
         }
     </div>
+
+    <!-- Past Sessions (pinned above New Session button, hidden while searching) -->
+    @if(!_isLoadingSessions && !IsSearchActive && _pastSessions.Count > 0)
+    {
+        <div class="border-t border-vscode-border">
+            <button @onclick="() => _pastSessionsExpanded = !_pastSessionsExpanded"
+                    class="w-full px-3 py-1.5 flex items-center justify-between hover:bg-vscode-hover">
+                <span class="secondary-text font-medium uppercase tracking-wide" style="font-size: 10px;">Past Sessions (@_pastSessions.Count)</span>
+                <svg class="w-3 h-3 secondary-text transition-transform @(_pastSessionsExpanded ? "" : "-rotate-90")" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            @if(_pastSessionsExpanded)
+            {
+                <div class="overflow-y-auto scrollbar-thin" style="max-height: 160px;">
+                    @foreach(var session in _pastSessions)
+                    {
+                        <SessionListItem Session="@session"
+                                         IsActive="@(_sessionFeature.CurrentSession?.Id == session.Id)"
+                                         OnSelect="SelectPastSession"
+                                         OnDelete="@(e => ShowPastDeleteDialog(session, e))"
+                                         TimeAgo="@GetTimeAgo(session.LastActivity)" />
+                    }
+                </div>
+            }
+        </div>
+    }
 
     <!-- New Session Button -->
     <div class="p-2 border-t border-vscode-border">
@@ -54,3 +82,4 @@
 </div>
 
 <CreateSessionPopup @ref="_createSessionPopup" />
+<DeleteSessionPopup @ref="_deletePopup" />

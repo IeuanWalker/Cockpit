@@ -564,3 +564,17 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     background: var(--normal-bg-hover);
     border-color: var(--normal-border-hover);
 }
+
+@keyframes spin-ccw {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(-360deg);
+    }
+}
+
+.animate-spin-reverse {
+    animation: spin-ccw 1s linear infinite;
+}
