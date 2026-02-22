@@ -24,6 +24,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	bool _subscribedToUIState;
 	DotNetObjectReference<ChatInputArea>? _dotNetRef;
 	bool _pastSetup;
+	string? _lastSessionId;
 
 	string UserInput
 	{
@@ -71,7 +72,20 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	void OnStateChanged()
 	{
-		InvokeAsync(StateHasChanged);
+		InvokeAsync(async () =>
+		{
+			string? currentSessionId = _sessionManager.CurrentSession?.Id;
+			bool sessionChanged = currentSessionId != _lastSessionId;
+			_lastSessionId = currentSessionId;
+
+			StateHasChanged();
+
+			if(sessionChanged)
+			{
+				await Task.Delay(textareaResizeYieldMs);
+				await OnTextareaInput();
+			}
+		});
 	}
 
 	void OnUIStateChangedHandler()
