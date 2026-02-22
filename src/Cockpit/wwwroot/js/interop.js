@@ -331,6 +331,18 @@ window.cockpit = {
 
         left.addEventListener('scroll', left._splitScrollHandler);
         right.addEventListener('scroll', right._splitScrollHandler);
+    },
+
+    openDialog: function (element) {
+        if (element && !element.open) {
+            element.showModal();
+        }
+    },
+
+    closeDialog: function (element) {
+        if (element && element.open) {
+            element.close();
+        }
     }
 };
 

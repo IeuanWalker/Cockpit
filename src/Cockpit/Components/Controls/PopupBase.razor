@@ -1,36 +1,38 @@
-﻿<div class="popup-overlay @(_show ? "active" : "")" @onclick="Close"></div>
-<div class="popup  w-[500px] max-w-[90vw] max-h-[80vh] overflow-hidden flex flex-col @(_show ? "active" : "")" style="@PopupStyle">
-    <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl flex-1 min-h-0 flex flex-col">
-        <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between flex-shrink-0">
-            @if(TitleArea is null)
-            {
-                <h3 class="text-vscode-title font-semibold flex items-center">
-                    @HeaderLeft
-                    @Title
-                </h3>
-            }
-            else
-            {
-                @TitleArea
-            }
+﻿<dialog @ref="_dialog" aria-labelledby="@_titleId" @onclose="HandleDialogClose">
+	<div class="w-[500px] max-w-[90vw] max-h-[80vh] overflow-hidden flex flex-col" style="@PopupStyle">
+		<div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl flex-1 min-h-0 flex flex-col">
+			<div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between flex-shrink-0">
+				@if(TitleArea is null)
+				{
+					<h3 id="@_titleId" class="text-vscode-title font-semibold flex items-center">
+						@HeaderLeft
+						@Title
+					</h3>
+				}
+				else
+				{
+					<div id="@_titleId">
+						@TitleArea
+					</div>
+				}
 
-            <div class="flex items-center gap-1">
-                @HeaderRight
-                <button @onclick="Close" class="p-1 hover:bg-vscode-hover rounded">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-        <div class="@ContentClass">
-            @if(_show)
-            {
-                @Content
-            }
-        </div>
-        @Footer
-    </div>
-</div>
-
+				<div class="flex items-center gap-1">
+					@HeaderRight
+					<button @onclick="Close" class="p-1 hover:bg-vscode-hover rounded" aria-label="Close dialog">
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+			</div>
+			<div class="@ContentClass">
+				@if(_show)
+				{
+					@Content
+				}
+			</div>
+			@Footer
+		</div>
+	</div>
+</dialog>
 
