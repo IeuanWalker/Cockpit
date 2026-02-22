@@ -141,7 +141,11 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		}
 
 		string dataUri = $"data:{mimeType};base64,{base64}";
-		session.PendingAttachments.Add(new AttachmentModel(fileName, filePath, dataUri, mimeType));
+		lock(session.PendingAttachmentsLock)
+		{
+			session.PendingAttachments.Add(new AttachmentModel(fileName, filePath, dataUri, mimeType));
+		}
+
 		await InvokeAsync(StateHasChanged);
 	}
 
@@ -189,7 +193,10 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 					dataUri = $"data:{mimeType};base64,{Convert.ToBase64String(fileBytes)}";
 				}
 
-				session.PendingAttachments.Add(new AttachmentModel(result.FileName, filePath, dataUri, mimeType));
+				lock(session.PendingAttachmentsLock)
+				{
+					session.PendingAttachments.Add(new AttachmentModel(result.FileName, filePath, dataUri, mimeType));
+				}
 			}
 
 			StateHasChanged();
@@ -203,13 +210,22 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	void RemoveAttachment(int index)
 	{
 		SessionModel? session = _sessionManager.CurrentSession;
-		if(session is null || index < 0 || index >= session.PendingAttachments.Count)
+		if(session is null)
 		{
 			return;
 		}
 
-		string filePath = session.PendingAttachments[index].FilePath;
-		session.PendingAttachments.RemoveAt(index);
+		string filePath;
+		lock(session.PendingAttachmentsLock)
+		{
+			if(index < 0 || index >= session.PendingAttachments.Count)
+			{
+				return;
+			}
+
+			filePath = session.PendingAttachments[index].FilePath;
+			session.PendingAttachments.RemoveAt(index);
+		}
 
 		// Only delete if it's a session-owned file (pasted images saved to Cockpit\Files\)
 		// Never delete user's original files selected via the file picker
@@ -251,8 +267,11 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		List<AttachmentModel>? attachments = null;
 		if(hasAttachments && session is not null)
 		{
-			attachments = [.. session.PendingAttachments];
-			session.PendingAttachments.Clear();
+			lock(session.PendingAttachmentsLock)
+			{
+				attachments = [.. session.PendingAttachments];
+				session.PendingAttachments.Clear();
+			}
 		}
 
 		// Reset textarea height after clearing

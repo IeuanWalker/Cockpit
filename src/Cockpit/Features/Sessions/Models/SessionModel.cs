@@ -50,6 +50,11 @@ public class SessionModel
 	public List<AttachmentModel> PendingAttachments { get; set; } = [];
 
 	/// <summary>
+	/// Synchronizes mutations to <see cref="PendingAttachments"/> across threads (e.g. JS-interop paste callbacks vs. UI-thread picks/sends).
+	/// </summary>
+	public readonly Lock PendingAttachmentsLock = new();
+
+	/// <summary>
 	/// Synchronizes live session event/message mutations to preserve ordering.
 	/// </summary>
 	public readonly Lock SessionEventLock = new();
