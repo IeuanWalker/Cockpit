@@ -24,8 +24,7 @@ public partial class SessionList : ComponentBase, IDisposable
 		_sessionFeature = sessionFeature;
 	}
 
-	DeleteSessionPopup _deleteSessionPopup = default!;
-
+	[Parameter] public DeleteSessionPopup? DeletePopup { get; set; }
 	[Parameter] public bool ShowSearch { get; set; }
 
 	string _searchText = string.Empty;
@@ -90,12 +89,6 @@ public partial class SessionList : ComponentBase, IDisposable
 		.Where(s => !string.IsNullOrEmpty(s))
 		.Distinct(StringComparer.OrdinalIgnoreCase)
 		.OrderBy(s => s, StringComparer.OrdinalIgnoreCase);
-
-	bool _pastSessionsExpanded = false;
-
-	IEnumerable<SessionModel> PastSessions => _sessionFeature.Sessions
-		.Where(s => (DateTime.UtcNow - s.LastActivity).TotalDays > 7)
-		.OrderByDescending(s => s.LastActivity);
 
 	static string NormalizePath(string path) =>
 		path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -170,7 +163,7 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	void ShowDeleteDialog(SessionModel session, MouseEventArgs _)
 	{
-		_deleteSessionPopup.Open(session.Id);
+		DeletePopup?.Open(session.Id);
 		StateHasChanged();
 	}
 

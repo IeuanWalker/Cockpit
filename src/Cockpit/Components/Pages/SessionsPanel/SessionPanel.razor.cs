@@ -1,8 +1,11 @@
 using Cockpit.Components.Popups;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
+using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
@@ -28,6 +31,8 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	DotNetObjectReference<SessionPanel>? _dotNetHelper;
 	CreateSessionPopup? _createSessionPopup;
+	SessionList? _sessionList;
+	DeleteSessionPopup? _deletePopup;
 
 	protected override void OnInitialized()
 	{
@@ -52,6 +57,15 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	bool _isRefreshingSessions = false;
 	bool _showSearch = false;
+	bool _pastSessionsExpanded = false;
+
+	bool IsSearchActive => _sessionList?.IsSearchActive ?? false;
+
+	IEnumerable<SessionModel> PastSessions => _sessionFeature.Sessions
+		.Where(s => (DateTime.UtcNow - s.LastActivity).TotalDays > 7)
+		.OrderByDescending(s => s.LastActivity);
+
+	static string GetTimeAgo(DateTime dateTime) => dateTime.Humanize();
 
 	void ToggleSearch() => _showSearch = !_showSearch;
 
@@ -100,6 +114,17 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		{
 			Console.Error.WriteLine($"Failed to open directory dialog: {ex.Message}");
 		}
+	}
+
+	void ShowPastDeleteDialog(SessionModel session, MouseEventArgs _)
+	{
+		_deletePopup?.Open(session.Id);
+		StateHasChanged();
+	}
+
+	async Task SelectPastSession(SessionModel session)
+	{
+		await _sessionFeature.LoadSession(session.Id);
 	}
 
 	public void Dispose()
