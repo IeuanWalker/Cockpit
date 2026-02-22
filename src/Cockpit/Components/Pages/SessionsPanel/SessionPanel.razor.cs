@@ -5,6 +5,7 @@ using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
@@ -31,7 +32,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	DotNetObjectReference<SessionPanel>? _dotNetHelper;
 	CreateSessionPopup? _createSessionPopup;
 	SessionList? _sessionList;
-	DeleteSessionPopup? _pastDeletePopup;
+	DeleteSessionPopup? _deletePopup;
 
 	protected override void OnInitialized()
 	{
@@ -115,9 +116,9 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		}
 	}
 
-	void ShowPastDeleteDialog(SessionModel session, Microsoft.AspNetCore.Components.Web.MouseEventArgs _)
+	void ShowPastDeleteDialog(SessionModel session, MouseEventArgs _)
 	{
-		_pastDeletePopup?.Open(session.Id);
+		_deletePopup?.Open(session.Id);
 		StateHasChanged();
 	}
 

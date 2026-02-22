@@ -39,7 +39,7 @@
         }
         else
         {
-            <SessionList @ref="_sessionList" ShowSearch="@_showSearch" />
+            <SessionList @ref="_sessionList" DeletePopup="@_deletePopup" ShowSearch="@_showSearch" />
         }
     </div>
 
@@ -68,7 +68,6 @@
                 </div>
             }
         </div>
-        <DeleteSessionPopup @ref="_pastDeletePopup" />
     }
 
     <!-- New Session Button -->
@@ -83,3 +82,4 @@
 </div>
 
 <CreateSessionPopup @ref="_createSessionPopup" />
+<DeleteSessionPopup @ref="_deletePopup" />

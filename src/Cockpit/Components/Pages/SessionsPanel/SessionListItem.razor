@@ -1,7 +1,7 @@
 @using Cockpit.Features.Sessions.Models
 @using Microsoft.AspNetCore.Components.Web
 
-<div class="session-item px-3 py-1.5 hover:bg-vscode-hover cursor-pointer @(IsActive ? "bg-vscode-active" : "") border-l-2 @(IsActive ? "" : "border-transparent") flex items-center justify-between group relative @(Session.SdkState == SdkSessionStateEnum.Loading ? "pointer-events-none" : "")"
+<div class="session-item px-3 py-1.5 hover:bg-vscode-hover cursor-pointer @(IsActive ? "bg-vscode-active" : "") border-l-2 @(IsActive ? "" : "border-transparent") flex items-center group relative @(Session.SdkState == SdkSessionStateEnum.Loading ? "pointer-events-none" : "")"
      style="@(IsActive ? "border-left-color: var(--accent-color);" : "")"
      @onclick="HandleSelect">
     @if(Session.SdkState == SdkSessionStateEnum.Loading)
@@ -43,12 +43,14 @@
             }
         </div>
     </div>
-    <button @onclick="HandleDelete"
-            @onclick:stopPropagation="true"
-            class="session-delete-btn opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded ml-2 flex-shrink-0"
-            title="Delete session">
-        <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-    </button>
+    <div class="session-delete-overlay absolute right-0 top-0 bottom-0 flex items-center justify-end pr-1.5 opacity-0" style="width: 5rem;">
+        <button @onclick="HandleDelete"
+                @onclick:stopPropagation="true"
+                class="session-delete-btn p-1 hover:bg-red-500/20 rounded"
+                title="Delete session">
+            <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        </button>
+    </div>
 </div>

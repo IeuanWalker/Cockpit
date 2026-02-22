@@ -24,8 +24,7 @@ public partial class SessionList : ComponentBase, IDisposable
 		_sessionFeature = sessionFeature;
 	}
 
-	DeleteSessionPopup _deleteSessionPopup = default!;
-
+	[Parameter] public DeleteSessionPopup? DeletePopup { get; set; }
 	[Parameter] public bool ShowSearch { get; set; }
 
 	string _searchText = string.Empty;
@@ -164,7 +163,7 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	void ShowDeleteDialog(SessionModel session, MouseEventArgs _)
 	{
-		_deleteSessionPopup.Open(session.Id);
+		DeletePopup?.Open(session.Id);
 		StateHasChanged();
 	}
 
