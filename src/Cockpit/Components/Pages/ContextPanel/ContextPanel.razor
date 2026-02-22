@@ -1,3 +1,4 @@
+@using Cockpit.Components.Pages.ContextPanel.ConnectionStatus
 <div id="rightSidebar" class="sidebar @(_uiState.RightSidebarCollapsed ? "collapsed" : "") w-64 bg-vscode-sidebar border-l border-vscode-border flex flex-col" style="width: @(_uiState.RightSidebarWidth)px">
     <div class="h-10 px-3 py-2 border-b border-vscode-border flex items-center justify-between">
         <h2 class="text-vscode-title font-semibold text-xs flex items-center">
@@ -33,7 +34,7 @@
         </div>
     </div>
 
-    <ConnectionStatus />
+    <ConnectionStatusBanner />
 </div>
 
 

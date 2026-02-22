@@ -1,38 +1,28 @@
 @using Cockpit.Features.Git.Models
 @using Cockpit.Components.Controls.GitDiff
+@using Cockpit.Components.Controls
 
-@if(IsOpen)
-{
-    <div class="settings-overlay active" @onclick="Close"></div>
-
-    <div class="popup-container" @onclick:stopPropagation="true">
-
-        <!-- Title bar -->
-        <div class="popup-titlebar border-b border-vscode-border">
-            <span class="text-vscode-title font-semibold text-sm">Edited Files (@Files.Count)</span>
-            <div class="flex items-center gap-2">
-                <div class="view-toggle">
-                    <button class="toggle-btn @(!_splitView ? "active" : "")" @onclick='() => SetSplitView(false)'>Inline</button>
-                    <button class="toggle-btn @(_splitView ? "active" : "")" @onclick='() => SetSplitView(true)'>Split</button>
-                </div>
-                <button class="popup-action-btn"
-                        @onclick="RevealFile"
-                        disabled="@(_selectedFile is null || _selectedFile.Status == GitFileStatusEnum.Deleted)"
-                        title="Reveal in file explorer">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
-                    <span>Reveal</span>
-                </button>
-                <button class="popup-action-btn" @onclick="Close" title="Close">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+<PopupBase @ref="_popup"
+           PopupStyle="width: 90vw; height: 90vh; max-height: 90vh; max-width: none;">
+    <TitleArea>
+        <span class="text-vscode-title font-semibold text-sm">Edited Files (@Files.Count)</span>
+    </TitleArea>
+    <HeaderRight>
+        <div class="view-toggle">
+            <button class="toggle-btn @(!_splitView ? "active" : "")" @onclick='() => SetSplitView(false)'>Inline</button>
+            <button class="toggle-btn @(_splitView ? "active" : "")" @onclick='() => SetSplitView(true)'>Split</button>
         </div>
-
-        <!-- Body -->
+        <button class="popup-action-btn"
+                @onclick="RevealFile"
+                disabled="@(_selectedFile is null || _selectedFile.Status == GitFileStatusEnum.Deleted)"
+                title="Reveal in file explorer">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+            <span>Reveal</span>
+        </button>
+    </HeaderRight>
+    <Content>
         <div class="popup-body">
 
             <!-- File tree -->
@@ -74,5 +64,5 @@
                            GitFileStatus="@_selectedFile?.Status" />
 
         </div>
-    </div>
-}
+    </Content>
+</PopupBase>

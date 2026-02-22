@@ -11,6 +11,9 @@ window.localStorageHelper = {
 };
 
 window.cockpit = {
+    setMainLayoutRef: function (dotNetRef) {
+        window._mainLayoutRef = dotNetRef;
+    },
     setRootProperty: function (property, value) {
         document.documentElement.style.setProperty(property, value);
     },
@@ -328,12 +331,25 @@ window.cockpit = {
 
         left.addEventListener('scroll', left._splitScrollHandler);
         right.addEventListener('scroll', right._splitScrollHandler);
+    },
+
+    openDialog: function (element) {
+        if (element && !element.open) {
+            element.showModal();
+        }
+    },
+
+    closeDialog: function (element) {
+        if (element && element.open) {
+            element.close();
+        }
     }
 };
 
 // Global function to toggle settings from MAUI title bar
 window.toggleSettings = function () {
-    // Call the .NET static method
-    DotNet.invokeMethodAsync('Cockpit', 'ToggleSettingsFromTitleBar')
-        .catch(err => console.error('Failed to toggle settings:', err));
+    if (window._mainLayoutRef) {
+        window._mainLayoutRef.invokeMethodAsync('ToggleSettingsFromTitleBar')
+            .catch(err => console.error('Failed to toggle settings:', err));
+    }
 };

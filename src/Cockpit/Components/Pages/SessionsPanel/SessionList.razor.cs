@@ -10,16 +10,25 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 
 public partial class SessionList : ComponentBase, IDisposable
 {
-	[Inject] TimestampFeature _timestampFeature { get; set; } = default!;
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] SessionFeature _sessionManager { get; set; } = default!;
+	readonly TimestampFeature _timestampFeature;
+	readonly UIStateFeature _uiState;
+	readonly SessionFeature _sessionFeature;
 
-	bool _showDeleteDialog = false;
-	SessionModel? _sessionToDelete;
+	public SessionList(
+		TimestampFeature timestampFeature,
+		UIStateFeature uiState,
+		SessionFeature sessionFeature)
+	{
+		_timestampFeature = timestampFeature;
+		_uiState = uiState;
+		_sessionFeature = sessionFeature;
+	}
+
+	DeleteSessionPopup _deleteSessionPopup = default!;
 
 	protected override void OnInitialized()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_sessionFeature.OnStateChanged += OnStateChanged;
 		_uiState.OnStateChanged += OnStateChanged;
 		_timestampFeature.OnTick += OnStateChanged;
 	}
@@ -31,7 +40,7 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	async Task SelectSession(SessionModel session)
 	{
-		await _sessionManager.LoadSession(session.Id);
+		await _sessionFeature.LoadSession(session.Id);
 	}
 
 	static string GetSessionStatusClass(SessionModel session)
@@ -52,26 +61,7 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	void ShowDeleteDialog(SessionModel session, MouseEventArgs _)
 	{
-		_sessionToDelete = session;
-		_showDeleteDialog = true;
-		StateHasChanged();
-	}
-
-	async Task ConfirmDelete()
-	{
-		if(_sessionToDelete is not null)
-		{
-			await _sessionManager.DeleteSession(_sessionToDelete.Id);
-		}
-		_showDeleteDialog = false;
-		_sessionToDelete = null;
-		StateHasChanged();
-	}
-
-	void CancelDelete()
-	{
-		_showDeleteDialog = false;
-		_sessionToDelete = null;
+		_deleteSessionPopup.Open(session.Id);
 		StateHasChanged();
 	}
 
@@ -85,7 +75,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
+			_sessionFeature.OnStateChanged -= OnStateChanged;
 			_uiState.OnStateChanged -= OnStateChanged;
 			_timestampFeature.OnTick -= OnStateChanged;
 		}

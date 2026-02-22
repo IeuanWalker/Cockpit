@@ -82,10 +82,11 @@ window.xtermInterop.getTerminalText = function (terminalElementId, lineCount) {
         return '';
     }
     const buffer = term.buffer.active;
-    const totalLines = buffer.length;
-    const startLine = Math.max(0, totalLines - lineCount);
+    // Use cursor position as the end of content, not buffer.length which includes blank rows below the cursor
+    const lastContentLine = buffer.baseY + buffer.cursorY + 1;
+    const startLine = Math.max(0, lastContentLine - lineCount);
     const lines = [];
-    for (let i = startLine; i < totalLines; i++) {
+    for (let i = startLine; i < lastContentLine; i++) {
         const line = buffer.getLine(i);
         if (line) {
             lines.push(line.translateToString(true));

@@ -4,12 +4,34 @@ using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 
-namespace Cockpit.Components.Pages.ChatPanel;
+namespace Cockpit.Components.Pages.ChatPanel.Permissions;
 
 public partial class PermissionRequestPanel : ComponentBase, IDisposable
 {
+	readonly SessionListFeature _sessionManager;
+	readonly PermissionFeature _permissionFeature;
+	readonly ILogger<PermissionRequestPanel> _logger;
+
+	public PermissionRequestPanel(
+		SessionListFeature sessionManager,
+		PermissionFeature permissionFeature,
+		ILogger<PermissionRequestPanel> logger)
+	{
+		_sessionManager = sessionManager;
+		_permissionFeature = permissionFeature;
+		_logger = logger;
+	}
+
+	protected override void OnInitialized()
+	{
+		_sessionManager.OnStateChanged += OnStateChanged;
+	}
+
 	bool _showDropdown = false;
 	PermissionDecisionEnum _selectedAllowOption = PermissionDecisionEnum.Once;
+	PermissionDetailsPopup _moreInfoPopup = default!;
+	PermissionRequestModel? Request => _sessionManager.CurrentSession?.PendingPermissionRequests?.Values.FirstOrDefault();
+
 
 	string GetAllowLabel(PermissionDecisionEnum option) => option switch
 	{
@@ -32,20 +54,7 @@ public partial class PermissionRequestPanel : ComponentBase, IDisposable
 		StateHasChanged();
 	}
 
-	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
-
-	[Inject] PermissionFeature _permissionFeature { get; set; } = default!;
-
-	[Inject]
-	ILogger<PermissionRequestPanel> _logger { get; set; } = default!;
-
-	bool _showDetailsPopup = false;
-	PermissionRequestModel? Request => _sessionManager.CurrentSession?.PendingPermissionRequests?.Values.FirstOrDefault();
-
-	protected override void OnInitialized()
-	{
-		_sessionManager.OnStateChanged += OnStateChanged;
-	}
+	void OpenMoeInfoPopup() => _moreInfoPopup.Open();
 
 	void OnStateChanged()
 	{

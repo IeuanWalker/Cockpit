@@ -1,34 +1,8 @@
-.popup-container {
-    position: fixed;
-    top: 5vh;
-    left: 5vw;
-    width: 90vw;
-    height: 90vh;
-    z-index: 1000;
-    background-color: var(--sidebar-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-/* ── Title bar ─────────────────────────────────────────── */
-
-.popup-titlebar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    flex-shrink: 0;
-}
-
 /* ── Body layout ────────────────────────────────────────── */
 
 .popup-body {
     display: flex;
-    flex: 1;
+    height: 100%;
     overflow: hidden;
 }
 

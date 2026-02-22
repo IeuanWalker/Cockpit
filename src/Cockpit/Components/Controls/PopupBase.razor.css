@@ -1,0 +1,29 @@
+@keyframes popup-in {
+    from { opacity: 0; scale: 0.95; }
+    to   { opacity: 1; scale: 1; }
+}
+
+@keyframes overlay-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+dialog {
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    overflow: visible;
+    max-width: none;
+    max-height: none;
+}
+
+    dialog[open] {
+        animation: popup-in 0.15s ease-out forwards;
+    }
+
+    dialog::backdrop {
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(8px);
+        animation: overlay-in 0.15s ease-out forwards;
+    }

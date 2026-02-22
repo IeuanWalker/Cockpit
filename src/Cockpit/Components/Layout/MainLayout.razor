@@ -10,17 +10,17 @@
     <SessionPanel />
 
     <!-- Left Resize Handle -->
-    <div id="leftResizeHandle" class="resize-handle @(_uiState.LeftSidebarCollapsed ? "hidden" : "")"></div>
+    <div id="leftResizeHandle" class="resize-handle @(_uiStateFeature.LeftSidebarCollapsed ? "hidden" : "")"></div>
 
     <!-- Middle - Chat Window -->
     <div class="flex-1 flex flex-col bg-vscode-bg min-w-0">
         @Body
     </div>
 
-    @if(_sessionManager.CurrentSession is not null)
+    @if(_sessionListFeature.CurrentSession is not null)
     {
         <!-- Right Resize Handle -->
-        <div id="rightResizeHandle" class="resize-handle @(_uiState.RightSidebarCollapsed ? "hidden" : "")"></div>
+        <div id="rightResizeHandle" class="resize-handle @(_uiStateFeature.RightSidebarCollapsed ? "hidden" : "")"></div>
 
         <!-- Right Sidebar - Context Panel -->
         <ContextPanel />
@@ -28,9 +28,7 @@
 </div>
 
 <!-- Settings Popup -->
-<CascadingValue Value="@_settingsPopup">
-    <SettingsPopup @ref="_settingsPopup" />
-</CascadingValue>
+<SettingsPopup @ref="_settingsPopup" />
 
 <!-- Toast Notifications -->
 <Toaster Position="ToastPosition.BottomRight" RichColors="true" CloseButton="false" />

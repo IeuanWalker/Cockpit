@@ -1,24 +1,36 @@
-.settings-popup-shell {
-    width: 42rem;
-    max-width: calc(100vw - 2.5rem);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
 .settings-popup-content {
     display: flex;
-    min-height: 22rem;
+    flex: 1;
+    min-height: 0;
 }
 
 .settings-menu {
     width: 14rem;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
     padding: 1rem 0.75rem;
     background-color: var(--bg-color);
+    overflow-y: auto;
 }
+
+    .settings-menu::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .settings-menu::-webkit-scrollbar-track {
+        background: var(--bg-color);
+    }
+
+    .settings-menu::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 0px;
+    }
+
+        .settings-menu::-webkit-scrollbar-thumb:hover {
+            background: var(--hover-color);
+        }
 
 .settings-menu-item {
     width: 100%;
@@ -30,6 +42,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+    flex-shrink: 0;
 }
 
     .settings-menu-item:hover {
@@ -42,12 +55,12 @@
 
 .settings-panel {
     flex: 1;
+    min-height: 0;
     padding: 1rem;
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
     overflow-y: auto;
-    max-height: 26rem;
 }
 
     .settings-panel::-webkit-scrollbar {
