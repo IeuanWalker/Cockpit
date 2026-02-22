@@ -17,7 +17,7 @@ public partial class PermissionDetailsPopup
 
 	public void Open() => _popup.Open();
 
-	string FormatAsJson(string input)
+	static string FormatAsJson(string input)
 	{
 		try
 		{

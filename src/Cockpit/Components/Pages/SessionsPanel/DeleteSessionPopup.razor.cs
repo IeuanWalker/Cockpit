@@ -34,13 +34,8 @@ public partial class DeleteSessionPopup : ComponentBase
 			await _sessionFeature.DeleteSession(Session.Id);
 		}
 
-		StateHasChanged();
-
 		_popup.Close();
 	}
 
-	async void Cancel()
-	{
-		_popup.Close();
-	}
+	void Cancel() => _popup.Close();
 }
