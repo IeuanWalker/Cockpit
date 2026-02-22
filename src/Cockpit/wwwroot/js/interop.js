@@ -415,9 +415,15 @@ window.cockpit = {
             overlay = document.createElement('div');
             overlay.id = '_cockpit_lightbox';
             overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+
+            const closeLightbox = () => {
+                overlay.remove();
+                document.removeEventListener('keydown', keyHandler);
+            };
+
             overlay.addEventListener('click', (event) => {
                 if (event.target === overlay) {
-                    overlay.remove();
+                    closeLightbox();
                 }
             });
 
@@ -427,9 +433,8 @@ window.cockpit = {
             overlay.appendChild(img);
 
             // close on Escape
-            overlay._keyHandler = (e) => { if (e.key === 'Escape') overlay.remove(); };
-            document.addEventListener('keydown', overlay._keyHandler);
-            overlay.addEventListener('remove', () => document.removeEventListener('keydown', overlay._keyHandler));
+            const keyHandler = (e) => { if (e.key === 'Escape') closeLightbox(); };
+            document.addEventListener('keydown', keyHandler);
         }
         overlay.querySelector('#_cockpit_lightbox_img').src = src;
         overlay.querySelector('#_cockpit_lightbox_img').alt = alt ?? '';
