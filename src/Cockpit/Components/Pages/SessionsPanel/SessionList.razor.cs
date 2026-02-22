@@ -91,7 +91,9 @@ public partial class SessionList : ComponentBase, IDisposable
 		.OrderBy(s => s, StringComparer.OrdinalIgnoreCase);
 
 	static string NormalizePath(string path) =>
-		path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+		string.IsNullOrEmpty(path)
+			? string.Empty
+			: path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
 	void ToggleFilterPanel() => _showFilterPanel = !_showFilterPanel;
 
