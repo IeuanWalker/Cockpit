@@ -5,6 +5,9 @@
 <h3 align="center">A GUI for GitHub Copilot CLI</h3>
 
 ### Features
-- Integrated terminal
+
 - Manage multiple sessions simultaneously
+- Integrated terminal
+- Git diff viewer
 - Clean chat history, without hiding anything
+- Global/ session command handling
