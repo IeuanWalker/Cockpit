@@ -124,22 +124,25 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			return;
 		}
 
+		string dir = GetSessionFilesPath(session);
+		Directory.CreateDirectory(dir);
+		string filePath = Path.Combine(dir, $"{Guid.NewGuid()}.{ext}");
+		byte[] bytes;
+
 		try
 		{
-			string dir = GetSessionFilesPath(session);
-			Directory.CreateDirectory(dir);
-			string filePath = Path.Combine(dir, $"{Guid.NewGuid()}.{ext}");
-			byte[] bytes = Convert.FromBase64String(base64);
+			bytes = Convert.FromBase64String(base64);
 			await File.WriteAllBytesAsync(filePath, bytes);
-
-			string dataUri = $"data:{mimeType};base64,{base64}";
-			session.PendingAttachments.Add(new AttachmentModel(fileName, filePath, dataUri, mimeType));
-			await InvokeAsync(StateHasChanged);
 		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to save pasted image");
+			return;
 		}
+
+		string dataUri = $"data:{mimeType};base64,{base64}";
+		session.PendingAttachments.Add(new AttachmentModel(fileName, filePath, dataUri, mimeType));
+		await InvokeAsync(StateHasChanged);
 	}
 
 	async Task AttachFiles()
