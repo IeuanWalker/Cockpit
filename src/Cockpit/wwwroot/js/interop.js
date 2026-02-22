@@ -362,27 +362,44 @@ window.cockpit = {
             const items = e.clipboardData?.items;
             if (!items) return;
 
+            // Find the first usable image item before handling it
+            let imageItem = null;
+            let imageFile = null;
+
             for (const item of items) {
-                if (!item.type.startsWith('image/')) continue;
+                if (!item.type.startsWith('image/')) {
+                    continue;
+                }
 
-                e.preventDefault();
                 const file = item.getAsFile();
-                if (!file) continue;
+                if (!file) {
+                    continue;
+                }
 
-                const ext = item.type.split('/')[1]?.replace('jpeg', 'jpg') ?? 'png';
-                const fileName = `pasted-image.${ext}`;
-
-                const reader = new FileReader();
-                reader.onload = function (ev) {
-                    const dataUrl = ev.target.result;
-                    // strip the "data:image/xxx;base64," prefix
-                    const base64 = dataUrl.split(',')[1];
-                    dotnetRef.invokeMethodAsync('OnImagePasted', base64, item.type, ext, fileName)
-                        .catch(err => console.error('OnImagePasted failed:', err));
-                };
-                reader.readAsDataURL(file);
+                imageItem = item;
+                imageFile = file;
                 break; // only first image
             }
+
+            if (!imageItem || !imageFile) {
+                // No image found; allow default paste behavior
+                return;
+            }
+
+            e.preventDefault();
+
+            const ext = imageItem.type.split('/')[1]?.replace('jpeg', 'jpg') ?? 'png';
+            const fileName = `pasted-image.${ext}`;
+
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                const dataUrl = ev.target.result;
+                // strip the "data:image/xxx;base64," prefix
+                const base64 = dataUrl.split(',')[1];
+                dotnetRef.invokeMethodAsync('OnImagePasted', base64, imageItem.type, ext, fileName)
+                    .catch(err => console.error('OnImagePasted failed:', err));
+            };
+            reader.readAsDataURL(imageFile);
         };
 
         element.addEventListener('paste', element._pasteHandler);
