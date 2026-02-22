@@ -40,6 +40,21 @@ public class SessionModel
 	public bool IsTerminalOpen { get; set; }
 
 	/// <summary>
+	/// Per-session draft text preserved across session switches.
+	/// </summary>
+	public string UserInput { get; set; } = string.Empty;
+
+	/// <summary>
+	/// Per-session pending attachments preserved across session switches.
+	/// </summary>
+	public List<AttachmentModel> PendingAttachments { get; set; } = [];
+
+	/// <summary>
+	/// Synchronizes mutations to <see cref="PendingAttachments"/> across threads (e.g. JS-interop paste callbacks vs. UI-thread picks/sends).
+	/// </summary>
+	public readonly Lock PendingAttachmentsLock = new();
+
+	/// <summary>
 	/// Synchronizes live session event/message mutations to preserve ordering.
 	/// </summary>
 	public readonly Lock SessionEventLock = new();

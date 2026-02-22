@@ -1,4 +1,6 @@
-﻿namespace Cockpit.Features.SessionEvents.Models;
+﻿using Cockpit.Features.Sessions.Models;
+
+namespace Cockpit.Features.SessionEvents.Models;
 
 public class ChatMessageModel
 {
@@ -19,6 +21,11 @@ public class ChatMessageModel
 	/// Cleared when the agent picks it up (AssistantTurnStartEvent).
 	/// </summary>
 	public bool IsPending { get; set; }
+
+	/// <summary>
+	/// Attachments included with this user message, for display in the message bubble.
+	/// </summary>
+	public List<AttachmentModel>? Attachments { get; set; }
 }
 
 public enum MessageTypeEnum

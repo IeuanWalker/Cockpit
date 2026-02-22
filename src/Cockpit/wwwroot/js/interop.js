@@ -343,6 +343,102 @@ window.cockpit = {
         if (element && element.open) {
             element.close();
         }
+    },
+
+    setupImagePaste: function (inputId, dotnetRef) {
+        const element = document.getElementById(inputId);
+        if (!element) return;
+
+        if (element._pasteHandler) {
+            element.removeEventListener('paste', element._pasteHandler);
+        }
+
+        element._pasteHandler = function (e) {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            // Find the first usable image item before handling it
+            let imageItem = null;
+            let imageFile = null;
+
+            for (const item of items) {
+                if (!item.type.startsWith('image/')) {
+                    continue;
+                }
+
+                const file = item.getAsFile();
+                if (!file) {
+                    continue;
+                }
+
+                imageItem = item;
+                imageFile = file;
+                break; // only first image
+            }
+
+            if (!imageItem || !imageFile) {
+                // No image found; allow default paste behavior
+                return;
+            }
+
+            e.preventDefault();
+
+            const ext = imageItem.type.split('/')[1]?.replace('jpeg', 'jpg') ?? 'png';
+            const fileName = `pasted-image.${ext}`;
+
+            const reader = new FileReader();
+            reader.onload = function (ev) {
+                const dataUrl = ev.target.result;
+                // strip the "data:image/xxx;base64," prefix
+                const base64 = dataUrl.split(',')[1];
+                dotnetRef.invokeMethodAsync('OnImagePasted', base64, imageItem.type, ext, fileName)
+                    .catch(err => console.error('OnImagePasted failed:', err));
+            };
+            reader.readAsDataURL(imageFile);
+        };
+
+        element.addEventListener('paste', element._pasteHandler);
+    },
+
+    cleanupImagePaste: function (inputId) {
+        const element = document.getElementById(inputId);
+        if (!element) return;
+        if (element._pasteHandler) {
+            element.removeEventListener('paste', element._pasteHandler);
+            delete element._pasteHandler;
+        }
+    },
+
+    showImageLightbox: function (src, alt) {
+        let overlay = document.getElementById('_cockpit_lightbox');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = '_cockpit_lightbox';
+            overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+
+            const closeLightbox = () => {
+                overlay.remove();
+                document.removeEventListener('keydown', keyHandler);
+            };
+
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay) {
+                    closeLightbox();
+                }
+            });
+
+            const img = document.createElement('img');
+            img.id = '_cockpit_lightbox_img';
+            img.style.cssText = 'max-width:90vw;max-height:90vh;object-fit:contain;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,0.6);';
+            overlay.appendChild(img);
+
+            // close on Escape
+            const keyHandler = (e) => { if (e.key === 'Escape') closeLightbox(); };
+            document.addEventListener('keydown', keyHandler);
+        }
+        overlay.querySelector('#_cockpit_lightbox_img').src = src;
+        overlay.querySelector('#_cockpit_lightbox_img').alt = alt ?? '';
+        document.body.appendChild(overlay);
     }
 };
 

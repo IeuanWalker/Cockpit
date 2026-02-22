@@ -7,16 +7,64 @@
             <div class="absolute inset-0 bg-black bg-opacity-30 z-10 rounded-lg cursor-not-allowed"></div>
         }
         <div class="bg-vscode-bg border border-vscode-border rounded-lg overflow-visible">
+            @if(_sessionManager.CurrentSession?.PendingAttachments.Count > 0)
+            {
+                <div class="flex flex-wrap gap-2 px-3 pt-2">
+                    @for(int i = 0; i < _sessionManager.CurrentSession.PendingAttachments.Count; i++)
+                    {
+                        var att = _sessionManager.CurrentSession.PendingAttachments[i];
+                        int idx = i;
+                        if(att.IsImage)
+                        {
+                            var previewSrc = att.GetPreviewSrc();
+                            <div class="relative group">
+                                <img src="@previewSrc" alt="@att.FileName" role="button" aria-label="@($"View full size image of {att.FileName}")"
+                                     class="rounded-md object-cover border border-vscode-border cursor-zoom-in" style="height:64px;max-width:96px"
+                                     title="@att.FilePath"
+                                     @onclick="@(async () => await OpenLightbox(previewSrc ?? string.Empty, att.FileName))" />
+                                <button @onclick="() => RemoveAttachment(idx)"
+                                        class="absolute -top-1.5 -right-1.5 bg-vscode-sidebar border border-vscode-border rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-xs leading-none"
+                                        aria-label="@($"Remove {att.FileName}")">
+                                    ×
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="relative group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-vscode-sidebar border border-vscode-border text-xs secondary-text max-w-40"
+                                 title="@att.FilePath">
+                                <svg class="icon-xs flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                </svg>
+                                <span class="truncate">@att.FileName</span>
+                                <button @onclick="() => RemoveAttachment(idx)"
+                                        class="absolute -top-1.5 -right-1.5 bg-vscode-sidebar border border-vscode-border rounded-full w-4 h-4 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-xs leading-none"
+                                        aria-label="@($"Remove {att.FileName}")">
+                                    ×
+                                </button>
+                            </div>
+                        }
+                    }
+                </div>
+            }
             <div class="flex items-stretch">
-                <div class="flex-1">
-                    <textarea id="chatInput" @bind="_chatInput" @bind:event="oninput" @bind:after="OnTextareaInput" @onkeydown="HandleKeyDown"
+                <div class="flex-1" style="align-content: flex-end">
+                    <textarea id="chatInput" @bind="UserInput" @bind:event="oninput" @bind:after="OnTextareaInput" @onkeydown="HandleKeyDown"
                               class="w-full bg-transparent text-vscode-text px-3 py-2 resize-none focus:outline-none scrollbar-thin"
+                              style="font-size: 0.875rem;"
                               rows="1" placeholder="Ask Copilot anything..." disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)"></textarea>
                 </div>
                 <div class="flex items-end space-x-1 p-2 border-l border-vscode-border self-stretch">
-                    <SpeechToTextControl @bind-ChatInput="_chatInput"
+                    <button @onclick="AttachFiles" class="p-1.5 hover:bg-vscode-hover rounded" title="Attach file" disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
+                        <svg class="icon-xs secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                    </button>
+                    <SpeechToTextControl @bind-ChatInput="UserInput"
                                          Disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)" />
-                    <button @onclick="SendMessage" class="btn-primary p-1.5 rounded" title="Send" disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
+                    <button @onclick="SendMessage"
+                            class="btn-primary p-1.5 rounded transition-opacity @(!CanSend ? "opacity-40 cursor-not-allowed" : "")"
+                            title="Send" disabled="@(!CanSend)">
                         <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
@@ -24,18 +72,7 @@
                 </div>
             </div>
             <div class="flex items-center justify-between px-3 py-1.5 border-t border-vscode-border">
-                <div class="flex items-center space-x-2">
-                    <button class="p-1 hover:bg-vscode-hover rounded" title="Attach file" disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
-                        <svg class="icon-xs secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                        </svg>
-                    </button>
-                    <button class="p-1 hover:bg-vscode-hover rounded" title="Code snippet" disabled="@(_sessionManager.CurrentSession?.PendingPermissionRequests?.Count > 0)">
-                        <svg class="icon-xs secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                        </svg>
-                    </button>
-                </div>
+                <div></div>
                 <div class="flex items-center space-x-3">
                     <ModelControl />
                     <button @onclick="ToggleYoloMode"
