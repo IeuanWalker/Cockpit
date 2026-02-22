@@ -9,19 +9,40 @@ namespace Cockpit.Components.Layout;
 
 public partial class MainLayout : IDisposable
 {
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
-	[Inject] ThemeFeature _themeFeature { get; set; } = default!;
+	readonly UIStateFeature _uiStateFeature;
+	readonly SessionListFeature _sessionListFeature;
+	readonly ThemeFeature _themeFeature;
 
-	static UIStateFeature? staticUIState;
-	SettingsPopup? _settingsPopup;
+	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
+
+	public MainLayout(
+		UIStateFeature uiStateFeature,
+		SessionListFeature sessionListFeature,
+		ThemeFeature themeFeature)
+	{
+		_uiStateFeature = uiStateFeature;
+		_sessionListFeature = sessionListFeature;
+		_themeFeature = themeFeature;
+
+		_uiStateFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnStateChanged += OnStateChanged;
+	}
+
+	SettingsPopup _settingsPopup = default!;
+	DotNetObjectReference<MainLayout>? _dotNetRef;
 
 	protected override async Task OnInitializedAsync()
 	{
 		await _themeFeature.Initialize();
-		_uiState.OnStateChanged += OnStateChanged;
-		_sessionManager.OnStateChanged += OnStateChanged;
-		staticUIState = _uiState; // Store static reference for title bar access
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if(firstRender)
+		{
+			_dotNetRef = DotNetObjectReference.Create(this);
+			await _jsRuntime.InvokeVoidAsync("cockpit.setMainLayoutRef", _dotNetRef);
+		}
 	}
 
 	void OnStateChanged()
@@ -30,9 +51,9 @@ public partial class MainLayout : IDisposable
 	}
 
 	[JSInvokable("ToggleSettingsFromTitleBar")]
-	public static void ToggleSettingsFromTitleBar()
+	public void ToggleSettingsFromTitleBar()
 	{
-		staticUIState?.ToggleSettingsPopup();
+		_settingsPopup.OpenToSection(SettingsSectionEnum.Appearance);
 	}
 
 	public void Dispose()
@@ -45,8 +66,9 @@ public partial class MainLayout : IDisposable
 	{
 		if(disposing)
 		{
-			_uiState.OnStateChanged -= OnStateChanged;
-			_sessionManager.OnStateChanged -= OnStateChanged;
+			_uiStateFeature.OnStateChanged -= OnStateChanged;
+			_sessionListFeature.OnStateChanged -= OnStateChanged;
+			_dotNetRef?.Dispose();
 		}
 	}
 }

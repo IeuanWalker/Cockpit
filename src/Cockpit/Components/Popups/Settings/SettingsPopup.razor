@@ -1,26 +1,13 @@
-<!-- Settings Overlay -->
-<div class="settings-overlay @(_uiState.SettingsPopupOpen ? "active" : "")" @onclick="_uiState.CloseSettingsPopup"></div>
+@using Cockpit.Components.Controls
 
-<!-- Settings Popup -->
-<div class="settings-popup @(_uiState.SettingsPopupOpen ? "active" : "")">
-    <div class="settings-popup-shell bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl">
-        <!-- Settings Header -->
-        <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between">
-            <h3 class="text-vscode-title font-semibold flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Settings
-            </h3>
-            <button @onclick="_uiState.ToggleSettingsPopup" class="p-1 hover:bg-vscode-hover rounded">
-                <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-
-        <!-- Settings Content -->
+<PopupBase @ref="_popup" Title="Settings" PopupStyle="width: 42rem; max-width: calc(100vw - 2.5rem);">
+    <HeaderLeft>
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+    </HeaderLeft>
+    <Content>
         <div class="settings-popup-content">
             <nav class="settings-menu border-r border-vscode-border">
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Appearance ? "active" : "")"
@@ -78,7 +65,5 @@
                 }
             </div>
         </div>
-    </div>
-</div>
-
-
+    </Content>
+</PopupBase>

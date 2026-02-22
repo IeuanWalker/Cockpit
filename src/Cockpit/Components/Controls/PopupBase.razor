@@ -1,6 +1,6 @@
 ﻿<div class="settings-overlay @(_show ? "active" : "")" @onclick="Close"></div>
-<div class="settings-popup @(_show ? "active" : "")">
-    <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl w-[500px] max-w-[90vw]">
+<div class="settings-popup  w-[500px] max-w-[90vw] @(_show ? "active" : "")" style="@PopupStyle">
+    <div class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-2xl">
         <div class="px-4 py-3 border-b border-vscode-border flex items-center justify-between">
             @if(TitleArea is null)
             {

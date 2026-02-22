@@ -1,3 +1,4 @@
+using Cockpit.Components.Popups.Settings;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
@@ -10,6 +11,8 @@ public sealed partial class GlobalCommands : ComponentBase, IDisposable
 	[Inject] UIStateFeature _uiState { get; set; } = null!;
 
 	public List<string> Commands { get; set; } = [];
+
+	SettingsPopup _settingsPopup = default!;
 
 	protected override void OnInitialized()
 	{
@@ -25,7 +28,7 @@ public sealed partial class GlobalCommands : ComponentBase, IDisposable
 
 	void OpenCommandsSettings()
 	{
-		_uiState.OpenSettingsToSection(SettingsSectionEnum.Commands);
+		_settingsPopup.OpenToSection(SettingsSectionEnum.Commands);
 	}
 
 	public void Dispose()

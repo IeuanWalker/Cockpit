@@ -1,3 +1,4 @@
+using Cockpit.Components.Controls;
 using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
@@ -8,25 +9,18 @@ public partial class SettingsPopup : ComponentBase, IDisposable
 	SettingsSectionEnum _activeSection = SettingsSectionEnum.Appearance;
 	[Inject] UIStateFeature _uiState { get; set; } = default!;
 
+	PopupBase _popup = default!;
+
 	public void OpenToSection(SettingsSectionEnum section)
 	{
 		_activeSection = section;
+		_popup.Open();
 		StateHasChanged();
 	}
 
 	protected override void OnInitialized()
 	{
 		_uiState.OnStateChanged += OnStateChanged;
-	}
-
-	protected override void OnAfterRender(bool firstRender)
-	{
-		if(_uiState.PendingSettingsSection.HasValue)
-		{
-			_activeSection = _uiState.PendingSettingsSection.Value;
-			_uiState.ClearPendingSettingsSection();
-			StateHasChanged();
-		}
 	}
 
 	void OnStateChanged()

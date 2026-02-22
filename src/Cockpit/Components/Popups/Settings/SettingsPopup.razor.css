@@ -1,11 +1,3 @@
-.settings-popup-shell {
-    width: 42rem;
-    max-width: calc(100vw - 2.5rem);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
 .settings-popup-content {
     display: flex;
     min-height: 22rem;

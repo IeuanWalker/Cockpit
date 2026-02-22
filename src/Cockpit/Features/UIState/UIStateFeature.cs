@@ -46,11 +46,7 @@ public class UIStateFeature
 		}
 	}
 
-	public bool SettingsPopupOpen { get; private set; } = false;
-
 	public bool IsRecording { get; private set; } = false;
-
-	public SettingsSectionEnum? PendingSettingsSection { get; private set; } = null;
 
 	bool _sendOnEnter;
 	public bool SendOnEnter
@@ -96,45 +92,6 @@ public class UIStateFeature
 	{
 		RightSidebarWidth = Math.Clamp(width, 150, 600);
 		OnStateChanged?.Invoke();
-	}
-
-	public void ToggleSettingsPopup()
-	{
-		SettingsPopupOpen = !SettingsPopupOpen;
-		OnStateChanged?.Invoke();
-	}
-
-	public void OpenSettingsPopup()
-	{
-		if(!SettingsPopupOpen)
-		{
-			SettingsPopupOpen = true;
-			OnStateChanged?.Invoke();
-		}
-	}
-
-	public void OpenSettingsToSection(SettingsSectionEnum section)
-	{
-		PendingSettingsSection = section;
-		if(!SettingsPopupOpen)
-		{
-			SettingsPopupOpen = true;
-		}
-		OnStateChanged?.Invoke();
-	}
-
-	public void ClearPendingSettingsSection()
-	{
-		PendingSettingsSection = null;
-	}
-
-	public void CloseSettingsPopup()
-	{
-		if(SettingsPopupOpen)
-		{
-			SettingsPopupOpen = false;
-			OnStateChanged?.Invoke();
-		}
 	}
 
 	public void ToggleRecording()
