@@ -65,7 +65,7 @@ static class UserMessageHandler
 			{
 				string filePath = file.Path ?? string.Empty;
 				string fileName = file.DisplayName ?? Path.GetFileName(filePath);
-				string ext = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant();
+				string ext = FileUtil.GetNormalizedExtension(fileName);
 				string mimeType = FileUtil.GetMimeType(ext);
 				result.Add(new AttachmentModel(fileName, filePath, null, mimeType));
 			}

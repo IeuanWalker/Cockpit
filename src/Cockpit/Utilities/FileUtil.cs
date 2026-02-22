@@ -2,6 +2,9 @@ namespace Cockpit.Utilities;
 
 public static class FileUtil
 {
+	public static string GetNormalizedExtension(string fileName) =>
+		Path.GetExtension(fileName ?? string.Empty).TrimStart('.').ToLowerInvariant();
+
 	public static string GetMimeType(string ext) => ext.TrimStart('.').ToLowerInvariant() switch
 	{
 		"png" => "image/png",
