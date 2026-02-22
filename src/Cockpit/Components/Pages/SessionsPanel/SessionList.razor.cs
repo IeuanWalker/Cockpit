@@ -91,6 +91,12 @@ public partial class SessionList : ComponentBase, IDisposable
 		.Distinct(StringComparer.OrdinalIgnoreCase)
 		.OrderBy(s => s, StringComparer.OrdinalIgnoreCase);
 
+	bool _pastSessionsExpanded = false;
+
+	IEnumerable<SessionModel> PastSessions => _sessionFeature.Sessions
+		.Where(s => (DateTime.UtcNow - s.LastActivity).TotalDays > 7)
+		.OrderByDescending(s => s.LastActivity);
+
 	static string NormalizePath(string path) =>
 		path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
