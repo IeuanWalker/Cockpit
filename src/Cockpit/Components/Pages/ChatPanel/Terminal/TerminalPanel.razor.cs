@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using XtermBlazor;
 
-namespace Cockpit.Components.Pages.ChatPanel;
+namespace Cockpit.Components.Pages.ChatPanel.Terminal;
 
 public partial class TerminalPanel : IDisposable
 {

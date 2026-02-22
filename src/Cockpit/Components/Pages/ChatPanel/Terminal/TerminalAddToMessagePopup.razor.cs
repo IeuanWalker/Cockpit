@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
-namespace Cockpit.Components.Pages.ChatPanel;
+namespace Cockpit.Components.Pages.ChatPanel.Terminal;
 
 public partial class TerminalAddToMessagePopup : ComponentBase
 {
