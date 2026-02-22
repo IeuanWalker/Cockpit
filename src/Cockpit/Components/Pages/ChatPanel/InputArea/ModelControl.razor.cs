@@ -7,8 +7,13 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class ModelControl : ComponentBase, IDisposable
 {
-	[Inject] ModelFeature _copilotModelFeature { get; set; } = default!;
-	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
+	readonly ModelFeature _modelFeature;
+	readonly SessionListFeature _sessionListFeature;
+	public ModelControl(ModelFeature modelFeature, SessionListFeature sessionListFeature)
+	{
+		_modelFeature = modelFeature;
+		_sessionListFeature = sessionListFeature;
+	}
 
 	List<ModelInfo> _availableModels = [];
 	bool _isModelDropdownOpen = false;
@@ -16,9 +21,9 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 	protected override async Task OnInitializedAsync()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnStateChanged += OnStateChanged;
 
-		_availableModels = await _copilotModelFeature.GetModels();
+		_availableModels = await _modelFeature.GetModels();
 	}
 
 	void OnStateChanged()
@@ -33,21 +38,21 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 	void SelectModel(ModelInfo model)
 	{
-		if(_sessionManager.CurrentSession is null)
+		if(_sessionListFeature.CurrentSession is null)
 		{
 			return;
 		}
 
 		// Check if model actually changed
-		if(_sessionManager.CurrentSession.Model.Id == model.Id)
+		if(_sessionListFeature.CurrentSession.Model.Id == model.Id)
 		{
 			_isModelDropdownOpen = false;
 			return;
 		}
 
 		// Update model and mark session for restart
-		_sessionManager.CurrentSession.Model = model;
-		_sessionManager.CurrentSession.ModelChanged = true;
+		_sessionListFeature.CurrentSession.Model = model;
+		_sessionListFeature.CurrentSession.ModelChanged = true;
 
 		_isModelDropdownOpen = false;
 
@@ -57,19 +62,19 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 	void UpdateReasoningEffortForSelectedModel()
 	{
-		if(_sessionManager.CurrentSession?.Model is null)
+		if(_sessionListFeature.CurrentSession?.Model is null)
 		{
 			return;
 		}
 
-		string newEffort = _sessionManager.CurrentSession.Model.DefaultReasoningEffort ?? string.Empty;
-		string currentEffort = _sessionManager.CurrentSession.ReasoningEffort ?? string.Empty;
+		string newEffort = _sessionListFeature.CurrentSession.Model.DefaultReasoningEffort ?? string.Empty;
+		string currentEffort = _sessionListFeature.CurrentSession.ReasoningEffort ?? string.Empty;
 
 		// Only mark for restart if reasoning effort actually changed
 		if(currentEffort != newEffort)
 		{
-			_sessionManager.CurrentSession.ReasoningEffort = newEffort;
-			_sessionManager.CurrentSession.ModelChanged = true;
+			_sessionListFeature.CurrentSession.ReasoningEffort = newEffort;
+			_sessionListFeature.CurrentSession.ModelChanged = true;
 		}
 	}
 
@@ -80,53 +85,53 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 	void SelectReasoningEffort(string effort)
 	{
-		if(_sessionManager.CurrentSession is null)
+		if(_sessionListFeature.CurrentSession is null)
 		{
 			return;
 		}
 
 		// Check if reasoning effort actually changed
-		if(_sessionManager.CurrentSession.ReasoningEffort == effort)
+		if(_sessionListFeature.CurrentSession.ReasoningEffort == effort)
 		{
 			_isReasoningEffortDropdownOpen = false;
 			return;
 		}
 
 		// Update reasoning effort and mark session for restart
-		_sessionManager.CurrentSession.ReasoningEffort = effort;
-		_sessionManager.CurrentSession.ModelChanged = true;
+		_sessionListFeature.CurrentSession.ReasoningEffort = effort;
+		_sessionListFeature.CurrentSession.ModelChanged = true;
 
 		_isReasoningEffortDropdownOpen = false;
 	}
 
 	string GetSelectedReasoningEffortDisplay()
 	{
-		if(string.IsNullOrEmpty(_sessionManager.CurrentSession?.ReasoningEffort))
+		if(string.IsNullOrEmpty(_sessionListFeature.CurrentSession?.ReasoningEffort))
 		{
 			return "Default";
 		}
 
-		return char.ToUpper(_sessionManager.CurrentSession.ReasoningEffort[0]) + _sessionManager.CurrentSession.ReasoningEffort[1..];
+		return char.ToUpper(_sessionListFeature.CurrentSession.ReasoningEffort[0]) + _sessionListFeature.CurrentSession.ReasoningEffort[1..];
 	}
 
 	string GetDisplayModelName()
 	{
-		if(_sessionManager.CurrentSession is null)
+		if(_sessionListFeature.CurrentSession is null)
 		{
 			return "No Model";
 		}
 
-		return _sessionManager.CurrentSession.Model.Name;
+		return _sessionListFeature.CurrentSession.Model.Name;
 	}
 
 	double GetDisplayModelMultiplier()
 	{
-		if(_sessionManager.CurrentSession is null)
+		if(_sessionListFeature.CurrentSession is null)
 		{
 			return 1.0;
 		}
 
-		return _sessionManager.CurrentSession.Model.Billing?.Multiplier ?? 1.0;
+		return _sessionListFeature.CurrentSession.Model.Billing?.Multiplier ?? 1.0;
 	}
 
 	string GetMultiplierColor(double multiplier)
@@ -170,7 +175,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
+			_sessionListFeature.OnStateChanged -= OnStateChanged;
 		}
 	}
 }
