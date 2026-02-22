@@ -88,8 +88,16 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	static string GetAttachmentLabel(int imageCount, int fileCount)
 	{
 		List<string> parts = [];
-		if(imageCount > 0) parts.Add($"{imageCount} image{(imageCount > 1 ? "s" : "")}");
-		if(fileCount > 0) parts.Add($"{fileCount} file{(fileCount > 1 ? "s" : "")}");
+		if(imageCount > 0)
+		{
+			parts.Add($"{imageCount} image{(imageCount > 1 ? "s" : "")}");
+		}
+
+		if(fileCount > 0)
+		{
+			parts.Add($"{fileCount} file{(fileCount > 1 ? "s" : "")}");
+		}
+
 		return string.Join(", ", parts);
 	}
 

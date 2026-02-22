@@ -2,7 +2,7 @@ namespace Cockpit.Features.Sessions.Models;
 
 public class AttachmentModel
 {
-	static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+	static readonly HashSet<string> imageExtensions = new(StringComparer.OrdinalIgnoreCase)
 	{
 		".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".svg"
 	};
@@ -26,7 +26,7 @@ public class AttachmentModel
 
 	public bool IsImage =>
 		MimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
-		ImageExtensions.Contains(Path.GetExtension(FileName));
+		imageExtensions.Contains(Path.GetExtension(FileName));
 
 	/// <summary>
 	/// Returns a data URI suitable for an img src. Uses cached value if available,
