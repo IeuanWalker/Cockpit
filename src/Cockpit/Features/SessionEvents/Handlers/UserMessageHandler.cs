@@ -67,18 +67,10 @@ static class UserMessageHandler
 				string fileName = file.DisplayName ?? Path.GetFileName(filePath);
 				string ext = FileUtil.GetNormalizedExtension(fileName);
 				string mimeType = FileUtil.GetMimeType(ext);
-				string? dataUri = null;
-				if(mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) && File.Exists(filePath))
-				{
-					try
-					{
-						byte[] bytes = File.ReadAllBytes(filePath);
-						dataUri = $"data:{mimeType};base64,{Convert.ToBase64String(bytes)}";
-					}
-					catch { /* ignore — attachment will render without preview */ }
-				}
+				// DataUri is intentionally null here — AttachmentModel.GetPreviewSrc() will lazily
+				// read the file from disk at render time, avoiding a blocking read on the SDK event thread.
 
-				result.Add(new AttachmentModel(fileName, filePath, dataUri, mimeType));
+				result.Add(new AttachmentModel(fileName, filePath, null, mimeType));
 			}
 		}
 
