@@ -67,7 +67,18 @@ static class UserMessageHandler
 				string fileName = file.DisplayName ?? Path.GetFileName(filePath);
 				string ext = FileUtil.GetNormalizedExtension(fileName);
 				string mimeType = FileUtil.GetMimeType(ext);
-				result.Add(new AttachmentModel(fileName, filePath, null, mimeType));
+				string? dataUri = null;
+				if(mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) && File.Exists(filePath))
+				{
+					try
+					{
+						byte[] bytes = File.ReadAllBytes(filePath);
+						dataUri = $"data:{mimeType};base64,{Convert.ToBase64String(bytes)}";
+					}
+					catch { /* ignore — attachment will render without preview */ }
+				}
+
+				result.Add(new AttachmentModel(fileName, filePath, dataUri, mimeType));
 			}
 		}
 
