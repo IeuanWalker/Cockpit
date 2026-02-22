@@ -18,7 +18,7 @@
                         {
                             var previewSrc = att.GetPreviewSrc();
                             <div class="relative group">
-                                <img src="@previewSrc" alt="@att.FileName"
+                                <img src="@previewSrc" alt="@att.FileName" role="button" aria-label="@($"View full size image of {att.FileName}")"
                                      class="rounded-md object-cover border border-vscode-border cursor-zoom-in" style="height:64px;max-width:96px"
                                      @onclick="@(async () => await OpenLightbox(previewSrc ?? string.Empty, att.FileName))" />
                                 <button @onclick="() => RemoveAttachment(idx)"
