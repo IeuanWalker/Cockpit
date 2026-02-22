@@ -52,7 +52,11 @@
                                             if(att.IsImage)
                                             {
                                                 var previewSrc = att.GetPreviewSrc();
-                                                <div class="relative cursor-zoom-in" @onclick="@(() => OpenLightbox(previewSrc ?? string.Empty, att.FileName))" title="@att.FileName">
+                                                <div class="relative cursor-zoom-in"
+                                                     role="button"
+                                                     aria-label="@($"Open image {att.FileName}")"
+                                                     @onclick="@(() => OpenLightbox(previewSrc ?? string.Empty, att.FileName))"
+                                                     title="@att.FileName">
                                                     <img src="@previewSrc" alt="@att.FileName"
                                                          class="rounded-lg object-cover border border-vscode-border" style="height:80px;max-width:120px" />
                                                 </div>
