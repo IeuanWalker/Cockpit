@@ -9,23 +9,6 @@ public partial class ConnectionStatusBanner : ComponentBase, IDisposable
 
 	ConnectionStatusPopup _popup = default!;
 
-
-	string _statusClass => _connectionFeature.Status switch
-	{
-		ConnectionStatusEnum.Connected => "connected",
-		ConnectionStatusEnum.Disconnected => "disconnected",
-		ConnectionStatusEnum.Checking => "checking",
-		_ => "checking"
-	};
-
-	string _statusText => _connectionFeature.Status switch
-	{
-		ConnectionStatusEnum.Connected => "Connected",
-		ConnectionStatusEnum.Disconnected => "Disconnected",
-		ConnectionStatusEnum.Checking => "Checking...",
-		_ => "Unknown"
-	};
-
 	protected override void OnInitialized()
 	{
 		_connectionFeature.OnStatusChanged += OnStatusChanged;

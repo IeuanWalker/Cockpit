@@ -3,7 +3,7 @@
 
 <PopupBase @ref="_popup" Title="Connection Status" ContentClass="flex-1 min-h-0 overflow-hidden">
     <HeaderLeft>
-        <span class="connection-dot @_statusClass" style="width:10px;height:10px;display:inline-block;border-radius:50%;flex-shrink:0;margin-right:8px"></span>
+        <span class="connection-dot @ConnectionStatusHelpers.GetStatusClass(_connectionFeature.Status)" style="width:10px;height:10px;display:inline-block;border-radius:50%;flex-shrink:0;margin-right:8px"></span>
     </HeaderLeft>
     <HeaderRight>
         <button @onclick="OpenHistoryPopup" class="p-1 px-2 hover:bg-vscode-hover rounded text-xs secondary-text" title="View check history">

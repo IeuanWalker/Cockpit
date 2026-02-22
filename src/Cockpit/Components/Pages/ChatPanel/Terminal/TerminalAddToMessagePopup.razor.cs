@@ -82,12 +82,12 @@ public partial class TerminalAddToMessagePopup : ComponentBase
 		}
 	}
 
-	async Task HandleClose()
+	void HandleClose()
 	{
 		_popup.Close();
 	}
 
-	async Task HandleConfirm()
+	void HandleConfirm()
 	{
 		if(!string.IsNullOrEmpty(PreviewText))
 		{

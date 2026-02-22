@@ -16,14 +16,6 @@ public partial class ConnectionStatusPopup
 
 	public void Open() => _popup.Open();
 
-	string _statusClass => _connectionFeature.Status switch
-	{
-		ConnectionStatusEnum.Connected => "connected",
-		ConnectionStatusEnum.Disconnected => "disconnected",
-		ConnectionStatusEnum.Checking => "checking",
-		_ => "checking"
-	};
-
 	void OpenHistoryPopup()
 	{
 		_popup.Close();
