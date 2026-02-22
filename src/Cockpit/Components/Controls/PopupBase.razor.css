@@ -8,7 +8,8 @@
 }
 
     .popup.active {
-        display: block;
+        display: flex;
+        flex-direction: column;
     }
 
 .popup-overlay {

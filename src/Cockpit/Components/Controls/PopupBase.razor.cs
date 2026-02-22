@@ -12,6 +12,7 @@ public partial class PopupBase
 	[Parameter] public RenderFragment? Footer { get; set; }
 	[Parameter] public string PopupStyle { get; set; } = string.Empty;
 	[Parameter] public bool FullHeight { get; set; }
+	[Parameter] public string ContentClass { get; set; } = "flex-1 min-h-0 overflow-y-auto scrollbar-thin";
 
 	bool _show;
 

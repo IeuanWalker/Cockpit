@@ -1,6 +1,6 @@
 @using Cockpit.Components.Controls
 
-<PopupBase @ref="_popup" Title="Add Terminal Output to Message">
+<PopupBase @ref="_popup" Title="Add Terminal Output to Message" ContentClass="flex-1 min-h-0 overflow-hidden">
     <Content>
         <!-- Line count selector -->
         <div class="px-4 py-3 border-b border-vscode-border">
@@ -10,9 +10,11 @@
         </div>
 
         <!-- Preview -->
-        <div class="px-4 py-3 flex-1 overflow-hidden flex flex-col min-h-0" style="max-height: 60vh">
+        <div class="px-4 pt-3 pb-0">
             <p class="text-xs secondary-text mb-2">Preview (@(string.IsNullOrEmpty(PreviewText) ? "0" : PreviewText.Split('\n').Length.ToString()) lines)</p>
-            <CodeBlock Code="@(string.IsNullOrEmpty(PreviewText) ? "(no terminal output available)" : PreviewText)" Language="powershell" />
+            <div class="overflow-y-auto scrollbar-thin max-h-[40vh]">
+                <CodeBlock Code="@(string.IsNullOrEmpty(PreviewText) ? "(no terminal output available)" : PreviewText)" Language="powershell" />
+            </div>
         </div>
     </Content>
     <Footer>
