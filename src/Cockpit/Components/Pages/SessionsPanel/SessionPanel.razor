@@ -6,7 +6,7 @@
             SESSIONS
         </h2>
         <div class="flex items-center gap-1">
-            <button @onclick="ToggleSearch" class="p-1 rounded @(_showSearch ? string.Empty : "hover:bg-vscode-hover")" style="@(_showSearch ? "background-color: var(--accent-color);" : string.Empty)" title="Search Sessions">
+            <button @onclick="ToggleSearch" class="p-1 rounded @(_showSearch ? "hover:opacity-75" : "hover:bg-vscode-hover")" style="@(_showSearch ? "background-color: var(--accent-color);" : string.Empty)" title="Search Sessions">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
                 </svg>
