@@ -40,12 +40,6 @@ public sealed class SessionPermissionFeature
 			return false;
 		}
 
-		string? commandsDirectory = Path.GetDirectoryName(commandsFilePath);
-		if(string.IsNullOrWhiteSpace(commandsDirectory) || !Directory.Exists(commandsDirectory))
-		{
-			return false;
-		}
-
 		if(!File.Exists(commandsFilePath))
 		{
 			return false;

@@ -25,8 +25,7 @@ public sealed partial class SessionFeature
 
 			_logger.LogInformation("Found {Count} existing sessions", sessionMetadataList.Count);
 
-			ModelInfo defaultModel = await _copilotModelFeature.GetDefaultModel();
-
+			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
 			foreach(SessionMetadata metadata in sessionMetadataList)
 			{
 				if(_sessionListFeature.Sessions.Any(s => s.Id == metadata.SessionId))
@@ -77,7 +76,7 @@ public sealed partial class SessionFeature
 	{
 		try
 		{
-			ModelInfo defaultModel = await _copilotModelFeature.GetDefaultModel();
+			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
 
 			SessionConfig config = new()
 			{
@@ -126,6 +125,9 @@ public sealed partial class SessionFeature
 			};
 
 			_sessionListFeature.AddSession(chatSession);
+
+			await _modelFeature.SaveSessionModelSettings(chatSession);
+
 			await SwitchCurrentSessionAsync(chatSession);
 
 			return chatSession;
@@ -177,6 +179,7 @@ public sealed partial class SessionFeature
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
+
 			bool registered = false;
 			try
 			{
@@ -220,7 +223,7 @@ public sealed partial class SessionFeature
 				session.SdkState = SdkSessionStateEnum.Loaded;
 				session.Context.WorkspacePath = sdkSession.WorkspacePath;
 				SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
-
+				await _modelFeature.TryRestoreModelSettings(session);
 				_sdkRegistry.Register(sdkSession, evt =>
 				{
 					_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
@@ -395,11 +398,6 @@ public sealed partial class SessionFeature
 
 	async Task RestartSessionWithPendingConfig(SessionModel session)
 	{
-		if(!session.RequiresRestart)
-		{
-			return;
-		}
-
 		try
 		{
 			_logger.LogInformation(
@@ -414,8 +412,6 @@ public sealed partial class SessionFeature
 				session.Model.Id,
 				session.ReasoningEffort
 			);
-
-			session.RequiresRestart = false;
 
 			_logger.LogInformation("Session {SessionId} restarted successfully", session.Id);
 			_sessionListFeature.NotifyStateChanged();
