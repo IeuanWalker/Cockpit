@@ -81,7 +81,13 @@ public partial class SessionList : ComponentBase, IDisposable
 		.OrderBy(s => s, StringComparer.OrdinalIgnoreCase);
 
 	IEnumerable<IGrouping<string, string>> GroupedCwds => UniqueCwds
-		.GroupBy(cwd => Path.GetFileName(cwd), StringComparer.OrdinalIgnoreCase)
+		.GroupBy(
+			cwd =>
+			{
+				string name = Path.GetFileName(cwd);
+				return string.IsNullOrEmpty(name) ? cwd : name;
+			},
+			StringComparer.OrdinalIgnoreCase)
 		.OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
 
 	IEnumerable<string> UniqueRepos => _sessionFeature.Sessions
