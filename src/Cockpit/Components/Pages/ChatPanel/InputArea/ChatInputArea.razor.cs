@@ -1,3 +1,4 @@
+using Blazor.Sonner.Services;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.UIState;
@@ -15,6 +16,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	[Inject] SessionFeature _sessionManager { get; set; } = default!;
 	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
 	[Inject] ILogger<ChatInputArea> _logger { get; set; } = default!;
+	[Inject] ToastService _toastService { get; set; } = default!;
 
 	// Brief yield to allow Blazor to flush the binding update before resizing
 	const int textareaResizeYieldMs = 10;
@@ -142,9 +144,20 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		}
 
 		string dataUri = $"data:{mimeType};base64,{base64}";
+		bool isDuplicate;
 		lock(session.PendingAttachmentsLock)
 		{
-			session.PendingAttachments.Add(new AttachmentModel(fileName, filePath, dataUri, mimeType));
+			isDuplicate = session.PendingAttachments.Any(a => a.DataUri == dataUri);
+			if(!isDuplicate)
+			{
+				session.PendingAttachments.Add(new AttachmentModel(fileName, filePath, dataUri, mimeType));
+			}
+		}
+
+		if(isDuplicate)
+		{
+			_toastService.Info("Already attached", opts => opts.Description = $"{fileName} is already attached.");
+			try { File.Delete(filePath); } catch { /* ignore */ }
 		}
 
 		await InvokeAsync(StateHasChanged);
@@ -204,6 +217,12 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 				lock(session.PendingAttachmentsLock)
 				{
+					if(session.PendingAttachments.Any(a => string.Equals(a.FilePath, filePath, StringComparison.OrdinalIgnoreCase)))
+					{
+						_toastService.Info("Already attached", opts => opts.Description = $"{result.FileName} is already attached.");
+						continue;
+					}
+
 					session.PendingAttachments.Add(new AttachmentModel(result.FileName, filePath, dataUri, mimeType));
 				}
 			}
