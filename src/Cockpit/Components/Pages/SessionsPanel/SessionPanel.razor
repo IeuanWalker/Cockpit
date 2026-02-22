@@ -1,5 +1,5 @@
 @using Cockpit.Components.Popups
-<div id="leftSidebar" class="sidebar @(_uiState.LeftSidebarCollapsed ? "collapsed" : "") w-56 bg-vscode-sidebar border-r border-vscode-border flex flex-col" style="width: @(_uiState.LeftSidebarWidth)px">
+<div id="leftSidebar" class="sidebar @(_uiStateFeature.LeftSidebarCollapsed ? "collapsed" : "") w-56 bg-vscode-sidebar border-r border-vscode-border flex flex-col" style="width: @(_uiStateFeature.LeftSidebarWidth)px">
     <!-- Sidebar Header -->
     <div class="h-10 px-3 py-2 border-b border-vscode-border flex items-center justify-between">
         <h2 class="text-vscode-title font-semibold text-xs flex items-center">
@@ -16,9 +16,9 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
             </button>
-            @if(_sessionManager.CurrentSession is not null)
+            @if(_sessionFeature.CurrentSession is not null)
             {
-                <button @onclick="_uiState.ToggleLeftSidebar" class="p-1 hover:bg-vscode-hover rounded" title="Collapse">
+                <button @onclick="_uiStateFeature.ToggleLeftSidebar" class="p-1 hover:bg-vscode-hover rounded" title="Collapse">
                     <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
                     </svg>
@@ -33,7 +33,7 @@
         {
             <SessionListSkeleton />
         }
-        else if(_sessionManager.Sessions.Count == 0)
+        else if(_sessionFeature.Sessions.Count == 0)
         {
             <NoSessions />
         }
@@ -60,7 +60,7 @@
                     @foreach(var session in PastSessions)
                     {
                         <SessionListItem Session="@session"
-                                         IsActive="@(_sessionManager.CurrentSession?.Id == session.Id)"
+                                         IsActive="@(_sessionFeature.CurrentSession?.Id == session.Id)"
                                          OnSelect="SelectPastSession"
                                          OnDelete="@(e => ShowPastDeleteDialog(session, e))"
                                          TimeAgo="@GetTimeAgo(session.LastActivity)" />

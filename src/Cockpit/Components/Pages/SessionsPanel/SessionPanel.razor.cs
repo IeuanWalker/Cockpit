@@ -11,10 +11,22 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 
 public partial class SessionPanel : ComponentBase, IDisposable
 {
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] SessionFeature _sessionManager { get; set; } = default!;
-	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
-	[Inject] TimestampFeature _timestampFeature { get; set; } = default!;
+	readonly UIStateFeature _uiStateFeature;
+	readonly SessionFeature _sessionFeature;
+	readonly IJSRuntime _jsRuntime;
+	readonly TimestampFeature _timestampFeature;
+
+	public SessionPanel(
+		UIStateFeature uiStateFeature,
+		SessionFeature sessionFeature,
+		IJSRuntime jsRuntime,
+		TimestampFeature timestampFeature)
+	{
+		_uiStateFeature = uiStateFeature;
+		_sessionFeature = sessionFeature;
+		_jsRuntime = jsRuntime;
+		_timestampFeature = timestampFeature;
+	}
 
 	DotNetObjectReference<SessionPanel>? _dotNetHelper;
 	CreateSessionPopup? _createSessionPopup;
@@ -23,8 +35,8 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
-		_uiState.OnStateChanged += OnStateChanged;
+		_sessionFeature.OnStateChanged += OnStateChanged;
+		_uiStateFeature.OnStateChanged += OnStateChanged;
 		_timestampFeature.OnTick += OnStateChanged;
 	}
 
@@ -38,7 +50,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	protected override async Task OnInitializedAsync()
 	{
 		_isLoadingSessions = true;
-		await _sessionManager.LoadExistingSessions();
+		await _sessionFeature.LoadExistingSessions();
 		_isLoadingSessions = false;
 	}
 
@@ -48,7 +60,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	bool IsSearchActive => _sessionList?.IsSearchActive ?? false;
 
-	IEnumerable<SessionModel> PastSessions => _sessionManager.Sessions
+	IEnumerable<SessionModel> PastSessions => _sessionFeature.Sessions
 		.Where(s => (DateTime.UtcNow - s.LastActivity).TotalDays > 7)
 		.OrderByDescending(s => s.LastActivity);
 
@@ -66,7 +78,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		_isRefreshingSessions = true;
 		try
 		{
-			Task loadTask = _sessionManager.LoadExistingSessions();
+			Task loadTask = _sessionFeature.LoadExistingSessions();
 			Task delayTask = Task.Delay(1000);
 			await Task.WhenAll(loadTask, delayTask);
 		}
@@ -88,7 +100,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	[JSInvokable]
 	public void OnResize(int width)
 	{
-		_uiState.SetLeftSidebarWidth(width);
+		_uiStateFeature.SetLeftSidebarWidth(width);
 	}
 
 	void CreateNewSession()
@@ -111,7 +123,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	async Task SelectPastSession(SessionModel session)
 	{
-		await _sessionManager.LoadSession(session.Id);
+		await _sessionFeature.LoadSession(session.Id);
 	}
 
 	public void Dispose()
@@ -124,8 +136,8 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
-			_uiState.OnStateChanged -= OnStateChanged;
+			_sessionFeature.OnStateChanged -= OnStateChanged;
+			_uiStateFeature.OnStateChanged -= OnStateChanged;
 			_timestampFeature.OnTick -= OnStateChanged;
 			_dotNetHelper?.Dispose();
 		}

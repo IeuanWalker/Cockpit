@@ -57,11 +57,20 @@ public partial class SessionList : ComponentBase, IDisposable
 		{
 			IEnumerable<SessionModel> sessions = AllSessionsSorted;
 			if(!string.IsNullOrWhiteSpace(_searchText))
+			{
 				sessions = sessions.Where(s => s.Title.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+			}
+
 			if(_filterCwds.Count > 0)
+			{
 				sessions = sessions.Where(s => _filterCwds.Contains(NormalizePath(s.Context.CurrentWorkingDirectory)));
+			}
+
 			if(_filterRepos.Count > 0)
+			{
 				sessions = sessions.Where(s => _filterRepos.Contains(s.Context.Repository ?? string.Empty));
+			}
+
 			return sessions;
 		}
 	}
@@ -90,29 +99,45 @@ public partial class SessionList : ComponentBase, IDisposable
 	void ToggleCwdFilter(string cwd)
 	{
 		if(!_filterCwds.Remove(cwd))
+		{
 			_filterCwds.Add(cwd);
+		}
 	}
 
 	void ToggleCwdGroup(IGrouping<string, string> group)
 	{
-		var items = group.ToList();
+		List<string> items = [.. group];
 		bool allSelected = items.All(cwd => _filterCwds.Contains(cwd));
 		if(allSelected)
-			foreach(var cwd in items) _filterCwds.Remove(cwd);
+		{
+			foreach(string cwd in items)
+			{
+				_filterCwds.Remove(cwd);
+			}
+		}
 		else
-			foreach(var cwd in items) _filterCwds.Add(cwd);
+		{
+			foreach(string cwd in items)
+			{
+				_filterCwds.Add(cwd);
+			}
+		}
 	}
 
 	void ToggleCwdGroupExpand(string groupName)
 	{
 		if(!_expandedCwdGroups.Remove(groupName))
+		{
 			_expandedCwdGroups.Add(groupName);
+		}
 	}
 
 	void ToggleRepoFilter(string repo)
 	{
 		if(!_filterRepos.Remove(repo))
+		{
 			_filterRepos.Add(repo);
+		}
 	}
 
 	protected override void OnInitialized()
