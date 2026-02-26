@@ -51,13 +51,22 @@
 
     @if(Tool.IsExpanded)
     {
-        var children = Tool.GetChildrenSnapshot();
-        @if(children.Count > 0)
+        var childEvents = Tool.GetChildEventsSnapshot();
+        @if(childEvents.Count > 0)
         {
             <div class="tool-children" @onclick:stopPropagation="true">
-                @foreach(var child in children)
+                @foreach(var childEvt in childEvents)
                 {
-                    <ToolExecutionDetail Tool="child" />
+                    @if(childEvt.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrEmpty(childEvt.Message))
+                    {
+                        <div class="thinking-message">
+                            <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
+                        </div>
+                    }
+                    else if(childEvt.Type == ThinkingEventTypeEnum.Tool && childEvt.Tool is not null)
+                    {
+                        <ToolExecutionDetail Tool="childEvt.Tool" />
+                    }
                 }
             </div>
         }

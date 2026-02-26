@@ -44,14 +44,30 @@ static class AssistantMessageHandler
 			// All messages during thinking go to the thinking panel
 			if(!string.IsNullOrWhiteSpace(content))
 			{
-				session.ActiveWorkingGroup.AddEvent(new ThinkingEventModel
+				ThinkingEventModel thinkingEvent = new()
 				{
 					Id = messageId,
 					Type = ThinkingEventTypeEnum.Message,
 					Message = content,
 					Timestamp = evt.Timestamp.LocalDateTime
-				});
-				Debug.WriteLine("Added intermediate message to thinking group");
+				};
+
+				// If this message belongs to a subagent, nest it under the parent tool call
+				string? parentCallId = evt.Data.ParentToolCallId;
+				ToolExecutionModel? parentTool = parentCallId is not null
+					? SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, parentCallId)
+					: null;
+
+				if(parentTool is not null)
+				{
+					parentTool.AddChildEvent(thinkingEvent);
+					Debug.WriteLine("Added intermediate message as child of parent tool");
+				}
+				else
+				{
+					session.ActiveWorkingGroup.AddEvent(thinkingEvent);
+					Debug.WriteLine("Added intermediate message to thinking group");
+				}
 			}
 
 			if(streamingMsg is not null)

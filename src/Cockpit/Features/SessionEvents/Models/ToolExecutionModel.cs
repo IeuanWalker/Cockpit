@@ -32,22 +32,43 @@ public class ToolExecutionModel
 		}
 	}
 
-	readonly Lock _childrenLock = new();
-	readonly List<ToolExecutionModel> _children = [];
+	readonly Lock _childEventsLock = new();
+	readonly List<ThinkingEventModel> _childEvents = [];
+
+	public void AddChildEvent(ThinkingEventModel evt)
+	{
+		lock(_childEventsLock)
+		{
+			_childEvents.Add(evt);
+		}
+	}
 
 	public void AddChild(ToolExecutionModel child)
 	{
-		lock(_childrenLock)
+		AddChildEvent(new ThinkingEventModel
 		{
-			_children.Add(child);
+			Type = ThinkingEventTypeEnum.Tool,
+			Tool = child,
+			Timestamp = child.StartTime
+		});
+	}
+
+	public List<ThinkingEventModel> GetChildEventsSnapshot()
+	{
+		lock(_childEventsLock)
+		{
+			return [.. _childEvents];
 		}
 	}
 
 	public List<ToolExecutionModel> GetChildrenSnapshot()
 	{
-		lock(_childrenLock)
+		lock(_childEventsLock)
 		{
-			return [.. _children];
+			return _childEvents
+				.Where(e => e.Type == ThinkingEventTypeEnum.Tool && e.Tool is not null)
+				.Select(e => e.Tool!)
+				.ToList();
 		}
 	}
 }
