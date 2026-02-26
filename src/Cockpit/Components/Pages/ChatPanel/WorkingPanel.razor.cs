@@ -23,39 +23,33 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 
 	Timer? _timer;
 	bool _isUserScrolledUpFromWorking = false;
-	bool _shouldScrollToBottom = false;
 	bool _scrollTrackingSetup = false;
-	int _lastEventCount = 0;
 	DotNetObjectReference<WorkingPanel>? _dotNetRef;
+
+	string? _prevSessionId;
+	string? _prevWorkingGroupId;
 
 	protected override void OnParametersSet()
 	{
-		// Start timer when thinking starts
+		string? currentSessionId = _sessionManager.CurrentSession?.Id;
+		string? currentWorkingGroupId = Group?.Id;
+
+		// Only reset scroll state if session or working group actually changed
+		if((currentSessionId != _prevSessionId || currentWorkingGroupId != _prevWorkingGroupId) && IsVisible && Group is not null && Group.Status == GroupStatusEnum.Running)
+		{
+			_isUserScrolledUpFromWorking = false; // Re-enable auto-scroll
+			_prevSessionId = currentSessionId;
+			_prevWorkingGroupId = currentWorkingGroupId;
+		}
+
 		if(IsVisible && Group is not null && Group.Status == GroupStatusEnum.Running)
 		{
-			_timer ??= new Timer(_ =>
-			{
-				// Only scroll if there's new content
-				int currentEventCount = Group?.GetEventsSnapshot()?.Count ?? 0;
-				if(currentEventCount > _lastEventCount)
-				{
-					_shouldScrollToBottom = true;
-					_lastEventCount = currentEventCount;
-				}
-				InvokeAsync(StateHasChanged);
-			}, null, 0, 200); // Check every 200ms for faster response
+			_timer ??= new Timer(_ => InvokeAsync(StateHasChanged), null, 0, 200);
 		}
 		else
 		{
-			// Stop timer when thinking completes
 			_timer?.Dispose();
 			_timer = null;
-		}
-
-		// Reset scroll tracking when panel becomes invisible
-		if(!IsVisible && _scrollTrackingSetup)
-		{
-			_scrollTrackingSetup = false;
 		}
 	}
 
@@ -66,18 +60,19 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 			_dotNetRef = DotNetObjectReference.Create(this);
 		}
 
-		// Setup scroll tracking when panel becomes visible (element is in DOM)
-		if(IsVisible && !_scrollTrackingSetup && _dotNetRef is not null)
+		// Cleanup smart scroll when panel becomes invisible (element leaving DOM)
+		if(!IsVisible && _scrollTrackingSetup)
 		{
-			_scrollTrackingSetup = true;
-			_lastEventCount = Group?.GetEventsSnapshot()?.Count ?? 0; // Initialize count
-			await SetupSmartScroll();
+			_scrollTrackingSetup = false;
+			await CleanupSmartScroll();
+			return;
 		}
 
-		if(_shouldScrollToBottom && !_isUserScrolledUpFromWorking)
+		// Always re-setup scroll tracking when panel becomes visible or session/working group changes
+		if(IsVisible && _dotNetRef is not null)
 		{
-			_shouldScrollToBottom = false;
-			await ScrollToBottom();
+			await SetupSmartScroll();
+			_scrollTrackingSetup = true;
 		}
 	}
 
@@ -97,6 +92,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	public void OnWorkingPanelScrollPositionChanged(bool isNearBottom)
 	{
 		_isUserScrolledUpFromWorking = !isNearBottom;
+		InvokeAsync(StateHasChanged);
 	}
 
 	async Task ScrollToBottom()
@@ -111,20 +107,25 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 		}
 	}
 
+	async Task CleanupSmartScroll()
+	{
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "workingContent");
+		}
+		catch(Exception ex)
+		{
+			_logger.LogDebug(ex, "Failed to cleanup smart scroll for working panel");
+		}
+	}
+
 	public async ValueTask DisposeAsync()
 	{
 		_timer?.Dispose();
 
 		if(_scrollTrackingSetup)
 		{
-			try
-			{
-				await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "workingContent");
-			}
-			catch(Exception ex)
-			{
-				_logger.LogDebug(ex, "Failed to cleanup smart scroll for working panel");
-			}
+			await CleanupSmartScroll();
 		}
 
 		_dotNetRef?.Dispose();

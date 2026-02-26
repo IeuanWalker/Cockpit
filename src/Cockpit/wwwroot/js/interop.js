@@ -75,17 +75,29 @@ window.cockpit = {
         if (element._smartScrollHandler) {
             element.removeEventListener('scroll', element._smartScrollHandler);
         }
+        if (element._smartScrollClickHandler) {
+            element.removeEventListener('click', element._smartScrollClickHandler, { capture: true });
+        }
         if (element._smartScrollResizeObserver) {
             element._smartScrollResizeObserver.disconnect();
         }
+        if (element._smartScrollMutationObserver) {
+            element._smartScrollMutationObserver.disconnect();
+        }
+        clearTimeout(element._smartScrollClickTimeout);
 
         const checkState = function (fromUserScroll) {
             const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
             if (element._wasNearBottom !== isNearBottom) {
-                // Content growth (ResizeObserver/MutationObserver) should never interrupt autoscroll.
-                // If content pushed us away from bottom, scroll back down to maintain the anchor.
+                // Content growth should maintain the auto-scroll anchor — UNLESS the user just
+                // clicked something (e.g. expanding a tool), in which case respect their position.
                 if (!isNearBottom && !fromUserScroll) {
-                    element.scrollTop = element.scrollHeight;
+                    if (element._recentClick) {
+                        element._wasNearBottom = false;
+                        dotnetHelper.invokeMethodAsync(methodName, false);
+                    } else {
+                        element.scrollTop = element.scrollHeight;
+                    }
                     return;
                 }
                 element._wasNearBottom = isNearBottom;
@@ -95,6 +107,15 @@ window.cockpit = {
 
         element._smartScrollHandler = () => checkState(true);
         element.addEventListener('scroll', element._smartScrollHandler);
+
+        // Track clicks so we can distinguish user-triggered expansions from pure content growth.
+        element._recentClick = false;
+        element._smartScrollClickHandler = () => {
+            element._recentClick = true;
+            clearTimeout(element._smartScrollClickTimeout);
+            element._smartScrollClickTimeout = setTimeout(() => { element._recentClick = false; }, 500);
+        };
+        element.addEventListener('click', element._smartScrollClickHandler, { capture: true });
 
         // Also recheck when content inside grows (tool rows expanding, new messages)
         element._smartScrollResizeObserver = new ResizeObserver(() => checkState(false));
@@ -109,9 +130,18 @@ window.cockpit = {
         // Watch for new children AND text content changes (streaming tokens into existing nodes)
         element._smartScrollMutationObserver = new MutationObserver(() => {
             observeChildren();
-            // If already pinned to bottom, scroll instantly without waiting for ResizeObserver
             if (element._wasNearBottom) {
-                element.scrollTop = element.scrollHeight;
+                if (element._recentClick) {
+                    // User-triggered DOM change — check actual position rather than forcing scroll.
+                    const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 50;
+                    if (!isNearBottom) {
+                        element._wasNearBottom = false;
+                        dotnetHelper.invokeMethodAsync(methodName, false);
+                    }
+                } else {
+                    // Pure content growth — keep pinned to bottom.
+                    element.scrollTop = element.scrollHeight;
+                }
             } else {
                 checkState(false);
             }
@@ -129,6 +159,13 @@ window.cockpit = {
             element.removeEventListener('scroll', element._smartScrollHandler);
             delete element._smartScrollHandler;
         }
+        if (element._smartScrollClickHandler) {
+            element.removeEventListener('click', element._smartScrollClickHandler, { capture: true });
+            delete element._smartScrollClickHandler;
+        }
+        clearTimeout(element._smartScrollClickTimeout);
+        delete element._smartScrollClickTimeout;
+        delete element._recentClick;
         if (element._smartScrollResizeObserver) {
             element._smartScrollResizeObserver.disconnect();
             delete element._smartScrollResizeObserver;
