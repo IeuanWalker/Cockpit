@@ -1,4 +1,4 @@
-namespace Cockpit.Features.UserInputs.Models;
+namespace Cockpit.Features.UserInputRequests;
 
 public class UserInputRequestModel
 {

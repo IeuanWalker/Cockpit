@@ -1,7 +1,7 @@
 using Cockpit.Components.Popups;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Sessions;
-using Cockpit.Features.UserInputs;
+using Cockpit.Features.UserInputRequests;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components;

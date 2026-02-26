@@ -2,12 +2,12 @@ using Blazor.Sonner.Services;
 using Cockpit.Features.Git;
 using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
-using Cockpit.Features.UserInputs;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Terminal;
+using Cockpit.Features.UserInputRequests;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 

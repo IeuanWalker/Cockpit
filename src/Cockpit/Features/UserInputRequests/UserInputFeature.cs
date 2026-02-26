@@ -1,12 +1,11 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
-using Cockpit.Features.UserInputs.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
-namespace Cockpit.Features.UserInputs;
+namespace Cockpit.Features.UserInputRequests;
 
 /// <summary>
 /// Service for managing user input requests from Copilot SDK

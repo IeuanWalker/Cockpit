@@ -6,7 +6,6 @@ using Cockpit.Features.Git;
 using Cockpit.Features.Markdown;
 using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
-using Cockpit.Features.UserInputs;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.Sessions;
@@ -19,6 +18,7 @@ using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Cockpit.Features.UserInputRequests;
 
 namespace Cockpit;
 

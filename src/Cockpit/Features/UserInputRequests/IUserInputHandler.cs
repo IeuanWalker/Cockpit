@@ -1,6 +1,6 @@
 using GitHub.Copilot.SDK;
 
-namespace Cockpit.Features.UserInputs;
+namespace Cockpit.Features.UserInputRequests;
 
 public interface IUserInputHandler
 {

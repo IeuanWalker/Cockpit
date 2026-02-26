@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using Cockpit.Features.Permissions.Models;
-using Cockpit.Features.UserInputs.Models;
 using Cockpit.Features.SessionEvents.Models;
 using GitHub.Copilot.SDK;
+using Cockpit.Features.UserInputRequests;
 
 namespace Cockpit.Features.Sessions.Models;
 

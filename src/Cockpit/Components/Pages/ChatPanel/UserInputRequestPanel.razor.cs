@@ -1,6 +1,5 @@
 using Cockpit.Features.Sessions;
-using Cockpit.Features.UserInputs;
-using Cockpit.Features.UserInputs.Models;
+using Cockpit.Features.UserInputRequests;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 
