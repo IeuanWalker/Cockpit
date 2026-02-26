@@ -1,0 +1,9 @@
+.logo-responsive {
+    max-width: 350px;
+    max-height: 40vh;
+    width: auto;
+    height: auto;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
