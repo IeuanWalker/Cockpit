@@ -115,8 +115,7 @@ public sealed class UserInputFeature : IUserInputHandler
 
 		_logger.LogInformation("User input requested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
 
-		bool setStatus;
-		lock(session.UserInputRequestsLock)
+		lock(session.StatusHistoryLock)
 		{
 			if(!session.PendingUserInputRequests.TryAdd(request.Id, request))
 			{
@@ -124,20 +123,13 @@ public sealed class UserInputFeature : IUserInputHandler
 				return;
 			}
 
-			setStatus = session.PendingUserInputRequests.Count == 1;
-		}
-
-		if(setStatus)
-		{
-			lock(session.StatusHistoryLock)
+			// Only push to history on the first blocking request (i.e. when not already in a blocking status).
+			// Subsequent concurrent requests see NeedsPermission/NeedsUserInput and skip the push, preventing duplicates.
+			if(session.Status is not SessionStatusEnum.NeedsPermission and not SessionStatusEnum.NeedsUserInput)
 			{
-				// Only save to history when transitioning from a non-blocking status
-				if(session.Status is not SessionStatusEnum.NeedsPermission and not SessionStatusEnum.NeedsUserInput)
-				{
-					session.StatusHistory.Push(session.Status);
-				}
-				session.Status = SessionStatusEnum.NeedsUserInput;
+				session.StatusHistory.Push(session.Status);
 			}
+			session.Status = SessionStatusEnum.NeedsUserInput;
 		}
 
 		_sessionStateProvider.NotifyStateChanged();
@@ -153,20 +145,18 @@ public sealed class UserInputFeature : IUserInputHandler
 
 		_logger.LogInformation("User input resolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
 
-		bool restoreStatus;
-		lock(session.UserInputRequestsLock)
+		lock(session.StatusHistoryLock)
 		{
 			session.PendingUserInputRequests.TryRemove(requestId, out _);
-			restoreStatus = session.PendingUserInputRequests.IsEmpty;
-		}
 
-		if(restoreStatus)
-		{
-			lock(session.StatusHistoryLock)
+			if(session.PendingPermissionRequests.IsEmpty && session.PendingUserInputRequests.IsEmpty)
 			{
-				// If permission requests are still pending, switch to that status rather than restoring base
+				session.Status = session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle;
+			}
+			else
+			{
 				session.Status = session.PendingPermissionRequests.IsEmpty
-					? session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle
+					? SessionStatusEnum.NeedsUserInput
 					: SessionStatusEnum.NeedsPermission;
 			}
 		}
