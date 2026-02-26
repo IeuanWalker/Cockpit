@@ -1,5 +1,5 @@
 @using Cockpit.Features.Permissions
-@using Cockpit.Features.UserInputs
+@using Cockpit.Features.UserInputRequests
 @using Cockpit.Features.Sessions
 
 @inject PermissionFeature PermissionFeature
@@ -7,7 +7,7 @@
 @inject SessionListFeature SessionManager
 
 @* Debug section for simulating permission and user input requests. Visible only in Debug builds and when a session is selected. *@
-@if (IsDebugMode && SessionManager.CurrentSession != null)
+@if(IsDebugMode && SessionManager.CurrentSession != null)
 {
     <div class="border-t border-vscode-border p-3 bg-vscode-bg">
         <div class="border border-blue-500 bg-blue-900 bg-opacity-10 p-2 rounded">

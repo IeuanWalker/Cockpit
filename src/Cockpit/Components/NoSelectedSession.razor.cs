@@ -37,21 +37,33 @@ public partial class NoSelectedSession : ComponentBase
 	void SimulatePermission()
 	{
 		string? sessionId = _sessionManager.CurrentSession?.Id;
-		if(sessionId is null) return;
+		if(sessionId is null)
+		{
+			return;
+		}
+
 		_ = _permissionFeature.SimulateRequestAsync(sessionId);
 	}
 
 	void SimulateUserInputText()
 	{
 		string? sessionId = _sessionManager.CurrentSession?.Id;
-		if(sessionId is null) return;
+		if(sessionId is null)
+		{
+			return;
+		}
+
 		_ = _userInputFeature.SimulateTextRequestAsync(sessionId);
 	}
 
 	void SimulateUserInputChoices()
 	{
 		string? sessionId = _sessionManager.CurrentSession?.Id;
-		if(sessionId is null) return;
+		if(sessionId is null)
+		{
+			return;
+		}
+
 		_ = _userInputFeature.SimulateChoicesRequestAsync(sessionId);
 	}
 #else
