@@ -183,10 +183,8 @@ public sealed class UserInputFeature : IUserInputHandler
 		{
 			SessionId = sessionId,
 			Question = "What would you like the agent to focus on?",
-			Placeholder = "e.g. improve performance, add tests...",
 			AllowsTextInput = true,
 			Choices = ["Improve performance", "Add tests", "Refactor code"],
-			IsRequired = false,
 			FullRequestJson = "{\"debug\":true}"
 		};
 		return RequestUserResponseAsync(request);
@@ -203,7 +201,6 @@ public sealed class UserInputFeature : IUserInputHandler
 			Question = "Which approach should I use to handle the error?",
 			AllowsTextInput = false,
 			Choices = ["Throw an exception", "Return null", "Log and continue", "Retry automatically"],
-			IsRequired = true,
 			FullRequestJson = "{\"debug\":true}"
 		};
 		return RequestUserResponseAsync(request);

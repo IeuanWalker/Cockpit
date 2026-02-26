@@ -6,10 +6,8 @@ public class UserInputRequestModel
 	public DateTime Requested { get; init; } = DateTime.UtcNow;
 	public required string SessionId { get; init; }
 	public required string Question { get; init; }
-	public string? Placeholder { get; init; }
 	public bool AllowsTextInput { get; init; } = true;
 	public List<string> Choices { get; init; } = [];
-	public bool IsRequired { get; init; } = true;
 	public required string FullRequestJson { get; init; }
 
 	/// <summary>
