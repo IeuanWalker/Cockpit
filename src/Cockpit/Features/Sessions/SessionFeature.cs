@@ -2,6 +2,7 @@ using Blazor.Sonner.Services;
 using Cockpit.Features.Git;
 using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
+using Cockpit.Features.UserInputs;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
@@ -22,6 +23,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly TerminalFeature _terminalFeature;
 	readonly SessionListFeature _sessionListFeature;
 	readonly IPermissionHandler _permissionHandler;
+	readonly IUserInputHandler _userInputHandler;
 	readonly GitFeature _gitFeature;
 	readonly SdkSessionRegistry _sdkRegistry;
 	public SessionFeature(
@@ -33,6 +35,7 @@ public sealed partial class SessionFeature : IDisposable
 		SessionEventProcessor processor,
 		SessionListFeature sessionListFeature,
 		IPermissionHandler permissionHandler,
+		IUserInputHandler userInputHandler,
 		GitFeature gitFeature,
 		SdkSessionRegistry sdkRegistry)
 	{
@@ -44,6 +47,7 @@ public sealed partial class SessionFeature : IDisposable
 		_processor = processor;
 		_sessionListFeature = sessionListFeature;
 		_permissionHandler = permissionHandler;
+		_userInputHandler = userInputHandler;
 		_gitFeature = gitFeature;
 		_sdkRegistry = sdkRegistry;
 	}

@@ -23,3 +23,15 @@
         background-color: #37373D;
         color: #CCCCCC;
     }
+
+    .status-badge.needspermission {
+        background-color: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .status-badge.needsuserinput {
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+    }

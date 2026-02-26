@@ -15,6 +15,7 @@ public partial class SessionListItem
 	static string GetSessionStatusClass(SessionModel session) => session.Status switch
 	{
 		SessionStatusEnum.NeedsPermission => "status-needs-permission",
+		SessionStatusEnum.NeedsUserInput => "status-needs-user-input",
 		SessionStatusEnum.Running => "status-running",
 		SessionStatusEnum.Finished => "status-finished",
 		_ => "secondary-text"

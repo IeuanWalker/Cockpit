@@ -207,16 +207,26 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 		_logger.LogInformation("Permission resolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
 
-		// Use lock to ensure atomic remove-check-restore operation
+		bool restoreStatus;
 		lock(session.PermissionRequestsLock)
 		{
-			// Remove the specific resolved request from the collection atomically
 			session.PendingPermissionRequests.TryRemove(requestId, out _);
+			restoreStatus = session.PendingPermissionRequests.IsEmpty;
+		}
 
-			// Restore previous status only when all permissions are resolved
-			if(session.PendingPermissionRequests.IsEmpty)
+		if(restoreStatus)
+		{
+			lock(session.StatusHistoryLock)
 			{
-				session.Status = session.PreviousStatus ?? SessionStatusEnum.Idle;
+				// If user input requests are still pending, switch to that status rather than restoring base
+				if(session.PendingUserInputRequests.Count > 0)
+				{
+					session.Status = SessionStatusEnum.NeedsUserInput;
+				}
+				else
+				{
+					session.Status = session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle;
+				}
 			}
 		}
 
@@ -234,20 +244,27 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 		_logger.LogInformation("Permission requested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
 
-		// Use lock to ensure atomic check-add-set operation
+		bool setStatus;
 		lock(session.PermissionRequestsLock)
 		{
-			// Add to pending requests collection atomically
 			if(!session.PendingPermissionRequests.TryAdd(request.Id, request))
 			{
 				_logger.LogWarning("Permission request {RequestId} already exists for session {SessionId}", request.Id, sessionId);
 				return;
 			}
 
-			// Set status to NeedsPermission if this was the first request
-			if(session.PendingPermissionRequests.Count == 1)
+			setStatus = session.PendingPermissionRequests.Count == 1;
+		}
+
+		if(setStatus)
+		{
+			lock(session.StatusHistoryLock)
 			{
-				session.PreviousStatus = session.Status;
+				// Only save to history when transitioning from a non-blocking status
+				if(session.Status is not SessionStatusEnum.NeedsPermission and not SessionStatusEnum.NeedsUserInput)
+				{
+					session.StatusHistory.Push(session.Status);
+				}
 				session.Status = SessionStatusEnum.NeedsPermission;
 			}
 		}
@@ -367,6 +384,26 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			// Clean up pending request using request ID
 			_pendingRequests.TryRemove(request.Id, out _);
 		}
+	}
+
+	/// <summary>
+	/// Simulate a permission request for debugging/testing.
+	/// </summary>
+	public Task SimulateRequestAsync(string sessionId)
+	{
+		PermissionRequestModel request = new()
+		{
+			SessionId = sessionId,
+			RequestTitle = "Allow run terminal command",
+			FullCommand = "rm -rf ./dist && npm run build",
+			Commands = ["rm", "npm"],
+			Intention = "Clean and rebuild the project",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = true,
+			FullRequestJson = "{\"debug\":true}"
+		};
+		return RequestUserApprovalAsync(request);
 	}
 
 	/// <summary>

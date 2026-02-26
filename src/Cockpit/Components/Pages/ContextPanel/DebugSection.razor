@@ -1,0 +1,35 @@
+@using Cockpit.Features.Permissions
+@using Cockpit.Features.UserInputs
+@using Cockpit.Features.Sessions
+
+@inject PermissionFeature PermissionFeature
+@inject UserInputFeature UserInputFeature
+@inject SessionListFeature SessionManager
+
+@* Debug section for simulating permission and user input requests. Visible only in Debug builds and when a session is selected. *@
+@if (IsDebugMode && SessionManager.CurrentSession != null)
+{
+    <div class="border-t border-vscode-border p-3 bg-vscode-bg">
+        <div class="border border-blue-500 bg-blue-900 bg-opacity-10 p-2 rounded">
+            <div class="text-xs font-semibold text-blue-400 mb-2">DEBUG ACTIONS</div>
+            <div class="flex flex-col gap-1">
+                <button class="px-2 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded" @onclick="SimulatePermission">Simulate Permission</button>
+                <button class="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded" @onclick="SimulateUserInputText">User Input (Text)</button>
+                <button class="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded" @onclick="SimulateUserInputChoices">User Input (Choices)</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool IsDebugMode =>
+#if DEBUG
+        true;
+#else
+        false;
+#endif
+
+    private void SimulatePermission() => PermissionFeature.SimulateRequestAsync(SessionManager.CurrentSession?.Id!);
+    private void SimulateUserInputText() => UserInputFeature.SimulateTextRequestAsync(SessionManager.CurrentSession?.Id!);
+    private void SimulateUserInputChoices() => UserInputFeature.SimulateChoicesRequestAsync(SessionManager.CurrentSession?.Id!);
+}

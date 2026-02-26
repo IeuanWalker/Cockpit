@@ -23,6 +23,30 @@
                 </p>
             }
         </div>
+
+        @if(IsDebugMode && _sessionManager.CurrentSession is not null)
+        {
+            <div class="mt-8 pt-6 border-t border-vscode-border">
+                <p class="text-xs text-vscode-secondary mb-3 font-mono">⚙ Debug</p>
+                <div class="flex flex-col gap-2">
+                    <button @onclick="SimulatePermission"
+                            class="w-full px-4 py-2 rounded text-xs font-medium text-white"
+                            style="background: #7f1d1d;">
+                        Simulate Permission Request
+                    </button>
+                    <button @onclick="SimulateUserInputText"
+                            class="w-full px-4 py-2 rounded text-xs font-medium text-white"
+                            style="background: #1e3a5f;">
+                        Simulate User Input (text + choices)
+                    </button>
+                    <button @onclick="SimulateUserInputChoices"
+                            class="w-full px-4 py-2 rounded text-xs font-medium text-white"
+                            style="background: #1e3a5f;">
+                        Simulate User Input (choices only)
+                    </button>
+                </div>
+            </div>
+        }
     </div>
 </div>
 

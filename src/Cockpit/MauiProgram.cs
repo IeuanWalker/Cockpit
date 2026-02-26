@@ -6,6 +6,7 @@ using Cockpit.Features.Git;
 using Cockpit.Features.Markdown;
 using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
+using Cockpit.Features.UserInputs;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.Sessions;
@@ -74,6 +75,10 @@ public static class MauiProgram
 		// Register PermissionFeature
 		builder.Services.AddSingleton<PermissionFeature>();
 		builder.Services.AddSingleton<IPermissionHandler>(sp => sp.GetRequiredService<PermissionFeature>());
+
+		// Register UserInputFeature
+		builder.Services.AddSingleton<UserInputFeature>();
+		builder.Services.AddSingleton<IUserInputHandler>(sp => sp.GetRequiredService<UserInputFeature>());
 
 		builder.Services.AddSingleton<ModelFeature>();
 
