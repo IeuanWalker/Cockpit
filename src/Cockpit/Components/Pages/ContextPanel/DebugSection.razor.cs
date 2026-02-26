@@ -9,14 +9,17 @@ public partial class DebugSection
 	readonly PermissionFeature _permissionFeature;
 	readonly UserInputFeature _userInputFeature;
 	readonly SessionListFeature _sessionListFeature;
+	readonly SessionFeature _sessionFeature;
 	public DebugSection(
 		PermissionFeature permissionFeature,
 		UserInputFeature userInputFeature,
-		SessionListFeature sessionListFeature)
+		SessionListFeature sessionListFeature,
+		SessionFeature sessionFeature)
 	{
 		_permissionFeature = permissionFeature;
 		_userInputFeature = userInputFeature;
 		_sessionListFeature = sessionListFeature;
+		_sessionFeature = sessionFeature;
 	}
 
 	bool IsDebugMode =>
@@ -30,4 +33,5 @@ public partial class DebugSection
 	void SimulateUserInputText() => _userInputFeature.SimulateTextRequest(_sessionListFeature.CurrentSession?.Id!);
 	void SimulateUserInputChoices() => _userInputFeature.SimulateChoicesRequest(_sessionListFeature.CurrentSession?.Id!);
 	void SimulateUserInputTextAndChoices() => _userInputFeature.SimulateTextAndChoicesRequest(_sessionListFeature.CurrentSession?.Id!);
+	Task ReplaySession() => _sessionFeature.ReplayCurrentSessionAsync();
 }
