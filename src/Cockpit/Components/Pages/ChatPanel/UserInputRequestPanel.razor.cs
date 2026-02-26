@@ -1,23 +1,31 @@
+using Cockpit.Features.AppSettings;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.UserInputRequests;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ChatPanel;
 
 public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 {
+	readonly IAppSettingsFeature _appSettingsFeature;
 	readonly SessionListFeature _sessionListFeature;
 	readonly UserInputFeature _userInputFeature;
+	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<UserInputRequestPanel> _logger;
 
 	public UserInputRequestPanel(
+		IAppSettingsFeature appSettingsFeature,
 		SessionListFeature sessionListFeature,
 		UserInputFeature userInputFeature,
+		IJSRuntime jsRuntime,
 		ILogger<UserInputRequestPanel> logger)
 	{
+		_appSettingsFeature = appSettingsFeature;
 		_sessionListFeature = sessionListFeature;
 		_userInputFeature = userInputFeature;
+		_jsRuntime = jsRuntime;
 		_logger = logger;
 	}
 
@@ -100,10 +108,20 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 
 	async Task OnKeyDown(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
 	{
-		if(e.Key == "Enter" && !e.ShiftKey && CanSubmitText)
+		if(e.Key == "Enter" && !e.ShiftKey && _appSettingsFeature.SendOnEnter && CanSubmitText)
 		{
 			await OnSubmit();
+			await ResizeTextarea();
 		}
+	}
+
+	async Task ResizeTextarea()
+	{
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("cockpit.autoResizeTextarea", "userInputRequestField");
+		}
+		catch { /* ignore if JS unavailable */ }
 	}
 
 	void ClearCurrentSessionInputState()

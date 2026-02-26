@@ -77,6 +77,34 @@
     color: var(--vscode-input-foreground, var(--vscode-foreground));
     outline: none;
     min-width: 0;
+    resize: none;
+    max-height: 180px;
+    overflow-y: auto;
+    line-height: 1.5;
+    transition: height 0.1s;
+}
+
+.user-input-field,
+.user-input-field::-webkit-scrollbar,
+.user-input-field::-webkit-scrollbar-thumb,
+.user-input-field::-webkit-scrollbar-track {
+    scrollbar-width: thin;
+    scrollbar-color: #3b82f6 var(--sidebar-color); /* info blue for thumb */
+}
+.user-input-field::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background: var(--sidebar-color);
+}
+.user-input-field::-webkit-scrollbar-thumb {
+    background: #3b82f6; /* info blue */
+    border-radius: 4px;
+}
+.user-input-field::-webkit-scrollbar-thumb:hover {
+    background: #2563eb; /* darker info blue */
+}
+.user-input-field::-webkit-scrollbar-track {
+    background: var(--sidebar-color);
 }
 
 .user-input-field::placeholder {

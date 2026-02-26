@@ -30,13 +30,16 @@
             @if(Request.AllowsTextInput)
             {
                 <div class="user-input-input-row">
-                    <input type="text"
-                           class="user-input-field"
+                    <textarea id="userInputRequestField"
+                           class="user-input-field resize-none scrollbar-thin"
                            placeholder="@(Request.Placeholder ?? "Type your response...")"
                            @bind="UserTextInput"
                            @bind:event="oninput"
+                           @bind:after="ResizeTextarea"
                            @onkeydown="OnKeyDown"
-                           autofocus />
+                           rows="1"
+                           style="max-height: 180px; overflow-y: auto;"
+                           autofocus></textarea>
                     <button type="button"
                             class="btn-user-input-send"
                             @onclick="OnSubmit"

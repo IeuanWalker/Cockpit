@@ -219,14 +219,9 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			lock(session.StatusHistoryLock)
 			{
 				// If user input requests are still pending, switch to that status rather than restoring base
-				if(session.PendingUserInputRequests.Count > 0)
-				{
-					session.Status = SessionStatusEnum.NeedsUserInput;
-				}
-				else
-				{
-					session.Status = session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle;
-				}
+				session.Status = session.PendingUserInputRequests.IsEmpty
+					? session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle
+					: SessionStatusEnum.NeedsUserInput;
 			}
 		}
 

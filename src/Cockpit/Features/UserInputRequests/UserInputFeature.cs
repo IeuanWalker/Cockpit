@@ -165,14 +165,9 @@ public sealed class UserInputFeature : IUserInputHandler
 			lock(session.StatusHistoryLock)
 			{
 				// If permission requests are still pending, switch to that status rather than restoring base
-				if(session.PendingPermissionRequests.Count > 0)
-				{
-					session.Status = SessionStatusEnum.NeedsPermission;
-				}
-				else
-				{
-					session.Status = session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle;
-				}
+				session.Status = session.PendingPermissionRequests.IsEmpty
+					? session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle
+					: SessionStatusEnum.NeedsPermission;
 			}
 		}
 
