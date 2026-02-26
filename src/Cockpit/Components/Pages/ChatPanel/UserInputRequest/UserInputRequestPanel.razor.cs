@@ -40,7 +40,7 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 		set => _sessionListFeature.CurrentSession?.UserInputResponseText = value;
 	}
 
-	public UserInputRequestModel? Request => _sessionListFeature.CurrentSession?.PendingUserInputRequests?.Values.FirstOrDefault();
+	public UserInputRequestModel? Request => _sessionListFeature.CurrentSession?.PendingUserInputRequests?.Values.OrderBy(r => r.Requested).FirstOrDefault();
 	bool CanSubmitText => !string.IsNullOrWhiteSpace(UserTextInput);
 
 	UserInputRequestDetailsPopup _detailsPopup = default!;
