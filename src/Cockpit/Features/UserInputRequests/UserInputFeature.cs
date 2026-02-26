@@ -22,9 +22,7 @@ public sealed class UserInputFeature : IUserInputHandler
 	public event Action<string, UserInputRequestModel>? OnUserInputRequested;
 	public event Action<string, string>? OnUserInputResolved;
 
-	public UserInputFeature(
-		ISessionStateProvider sessionStateProvider,
-		ILogger<UserInputFeature> logger)
+	public UserInputFeature(ISessionStateProvider sessionStateProvider, ILogger<UserInputFeature> logger)
 	{
 		_sessionStateProvider = sessionStateProvider;
 		_logger = logger;
@@ -39,7 +37,7 @@ public sealed class UserInputFeature : IUserInputHandler
 		return new UserInputRequestModel
 		{
 			SessionId = sessionId,
-			Question = request.Question ?? "Please provide input:",
+			Question = request.Question,
 			AllowsTextInput = request.AllowFreeform ?? true,
 			Choices = choices,
 			FullRequestJson = JsonSerializer.Serialize(request)
@@ -59,8 +57,7 @@ public sealed class UserInputFeature : IUserInputHandler
 
 			UserInputRequestModel userInputRequest = ToRequestModel(request, invocation.SessionId);
 
-			_logger.LogInformation("User input request: Question='{Question}', SessionId={SessionId}",
-				userInputRequest.Question, session.Id);
+			_logger.LogInformation("User input request: Question='{Question}', SessionId={SessionId}", userInputRequest.Question, session.Id);
 
 			// Request user response
 			string? response = await RequestUserResponseAsync(userInputRequest);
@@ -70,7 +67,7 @@ public sealed class UserInputFeature : IUserInputHandler
 			bool isChoice = userInputRequest.Choices.Contains(response ?? string.Empty);
 			return new UserInputResponse
 			{
-				Answer = response,
+				Answer = response ?? string.Empty,
 				WasFreeform = !isChoice
 			};
 		}
@@ -143,7 +140,6 @@ public sealed class UserInputFeature : IUserInputHandler
 			}
 		}
 
-		// Notify UI (outside lock to avoid potential deadlocks)
 		_sessionStateProvider.NotifyStateChanged();
 	}
 
@@ -180,7 +176,6 @@ public sealed class UserInputFeature : IUserInputHandler
 			}
 		}
 
-		// Notify UI (outside lock to avoid potential deadlocks)
 		_sessionStateProvider.NotifyStateChanged();
 	}
 
