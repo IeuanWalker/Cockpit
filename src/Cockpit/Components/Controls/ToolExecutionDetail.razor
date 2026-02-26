@@ -71,14 +71,31 @@
             </div>
         }
 
-        <div class="tool-details">
-            @{
-                var rawEvents = Tool.GetRawEventsSnapshot();
-            }
-            @foreach(Lazy<string> rawEvent in rawEvents)
+        var rawEvents = Tool.GetRawEventsSnapshot();
+        var hasChildren = childEvents.Count > 0;
+        @if(rawEvents.Count > 0)
+        {
+            @if(hasChildren)
             {
-                <CodeBlock Code="@rawEvent.Value" Language="json" />
+                <details class="tool-details-expander">
+                    <summary class="tool-details-summary">Raw events</summary>
+                    <div class="tool-details">
+                        @foreach(Lazy<string> rawEvent in rawEvents)
+                        {
+                            <CodeBlock Code="@rawEvent.Value" Language="json" />
+                        }
+                    </div>
+                </details>
             }
-        </div>
+            else
+            {
+                <div class="tool-details">
+                    @foreach(Lazy<string> rawEvent in rawEvents)
+                    {
+                        <CodeBlock Code="@rawEvent.Value" Language="json" />
+                    }
+                </div>
+            }
+        }
     }
 </div>

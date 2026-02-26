@@ -94,6 +94,33 @@
     border-top: 1px solid var(--border-color);
 }
 
+.tool-details-expander {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.tool-details-summary {
+    font-size: 0.7rem;
+    color: var(--secondary-text);
+    cursor: pointer;
+    user-select: none;
+    padding: 0.1rem 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+    .tool-details-summary::before {
+        content: '▸';
+        font-size: 0.65rem;
+    }
+
+details[open] > .tool-details-summary::before {
+    content: '▾';
+}
+
 .tool-progress {
     font-size: 0.7rem;
     color: var(--secondary-text);
