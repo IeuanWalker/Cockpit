@@ -25,14 +25,12 @@ public class SessionModel
 	/// Key: request.Id, Value: PermissionRequest
 	/// </summary>
 	public ConcurrentDictionary<string, PermissionRequestModel> PendingPermissionRequests { get; set; } = new();
-	public readonly Lock PermissionRequestsLock = new();
 
 	/// <summary>
 	/// Pending user input requests for this session (supports multiple concurrent requests)
 	/// Key: request.Id, Value: UserInputRequestModel
 	/// </summary>
 	public ConcurrentDictionary<string, UserInputRequestModel> PendingUserInputRequests { get; set; } = new();
-	public readonly Lock UserInputRequestsLock = new();
 
 	/// <summary>
 	/// History of statuses before blocking requests (permission/user-input).

@@ -207,21 +207,19 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 		_logger.LogInformation("Permission resolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
 
-		bool restoreStatus;
-		lock(session.PermissionRequestsLock)
+		lock(session.StatusHistoryLock)
 		{
 			session.PendingPermissionRequests.TryRemove(requestId, out _);
-			restoreStatus = session.PendingPermissionRequests.IsEmpty;
-		}
 
-		if(restoreStatus)
-		{
-			lock(session.StatusHistoryLock)
+			if(session.PendingPermissionRequests.IsEmpty && session.PendingUserInputRequests.IsEmpty)
 			{
-				// If user input requests are still pending, switch to that status rather than restoring base
-				session.Status = session.PendingUserInputRequests.IsEmpty
-					? session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle
-					: SessionStatusEnum.NeedsUserInput;
+				session.Status = session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle;
+			}
+			else
+			{
+				session.Status = session.PendingPermissionRequests.IsEmpty
+					? SessionStatusEnum.NeedsUserInput
+					: SessionStatusEnum.NeedsPermission;
 			}
 		}
 
@@ -239,8 +237,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 		_logger.LogInformation("Permission requested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
 
-		bool setStatus;
-		lock(session.PermissionRequestsLock)
+		lock(session.StatusHistoryLock)
 		{
 			if(!session.PendingPermissionRequests.TryAdd(request.Id, request))
 			{
@@ -248,20 +245,13 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 				return;
 			}
 
-			setStatus = session.PendingPermissionRequests.Count == 1;
-		}
-
-		if(setStatus)
-		{
-			lock(session.StatusHistoryLock)
+			// Only push to history on the first blocking request (i.e. when not already in a blocking status).
+			// Subsequent concurrent requests see NeedsPermission/NeedsUserInput and skip the push, preventing duplicates.
+			if(session.Status is not SessionStatusEnum.NeedsPermission and not SessionStatusEnum.NeedsUserInput)
 			{
-				// Only save to history when transitioning from a non-blocking status
-				if(session.Status is not SessionStatusEnum.NeedsPermission and not SessionStatusEnum.NeedsUserInput)
-				{
-					session.StatusHistory.Push(session.Status);
-				}
-				session.Status = SessionStatusEnum.NeedsPermission;
+				session.StatusHistory.Push(session.Status);
 			}
+			session.Status = SessionStatusEnum.NeedsPermission;
 		}
 
 		// Notify UI (outside lock to avoid potential deadlocks)
