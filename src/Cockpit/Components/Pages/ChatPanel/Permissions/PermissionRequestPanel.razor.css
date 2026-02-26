@@ -74,9 +74,9 @@
     border-radius: 4px 0 0 4px;
 }
 
-.btn-allow-main:hover {
-    background: #0d7533;
-}
+    .btn-allow-main:hover {
+        background: #0d7533;
+    }
 
 .btn-allow-arrow {
     background: #10893E;
@@ -93,9 +93,9 @@
     border-radius: 0 4px 4px 0;
 }
 
-.btn-allow-arrow:hover {
-    background: #0d7533;
-}
+    .btn-allow-arrow:hover {
+        background: #0d7533;
+    }
 
 .allow-dropdown-menu {
     position: absolute;
@@ -123,20 +123,20 @@
     transition: background 0.1s;
 }
 
-.allow-dropdown-item:hover {
-    background: var(--hover-color);
-}
-
-
-    .permission-actions .btn {
-        padding: 4px 12px;
-        font-size: 12px;
-        border-radius: 4px;
-        border: 1px solid var(--vscode-button-border);
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.15s ease;
+    .allow-dropdown-item:hover {
+        background: var(--hover-color);
     }
+
+
+.permission-actions .btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: 1px solid var(--vscode-button-border);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s ease;
+}
 
 .btn-deny {
     background: var(--vscode-button-secondaryBackground);
@@ -174,3 +174,8 @@
     .btn-allow-always:hover {
         background: #0d7533;
     }
+
+::deep .code-block-pre {
+    margin: 0px;
+    border: none;
+}

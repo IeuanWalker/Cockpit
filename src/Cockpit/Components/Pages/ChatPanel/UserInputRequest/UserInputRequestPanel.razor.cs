@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
-namespace Cockpit.Components.Pages.ChatPanel;
+namespace Cockpit.Components.Pages.ChatPanel.UserInputRequest;
 
 public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 {
@@ -40,18 +40,28 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 		set => _sessionListFeature.CurrentSession?.UserInputResponseText = value;
 	}
 
-	public string? SelectedChoice
-	{
-		get => _sessionListFeature.CurrentSession?.UserInputSelectedChoice;
-		set => _sessionListFeature.CurrentSession?.UserInputSelectedChoice = value;
-	}
-
 	public UserInputRequestModel? Request => _sessionListFeature.CurrentSession?.PendingUserInputRequests?.Values.FirstOrDefault();
 	bool CanSubmitText => !string.IsNullOrWhiteSpace(UserTextInput);
 
+	UserInputRequestDetailsPopup _detailsPopup = default!;
+
+	bool ShowInfoPopup { get; set; }
+
+	void ShowRequestInfo() => _detailsPopup.Open();
+
+	void HideRequestInfo()
+	{
+		ShowInfoPopup = false;
+	}
+
 	void OnStateChanged()
 	{
-		InvokeAsync(StateHasChanged);
+		InvokeAsync(async () =>
+		{
+			StateHasChanged();
+			await Task.Delay(10);
+			await ResizeTextarea();
+		});
 	}
 
 	public Task OnSubmit()
@@ -70,7 +80,7 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 			return Task.CompletedTask;
 		}
 
-		_logger.LogInformation("OnSubmit called: response={Response}, sessionId={SessionId}", response, currentRequest.SessionId);
+		_logger.LogInformation("OnSubmit called: sessionId={SessionId}, responseLength={Length}", currentRequest.SessionId, response.Length);
 
 		_userInputFeature.ResolveUserInputRequest(currentRequest.Id, response);
 		ClearCurrentSessionInputState();
@@ -132,7 +142,6 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 		}
 
 		_sessionListFeature.CurrentSession.UserInputResponseText = string.Empty;
-		_sessionListFeature.CurrentSession.UserInputSelectedChoice = null;
 	}
 
 	public void Dispose()

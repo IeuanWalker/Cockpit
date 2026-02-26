@@ -23,7 +23,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly TerminalFeature _terminalFeature;
 	readonly SessionListFeature _sessionListFeature;
 	readonly IPermissionHandler _permissionHandler;
-	readonly IUserInputHandler _userInputHandler;
+	readonly UserInputFeature _userInputHandler;
 	readonly GitFeature _gitFeature;
 	readonly SdkSessionRegistry _sdkRegistry;
 	public SessionFeature(
@@ -35,7 +35,7 @@ public sealed partial class SessionFeature : IDisposable
 		SessionEventProcessor processor,
 		SessionListFeature sessionListFeature,
 		IPermissionHandler permissionHandler,
-		IUserInputHandler userInputHandler,
+		UserInputFeature userInputHandler,
 		GitFeature gitFeature,
 		SdkSessionRegistry sdkRegistry)
 	{

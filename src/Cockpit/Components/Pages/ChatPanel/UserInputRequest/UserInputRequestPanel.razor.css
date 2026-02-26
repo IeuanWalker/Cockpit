@@ -29,6 +29,22 @@
     flex: 1;
 }
 
+.btn-details {
+    background: none;
+    border: none;
+    color: var(--vscode-textLink-foreground);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 8px;
+    text-decoration: underline;
+    margin-left: auto;
+    margin-right: 0.5rem;
+}
+
+    .btn-details:hover {
+        color: var(--vscode-textLink-activeForeground);
+    }
+
 .user-input-content {
     display: flex;
     flex-direction: column;
@@ -55,9 +71,9 @@
     line-height: 1.4;
 }
 
-.choice-button:hover {
-    background: rgba(59, 130, 246, 0.15);
-}
+    .choice-button:hover {
+        background: rgba(59, 130, 246, 0.15);
+    }
 
 .user-input-input-row {
     display: flex;
@@ -84,32 +100,36 @@
     transition: height 0.1s;
 }
 
-.user-input-field,
-.user-input-field::-webkit-scrollbar,
-.user-input-field::-webkit-scrollbar-thumb,
-.user-input-field::-webkit-scrollbar-track {
-    scrollbar-width: thin;
-    scrollbar-color: #3b82f6 var(--sidebar-color); /* info blue for thumb */
-}
-.user-input-field::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-    background: var(--sidebar-color);
-}
-.user-input-field::-webkit-scrollbar-thumb {
-    background: #3b82f6; /* info blue */
-    border-radius: 4px;
-}
-.user-input-field::-webkit-scrollbar-thumb:hover {
-    background: #2563eb; /* darker info blue */
-}
-.user-input-field::-webkit-scrollbar-track {
-    background: var(--sidebar-color);
-}
+    .user-input-field,
+    .user-input-field::-webkit-scrollbar,
+    .user-input-field::-webkit-scrollbar-thumb,
+    .user-input-field::-webkit-scrollbar-track {
+        scrollbar-width: thin;
+        scrollbar-color: #3b82f6 var(--sidebar-color); /* info blue for thumb */
+    }
 
-.user-input-field::placeholder {
-    color: var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground));
-}
+        .user-input-field::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+            background: var(--sidebar-color);
+        }
+
+        .user-input-field::-webkit-scrollbar-thumb {
+            background: #3b82f6; /* info blue */
+            border-radius: 4px;
+        }
+
+            .user-input-field::-webkit-scrollbar-thumb:hover {
+                background: #2563eb; /* darker info blue */
+            }
+
+        .user-input-field::-webkit-scrollbar-track {
+            background: var(--sidebar-color);
+        }
+
+        .user-input-field::placeholder {
+            color: var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground));
+        }
 
 .btn-user-input-send {
     background: #1d4ed8;
@@ -125,14 +145,14 @@
     flex-shrink: 0;
 }
 
-.btn-user-input-send:hover:not(:disabled) {
-    background: #1e40af;
-}
+    .btn-user-input-send:hover:not(:disabled) {
+        background: #1e40af;
+    }
 
-.btn-user-input-send:disabled {
-    background: #1d4ed860;
-    cursor: not-allowed;
-}
+    .btn-user-input-send:disabled {
+        background: #1d4ed860;
+        cursor: not-allowed;
+    }
 
 .btn-user-input-cancel {
     background: var(--vscode-button-secondaryBackground);
@@ -146,6 +166,11 @@
     margin-left: auto;
 }
 
-.btn-user-input-cancel:hover {
-    background: var(--vscode-button-secondaryHoverBackground);
+    .btn-user-input-cancel:hover {
+        background: var(--vscode-button-secondaryHoverBackground);
+    }
+
+::deep .code-block-pre {
+    margin: 0px;
+    border: none;
 }

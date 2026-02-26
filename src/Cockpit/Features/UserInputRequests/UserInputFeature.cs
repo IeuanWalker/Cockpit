@@ -62,7 +62,7 @@ public sealed class UserInputFeature : IUserInputHandler
 			// Request user response
 			string? response = await RequestUserResponseAsync(userInputRequest);
 
-			_logger.LogInformation("User input response: {Response}", response ?? "(cancelled)");
+			_logger.LogDebug("User input response received (length={Length})", response?.Length ?? 0);
 
 			bool isChoice = userInputRequest.Choices.Contains(response ?? string.Empty);
 			return new UserInputResponse
@@ -211,7 +211,7 @@ public sealed class UserInputFeature : IUserInputHandler
 	/// </summary>
 	public void ResolveUserInputRequest(string requestId, string? response)
 	{
-		_logger.LogInformation("ResolveUserInputRequest called with requestId: {RequestId}, response: {Response}", requestId, response ?? "(cancelled)");
+		_logger.LogInformation("ResolveUserInputRequest called with requestId: {RequestId}, was cancelled: {Cancelled}", requestId, response is null);
 
 		if(!_pendingRequests.TryGetValue(requestId, out UserInputRequestModel? request))
 		{
@@ -229,8 +229,30 @@ public sealed class UserInputFeature : IUserInputHandler
 		bool completed = request.CompletionSource.TrySetResult(response);
 		_logger.LogDebug("TaskCompletionSource completed: {Completed}", completed);
 
+		if(!completed)
+		{
+			_logger.LogWarning("ResolveUserInputRequest: request {RequestId} was already resolved (concurrent call?)", requestId);
+			return;
+		}
+
 		// Notify UI with requestId so it can be removed from session list
 		UpdateSessionOnUserInputResolved(request.SessionId, request.Id);
 		OnUserInputResolved?.Invoke(request.SessionId, request.Id);
+	}
+
+	/// <summary>
+	/// Cancels all pending user input requests for a session (e.g., when the session is deleted).
+	/// </summary>
+	public void CancelPendingRequestsForSession(string sessionId)
+	{
+		List<string> requestIds = [.. _pendingRequests.Values
+			.Where(r => r.SessionId == sessionId)
+			.Select(r => r.Id)];
+
+		foreach(string requestId in requestIds)
+		{
+			_logger.LogInformation("Cancelling pending user input request {RequestId} for deleted session {SessionId}", requestId, sessionId);
+			ResolveUserInputRequest(requestId, null);
+		}
 	}
 }

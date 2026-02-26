@@ -70,11 +70,6 @@ public class SessionModel
 	public string UserInputResponseText { get; set; } = string.Empty;
 
 	/// <summary>
-	/// Per-session selected choice for user input request preserved across session switches.
-	/// </summary>
-	public string? UserInputSelectedChoice { get; set; } = null;
-
-	/// <summary>
 	/// Synchronizes live session event/message mutations to preserve ordering.
 	/// </summary>
 	public readonly Lock SessionEventLock = new();

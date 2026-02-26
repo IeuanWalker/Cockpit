@@ -381,6 +381,7 @@ public sealed partial class SessionFeature
 			}
 
 			_terminalFeature.CloseSession(sessionId);
+			_userInputHandler.CancelPendingRequestsForSession(sessionId);
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			await client.DeleteSessionAsync(sessionId);
