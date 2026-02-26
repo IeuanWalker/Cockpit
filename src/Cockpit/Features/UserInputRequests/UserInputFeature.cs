@@ -167,14 +167,13 @@ public sealed class UserInputFeature : IUserInputHandler
 	/// <summary>
 	/// Simulate a user input request for debugging/testing.
 	/// </summary>
-	public Task<string?> SimulateTextRequestAsync(string sessionId)
+	public Task<string?> SimulateTextRequest(string sessionId)
 	{
 		UserInputRequestModel request = new()
 		{
 			SessionId = sessionId,
 			Question = "What would you like the agent to focus on?",
 			AllowsTextInput = true,
-			Choices = ["Improve performance", "Add tests", "Refactor code"],
 			FullRequestJson = "{\"debug\":true}"
 		};
 		return RequestUserResponseAsync(request);
@@ -183,13 +182,29 @@ public sealed class UserInputFeature : IUserInputHandler
 	/// <summary>
 	/// Simulate a user input request with choices only (no text field) for debugging/testing.
 	/// </summary>
-	public Task<string?> SimulateChoicesRequestAsync(string sessionId)
+	public Task<string?> SimulateChoicesRequest(string sessionId)
 	{
 		UserInputRequestModel request = new()
 		{
 			SessionId = sessionId,
 			Question = "Which approach should I use to handle the error?",
 			AllowsTextInput = false,
+			Choices = ["Throw an exception", "Return null", "Log and continue", "Retry automatically"],
+			FullRequestJson = "{\"debug\":true}"
+		};
+		return RequestUserResponseAsync(request);
+	}
+
+	/// <summary>
+	/// Simulate a user input request with both text and choices for debugging/testing.
+	/// </summary>
+	public Task<string?> SimulateTextAndChoicesRequest(string sessionId)
+	{
+		UserInputRequestModel request = new()
+		{
+			SessionId = sessionId,
+			Question = "Which approach should I use to handle the error?",
+			AllowsTextInput = true,
 			Choices = ["Throw an exception", "Return null", "Log and continue", "Retry automatically"],
 			FullRequestJson = "{\"debug\":true}"
 		};

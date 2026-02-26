@@ -27,6 +27,7 @@ public partial class DebugSection
 #endif
 
 	void SimulatePermission() => _permissionFeature.SimulateRequestAsync(_sessionListFeature.CurrentSession?.Id!);
-	void SimulateUserInputText() => _userInputFeature.SimulateTextRequestAsync(_sessionListFeature.CurrentSession?.Id!);
-	void SimulateUserInputChoices() => _userInputFeature.SimulateChoicesRequestAsync(_sessionListFeature.CurrentSession?.Id!);
+	void SimulateUserInputText() => _userInputFeature.SimulateTextRequest(_sessionListFeature.CurrentSession?.Id!);
+	void SimulateUserInputChoices() => _userInputFeature.SimulateChoicesRequest(_sessionListFeature.CurrentSession?.Id!);
+	void SimulateUserInputTextAndChoices() => _userInputFeature.SimulateTextAndChoicesRequest(_sessionListFeature.CurrentSession?.Id!);
 }
