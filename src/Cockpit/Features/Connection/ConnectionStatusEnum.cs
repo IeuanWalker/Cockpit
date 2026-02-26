@@ -5,5 +5,6 @@ public enum ConnectionStatusEnum
 	Unknown,
 	Checking,
 	Connected,
-	Disconnected
+	Disconnected,
+	Error
 }

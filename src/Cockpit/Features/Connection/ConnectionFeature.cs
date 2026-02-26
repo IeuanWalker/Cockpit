@@ -10,6 +10,21 @@ namespace Cockpit.Features.Connection;
 /// </summary>
 public sealed partial class ConnectionFeature : IDisposable
 {
+	static string SerializeExceptionToJson(Exception ex)
+	{
+		return JsonSerializer.Serialize(new
+		{
+			type = ex.GetType().FullName,
+			message = ex.Message,
+			stackTrace = ex.StackTrace,
+			innerException = ex.InnerException != null ? new
+			{
+				type = ex.InnerException.GetType().FullName,
+				message = ex.InnerException.Message,
+				stackTrace = ex.InnerException.StackTrace
+			} : null
+		}, new JsonSerializerOptions { WriteIndented = true });
+	}
 	readonly CopilotClientFeature _clientService;
 	readonly ILogger<ConnectionFeature> _logger;
 	Timer? _timer;
@@ -57,26 +72,47 @@ public sealed partial class ConnectionFeature : IDisposable
 	/// </summary>
 	public async Task Ping()
 	{
-		Status = ConnectionStatusEnum.Checking;
-		OnStatusChanged?.Invoke();
-
-		LastResponse = await _clientService.PingAsync();
-		LastChecked = DateTime.UtcNow;
-		Status = LastResponse is not null ? ConnectionStatusEnum.Connected : ConnectionStatusEnum.Disconnected;
-
-		if(_history.Count >= MaxHistorySize)
+		try
 		{
-			_history.RemoveAt(0);
+			Task<PingResponse?> pingTask = _clientService.PingAsync();
+			Task delayTask = Task.Delay(100); //! Important: Avoids flickering status
+			Task completedTask = await Task.WhenAny(pingTask, delayTask);
+			if(completedTask == delayTask)
+			{
+				Status = ConnectionStatusEnum.Checking;
+				OnStatusChanged?.Invoke();
+			}
+
+			LastResponse = await pingTask;
+			LastChecked = DateTime.UtcNow;
+			Status = LastResponse is not null ? ConnectionStatusEnum.Connected : ConnectionStatusEnum.Disconnected;
+
+			AddToHistory(Status, LastChecked.Value, GetResponseJson());
 		}
-		_history.Add(new ConnectionCheckRecordModel()
+		catch(Exception ex)
 		{
-			Status = Status,
-			CheckedAt = LastChecked.Value,
-			ResponseJson = GetResponseJson()
-		});
+			LastChecked = DateTime.UtcNow;
+			Status = ConnectionStatusEnum.Error;
+
+			AddToHistory(Status, LastChecked.Value, SerializeExceptionToJson(ex));
+		}
 
 		_logger.LogDebug("Ping result: {Status}", Status);
 		OnStatusChanged?.Invoke();
+
+		void AddToHistory(ConnectionStatusEnum status, DateTime lastChecked, string jsonResult)
+		{
+			if(_history.Count >= MaxHistorySize)
+			{
+				_history.RemoveAt(0);
+			}
+			_history.Add(new ConnectionCheckRecordModel()
+			{
+				Status = status,
+				CheckedAt = lastChecked,
+				ResponseJson = jsonResult
+			});
+		}
 	}
 
 	/// <summary>Returns the last ping response serialized as indented JSON.</summary>

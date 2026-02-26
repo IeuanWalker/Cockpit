@@ -8,6 +8,7 @@ public static class ConnectionStatusHelpers
 	{
 		ConnectionStatusEnum.Connected => "connected",
 		ConnectionStatusEnum.Disconnected => "disconnected",
+		ConnectionStatusEnum.Error => "disconnected",
 		ConnectionStatusEnum.Checking => "checking",
 		_ => "checking"
 	};
@@ -17,6 +18,7 @@ public static class ConnectionStatusHelpers
 		ConnectionStatusEnum.Connected => "Connected",
 		ConnectionStatusEnum.Disconnected => "Disconnected",
 		ConnectionStatusEnum.Checking => "Checking...",
+		ConnectionStatusEnum.Error => "Error",
 		_ => "Unknown"
 	};
 }
