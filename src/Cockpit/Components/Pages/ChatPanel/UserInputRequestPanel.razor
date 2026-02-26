@@ -2,25 +2,23 @@
 
 @if(Request is not null)
 {
-    var request = Request;
-
     <div class="user-input-panel">
         <div class="user-input-header">
             <svg class="user-input-icon" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
             </svg>
-            <span class="user-input-title">@request.Question</span>
-            @if(!request.IsRequired)
+            <span class="user-input-title">@Request.Question</span>
+            @if(!Request.IsRequired)
             {
                 <button type="button" class="btn-user-input-cancel" @onclick="OnCancel">Cancel</button>
             }
         </div>
 
         <div class="user-input-content">
-            @if(request.Choices.Count > 0)
+            @if(Request.Choices.Count > 0)
             {
                 <div class="user-input-choices">
-                    @foreach(var choice in request.Choices)
+                    @foreach(var choice in Request.Choices)
                     {
                         <button type="button" class="choice-button" @onclick="() => OnChoiceSelected(choice)">
                             @choice
@@ -29,12 +27,12 @@
                 </div>
             }
 
-            @if(request.AllowsTextInput)
+            @if(Request.AllowsTextInput)
             {
                 <div class="user-input-input-row">
                     <input type="text"
                            class="user-input-field"
-                           placeholder="@(request.Placeholder ?? "Type your response...")"
+                           placeholder="@(Request.Placeholder ?? "Type your response...")"
                            @bind="UserTextInput"
                            @bind:event="oninput"
                            @onkeydown="OnKeyDown"

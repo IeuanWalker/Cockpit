@@ -62,8 +62,7 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 			return Task.CompletedTask;
 		}
 
-		_logger.LogInformation("OnSubmit called: response={Response}, sessionId={SessionId}",
-			response, currentRequest.SessionId);
+		_logger.LogInformation("OnSubmit called: response={Response}, sessionId={SessionId}", response, currentRequest.SessionId);
 
 		_userInputFeature.ResolveUserInputRequest(currentRequest.Id, response);
 		ClearCurrentSessionInputState();
