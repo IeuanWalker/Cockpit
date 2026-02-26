@@ -2,6 +2,7 @@
 @using Cockpit.Components.Pages.ChatPanel
 @using Cockpit.Components.Pages.ChatPanel.Permissions
 @using Cockpit.Components.Pages.ChatPanel.Terminal
+@using Cockpit.Components.Pages.ChatPanel.UserInputRequest
 @using Cockpit.Components.Popups
 
 <!-- Chat Header -->
@@ -58,6 +59,8 @@
                WorkingDirectory="@_sessionManager.CurrentSession?.Context.CurrentWorkingDirectory" />
 
 <ChatMessages />
+
+<UserInputRequestPanel />
 
 <PermissionRequestPanel />
 

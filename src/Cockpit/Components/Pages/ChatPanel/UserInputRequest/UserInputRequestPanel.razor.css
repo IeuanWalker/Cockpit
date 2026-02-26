@@ -1,0 +1,176 @@
+.user-input-panel {
+    border-top: 2px solid #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+}
+
+.user-input-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.user-input-icon {
+    width: 18px;
+    height: 18px;
+    color: #3b82f6;
+    flex-shrink: 0;
+}
+
+.user-input-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--vscode-foreground);
+    flex: 1;
+}
+
+.btn-details {
+    background: none;
+    border: none;
+    color: var(--vscode-textLink-foreground);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 8px;
+    text-decoration: underline;
+    margin-left: auto;
+    margin-right: 0.5rem;
+}
+
+    .btn-details:hover {
+        color: var(--vscode-textLink-activeForeground);
+    }
+
+.user-input-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+}
+
+.user-input-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.choice-button {
+    padding: 5px 14px;
+    background: var(--vscode-button-secondaryBackground, rgba(255,255,255,0.07));
+    border: 1px solid #3b82f6;
+    border-radius: 4px;
+    color: #3b82f6;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1.4;
+}
+
+    .choice-button:hover {
+        background: rgba(59, 130, 246, 0.15);
+    }
+
+.user-input-input-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.user-input-field {
+    flex: 1;
+    padding: 0.45rem 0.75rem;
+    background: var(--vscode-input-background);
+    border: none;
+    font-size: 14px;
+    color: var(--vscode-input-foreground, var(--vscode-foreground));
+    outline: none;
+    min-width: 0;
+    resize: none;
+    max-height: 180px;
+    overflow-y: auto;
+    line-height: 1.5;
+    transition: height 0.1s;
+}
+
+    .user-input-field,
+    .user-input-field::-webkit-scrollbar,
+    .user-input-field::-webkit-scrollbar-thumb,
+    .user-input-field::-webkit-scrollbar-track {
+        scrollbar-width: thin;
+        scrollbar-color: #3b82f6 var(--sidebar-color); /* info blue for thumb */
+    }
+
+        .user-input-field::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+            background: var(--sidebar-color);
+        }
+
+        .user-input-field::-webkit-scrollbar-thumb {
+            background: #3b82f6; /* info blue */
+            border-radius: 4px;
+        }
+
+            .user-input-field::-webkit-scrollbar-thumb:hover {
+                background: #2563eb; /* darker info blue */
+            }
+
+        .user-input-field::-webkit-scrollbar-track {
+            background: var(--sidebar-color);
+        }
+
+        .user-input-field::placeholder {
+            color: var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground));
+        }
+
+.btn-user-input-send {
+    background: #1d4ed8;
+    color: #fff;
+    border: none;
+    border-left: 1px solid rgba(59, 130, 246, 0.4);
+    padding: 0.4rem 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+
+    .btn-user-input-send:hover:not(:disabled) {
+        background: #1e40af;
+    }
+
+    .btn-user-input-send:disabled {
+        background: #1d4ed860;
+        cursor: not-allowed;
+    }
+
+.btn-user-input-cancel {
+    background: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: 1px solid var(--vscode-button-border);
+    padding: 4px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    margin-left: auto;
+}
+
+    .btn-user-input-cancel:hover {
+        background: var(--vscode-button-secondaryHoverBackground);
+    }
+
+::deep .code-block-pre {
+    margin: 0px;
+    border: none;
+}

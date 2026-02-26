@@ -88,7 +88,8 @@ public sealed partial class SessionFeature
 					Enabled = true
 				},
 				WorkingDirectory = workingDirectory,
-				OnPermissionRequest = _permissionHandler.HandlePermissionRequest
+				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
+				OnUserInputRequest = _userInputHandler.HandleUserInputRequest
 			};
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -171,7 +172,8 @@ public sealed partial class SessionFeature
 				ReasoningEffort = session.ReasoningEffort,
 				Streaming = true,
 				DisableResume = true,
-				OnPermissionRequest = _permissionHandler.HandlePermissionRequest
+				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
+				OnUserInputRequest = _userInputHandler.HandleUserInputRequest
 			};
 
 			session.SdkState = SdkSessionStateEnum.Loading;
@@ -325,7 +327,8 @@ public sealed partial class SessionFeature
 					Model = newModelId,
 					ReasoningEffort = newReasoningEffort,
 					Streaming = true,
-					OnPermissionRequest = _permissionHandler.HandlePermissionRequest
+					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
+					OnUserInputRequest = _userInputHandler.HandleUserInputRequest
 				};
 				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
 			}
@@ -341,7 +344,8 @@ public sealed partial class SessionFeature
 						Enabled = true
 					},
 					WorkingDirectory = chatSession?.Context.CurrentWorkingDirectory,
-					OnPermissionRequest = _permissionHandler.HandlePermissionRequest
+					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
+					OnUserInputRequest = _userInputHandler.HandleUserInputRequest
 				};
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
 
@@ -377,6 +381,7 @@ public sealed partial class SessionFeature
 			}
 
 			_terminalFeature.CloseSession(sessionId);
+			_userInputHandler.CancelPendingRequestsForSession(sessionId);
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			await client.DeleteSessionAsync(sessionId);

@@ -127,7 +127,11 @@ public sealed partial class GitFeature
 		};
 
 		// Debounce to avoid flooding callbacks on bulk changes
-		System.Timers.Timer debounce = new(300) { AutoReset = false };
+		System.Timers.Timer debounce = new(300)
+		{
+			AutoReset = false
+		};
+
 		bool running = false;
 		debounce.Elapsed += async (_, _) =>
 		{

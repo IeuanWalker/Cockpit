@@ -6,6 +6,7 @@ public enum SessionStatusEnum
 	Active,
 	Running,
 	NeedsPermission,
+	NeedsUserInput,
 	Finished,
 	Error,
 	Archived

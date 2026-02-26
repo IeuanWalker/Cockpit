@@ -15,6 +15,10 @@
     color: #FFA500;
 }
 
+.status-needs-user-input {
+    color: #3b82f6;
+}
+
 .status-running {
     color: #FFB900;
 }

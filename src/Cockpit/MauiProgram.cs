@@ -18,6 +18,7 @@ using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Cockpit.Features.UserInputRequests;
 
 namespace Cockpit;
 
@@ -74,6 +75,10 @@ public static class MauiProgram
 		// Register PermissionFeature
 		builder.Services.AddSingleton<PermissionFeature>();
 		builder.Services.AddSingleton<IPermissionHandler>(sp => sp.GetRequiredService<PermissionFeature>());
+
+		// Register UserInputFeature
+		builder.Services.AddSingleton<UserInputFeature>();
+		builder.Services.AddSingleton<IUserInputHandler>(sp => sp.GetRequiredService<UserInputFeature>());
 
 		builder.Services.AddSingleton<ModelFeature>();
 
