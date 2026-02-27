@@ -164,6 +164,6 @@ public sealed partial class GlobalDenyFeature : IDisposable
 
 	public void Dispose()
 	{
-		_lock?.Dispose();
+		_lock.Dispose();
 	}
 }
