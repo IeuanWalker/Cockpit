@@ -95,6 +95,10 @@ body,
     height: 8px;
 }
 
+.scrollbar-thin::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
 .scrollbar-thin::-webkit-scrollbar-track {
     background: var(--sidebar-color);
 }
@@ -111,6 +115,10 @@ body,
 .code-block-pre::-webkit-scrollbar {
     width: 8px;
     height: 8px;
+}
+
+.code-block-pre::-webkit-scrollbar-corner {
+    background: transparent;
 }
 
 .code-block-pre::-webkit-scrollbar-track {

@@ -9,3 +9,7 @@
     margin-bottom: -0.75rem;
     overflow: hidden
 }
+
+    ::deep .code-block-pre code {
+        padding: 0px;
+    }
