@@ -15,9 +15,10 @@ public partial class EventJsonPopup
 		{
 			return string.Empty;
 		}
+
 		try
 		{
-			var parsedList = jsonList.Select(json => JsonDocument.Parse(json).RootElement).ToList();
+			List<JsonElement> parsedList = [.. jsonList.Select(json => JsonSerializer.Deserialize<JsonElement>(json))];
 			return JsonSerializer.Serialize(parsedList, new JsonSerializerOptions { WriteIndented = true });
 		}
 		catch
