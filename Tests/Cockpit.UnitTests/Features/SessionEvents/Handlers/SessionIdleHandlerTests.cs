@@ -34,7 +34,7 @@ public class SessionIdleHandlerTests
 		// Arrange
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = true, Content = "Do something" });
+		session.Messages.Add(new ChatMessageModel { IsUser = true, Content = "Do something", EventJson = null });
 
 		processor.Process(session, new ToolExecutionStartEvent
 		{
@@ -84,7 +84,7 @@ public class SessionIdleHandlerTests
 	{
 		// Arrange
 		SessionModel session = CreateSession();
-		session.Messages.Add(new ChatMessageModel { IsUser = true });
+		session.Messages.Add(new ChatMessageModel { IsUser = true, EventJson = null });
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Start a tool but never complete it
@@ -113,8 +113,8 @@ public class SessionIdleHandlerTests
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Build a full turn: user → assistant → tools → idle
-		session.Messages.Add(new ChatMessageModel { IsUser = true, Content = "Do something" });
-		ChatMessageModel assistantMsg = new() { IsUser = false, Type = MessageTypeEnum.Text, Content = "Sure" };
+		session.Messages.Add(new ChatMessageModel { IsUser = true, Content = "Do something", EventJson = null });
+		ChatMessageModel assistantMsg = new() { IsUser = false, Type = MessageTypeEnum.Text, Content = "Sure", EventJson = null };
 		session.Messages.Add(assistantMsg);
 
 		processor.Process(session, new ToolExecutionStartEvent
@@ -153,7 +153,7 @@ public class SessionIdleHandlerTests
 		SessionEventProcessor processor = CreateProcessor();
 
 		// --- Turn 1: msg1 sent, agent is working ---
-		ChatMessageModel msg1 = new() { Id = "msg1", IsUser = true, IsComplete = true, Content = "msg1" };
+		ChatMessageModel msg1 = new() { Id = "msg1", IsUser = true, IsComplete = true, Content = "msg1", EventJson = null };
 		session.Messages.Add(msg1);
 		processor.Process(session, new AssistantTurnStartEvent { Data = new AssistantTurnStartData { TurnId = "0" }, Timestamp = DateTimeOffset.UtcNow });
 		processor.Process(session, new ToolExecutionStartEvent
@@ -164,10 +164,10 @@ public class SessionIdleHandlerTests
 
 		// msg2 and msg3 arrive while turn1 tool is running — safety net fires for msg2
 		// then turn_start immediately fires for msg2 (clearing IsPending) before turn1 session.idle
-		ChatMessageModel msg2 = new() { Id = "msg2", IsUser = true, IsComplete = true, Content = "msg2" };
+		ChatMessageModel msg2 = new() { Id = "msg2", IsUser = true, IsComplete = true, Content = "msg2", EventJson = null };
 		session.Messages.Add(msg2);
 		processor.Process(session, new AssistantTurnStartEvent { Data = new AssistantTurnStartData { TurnId = "1" }, Timestamp = DateTimeOffset.UtcNow }); // clears msg2.IsPending, creates group2
-		ChatMessageModel msg3 = new() { Id = "msg3", IsUser = true, IsComplete = true, Content = "msg3" };
+		ChatMessageModel msg3 = new() { Id = "msg3", IsUser = true, IsComplete = true, Content = "msg3", EventJson = null };
 		session.Messages.Add(msg3);
 		processor.Process(session, new AssistantTurnStartEvent { Data = new AssistantTurnStartData { TurnId = "2" }, Timestamp = DateTimeOffset.UtcNow }); // clears msg3.IsPending, creates group3
 

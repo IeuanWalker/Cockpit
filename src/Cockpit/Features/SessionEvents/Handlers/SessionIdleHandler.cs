@@ -87,7 +87,8 @@ static class SessionIdleHandler
 					Timestamp = eventTimestamp.LocalDateTime,
 					Type = MessageTypeEnum.Text,
 					IsStreaming = true,
-					IsComplete = false
+					IsComplete = false,
+					EventJson = null
 				};
 			}
 
@@ -146,7 +147,8 @@ static class SessionIdleHandler
 					Type = MessageTypeEnum.ActivityGroup,
 					ActivityGroup = group,
 					Timestamp = group.EndTime ?? DateTime.Now,
-					Content = group.Tools.Any() ? GenerateActivitySummary(group) : "Aborted"
+					Content = group.Tools.Any() ? GenerateActivitySummary(group) : "Aborted",
+					EventJson = null
 				};
 
 				int activityIndex;

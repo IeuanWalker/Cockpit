@@ -128,7 +128,7 @@ public class SessionEventProcessorTests
 		// Arrange
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = true });
+		session.Messages.Add(new ChatMessageModel { IsUser = true, EventJson = null });
 
 		processor.Process(session, new ToolExecutionStartEvent
 		{

@@ -29,7 +29,8 @@ static class AssistantMessageDeltaHandler
 					Type = MessageTypeEnum.Text,
 					IsStreaming = true,
 					IsComplete = false,
-					EventType = evt.Type
+					EventType = evt.Type,
+					EventJson = new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))
 				};
 				session.StreamingMessages[messageId] = message;
 				// DON'T add to session.Messages - it will go in thinking panel
@@ -51,7 +52,8 @@ static class AssistantMessageDeltaHandler
 				Type = MessageTypeEnum.Text,
 				IsStreaming = true,
 				IsComplete = false,
-				EventType = evt.Type
+				EventType = evt.Type,
+				EventJson = new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))
 			};
 			session.StreamingMessages[messageId] = msg;
 			session.Messages.Add(msg);

@@ -19,7 +19,8 @@ static class SessionWarningHandler
 			IsUser = false,
 			Timestamp = DateTime.Now,
 			Type = MessageTypeEnum.Error,
-			EventType = evt.Type
+			EventType = evt.Type,
+			EventJson = new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))
 		};
 
 		session.Messages.Add(message);

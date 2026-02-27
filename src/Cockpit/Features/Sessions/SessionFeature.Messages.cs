@@ -52,7 +52,8 @@ public sealed partial class SessionFeature
 					Type = MessageTypeEnum.Text,
 					IsComplete = false,
 					IsPending = agentWasBusy,
-					Attachments = attachments?.Count > 0 ? attachments : null
+					Attachments = attachments?.Count > 0 ? attachments : null,
+					EventJson = null
 				};
 				CurrentSession.Messages.Add(optimisticMessage);
 			}

@@ -94,7 +94,8 @@ static class AssistantMessageHandler
 				Timestamp = evt.Timestamp,
 				Type = MessageTypeEnum.Text,
 				IsComplete = true,
-				EventType = evt.Type
+				EventType = evt.Type,
+				EventJson = new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))
 			};
 			// Insert before any pending user messages so the summary appears before the next queued message
 			int pendingIdx = session.Messages.FindIndex(m => m.IsUser && m.IsPending);
