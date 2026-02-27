@@ -14,7 +14,7 @@
 }
 
     .connection-banner:hover {
-        background: var(--vscode-hover);
+        background: var(--hover-color);
     }
 
 .connection-dot {

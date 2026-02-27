@@ -1,9 +1,9 @@
 ﻿@using Cockpit.Features.Theme
 <div class="settings-section">
-    <h4 class="text-sm font-semibold text-vscode-title mb-3">Appearance</h4>
+    <h4 class="text-sm font-semibold text-app-title mb-3">Appearance</h4>
     <div class="space-y-4">
         <div>
-            <label class="text-sm font-medium text-vscode-title block mb-2">Theme</label>
+            <label class="text-sm font-medium text-app-title block mb-2">Theme</label>
             <div class="flex items-center space-x-2">
                 <button @onclick='() => SetTheme(ThemeEnum.System)'
                         class="theme-btn flex-1 px-3 py-2 rounded flex items-center justify-center @(_themeService.CurrentTheme.Equals(ThemeEnum.System) ? "active" : "")"
@@ -32,7 +32,7 @@
             </div>
         </div>
         <div>
-            <label class="text-sm font-medium text-vscode-title block mb-2">Accent Color</label>
+            <label class="text-sm font-medium text-app-title block mb-2">Accent Color</label>
             <div class="flex items-center space-x-3">
                 <input type="color"
                        value="@_customColor"

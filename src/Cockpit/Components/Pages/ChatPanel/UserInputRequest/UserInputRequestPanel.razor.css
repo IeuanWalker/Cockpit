@@ -25,14 +25,14 @@
 .user-input-title {
     font-size: 14px;
     font-weight: 500;
-    color: var(--vscode-foreground);
+    color: var(--text-color);
     flex: 1;
 }
 
 .btn-details {
     background: none;
     border: none;
-    color: var(--vscode-textLink-foreground);
+    color: var(--accent-color);
     font-size: 12px;
     cursor: pointer;
     padding: 4px 8px;
@@ -42,7 +42,7 @@
 }
 
     .btn-details:hover {
-        color: var(--vscode-textLink-activeForeground);
+        color: var(--accent-color);
     }
 
 .user-input-content {
@@ -60,7 +60,7 @@
 
 .choice-button {
     padding: 5px 14px;
-    background: var(--vscode-button-secondaryBackground, rgba(255,255,255,0.07));
+    background: var(--sidebar-color);
     border: 1px solid #3b82f6;
     border-radius: 4px;
     color: #3b82f6;
@@ -87,10 +87,10 @@
 .user-input-field {
     flex: 1;
     padding: 0.45rem 0.75rem;
-    background: var(--vscode-input-background);
+    background: var(--input-bg);
     border: none;
     font-size: 14px;
-    color: var(--vscode-input-foreground, var(--vscode-foreground));
+    color: var(--text-color);
     outline: none;
     min-width: 0;
     resize: none;
@@ -128,7 +128,7 @@
         }
 
         .user-input-field::placeholder {
-            color: var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground));
+            color: var(--secondary-text);
         }
 
 .btn-user-input-send {
@@ -155,9 +155,9 @@
     }
 
 .btn-user-input-cancel {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
-    border: 1px solid var(--vscode-button-border);
+    background: var(--sidebar-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
     padding: 4px 12px;
     font-size: 12px;
     border-radius: 4px;
@@ -167,7 +167,7 @@
 }
 
     .btn-user-input-cancel:hover {
-        background: var(--vscode-button-secondaryHoverBackground);
+        background: var(--hover-color);
     }
 
 ::deep .code-block-pre {

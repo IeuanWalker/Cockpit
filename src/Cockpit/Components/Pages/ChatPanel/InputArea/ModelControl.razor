@@ -17,7 +17,7 @@
             </button>
             @if(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running)
             {
-                <div id="model-switcher-tooltip" class="absolute left-0 bottom-full mb-1 px-2 py-1 rounded bg-vscode-tooltip text-xs text-white shadow-lg z-50 hidden group-hover:block">
+                <div id="model-switcher-tooltip" class="absolute left-0 bottom-full mb-1 px-2 py-1 rounded bg-app-tooltip text-xs text-white shadow-lg z-50 hidden group-hover:block">
                     You can't change model while the agent is working
                 </div>
             }
@@ -29,7 +29,7 @@
                 @foreach(var model in _availableModels)
                 {
                     <button @onclick="() => SelectModel(model)"
-                            class="w-full px-3 py-1.5 text-xs hover:bg-vscode-hover flex items-center justify-between"
+                            class="w-full px-3 py-1.5 text-xs hover:bg-app-hover flex items-center justify-between"
                             style="color: var(--text-color);">
                         <span class="text-left">@model.Name</span>
                         <span class="text-right ml-4" style="color: @GetMultiplierColor(model.Billing?.Multiplier ?? 1)">@(model.Billing?.Multiplier.ToString("0.0") ?? "Unknown")x</span>
@@ -60,7 +60,7 @@
                 </button>
                 @if(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running)
                 {
-                    <div id="reasoning-switcher-tooltip" class="absolute left-0 bottom-full mb-1 px-2 py-1 rounded bg-vscode-tooltip text-xs text-white shadow-lg z-50 hidden group-hover:block">
+                    <div id="reasoning-switcher-tooltip" class="absolute left-0 bottom-full mb-1 px-2 py-1 rounded bg-app-tooltip text-xs text-white shadow-lg z-50 hidden group-hover:block">
                         You can't change reasoning while the agent is working
                     </div>
                 }
@@ -74,7 +74,7 @@
                         @foreach(var effort in _sessionListFeature.CurrentSession.Model.SupportedReasoningEfforts)
                         {
                             <button @onclick="() => SelectReasoningEffort(effort)"
-                                    class="w-full px-3 py-1.5 text-xs hover:bg-vscode-hover text-left"
+                                    class="w-full px-3 py-1.5 text-xs hover:bg-app-hover text-left"
                                     style="color: var(--text-color);">
                                 @(char.ToUpper(effort[0]) + effort.Substring(1))@(effort == _sessionListFeature.CurrentSession.Model.DefaultReasoningEffort ? " (default)" : "")
                             </button>

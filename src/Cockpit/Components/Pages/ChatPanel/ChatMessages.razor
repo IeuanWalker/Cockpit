@@ -35,7 +35,7 @@
 
                                 <button @onclick="() => ToggleAttachments(message)"
                                         aria-expanded="@expanded"
-                                        class="mt-1 flex items-center gap-1.5 text-xs secondary-text hover:text-vscode-text transition-colors px-2 py-1 rounded hover:bg-vscode-hover">
+                                        class="mt-1 flex items-center gap-1.5 text-xs secondary-text hover:text-app-text transition-colors px-2 py-1 rounded hover:bg-app-hover">
                                     <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                     </svg>
@@ -59,12 +59,12 @@
                                                      @onclick="@(() => OpenLightbox(previewSrc ?? string.Empty, att.FileName))"
                                                      title="@att.FilePath">
                                                     <img src="@previewSrc" alt="@att.FileName"
-                                                         class="rounded-lg object-cover border border-vscode-border" style="height:80px;max-width:120px" />
+                                                         class="rounded-lg object-cover border border-app-border" style="height:80px;max-width:120px" />
                                                 </div>
                                             }
                                             else
                                             {
-                                                <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-vscode-sidebar border border-vscode-border text-xs secondary-text max-w-48"
+                                                <div class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-app-sidebar border border-app-border text-xs secondary-text max-w-48"
                                                      title="@att.FilePath">
                                                     <svg class="icon-xs flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -94,7 +94,7 @@
                         <div class="max-w-2xl flex items-start">
                             <img src="/images/logo.png" alt="Agent avatar" style="max-height:45px; margin: 0 5px 0 0" />
                             <div class="flex flex-col min-w-0">
-                                <div class="bg-vscode-sidebar border border-vscode-border rounded-lg px-4 py-3">
+                                <div class="bg-app-sidebar border border-app-border rounded-lg px-4 py-3">
                                     <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
                                 </div>
                                 @if(_uiStateFeature.TextToSpeechEnabled && !message.IsStreaming)

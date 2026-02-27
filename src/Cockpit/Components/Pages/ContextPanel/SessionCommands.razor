@@ -6,7 +6,7 @@ else
 {
     @foreach(var command in Commands)
     {
-        <div class="px-3 py-1.5 hover:bg-vscode-hover text-xs transition-colors flex items-center justify-between group">
+        <div class="px-3 py-1.5 hover:bg-app-hover text-xs transition-colors flex items-center justify-between group">
             <span class="truncate">@command</span>
             <button @onclick="() => RemoveCommand(command)"
                     class="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded ml-2 flex-shrink-0"

@@ -3,8 +3,8 @@
 <PopupBase @ref="_popup">
     <TitleArea>
         <div>
-            <h2 class="text-lg font-semibold text-vscode-title">Select Working Directory</h2>
-            <p class="text-sm text-vscode-secondary mt-1">Choose a directory for the Copilot session context</p>
+            <h2 class="text-lg font-semibold text-app-title">Select Working Directory</h2>
+            <p class="text-sm text-app-secondary mt-1">Choose a directory for the Copilot session context</p>
         </div>
     </TitleArea>
     <Content>
@@ -12,7 +12,7 @@
             <div class="space-y-4">
                 <!-- Current Path Display -->
                 <div>
-                    <label class="block text-sm font-medium text-vscode-title mb-2">Selected Directory</label>
+                    <label class="block text-sm font-medium text-app-title mb-2">Selected Directory</label>
                     <div class="flex gap-2">
                         <input type="text"
                                @bind="SelectedPath"
@@ -31,17 +31,17 @@
                 @if(RecentDirectories.Any())
                 {
                     <div>
-                        <label class="block text-sm font-medium text-vscode-title mb-2">Recent</label>
+                        <label class="block text-sm font-medium text-app-title mb-2">Recent</label>
                         <div class="space-y-1">
                             @foreach(var recent in RecentDirectories)
                             {
                                 <button @onclick="() => SelectPath(recent)"
-                                        class="w-full text-left px-3 py-2 rounded hover:bg-vscode-hover text-sm flex items-center gap-2">
+                                        class="w-full text-left px-3 py-2 rounded hover:bg-app-hover text-sm flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                                     </svg>
                                     <span class="truncate">@Path.GetFileName(recent)</span>
-                                    <span class="ml-auto text-vscode-secondary text-xs truncate max-w-xs">@recent</span>
+                                    <span class="ml-auto text-app-secondary text-xs truncate max-w-xs">@recent</span>
                                 </button>
                             }
                         </div>
@@ -58,9 +58,9 @@
         </div>
     </Content>
     <Footer>
-        <div class="px-3 py-4 border-t border-vscode-border flex justify-end gap-3">
+        <div class="px-3 py-4 border-t border-app-border flex justify-end gap-3">
             <button @onclick="Cancel"
-                    class="px-4 py-2 rounded text-sm hover:bg-vscode-hover">
+                    class="px-4 py-2 rounded text-sm hover:bg-app-hover">
                 Cancel
             </button>
             <button @onclick="Confirm"

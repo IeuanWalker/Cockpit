@@ -7,7 +7,7 @@
     background: linear-gradient(to right, transparent, var(--hover-color) 60%);
 }
 
-.session-item.bg-vscode-active .session-delete-overlay {
+.session-item.bg-app-active .session-delete-overlay {
     background: linear-gradient(to right, transparent, var(--active-color) 60%);
 }
 

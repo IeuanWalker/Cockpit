@@ -1,7 +1,7 @@
 @namespace Cockpit.Components.Pages.ChatPanel
 
 <button @onclick="VoiceRecording"
-        class="p-1.5 @(_uiStateFeature.IsRecording ? "animate-pulse" : "hover:bg-vscode-hover") rounded"
+        class="p-1.5 @(_uiStateFeature.IsRecording ? "animate-pulse" : "hover:bg-app-hover") rounded"
         title="@(_uiStateFeature.IsRecording ? "Stop recording" : "Voice input")"
         style="@(_uiStateFeature.IsRecording ? "background-color: #E74856;" : "")"
         disabled="@Disabled">

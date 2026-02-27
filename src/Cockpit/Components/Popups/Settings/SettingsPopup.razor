@@ -9,35 +9,35 @@
     </HeaderLeft>
     <Content>
         <div class="settings-popup-content">
-            <nav class="settings-menu border-r border-vscode-border">
+            <nav class="settings-menu border-r border-app-border">
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Appearance ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.Appearance)">
-                    <span class="text-sm font-medium text-vscode-title">Appearance</span>
+                    <span class="text-sm font-medium text-app-title">Appearance</span>
                     <span class="text-xs secondary-text">Theme, accent</span>
                 </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Commands ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.Commands)">
-                    <span class="text-sm font-medium text-vscode-title">Commands</span>
+                    <span class="text-sm font-medium text-app-title">Commands</span>
                     <span class="text-xs secondary-text">Allowlist, tools</span>
                 </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Input ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.Input)">
-                    <span class="text-sm font-medium text-vscode-title">Input settings</span>
+                    <span class="text-sm font-medium text-app-title">Input settings</span>
                     <span class="text-xs secondary-text">Enter behavior</span>
                 </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Voice ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.Voice)">
-                    <span class="text-sm font-medium text-vscode-title">Voice</span>
+                    <span class="text-sm font-medium text-app-title">Voice</span>
                     <span class="text-xs secondary-text">Mic, transcription</span>
                 </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Sounds ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.Sounds)">
-                    <span class="text-sm font-medium text-vscode-title">Sounds</span>
+                    <span class="text-sm font-medium text-app-title">Sounds</span>
                     <span class="text-xs secondary-text">Alerts, feedback</span>
                 </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Diagnostics ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.Diagnostics)">
-                    <span class="text-sm font-medium text-vscode-title">Diagnostics</span>
+                    <span class="text-sm font-medium text-app-title">Diagnostics</span>
                     <span class="text-xs secondary-text">Logs, telemetry</span>
                 </button>
             </nav>

@@ -1,5 +1,5 @@
 :root {
-    /* Dark Modern Theme - Official VS Code Colors */
+    /* Dark Modern Theme - Official Colors */
     --bg-color: #1F1F1F;
     --sidebar-color: #181818;
     --border-color: #2B2B2B;
@@ -48,45 +48,45 @@ html, body {
 /* Smooth color transitions when switching app theme. */
 html,
 body,
-.bg-vscode-bg,
-.bg-vscode-sidebar,
-.border-vscode-border,
-.text-vscode-text,
-.text-vscode-title,
+.bg-app-bg,
+.bg-app-sidebar,
+.border-app-border,
+.text-app-text,
+.text-app-title,
 .secondary-text,
 .theme-btn {
     transition: background-color 0.10s ease, color 0.10s ease, border-color 0.10s ease;
 }
 
-.bg-vscode-bg {
+.bg-app-bg {
     background-color: var(--bg-color) !important;
 }
 
-.bg-vscode-sidebar {
+.bg-app-sidebar {
     background-color: var(--sidebar-color) !important;
 }
 
-.border-vscode-border {
+.border-app-border {
     border-color: var(--border-color) !important;
 }
 
-.hover\:bg-vscode-hover:hover {
+.hover\:bg-app-hover:hover {
     background-color: var(--hover-color) !important;
 }
 
-.bg-vscode-hover {
+.bg-app-hover {
     background-color: var(--hover-color) !important;
 }
 
-.bg-vscode-active {
+.bg-app-active {
     background-color: var(--active-color) !important;
 }
 
-.text-vscode-text {
+.text-app-text {
     color: var(--text-color) !important;
 }
 
-.text-vscode-title {
+.text-app-title {
     color: var(--title-color) !important;
 }
 

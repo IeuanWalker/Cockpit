@@ -3,17 +3,17 @@
 
 @if(IsOpen)
 {
-    <div class="terminal-panel bg-vscode-sidebar @(_isFullscreen ? "shadow-2xl" : string.Empty) @_containerClasses" style="@_containerStyle">
+    <div class="terminal-panel bg-app-sidebar @(_isFullscreen ? "shadow-2xl" : string.Empty) @_containerClasses" style="@_containerStyle">
         <!-- Terminal Header -->
-        <div class="h-10 bg-vscode-sidebar border-b border-vscode-border px-3 flex items-center">
+        <div class="h-10 bg-app-sidebar border-b border-app-border px-3 flex items-center">
             <div class="flex items-center ml-auto">
                 <!-- Add to message -->
-                <button @onclick="OpenAddToMessagePopup" class="px-2 py-1 hover:bg-vscode-hover rounded text-xs text-vscode-text" title="Add to message">
+                <button @onclick="OpenAddToMessagePopup" class="px-2 py-1 hover:bg-app-hover rounded text-xs text-app-text" title="Add to message">
                     Add to message
                 </button>
 
                 <!-- Fullscreen toggle -->
-                <button @onclick="async () => await ToggleFullscreen()" class="p-1.5 hover:bg-vscode-hover rounded" title="@(_isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen")">
+                <button @onclick="async () => await ToggleFullscreen()" class="p-1.5 hover:bg-app-hover rounded" title="@(_isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen")">
                     <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         @if(_isFullscreen)
                         {
@@ -27,7 +27,7 @@
                 </button>
 
                 <!-- Reset -->
-                <button @onclick="async () => await Reset()" class="p-1.5 hover:bg-vscode-hover rounded" title="Reset">
+                <button @onclick="async () => await Reset()" class="p-1.5 hover:bg-app-hover rounded" title="Reset">
                     <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3v5h5" />

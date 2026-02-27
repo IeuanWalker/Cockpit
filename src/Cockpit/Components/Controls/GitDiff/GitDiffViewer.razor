@@ -5,9 +5,9 @@
 <div class="gitdiff-panel">
     @if(_parsedDiff is not null && _parsedDiff.Hunks.Count > 0)
     {
-        <div class="gitdiff-panel-header border-b border-vscode-border">
+        <div class="gitdiff-panel-header border-b border-app-border">
             <div class="flex items-center gap-2 min-w-0 flex-1">
-                <span class="font-semibold text-sm text-vscode-title">@_fileName</span>
+                <span class="font-semibold text-sm text-app-title">@_fileName</span>
                 @if(_parsedDiff.LinesAdded > 0)
                 {
                     <span class="text-xs font-medium diff-added-count flex-shrink-0">+@_parsedDiff.LinesAdded</span>

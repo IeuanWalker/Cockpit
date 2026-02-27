@@ -92,7 +92,7 @@ public partial class TerminalPanel : IDisposable
 		_containerStyle = _isFullscreen
 			? "position: fixed; inset: 0; z-index: 50; height: 100vh; width: 100vw; display: flex; flex-direction: column;"
 			: "height: 30%; display: flex; flex-direction: column; z-index: 50;";
-		_containerClasses = _isFullscreen ? "bg-vscode-sidebar" : string.Empty;
+		_containerClasses = _isFullscreen ? "bg-sidebar" : string.Empty;
 
 		// Trigger re-render
 		await InvokeAsync(StateHasChanged);

@@ -3,10 +3,10 @@
 <PopupBase @ref="_popup" Title="Add Terminal Output to Message" ContentClass="flex-1 min-h-0 overflow-hidden">
     <Content>
         <!-- Line count selector -->
-        <div class="px-4 py-3 border-b border-vscode-border">
+        <div class="px-4 py-3 border-b border-app-border">
             <label class="text-xs secondary-text mb-2 block">Lines to include</label>
             <input type="number" min="1" max="@Math.Max(1, TotalLineCount)" @bind="SelectedLineCount" @bind:event="oninput" @bind:after="UpdatePreview"
-                   class="w-24 bg-vscode-bg border border-vscode-border rounded px-2 py-1 text-xs text-vscode-text focus:outline-none" />
+                   class="w-24 bg-app-bg border border-app-border rounded px-2 py-1 text-xs text-app-text focus:outline-none" />
         </div>
 
         <!-- Preview -->
@@ -18,8 +18,8 @@
         </div>
     </Content>
     <Footer>
-        <div class="px-4 py-3 border-t border-vscode-border flex items-center justify-end gap-2">
-            <button @onclick="HandleClose" class="px-3 py-1.5 text-xs rounded hover:bg-vscode-hover text-vscode-text">
+        <div class="px-4 py-3 border-t border-app-border flex items-center justify-end gap-2">
+            <button @onclick="HandleClose" class="px-3 py-1.5 text-xs rounded hover:bg-app-hover text-app-text">
                 Cancel
             </button>
             <button @onclick="HandleConfirm" class="px-3 py-1.5 text-xs rounded btn-primary" disabled="@string.IsNullOrEmpty(PreviewText)">

@@ -5,7 +5,7 @@
 <PopupBase @ref="_popup"
            PopupStyle="width: 90vw; height: 90vh; max-height: 90vh; max-width: none;">
     <TitleArea>
-        <span class="text-vscode-title font-semibold text-sm">Edited Files (@Files.Count)</span>
+        <span class="text-app-title font-semibold text-sm">Edited Files (@Files.Count)</span>
     </TitleArea>
     <HeaderRight>
         <div class="view-toggle">
@@ -51,7 +51,7 @@
                     };
                     <div class="popup-file-item border-l-2 @treeBorder @(_selectedFile == file ? "selected" : "")"
                          @onclick="() => SelectFile(file)">
-                        <span class="text-xs truncate flex-1 min-w-0 @(file.Status == GitFileStatusEnum.Deleted ? "line-through secondary-text" : "text-vscode-text")">@file.Name</span>
+                        <span class="text-xs truncate flex-1 min-w-0 @(file.Status == GitFileStatusEnum.Deleted ? "line-through secondary-text" : "text-app-text")">@file.Name</span>
                         <span class="ml-2 text-xs @treeBadgeClass text-white px-1 rounded flex-shrink-0">@treeBadge</span>
                     </div>
                 }

@@ -27,13 +27,13 @@
 .permission-title {
     font-size: 14px;
     font-weight: 500;
-    color: var(--vscode-foreground);
+    color: var(--text-color);
 }
 
 .btn-details {
     background: none;
     border: none;
-    color: var(--vscode-textLink-foreground);
+    color: var(--accent-color);
     font-size: 12px;
     cursor: pointer;
     padding: 4px 8px;
@@ -43,7 +43,7 @@
 }
 
     .btn-details:hover {
-        color: var(--vscode-textLink-activeForeground);
+        color: var(--accent-color);
     }
 
 .permission-actions {
@@ -132,37 +132,37 @@
     padding: 4px 12px;
     font-size: 12px;
     border-radius: 4px;
-    border: 1px solid var(--vscode-button-border);
+    border: 1px solid var(--border-color);
     cursor: pointer;
     font-weight: 500;
     transition: all 0.15s ease;
 }
 
 .btn-deny {
-    background: var(--vscode-button-secondaryBackground);
-    color: var(--vscode-button-secondaryForeground);
+    background: var(--sidebar-color);
+    color: var(--text-color);
 }
 
     .btn-deny:hover {
-        background: var(--vscode-button-secondaryHoverBackground);
+        background: var(--hover-color);
     }
 
 .btn-allow-once {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--button-bg);
+    color: #ffffff;
 }
 
     .btn-allow-once:hover {
-        background: var(--vscode-button-hoverBackground);
+        background: var(--button-hover);
     }
 
 .btn-allow-session {
-    background: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
+    background: var(--button-bg);
+    color: #ffffff;
 }
 
     .btn-allow-session:hover {
-        background: var(--vscode-button-hoverBackground);
+        background: var(--button-hover);
     }
 
 .btn-allow-always {

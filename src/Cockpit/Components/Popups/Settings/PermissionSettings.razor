@@ -1,12 +1,12 @@
 <div class="settings-section">
-    <h4 class="text-sm font-semibold text-vscode-title mb-3">Tool Execution Permissions</h4>
-    <p class="text-xs text-vscode-description mb-4">
+    <h4 class="text-sm font-semibold text-app-title mb-3">Tool Execution Permissions</h4>
+    <p class="text-xs text-app-description mb-4">
         Control which commands agents can execute without asking for permission.
     </p>
 
     <div class="permissions-list">
         <div class="permissions-list-header">
-            <h5 class="text-xs font-semibold text-vscode-title">Global Allowlist</h5>
+            <h5 class="text-xs font-semibold text-app-title">Global Allowlist</h5>
             <button class="btn btn-sm btn-primary" @onclick="ShowAddDialog">
                 <span>+ Add Command</span>
             </button>
@@ -15,7 +15,7 @@
         @if(_commands.Count == 0)
         {
             <div class="empty-state">
-                <p class="text-xs text-vscode-description">No allowed commands yet. Add commands to auto-approve</p>
+                <p class="text-xs text-app-description">No allowed commands yet. Add commands to auto-approve</p>
             </div>
         }
         else
@@ -43,9 +43,9 @@
     @if(_showAddDialog)
     {
         <div class="add-permission-dialog">
-            <h5 class="text-sm font-semibold text-vscode-title mb-3">Allow Command</h5>
+            <h5 class="text-sm font-semibold text-app-title mb-3">Allow Command</h5>
             <div class="form-group">
-                <label class="text-xs text-vscode-description">Command</label>
+                <label class="text-xs text-app-description">Command</label>
                 <input type="text" class="form-input" @bind="_newCommand" placeholder="e.g., git status, npm, dotnet build" />
             </div>
             <div class="dialog-actions">
