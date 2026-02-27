@@ -30,10 +30,9 @@
 }
 
 .btn-details {
-	color: var(--link-color);
+    color: var(--text-color);
     background: none;
     border: none;
-    color: var(--accent-color);
     font-size: 12px;
     cursor: pointer;
     padding: 4px 8px;
@@ -43,7 +42,7 @@
 }
 
     .btn-details:hover {
-        color: var(--accent-color);
+        color: #3b82f6;
     }
 
 .user-input-content {
@@ -156,22 +155,16 @@
     }
 
 .btn-user-input-cancel {
-	background: var(--danger-bg);
-	color: var(--danger-text);
-	border: 1px solid var(--danger-border);
-    background: var(--sidebar-color);
     color: var(--text-color);
-    border: 1px solid var(--border-color);
     padding: 4px 12px;
     font-size: 12px;
-    border-radius: 4px;
     cursor: pointer;
     font-weight: 500;
     margin-left: auto;
 }
 
     .btn-user-input-cancel:hover {
-        background: var(--hover-color);
+        color: #3b82f6;
     }
 
 ::deep .code-block-pre {

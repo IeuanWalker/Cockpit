@@ -31,10 +31,9 @@
 }
 
 .btn-details {
-	color: var(--link-color);
+    color: var(--text-color);
     background: none;
     border: none;
-    color: var(--accent-color);
     font-size: 12px;
     cursor: pointer;
     padding: 4px 8px;
@@ -44,7 +43,7 @@
 }
 
     .btn-details:hover {
-        color: var(--accent-color);
+        color: #ef4444;
     }
 
 .permission-actions {
@@ -140,14 +139,11 @@
 }
 
 .btn-deny {
-	background: var(--danger-bg);
-	color: var(--danger-text);
-    background: var(--sidebar-color);
     color: var(--text-color);
 }
 
     .btn-deny:hover {
-        background: var(--hover-color);
+        color: #ef4444;
     }
 
 .btn-allow-once {
