@@ -1,14 +1,23 @@
 @using Cockpit.Components.Controls
 @using Cockpit.Features.SessionEvents.Models
 
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime;
+
 @code {
     private PopupBase? _eventJsonPopup;
     private string? _eventJsonContent;
 
-    private void ShowEventJson(ChatMessageModel message)
+    private async Task ShowEventJson(ChatMessageModel message)
     {
+        if(await IsTextSelected()) return;
         _eventJsonContent = message.EventJson?.Value;
         _eventJsonPopup?.Open();
+    }
+
+    private async Task<bool> IsTextSelected()
+    {
+        var selection = await JSRuntime.InvokeAsync<string>("eval", "window.getSelection().toString()");
+        return !string.IsNullOrEmpty(selection);
     }
 
     private string FormatAsJson(string json)
