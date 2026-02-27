@@ -10,7 +10,7 @@ public class SessionEventHelpersTests
 	static ActivityGroupModel CreateGroupWithTool(string toolCallId, string toolName = "test_tool")
 	{
 		ActivityGroupModel group = new();
-		ToolExecutionModel tool = new() { ToolCallId = toolCallId, ToolName = toolName };
+		ToolExecutionModel tool = new() { ToolCallId = toolCallId, ToolName = toolName, StartTime = DateTime.Now };
 		group.AddEvent(new ThinkingEventModel
 		{
 			Type = ThinkingEventTypeEnum.Tool,
@@ -42,7 +42,7 @@ public class SessionEventHelpersTests
 		ActivityGroupModel group = CreateGroupWithTool("parent1");
 		ToolExecutionModel parent = group.Tools.First();
 
-		ToolExecutionModel child = new() { ToolCallId = "child1", ToolName = "child_tool" };
+		ToolExecutionModel child = new() { ToolCallId = "child1", ToolName = "child_tool", StartTime = DateTime.Now };
 		parent.AddChild(child);
 
 		// Act
@@ -103,7 +103,7 @@ public class SessionEventHelpersTests
 			Message = "some message",
 			Tool = null
 		});
-		ToolExecutionModel tool = new() { ToolCallId = "tc1" };
+		ToolExecutionModel tool = new() { ToolCallId = "tc1", StartTime = DateTime.Now };
 		group.AddEvent(new ThinkingEventModel { Type = ThinkingEventTypeEnum.Tool, Tool = tool });
 
 		// Act

@@ -6,10 +6,19 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SessionIdleHandler
 {
-	internal static void Handle(SessionModel session, DateTimeOffset? eventTimestamp = null, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
+	internal static void Handle(SessionModel session, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
 	{
-		DateTime now = eventTimestamp?.LocalDateTime ?? DateTime.Now;
-
+		if(session.ActiveWorkingGroup is not null)
+		{
+			Handle(session, session.ActiveWorkingGroup.Events.Last().Timestamp, onStreamSummary, groupStatus);
+		}
+		else
+		{
+			Handle(session, session.Messages.Last().Timestamp, onStreamSummary, groupStatus);
+		}
+	}
+	internal static void Handle(SessionModel session, DateTimeOffset eventTimestamp, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
+	{
 		ActivityGroupModel? activeGroup = session.ActiveWorkingGroup;
 
 		bool hasThinkingMessages = activeGroup?.GetEventsSnapshot().Any(e => e.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrWhiteSpace(e.Message)) ?? false;
@@ -37,7 +46,7 @@ static class SessionIdleHandler
 				if(tool.Status == ToolStatusEnum.Running)
 				{
 					tool.Status = ToolStatusEnum.Error;
-					tool.EndTime = DateTime.Now;
+					tool.EndTime = tool.EndTime;
 					tool.IsSuccess = false;
 					hasStoppedTools = true;
 				}
@@ -47,14 +56,14 @@ static class SessionIdleHandler
 					if(child.Status == ToolStatusEnum.Running)
 					{
 						child.Status = ToolStatusEnum.Error;
-						child.EndTime = DateTime.Now;
+						child.EndTime = child.EndTime;
 						child.IsSuccess = false;
 					}
 				}
 			}
 
 			group.Status = groupStatus;
-			group.EndTime = now;
+			group.EndTime = eventTimestamp.LocalDateTime;
 			group.IsExpanded = false;
 
 			// Extract the last message event as the summary (but not "Session stopped")
@@ -72,7 +81,7 @@ static class SessionIdleHandler
 					Id = lastMessage.Id ?? Guid.NewGuid().ToString(),
 					Content = string.Empty,
 					IsUser = false,
-					Timestamp = now,
+					Timestamp = eventTimestamp.LocalDateTime,
 					Type = MessageTypeEnum.Text,
 					IsStreaming = true,
 					IsComplete = false
@@ -86,7 +95,7 @@ static class SessionIdleHandler
 				{
 					Type = ThinkingEventTypeEnum.Message,
 					Message = "Session aborted",
-					Timestamp = now
+					Timestamp = eventTimestamp.LocalDateTime
 				});
 			}
 			else if(hasStoppedTools)
@@ -95,7 +104,7 @@ static class SessionIdleHandler
 				{
 					Type = ThinkingEventTypeEnum.Message,
 					Message = "Session stopped",
-					Timestamp = now
+					Timestamp = eventTimestamp.LocalDateTime
 				});
 			}
 

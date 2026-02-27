@@ -25,7 +25,7 @@ static class AssistantTurnStartHandler
 		// (including extended/opaque reasoning where no tool events are emitted)
 		session.ActiveWorkingGroup ??= new ActivityGroupModel
 		{
-			StartTime = DateTime.Now,
+			StartTime = evt.Timestamp.LocalDateTime,
 			Status = GroupStatusEnum.Running,
 			IsExpanded = true,
 			TriggeredByUserMessageId = activatedPendingMsg?.Id

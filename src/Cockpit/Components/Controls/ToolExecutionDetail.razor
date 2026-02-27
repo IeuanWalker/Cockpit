@@ -5,7 +5,7 @@
         <span class="tool-dot @GetStatusClass()"></span>
         <span class="tool-label" style="color: @GetLabelColor()">@GetToolLabel()</span>
         @{
-            var childCount = Tool.GetChildrenSnapshot().Count;
+            var childCount = GetAllChildrenCount();
         }
         @if(childCount > 0)
         {

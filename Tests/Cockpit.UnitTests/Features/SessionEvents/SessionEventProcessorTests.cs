@@ -44,7 +44,7 @@ public class SessionEventProcessorTests
 		group.AddEvent(new ThinkingEventModel
 		{
 			Type = ThinkingEventTypeEnum.Tool,
-			Tool = new ToolExecutionModel { ToolName = "read_file", ToolCallId = "tc1", Status = ToolStatusEnum.Success }
+			Tool = new ToolExecutionModel { ToolName = "read_file", ToolCallId = "tc1", Status = ToolStatusEnum.Success, StartTime = DateTime.Now }
 		});
 		session.ActiveWorkingGroup = group;
 

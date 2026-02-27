@@ -156,11 +156,22 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 			return string.Empty;
 		}
 
-		List<ToolExecutionModel> tools = [.. Group.Tools]; // Create snapshot to avoid collection modified exception
-		int running = tools.Count(t => t.Status == ToolStatusEnum.Running);
-		int complete = tools.Count(t => t.Status == ToolStatusEnum.Success);
+		List<ToolExecutionModel> allTools = GetAllTools([.. Group.Tools]);
+		int running = allTools.Count(t => t.Status == ToolStatusEnum.Running);
+		int complete = allTools.Count(t => t.Status == ToolStatusEnum.Success);
 
 		return $"{running} running, {complete} complete";
+	}
+
+	static List<ToolExecutionModel> GetAllTools(List<ToolExecutionModel> tools)
+	{
+		List<ToolExecutionModel> result = [];
+		foreach(ToolExecutionModel tool in tools)
+		{
+			result.Add(tool);
+			result.AddRange(GetAllTools(tool.GetChildrenSnapshot()));
+		}
+		return result;
 	}
 
 	async Task ScrollToBottomAndResume()

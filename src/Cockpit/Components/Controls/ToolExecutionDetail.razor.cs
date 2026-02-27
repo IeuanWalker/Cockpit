@@ -207,6 +207,16 @@ public sealed partial class ToolExecutionDetail : IDisposable
 		}
 	}
 
+	int GetAllChildrenCount()
+	{
+		static int CountAll(ToolExecutionModel tool)
+		{
+			List<ToolExecutionModel> children = tool.GetChildrenSnapshot();
+			return children.Count + children.Sum(CountAll);
+		}
+		return CountAll(Tool);
+	}
+
 	string GetDuration()
 	{
 		TimeSpan duration = Tool.EndTime.HasValue

@@ -8,7 +8,7 @@ public class ToolExecutionModel
 	public Dictionary<string, object>? InputParameters { get; set; }
 	public string? Output { get; set; }
 	public string? ProgressMessage { get; set; }
-	public DateTime StartTime { get; set; } = DateTime.Now;
+	public required DateTime StartTime { get; set; }
 	public DateTime? EndTime { get; set; }
 	public ToolStatusEnum Status { get; set; } = ToolStatusEnum.Running;
 	public bool IsExpanded { get; set; } = false;

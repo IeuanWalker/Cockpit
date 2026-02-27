@@ -9,7 +9,7 @@ static class AbortHandler
 {
 	internal static void Handle(SessionModel session, AbortEvent evt, ILogger logger)
 	{
-		SessionIdleHandler.Handle(session, DateTimeOffset.Now, null, GroupStatusEnum.Error);
+		SessionIdleHandler.Handle(session, evt.Timestamp, null, GroupStatusEnum.Error);
 
 		// Clear any pending messages — they will never be processed after an abort
 		foreach(ChatMessageModel msg in session.Messages.Where(m => m.IsPending))

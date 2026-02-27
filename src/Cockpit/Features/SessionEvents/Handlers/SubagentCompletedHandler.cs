@@ -23,7 +23,7 @@ static class SubagentCompletedHandler
 		{
 			subagentExec.Status = ToolStatusEnum.Success;
 			subagentExec.IsSuccess = true;
-			subagentExec.EndTime = DateTime.Now;
+			subagentExec.EndTime = evt.Timestamp.LocalDateTime;
 			subagentExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 		}
 	}

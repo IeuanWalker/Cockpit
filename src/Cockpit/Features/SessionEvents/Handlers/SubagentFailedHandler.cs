@@ -23,7 +23,7 @@ static class SubagentFailedHandler
 		{
 			subagentExec.Status = ToolStatusEnum.Error;
 			subagentExec.IsSuccess = false;
-			subagentExec.EndTime = DateTime.Now;
+			subagentExec.EndTime = evt.Timestamp.LocalDateTime;
 			subagentExec.Output = evt.Data.Error;
 			subagentExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 		}

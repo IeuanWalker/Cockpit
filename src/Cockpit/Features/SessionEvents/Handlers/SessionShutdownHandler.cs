@@ -11,6 +11,6 @@ static class SessionShutdownHandler
 		logger.LogInformation("Session {SessionId} shutdown — type: {ShutdownType}, requests: {Requests}, duration: {Duration}ms",
 			session.Id, evt.Data.ShutdownType, evt.Data.TotalPremiumRequests, evt.Data.TotalApiDurationMs);
 
-		SessionIdleHandler.Handle(session, DateTimeOffset.Now);
+		SessionIdleHandler.Handle(session, evt.Timestamp);
 	}
 }

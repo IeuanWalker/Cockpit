@@ -3,7 +3,7 @@
 public class ActivityGroupModel
 {
 	public string Id { get; set; } = Guid.NewGuid().ToString();
-	public DateTime StartTime { get; set; } = DateTime.Now;
+	public DateTime StartTime { get; set; } = DateTime.MinValue;
 	public DateTime? EndTime { get; set; }
 	public bool IsExpanded { get; set; } = false;
 	public List<ThinkingEventModel> Events { get; set; } = []; // Chronological list of messages and tools
