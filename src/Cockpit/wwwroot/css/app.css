@@ -478,6 +478,12 @@ input[type="number"]:focus {
         border: none;
     }
 
+.code-block-borderless :is(.code-block-pre) {
+    border: none !important;
+    background: transparent !important;
+    margin: 0 !important;
+}
+
 /* Skeleton loader animation */
 @keyframes pulse {
     0%, 100% {

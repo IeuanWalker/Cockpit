@@ -7,6 +7,8 @@
         </svg>
     </HeaderLeft>
     <Content>
-        <CodeBlock Code="@FormatAsJson(Request?.FullRequestJson ?? string.Empty)" Language="json" />
+        <div class="code-block-borderless">
+            <CodeBlock Code="@FormatAsJson(Request?.FullRequestJson ?? string.Empty)" Language="json" />
+        </div>
     </Content>
 </PopupBase>

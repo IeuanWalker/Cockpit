@@ -48,7 +48,7 @@
         <div class="text-xs text-gray-400 mt-2 px-3 pb-2">
             <div class="mb-2">
                 <div>@request.Intention</div>
-                <div class="text-blue-400 font-mono">@request.FullCommand</div>
+                <div class="text-blue-400 font-mono overflow-y-auto max-h-[4.5em] command-scroll">@request.FullCommand</div>
             </div>
             @if(request.Commands.Count == 1)
             {
