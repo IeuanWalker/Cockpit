@@ -9,8 +9,6 @@ public partial class PermissionDetailsPopup
 {
 	[Parameter] public PermissionRequestModel? Request { get; set; }
 
-	[Parameter] public EventCallback OnClose { get; set; }
-
 	PopupBase _popup = default!;
 
 	public void Open() => _popup.Open();
