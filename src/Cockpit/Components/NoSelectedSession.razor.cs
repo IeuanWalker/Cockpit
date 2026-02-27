@@ -6,7 +6,12 @@ namespace Cockpit.Components;
 
 public partial class NoSelectedSession : ComponentBase
 {
-	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
+	readonly SessionListFeature _sessionListFeature;
+	public NoSelectedSession(SessionListFeature sessionListFeature)
+	{
+		_sessionListFeature = sessionListFeature;
+	}
+
 	CreateSessionPopup? _createSessionPopup;
 
 	async Task CreateNewSession()

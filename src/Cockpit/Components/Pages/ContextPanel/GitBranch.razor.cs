@@ -1,19 +1,21 @@
 using Cockpit.Features.Sessions;
-using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class GitBranch : ComponentBase, IDisposable
 {
-	[Inject] UIStateFeature _uiState { get; set; } = null!;
-	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
+	readonly SessionListFeature _sessionListFeature;
+	public GitBranch(SessionListFeature sessionListFeature)
+	{
+		_sessionListFeature = sessionListFeature;
+	}
 
-	string CurrentBranch => _sessionManager.CurrentSession?.Context?.Branch ?? string.Empty;
+	string CurrentBranch => _sessionListFeature.CurrentSession?.Context?.Branch ?? string.Empty;
 
 	protected override void OnInitialized()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnStateChanged += OnStateChanged;
 	}
 
 	void OnStateChanged()
@@ -31,7 +33,7 @@ public partial class GitBranch : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
+			_sessionListFeature.OnStateChanged -= OnStateChanged;
 		}
 	}
 }

@@ -7,8 +7,7 @@ namespace Cockpit.Components.Pages.ChatPanel.UserInputRequest;
 
 public partial class UserInputRequestDetailsPopup
 {
-	[Parameter]
-	public UserInputRequestModel? Request { get; set; }
+	[Parameter] public UserInputRequestModel? Request { get; set; }
 
 	PopupBase _popup = default!;
 

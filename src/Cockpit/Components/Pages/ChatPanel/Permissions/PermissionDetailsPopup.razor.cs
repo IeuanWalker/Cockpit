@@ -7,11 +7,9 @@ namespace Cockpit.Components.Pages.ChatPanel.Permissions;
 
 public partial class PermissionDetailsPopup
 {
-	[Parameter]
-	public PermissionRequestModel? Request { get; set; }
+	[Parameter] public PermissionRequestModel? Request { get; set; }
 
-	[Parameter]
-	public EventCallback OnClose { get; set; }
+	[Parameter] public EventCallback OnClose { get; set; }
 
 	PopupBase _popup = default!;
 

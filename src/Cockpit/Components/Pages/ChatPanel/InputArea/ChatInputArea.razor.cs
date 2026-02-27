@@ -12,11 +12,25 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 {
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] SessionFeature _sessionManager { get; set; } = default!;
-	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
-	[Inject] ILogger<ChatInputArea> _logger { get; set; } = default!;
-	[Inject] ToastService _toastService { get; set; } = default!;
+	readonly UIStateFeature _uiStateFeature;
+	readonly SessionFeature _sessionFeature;
+	readonly IJSRuntime _jsRuntime;
+	readonly ToastService _toastService;
+	readonly ILogger<ChatInputArea> _logger;
+
+	public ChatInputArea(
+		UIStateFeature uiStateFeature,
+		SessionFeature sessionFeature,
+		IJSRuntime jsRuntime,
+		ToastService toastService,
+		ILogger<ChatInputArea> logger)
+	{
+		_uiStateFeature = uiStateFeature;
+		_sessionFeature = sessionFeature;
+		_jsRuntime = jsRuntime;
+		_toastService = toastService;
+		_logger = logger;
+	}
 
 	// Brief yield to allow Blazor to flush the binding update before resizing
 	const int textareaResizeYieldMs = 10;
@@ -28,20 +42,14 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	string UserInput
 	{
-		get => _sessionManager.CurrentSession?.UserInput ?? string.Empty;
-		set
-		{
-			if(_sessionManager.CurrentSession is not null)
-			{
-				_sessionManager.CurrentSession.UserInput = value;
-			}
-		}
+		get => _sessionFeature.CurrentSession?.UserInput ?? string.Empty;
+		set => _sessionFeature.CurrentSession?.UserInput = value;
 	}
 
 	protected override void OnInitialized()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
-		_uiState.OnAppendChatInput += OnAppendChatInput;
+		_sessionFeature.OnStateChanged += OnStateChanged;
+		_uiStateFeature.OnAppendChatInput += OnAppendChatInput;
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -49,7 +57,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		if(firstRender)
 		{
 			await UpdateInputBehavior();
-			_uiState.OnStateChanged += OnUIStateChangedHandler;
+			_uiStateFeature.OnStateChanged += OnUIStateChangedHandler;
 			_subscribedToUIState = true;
 
 			_dotNetRef = DotNetObjectReference.Create(this);
@@ -74,7 +82,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	{
 		InvokeAsync(async () =>
 		{
-			string? currentSessionId = _sessionManager.CurrentSession?.Id;
+			string? currentSessionId = _sessionFeature.CurrentSession?.Id;
 			bool sessionChanged = currentSessionId != _lastSessionId;
 			_lastSessionId = currentSessionId;
 
@@ -101,7 +109,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupChatInputBehavior", "chatInput", _uiState.SendOnEnter);
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupChatInputBehavior", "chatInput", _uiStateFeature.SendOnEnter);
 		}
 		catch(Exception ex)
 		{
@@ -135,7 +143,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	[JSInvokable]
 	public async Task OnImagePasted(string base64, string mimeType, string ext, string fileName)
 	{
-		SessionModel? session = _sessionManager.CurrentSession;
+		SessionModel? session = _sessionFeature.CurrentSession;
 		if(session is null)
 		{
 			return;
@@ -179,7 +187,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	async Task AttachFiles()
 	{
-		SessionModel? session = _sessionManager.CurrentSession;
+		SessionModel? session = _sessionFeature.CurrentSession;
 		if(session is null)
 		{
 			return;
@@ -251,7 +259,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	void RemoveAttachment(int index)
 	{
-		SessionModel? session = _sessionManager.CurrentSession;
+		SessionModel? session = _sessionFeature.CurrentSession;
 		if(session is null)
 		{
 			return;
@@ -290,8 +298,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		}
 	}
 
-	bool CanSend => !string.IsNullOrWhiteSpace(UserInput) &&
-		_sessionManager.CurrentSession?.PendingPermissionRequests?.Count == 0;
+	bool CanSend => !string.IsNullOrWhiteSpace(UserInput) && _sessionFeature.CurrentSession?.PendingPermissionRequests?.Count == 0;
 
 	async Task SendMessage()
 	{
@@ -300,7 +307,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			return;
 		}
 
-		SessionModel? session = _sessionManager.CurrentSession;
+		SessionModel? session = _sessionFeature.CurrentSession;
 		bool hasAttachments = session?.PendingAttachments.Count > 0;
 
 		string message = UserInput.Trim();
@@ -320,12 +327,12 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		await Task.Delay(textareaResizeYieldMs);
 		await OnTextareaInput();
 
-		await _sessionManager.SendMessageAsync(message, attachments);
+		await _sessionFeature.SendMessageAsync(message, attachments);
 	}
 
 	async Task HandleKeyDown(KeyboardEventArgs e)
 	{
-		if(e.Key == "Enter" && !e.ShiftKey && _uiState.SendOnEnter)
+		if(e.Key == "Enter" && !e.ShiftKey && _uiStateFeature.SendOnEnter)
 		{
 			// Prevent default to avoid adding newline
 			await SendMessage();
@@ -349,12 +356,12 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	public async ValueTask DisposeAsync()
 	{
-		_sessionManager.OnStateChanged -= OnStateChanged;
-		_uiState.OnAppendChatInput -= OnAppendChatInput;
+		_sessionFeature.OnStateChanged -= OnStateChanged;
+		_uiStateFeature.OnAppendChatInput -= OnAppendChatInput;
 
 		if(_subscribedToUIState)
 		{
-			_uiState.OnStateChanged -= OnUIStateChangedHandler;
+			_uiStateFeature.OnStateChanged -= OnUIStateChangedHandler;
 		}
 
 		if(_pastSetup)
@@ -371,12 +378,12 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	void ToggleYoloMode()
 	{
-		if(_sessionManager.CurrentSession is null)
+		if(_sessionFeature.CurrentSession is null)
 		{
 			return;
 		}
 
-		_sessionManager.CurrentSession.IsYolo = !_sessionManager.CurrentSession.IsYolo;
+		_sessionFeature.CurrentSession.IsYolo = !_sessionFeature.CurrentSession.IsYolo;
 		StateHasChanged();
 	}
 }

@@ -32,7 +32,6 @@ public partial class PermissionRequestPanel : ComponentBase, IDisposable
 	PermissionDetailsPopup _moreInfoPopup = default!;
 	PermissionRequestModel? Request => _sessionManager.CurrentSession?.PendingPermissionRequests?.Values.OrderBy(r => r.Requested).FirstOrDefault();
 
-
 	string GetAllowLabel(PermissionDecisionEnum option) => option switch
 	{
 		PermissionDecisionEnum.Once => "Allow Once",

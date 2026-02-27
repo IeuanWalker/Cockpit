@@ -1,20 +1,22 @@
 using Cockpit.Features.Sessions;
-using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class MCPServers : ComponentBase, IDisposable
 {
-	[Inject] UIStateFeature _uiState { get; set; } = null!;
-	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
+	readonly SessionListFeature _sessionListFeature;
+	public MCPServers(SessionListFeature sessionListFeature)
+	{
+		_sessionListFeature = sessionListFeature;
+	}
 
-	string McpServerUrl => _sessionManager.CurrentSession?.Context?.McpServerUrl ?? string.Empty;
-	bool McpServerConnected => _sessionManager.CurrentSession?.Context?.McpServerConnected ?? false;
+	string McpServerUrl => _sessionListFeature.CurrentSession?.Context?.McpServerUrl ?? string.Empty;
+	bool McpServerConnected => _sessionListFeature.CurrentSession?.Context?.McpServerConnected ?? false;
 
 	protected override void OnInitialized()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnStateChanged += OnStateChanged;
 	}
 
 	void OnStateChanged()
@@ -32,7 +34,7 @@ public partial class MCPServers : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
+			_sessionListFeature.OnStateChanged -= OnStateChanged;
 		}
 	}
 }

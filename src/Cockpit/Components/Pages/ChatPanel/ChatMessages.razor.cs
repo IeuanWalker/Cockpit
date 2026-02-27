@@ -10,11 +10,24 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class ChatMessages : ComponentBase, IAsyncDisposable
 {
-	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
-	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
-	[Inject] TextToSpeechFeature _textToSpeechFeature { get; set; } = default!;
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] ToastService _toastService { get; set; } = default!;
+	readonly SessionListFeature _sessionListFeature;
+	readonly IJSRuntime _jsRuntime;
+	readonly TextToSpeechFeature _textToSpeechFeature;
+	readonly UIStateFeature _uiStateFeature;
+	readonly ToastService _toastService;
+	public ChatMessages(
+		SessionListFeature sessionListFeature,
+		IJSRuntime jsRuntime,
+		TextToSpeechFeature textToSpeechFeature,
+		UIStateFeature uiStateFeature,
+		ToastService toastService)
+	{
+		_sessionListFeature = sessionListFeature;
+		_jsRuntime = jsRuntime;
+		_textToSpeechFeature = textToSpeechFeature;
+		_uiStateFeature = uiStateFeature;
+		_toastService = toastService;
+	}
 
 	DotNetObjectReference<ChatMessages>? _dotNetRef;
 	bool _isScrolledUp = false;
@@ -23,10 +36,10 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnStateChanged += OnStateChanged;
 		_textToSpeechFeature.OnStateChanged += OnStateChanged;
-		_uiState.OnStateChanged += OnStateChanged;
-		_previousSessionId = _sessionManager.CurrentSession?.Id;
+		_uiStateFeature.OnStateChanged += OnStateChanged;
+		_previousSessionId = _sessionListFeature.CurrentSession?.Id;
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -58,7 +71,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		{
 			try
 			{
-				string? currentSessionId = _sessionManager.CurrentSession?.Id;
+				string? currentSessionId = _sessionListFeature.CurrentSession?.Id;
 				if(currentSessionId != _previousSessionId)
 				{
 					_previousSessionId = currentSessionId;
@@ -112,9 +125,9 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 
 	public async ValueTask DisposeAsync()
 	{
-		_sessionManager.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnStateChanged -= OnStateChanged;
 		_textToSpeechFeature.OnStateChanged -= OnStateChanged;
-		_uiState.OnStateChanged -= OnStateChanged;
+		_uiStateFeature.OnStateChanged -= OnStateChanged;
 
 		await _textToSpeechFeature.Stop();
 

@@ -3,9 +3,9 @@
 
 <div class="chat-messages-container">
     <div id="chatMessages" class="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin p-3 space-y-3">
-        @if(_sessionManager.CurrentSession?.Messages is not null)
+        @if(_sessionListFeature.CurrentSession?.Messages is not null)
         {
-            @foreach(var message in _sessionManager.CurrentSession.Messages.ToList())
+            @foreach(var message in _sessionListFeature.CurrentSession.Messages.ToList())
             {
                 if(message.Type == MessageTypeEnum.ActivityGroup && message.ActivityGroup is not null)
                 {
@@ -97,7 +97,7 @@
                                 <div class="bg-vscode-sidebar border border-vscode-border rounded-lg px-4 py-3">
                                     <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
                                 </div>
-                                @if(_uiState.TextToSpeechEnabled && !message.IsStreaming)
+                                @if(_uiStateFeature.TextToSpeechEnabled && !message.IsStreaming)
                                 {
                                     <div class="message-actions mt-1">
                                         <AgentTextToSpeechButton MessageId="@message.Id" Content="@message.Content" />

@@ -7,12 +7,16 @@ namespace Cockpit.Components.Controls.GitDiff;
 
 public partial class GitDiffViewer : ComponentBase
 {
-	[Inject] IJSRuntime JS { get; set; } = default!;
-
 	[Parameter] public string? Diff { get; set; }
 	[Parameter] public string? FilePath { get; set; }
 	[Parameter] public bool SplitView { get; set; }
 	[Parameter] public GitFileStatusEnum? GitFileStatus { get; set; }
+
+	readonly IJSRuntime _jsRuntime;
+	public GitDiffViewer(IJSRuntime jsRuntime)
+	{
+		_jsRuntime = jsRuntime;
+	}
 
 	ParsedDiffModel? _parsedDiff;
 	Dictionary<DiffHunkModel, List<SplitRowModel>> _splitRows = [];
@@ -93,13 +97,13 @@ public partial class GitDiffViewer : ComponentBase
 		{
 			if(SplitView)
 			{
-				await JS.InvokeVoidAsync("cockpit.highlightDiffCells", _diffLeftId, language);
-				await JS.InvokeVoidAsync("cockpit.highlightDiffCells", _diffRightId, language);
-				await JS.InvokeVoidAsync("cockpit.setupSplitDiffScroll", _diffLeftId, _diffRightId);
+				await _jsRuntime.InvokeVoidAsync("cockpit.highlightDiffCells", _diffLeftId, language);
+				await _jsRuntime.InvokeVoidAsync("cockpit.highlightDiffCells", _diffRightId, language);
+				await _jsRuntime.InvokeVoidAsync("cockpit.setupSplitDiffScroll", _diffLeftId, _diffRightId);
 			}
 			else
 			{
-				await JS.InvokeVoidAsync("cockpit.highlightDiffCells", _diffInlineId, language);
+				await _jsRuntime.InvokeVoidAsync("cockpit.highlightDiffCells", _diffInlineId, language);
 			}
 		}
 		catch { /* ignore if hljs unavailable */ }

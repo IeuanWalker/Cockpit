@@ -7,8 +7,14 @@ namespace Cockpit.Components.Popups.Settings;
 public partial class AppearanceSettings : ComponentBase, IDisposable
 {
 	string _customColor = "#0078D4";
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] ThemeFeature _themeService { get; set; } = default!;
+
+	readonly UIStateFeature _uiState;
+	readonly ThemeFeature _themeService;
+	public AppearanceSettings(UIStateFeature uiState, ThemeFeature themeService)
+	{
+		_uiState = uiState;
+		_themeService = themeService;
+	}
 
 	protected override void OnInitialized()
 	{
@@ -40,7 +46,6 @@ public partial class AppearanceSettings : ComponentBase, IDisposable
 	{
 		await _themeService.SetAccentColor(color, hoverColor);
 	}
-
 
 	public void Dispose()
 	{

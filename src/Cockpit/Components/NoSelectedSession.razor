@@ -16,10 +16,10 @@
                 <span>Create New Session</span>
             </button>
 
-            @if(_sessionManager.Sessions.Count > 0)
+            @if(_sessionListFeature.Sessions.Count > 0)
             {
                 <p class="text-xs text-vscode-secondary">
-                    Or select from <strong>@_sessionManager.Sessions.Count</strong> existing session@(_sessionManager.Sessions.Count == 1 ? "" : "s") in the sidebar
+                    Or select from <strong>@_sessionListFeature.Sessions.Count</strong> existing session@(_sessionListFeature.Sessions.Count == 1 ? "" : "s") in the sidebar
                 </p>
             }
         </div>

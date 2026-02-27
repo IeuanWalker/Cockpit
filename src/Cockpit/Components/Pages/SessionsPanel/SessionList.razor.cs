@@ -10,22 +10,22 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 
 public partial class SessionList : ComponentBase, IDisposable
 {
+	[Parameter] public DeleteSessionPopup? DeletePopup { get; set; }
+	[Parameter] public bool ShowSearch { get; set; }
+
 	readonly TimestampFeature _timestampFeature;
-	readonly UIStateFeature _uiState;
+	readonly UIStateFeature _uiStateFeature;
 	readonly SessionFeature _sessionFeature;
 
 	public SessionList(
 		TimestampFeature timestampFeature,
-		UIStateFeature uiState,
+		UIStateFeature uiStateFeature,
 		SessionFeature sessionFeature)
 	{
 		_timestampFeature = timestampFeature;
-		_uiState = uiState;
+		_uiStateFeature = uiStateFeature;
 		_sessionFeature = sessionFeature;
 	}
-
-	[Parameter] public DeleteSessionPopup? DeletePopup { get; set; }
-	[Parameter] public bool ShowSearch { get; set; }
 
 	string _searchText = string.Empty;
 	bool _showFilterPanel = false;
@@ -150,7 +150,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	protected override void OnInitialized()
 	{
 		_sessionFeature.OnStateChanged += OnStateChanged;
-		_uiState.OnStateChanged += OnStateChanged;
+		_uiStateFeature.OnStateChanged += OnStateChanged;
 		_timestampFeature.OnTick += OnStateChanged;
 	}
 
@@ -186,7 +186,7 @@ public partial class SessionList : ComponentBase, IDisposable
 		if(disposing)
 		{
 			_sessionFeature.OnStateChanged -= OnStateChanged;
-			_uiState.OnStateChanged -= OnStateChanged;
+			_uiStateFeature.OnStateChanged -= OnStateChanged;
 			_timestampFeature.OnTick -= OnStateChanged;
 		}
 	}

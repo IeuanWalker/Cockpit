@@ -1,9 +1,12 @@
 using Cockpit.Features.UIState;
-using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Popups.Settings;
 
 public partial class InputSettings
 {
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
+	readonly UIStateFeature _uiState;
+	public InputSettings(UIStateFeature uiState)
+	{
+		_uiState = uiState;
+	}
 }

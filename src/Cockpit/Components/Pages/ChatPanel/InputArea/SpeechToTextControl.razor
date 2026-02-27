@@ -1,12 +1,12 @@
 @namespace Cockpit.Components.Pages.ChatPanel
 
 <button @onclick="VoiceRecording"
-        class="p-1.5 @(_uiState.IsRecording ? "animate-pulse" : "hover:bg-vscode-hover") rounded"
-        title="@(_uiState.IsRecording ? "Stop recording" : "Voice input")"
-        style="@(_uiState.IsRecording ? "background-color: #E74856;" : "")"
+        class="p-1.5 @(_uiStateFeature.IsRecording ? "animate-pulse" : "hover:bg-vscode-hover") rounded"
+        title="@(_uiStateFeature.IsRecording ? "Stop recording" : "Voice input")"
+        style="@(_uiStateFeature.IsRecording ? "background-color: #E74856;" : "")"
         disabled="@Disabled">
-    <svg class="icon-sm @(_uiState.IsRecording ? "text-white" : "secondary-text")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        @if(_uiState.IsRecording)
+    <svg class="icon-sm @(_uiStateFeature.IsRecording ? "text-white" : "secondary-text")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        @if(_uiStateFeature.IsRecording)
         {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />

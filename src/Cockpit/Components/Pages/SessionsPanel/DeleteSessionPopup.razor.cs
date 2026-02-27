@@ -8,13 +8,13 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 public partial class DeleteSessionPopup : ComponentBase
 {
 	readonly SessionFeature _sessionFeature;
-	public SessionModel? Session { get; set; }
 
 	public DeleteSessionPopup(SessionFeature sessionFeature)
 	{
 		_sessionFeature = sessionFeature;
 	}
 
+	public SessionModel? Session { get; set; }
 	PopupBase _popup = default!;
 
 	public void Open(string sessionId)

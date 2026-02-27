@@ -8,9 +8,18 @@ namespace Cockpit.Components.Popups.Settings;
 
 public partial class VoiceSettings : ComponentBase, IDisposable
 {
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] TextToSpeechFeature _textToSpeechFeature { get; set; } = default!;
-	[Inject] IAppSettingsFeature _appSettings { get; set; } = default!;
+	readonly UIStateFeature _uiStateFeature;
+	readonly TextToSpeechFeature _textToSpeechFeature;
+	readonly IAppSettingsFeature _appSettingsFeature;
+	public VoiceSettings(
+		UIStateFeature uiState,
+		TextToSpeechFeature textToSpeechFeature,
+		IAppSettingsFeature appSettings)
+	{
+		_uiStateFeature = uiState;
+		_textToSpeechFeature = textToSpeechFeature;
+		_appSettingsFeature = appSettings;
+	}
 
 	IEnumerable<Locale> _locales = [];
 	float _volume;
@@ -20,11 +29,11 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_volume = _appSettings.VoiceVolume;
-		_pitch = _appSettings.VoicePitch;
-		_rate = _appSettings.VoiceRate;
-		_localeId = _appSettings.VoiceLocale;
-		_uiState.OnStateChanged += OnStateChanged;
+		_volume = _appSettingsFeature.VoiceVolume;
+		_pitch = _appSettingsFeature.VoicePitch;
+		_rate = _appSettingsFeature.VoiceRate;
+		_localeId = _appSettingsFeature.VoiceLocale;
+		_uiStateFeature.OnStateChanged += OnStateChanged;
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -41,7 +50,7 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 		if(float.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
 		{
 			_volume = value;
-			_appSettings.VoiceVolume = value;
+			_appSettingsFeature.VoiceVolume = value;
 		}
 	}
 
@@ -50,7 +59,7 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 		if(float.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
 		{
 			_pitch = value;
-			_appSettings.VoicePitch = value;
+			_appSettingsFeature.VoicePitch = value;
 		}
 	}
 
@@ -59,14 +68,14 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 		if(float.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
 		{
 			_rate = value;
-			_appSettings.VoiceRate = value;
+			_appSettingsFeature.VoiceRate = value;
 		}
 	}
 
 	void OnLocaleChanged(ChangeEventArgs e)
 	{
 		_localeId = e.Value?.ToString() ?? string.Empty;
-		_appSettings.VoiceLocale = _localeId;
+		_appSettingsFeature.VoiceLocale = _localeId;
 	}
 
 	void ResetToDefaults()
@@ -75,10 +84,10 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 		_pitch = TextToSpeechFeature.DefaultVoicePitch;
 		_rate = TextToSpeechFeature.DefaultVoiceRate;
 		_localeId = string.Empty;
-		_appSettings.VoiceVolume = _volume;
-		_appSettings.VoicePitch = _pitch;
-		_appSettings.VoiceRate = _rate;
-		_appSettings.VoiceLocale = _localeId;
+		_appSettingsFeature.VoiceVolume = _volume;
+		_appSettingsFeature.VoicePitch = _pitch;
+		_appSettingsFeature.VoiceRate = _rate;
+		_appSettingsFeature.VoiceLocale = _localeId;
 	}
 
 	async Task TestVoice()
@@ -101,7 +110,7 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_uiState.OnStateChanged -= OnStateChanged;
+			_uiStateFeature.OnStateChanged -= OnStateChanged;
 		}
 	}
 }

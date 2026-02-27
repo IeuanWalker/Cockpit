@@ -7,15 +7,19 @@ namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class EditedFiles : ComponentBase, IDisposable
 {
-	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
+	readonly SessionListFeature _sessionListFeature;
+	public EditedFiles(SessionListFeature sessionListFeature)
+	{
+		_sessionListFeature = sessionListFeature;
+	}
 
-	List<GitChangedFileModel> Files => _sessionManager.CurrentSession?.Context?.EditedFiles ?? [];
+	List<GitChangedFileModel> Files => _sessionListFeature.CurrentSession?.Context?.EditedFiles ?? [];
 
 	EditedFilesPopup _diffPopup = default!;
 
 	protected override void OnInitialized()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnStateChanged += OnStateChanged;
 	}
 
 	void OnStateChanged()
@@ -38,7 +42,7 @@ public partial class EditedFiles : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
+			_sessionListFeature.OnStateChanged -= OnStateChanged;
 		}
 	}
 }

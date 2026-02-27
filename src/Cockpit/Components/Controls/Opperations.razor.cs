@@ -6,8 +6,7 @@ namespace Cockpit.Components.Controls;
 
 public partial class Opperations
 {
-	[Parameter]
-	public ActivityGroupModel Group { get; set; } = default!;
+	[Parameter] public ActivityGroupModel Group { get; set; } = default!;
 
 	void ToggleExpanded()
 	{

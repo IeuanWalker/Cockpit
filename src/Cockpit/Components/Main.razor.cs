@@ -5,11 +5,15 @@ namespace Cockpit.Components;
 
 public partial class Main : ComponentBase, IDisposable
 {
-	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
+	readonly SessionListFeature _sessionListFeature;
+	public Main(SessionListFeature sessionListFeature)
+	{
+		_sessionListFeature = sessionListFeature;
+	}
 
 	protected override async Task OnInitializedAsync()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnStateChanged += OnStateChanged;
 	}
 
 	void OnStateChanged()
@@ -27,7 +31,7 @@ public partial class Main : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
+			_sessionListFeature.OnStateChanged -= OnStateChanged;
 		}
 	}
 }

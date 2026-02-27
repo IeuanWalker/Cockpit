@@ -3,9 +3,10 @@ using Cockpit.Components.Controls.GitDiff.Models;
 
 namespace Cockpit.Components.Controls.GitDiff;
 
-public static class DiffParser
+public static partial class DiffParser
 {
-	static readonly Regex hunkHeaderRegex = new(@"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@", RegexOptions.Compiled);
+	[GeneratedRegex(@"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@", RegexOptions.Compiled)]
+	private static partial Regex HunkHeaderRegex();
 
 	public static ParsedDiffModel Parse(string? diffText)
 	{
@@ -47,7 +48,7 @@ public static class DiffParser
 			}
 			if(line.StartsWith("@@ ", StringComparison.Ordinal))
 			{
-				Match match = hunkHeaderRegex.Match(line);
+				Match match = HunkHeaderRegex().Match(line);
 				if(match.Success)
 				{
 					oldLine = int.Parse(match.Groups[1].Value);

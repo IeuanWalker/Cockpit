@@ -9,10 +9,15 @@ namespace Cockpit.Components.Popups;
 
 public partial class EditedFilesPopup : ComponentBase, IDisposable
 {
-	[Inject] SessionListFeature _sessionManager { get; set; } = default!;
-	[Inject] IAppSettingsFeature _appSettings { get; set; } = default!;
+	readonly SessionListFeature _sessionListFeature;
+	readonly IAppSettingsFeature _appSettingsFeature;
+	public EditedFilesPopup(SessionListFeature sessionListFeature, IAppSettingsFeature appSettingsFeature)
+	{
+		_sessionListFeature = sessionListFeature;
+		_appSettingsFeature = appSettingsFeature;
+	}
 
-	List<GitChangedFileModel> Files => _sessionManager.CurrentSession?.Context?.EditedFiles ?? [];
+	List<GitChangedFileModel> Files => _sessionListFeature.CurrentSession?.Context?.EditedFiles ?? [];
 
 	PopupBase _popup = default!;
 	GitChangedFileModel? _selectedFile;
@@ -20,14 +25,14 @@ public partial class EditedFilesPopup : ComponentBase, IDisposable
 
 	string? _selectedFilePath =>
 		_selectedFile is null ? null :
-		_sessionManager.CurrentSession?.Context?.GitRoot is string root
+		_sessionListFeature.CurrentSession?.Context?.GitRoot is string root
 			? Path.Combine(root, _selectedFile.Path.Replace('/', Path.DirectorySeparatorChar))
 			: _selectedFile.Path;
 
 	protected override void OnInitialized()
 	{
-		_splitView = _appSettings.DiffSplitView;
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_splitView = _appSettingsFeature.DiffSplitView;
+		_sessionListFeature.OnStateChanged += OnStateChanged;
 	}
 
 	public void Open(GitChangedFileModel? initialFile = null)
@@ -55,7 +60,7 @@ public partial class EditedFilesPopup : ComponentBase, IDisposable
 	void SetSplitView(bool split)
 	{
 		_splitView = split;
-		_appSettings.DiffSplitView = split;
+		_appSettingsFeature.DiffSplitView = split;
 	}
 
 	void RevealFile()
@@ -89,7 +94,7 @@ public partial class EditedFilesPopup : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
+			_sessionListFeature.OnStateChanged -= OnStateChanged;
 		}
 	}
 }

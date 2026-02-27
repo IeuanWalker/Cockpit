@@ -1,20 +1,23 @@
 using Cockpit.Features.Sessions;
-using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class AgentSkills : ComponentBase, IDisposable
 {
-	[Inject] UIStateFeature _uiState { get; set; } = null!;
-	[Inject] SessionFeature _sessionManager { get; set; } = default!;
+	readonly SessionFeature _sessionFeature;
 
-	void ToggleSkill(string skill) => _sessionManager.ToggleCurrentSessionContextSkill(skill);
-	bool IsSkillEnabled(string skill) => _sessionManager.CurrentSession?.Context?.AgentSkills.Contains(skill) == true;
+	public AgentSkills(SessionFeature sessionFeature)
+	{
+		_sessionFeature = sessionFeature;
+	}
+
+	void ToggleSkill(string skill) => _sessionFeature.ToggleCurrentSessionContextSkill(skill);
+	bool IsSkillEnabled(string skill) => _sessionFeature.CurrentSession?.Context?.AgentSkills.Contains(skill) == true;
 
 	protected override void OnInitialized()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_sessionFeature.OnStateChanged += OnStateChanged;
 	}
 
 	void OnStateChanged()
@@ -32,7 +35,7 @@ public partial class AgentSkills : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
+			_sessionFeature.OnStateChanged -= OnStateChanged;
 		}
 	}
 }

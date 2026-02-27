@@ -6,9 +6,13 @@ namespace Cockpit.Components.Popups.Settings;
 
 public partial class SettingsPopup : ComponentBase, IDisposable
 {
-	SettingsSectionEnum _activeSection = SettingsSectionEnum.Appearance;
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
+	readonly UIStateFeature _uiStateFeature;
+	public SettingsPopup(UIStateFeature uiStateFeature)
+	{
+		_uiStateFeature = uiStateFeature;
+	}
 
+	SettingsSectionEnum _activeSection = SettingsSectionEnum.Appearance;
 	PopupBase _popup = default!;
 
 	public void OpenToSection(SettingsSectionEnum section)
@@ -20,7 +24,7 @@ public partial class SettingsPopup : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_uiState.OnStateChanged += OnStateChanged;
+		_uiStateFeature.OnStateChanged += OnStateChanged;
 	}
 
 	void OnStateChanged()
@@ -43,7 +47,7 @@ public partial class SettingsPopup : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_uiState.OnStateChanged -= OnStateChanged;
+			_uiStateFeature.OnStateChanged -= OnStateChanged;
 		}
 	}
 }

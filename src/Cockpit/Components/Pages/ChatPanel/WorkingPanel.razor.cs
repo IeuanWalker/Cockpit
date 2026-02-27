@@ -9,17 +9,21 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public sealed partial class WorkingPanel : IAsyncDisposable
 {
-	[Parameter]
-	public ActivityGroupModel? Group { get; set; }
+	[Parameter] public ActivityGroupModel? Group { get; set; }
+	[Parameter] public bool IsVisible { get; set; }
 
-	[Parameter]
-	public bool IsVisible { get; set; }
-
-	[Inject] SessionFeature _sessionManager { get; set; } = default!;
-
-	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
-
-	[Inject] ILogger<WorkingPanel> _logger { get; set; } = default!;
+	readonly SessionFeature _sessionFeature;
+	readonly IJSRuntime _jsRuntime;
+	readonly ILogger<WorkingPanel> _logger;
+	public WorkingPanel(
+		SessionFeature sessionFeature,
+		IJSRuntime jsRuntime,
+		ILogger<WorkingPanel> logger)
+	{
+		_sessionFeature = sessionFeature;
+		_jsRuntime = jsRuntime;
+		_logger = logger;
+	}
 
 	Timer? _timer;
 	bool _isUserScrolledUpFromWorking = false;
@@ -31,7 +35,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 
 	protected override void OnParametersSet()
 	{
-		string? currentSessionId = _sessionManager.CurrentSession?.Id;
+		string? currentSessionId = _sessionFeature.CurrentSession?.Id;
 		string? currentWorkingGroupId = Group?.Id;
 
 		// Only reset scroll state if session or working group actually changed
@@ -167,11 +171,11 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 
 	async Task StopSession()
 	{
-		if(_sessionManager.CurrentSession?.Id is null)
+		if(_sessionFeature.CurrentSession?.Id is null)
 		{
 			return;
 		}
 
-		await _sessionManager.AbortSession(_sessionManager.CurrentSession.Id);
+		await _sessionFeature.AbortSession(_sessionFeature.CurrentSession.Id);
 	}
 }

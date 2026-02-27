@@ -7,8 +7,11 @@ namespace Cockpit.Components.Pages.ContextPanel;
 
 public sealed partial class GlobalCommands : ComponentBase, IDisposable
 {
-	[Inject] GlobalPermissionFeature _globalPermissionFeature { get; set; } = null!;
-	[Inject] UIStateFeature _uiState { get; set; } = null!;
+	readonly GlobalPermissionFeature _globalPermissionFeature;
+	public GlobalCommands(GlobalPermissionFeature globalPermissionFeature)
+	{
+		_globalPermissionFeature = globalPermissionFeature;
+	}
 
 	public List<string> Commands { get; set; } = [];
 

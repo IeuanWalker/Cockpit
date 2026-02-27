@@ -9,8 +9,14 @@ public partial class MarkdownRenderer : ComponentBase
 	[Parameter] public string Content { get; set; } = string.Empty;
 	[Parameter] public string? CssClass { get; set; }
 
-	[Inject] MarkdownFeature _markdownFeature { get; set; } = default!;
-	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
+	readonly MarkdownFeature _markdownFeature;
+	readonly IJSRuntime _jsRuntime;
+
+	public MarkdownRenderer(MarkdownFeature markdownFeature, IJSRuntime jsRuntime)
+	{
+		_markdownFeature = markdownFeature;
+		_jsRuntime = jsRuntime;
+	}
 
 	readonly string _containerId = $"markdown-{Guid.NewGuid():N}";
 	string _html = string.Empty;

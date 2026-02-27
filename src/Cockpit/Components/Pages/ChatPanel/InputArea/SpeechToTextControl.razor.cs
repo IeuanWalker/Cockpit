@@ -7,17 +7,17 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public sealed partial class SpeechToTextControl : ComponentBase, IDisposable
 {
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] ISpeechToText _speechToText { get; set; } = default!;
+	[Parameter] public string ChatInput { get; set; } = string.Empty;
+	[Parameter] public EventCallback<string> ChatInputChanged { get; set; }
+	[Parameter] public bool Disabled { get; set; }
 
-	[Parameter]
-	public string ChatInput { get; set; } = string.Empty;
-
-	[Parameter]
-	public EventCallback<string> ChatInputChanged { get; set; }
-
-	[Parameter]
-	public bool Disabled { get; set; }
+	readonly UIStateFeature _uiStateFeature;
+	readonly ISpeechToText _speechToText;
+	public SpeechToTextControl(UIStateFeature uiStateFeature, ISpeechToText speechToText)
+	{
+		_uiStateFeature = uiStateFeature;
+		_speechToText = speechToText;
+	}
 
 	bool _disposed;
 
@@ -28,18 +28,18 @@ public sealed partial class SpeechToTextControl : ComponentBase, IDisposable
 
 	public async Task VoiceRecording()
 	{
-		if(!_uiState.IsRecording)
+		if(!_uiStateFeature.IsRecording)
 		{
 			bool started = await StartListening();
 			if(started)
 			{
-				_uiState.ToggleRecording();
+				_uiStateFeature.ToggleRecording();
 			}
 		}
 		else
 		{
 			await StopListen();
-			_uiState.ToggleRecording();
+			_uiStateFeature.ToggleRecording();
 		}
 
 		async Task<bool> StartListening()

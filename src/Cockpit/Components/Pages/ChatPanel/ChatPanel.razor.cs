@@ -10,11 +10,24 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class ChatPanel : ComponentBase, IAsyncDisposable
 {
-	[Inject] TimestampFeature _timestampFeature { get; set; } = default!;
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] SessionFeature _sessionManager { get; set; } = default!;
-	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
-	[Inject] ILogger<Main> _logger { get; set; } = default!;
+	readonly TimestampFeature _timestampFeature;
+	readonly UIStateFeature _uiStateFeature;
+	readonly SessionFeature _sessionFeature;
+	readonly IJSRuntime _jsRuntime;
+	readonly ILogger<Main> _logger;
+	public ChatPanel(
+		TimestampFeature timestampFeature,
+		UIStateFeature uiStateFeature,
+		SessionFeature sessionFeature,
+		IJSRuntime jsRuntime,
+		ILogger<Main> logger)
+	{
+		_timestampFeature = timestampFeature;
+		_uiStateFeature = uiStateFeature;
+		_sessionFeature = sessionFeature;
+		_jsRuntime = jsRuntime;
+		_logger = logger;
+	}
 
 	bool _shouldScrollToBottom = false;
 	bool _isUserScrolledUpFromChat = false;
@@ -24,11 +37,11 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 
 	protected override async Task OnInitializedAsync()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_sessionFeature.OnStateChanged += OnStateChanged;
 		_timestampFeature.OnTick += OnTimestampTick;
 
 		// Load existing sessions from SDK
-		await _sessionManager.LoadExistingSessions();
+		await _sessionFeature.LoadExistingSessions();
 	}
 
 	void OnTimestampTick()
@@ -45,8 +58,8 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 			await SetupSmartScroll();
 
 			// Initialize message count
-			_lastMessageCount = _sessionManager.CurrentSession?.Messages?.Count ?? 0;
-			_lastSessionId = _sessionManager.CurrentSession?.Id;
+			_lastMessageCount = _sessionFeature.CurrentSession?.Messages?.Count ?? 0;
+			_lastSessionId = _sessionFeature.CurrentSession?.Id;
 		}
 
 		if(_shouldScrollToBottom && !_isUserScrolledUpFromChat)
@@ -58,8 +71,8 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 
 	void OnStateChanged()
 	{
-		string? currentSessionId = _sessionManager.CurrentSession?.Id;
-		int currentMessageCount = _sessionManager.CurrentSession?.Messages?.Count ?? 0;
+		string? currentSessionId = _sessionFeature.CurrentSession?.Id;
+		int currentMessageCount = _sessionFeature.CurrentSession?.Messages?.Count ?? 0;
 
 		if(currentSessionId != _lastSessionId)
 		{
@@ -71,7 +84,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		if(currentMessageCount > _lastMessageCount)
 		{
 			_shouldScrollToBottom = true;
-			if(_sessionManager.CurrentSession?.Messages.LastOrDefault()?.IsUser == true)
+			if(_sessionFeature.CurrentSession?.Messages.LastOrDefault()?.IsUser == true)
 			{
 				// Always jump to latest when user sends a message
 				_isUserScrolledUpFromChat = false;
@@ -115,7 +128,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 
 	void OpenWorkspaceFolder()
 	{
-		if(string.IsNullOrEmpty(_sessionManager.CurrentSession?.Context.WorkspacePath))
+		if(string.IsNullOrEmpty(_sessionFeature.CurrentSession?.Context.WorkspacePath))
 		{
 			return;
 		}
@@ -124,7 +137,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		{
 			Process.Start(new ProcessStartInfo
 			{
-				FileName = _sessionManager.CurrentSession.Context.WorkspacePath,
+				FileName = _sessionFeature.CurrentSession.Context.WorkspacePath,
 				UseShellExecute = true
 			});
 		}
@@ -136,16 +149,16 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 
 	void ToggleTerminalPanel()
 	{
-		if(_sessionManager.CurrentSession is not null)
+		if(_sessionFeature.CurrentSession is not null)
 		{
-			_sessionManager.CurrentSession.IsTerminalOpen = !_sessionManager.CurrentSession.IsTerminalOpen;
+			_sessionFeature.CurrentSession.IsTerminalOpen = !_sessionFeature.CurrentSession.IsTerminalOpen;
 			StateHasChanged();
 		}
 	}
 
 	public async ValueTask DisposeAsync()
 	{
-		_sessionManager.OnStateChanged -= OnStateChanged;
+		_sessionFeature.OnStateChanged -= OnStateChanged;
 		_timestampFeature.OnTick -= OnTimestampTick;
 
 		// Cleanup smart scroll

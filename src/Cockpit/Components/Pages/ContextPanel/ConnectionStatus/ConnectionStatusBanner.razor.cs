@@ -5,7 +5,11 @@ namespace Cockpit.Components.Pages.ContextPanel.ConnectionStatus;
 
 public partial class ConnectionStatusBanner : ComponentBase, IDisposable
 {
-	[Inject] ConnectionFeature _connectionFeature { get; set; } = default!;
+	readonly ConnectionFeature _connectionFeature;
+	public ConnectionStatusBanner(ConnectionFeature connectionFeature)
+	{
+		_connectionFeature = connectionFeature;
+	}
 
 	ConnectionStatusPopup _popup = default!;
 

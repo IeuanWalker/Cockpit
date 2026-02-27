@@ -2,7 +2,6 @@ using Cockpit.Components.Popups.Settings;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Theme;
 using Cockpit.Features.UIState;
-using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Layout;
@@ -12,17 +11,18 @@ public partial class MainLayout : IDisposable
 	readonly UIStateFeature _uiStateFeature;
 	readonly SessionListFeature _sessionListFeature;
 	readonly ThemeFeature _themeFeature;
-
-	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
+	readonly IJSRuntime _jsRuntime;
 
 	public MainLayout(
 		UIStateFeature uiStateFeature,
 		SessionListFeature sessionListFeature,
-		ThemeFeature themeFeature)
+		ThemeFeature themeFeature,
+		IJSRuntime jsRuntime)
 	{
 		_uiStateFeature = uiStateFeature;
 		_sessionListFeature = sessionListFeature;
 		_themeFeature = themeFeature;
+		_jsRuntime = jsRuntime;
 
 		_uiStateFeature.OnStateChanged += OnStateChanged;
 		_sessionListFeature.OnStateChanged += OnStateChanged;

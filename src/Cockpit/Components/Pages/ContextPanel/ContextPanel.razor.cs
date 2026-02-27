@@ -7,13 +7,20 @@ namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class ContextPanel : ComponentBase, IDisposable
 {
+	readonly UIStateFeature _uiStateFeature;
+	readonly IJSRuntime _jsRuntime;
+
+	public ContextPanel(UIStateFeature uiStateFeature, IJSRuntime jsRuntime)
+	{
+		_uiStateFeature = uiStateFeature;
+		_jsRuntime = jsRuntime;
+	}
+
 	DotNetObjectReference<ContextPanel>? _dotNetHelper;
-	[Inject] UIStateFeature _uiState { get; set; } = default!;
-	[Inject] IJSRuntime _jsRuntime { get; set; } = default!;
 
 	protected override void OnInitialized()
 	{
-		_uiState.OnStateChanged += OnStateChanged;
+		_uiStateFeature.OnStateChanged += OnStateChanged;
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -33,7 +40,7 @@ public partial class ContextPanel : ComponentBase, IDisposable
 	[JSInvokable]
 	public void OnResize(int width)
 	{
-		_uiState.SetRightSidebarWidth(width);
+		_uiStateFeature.SetRightSidebarWidth(width);
 	}
 
 	public void Dispose()
@@ -46,7 +53,7 @@ public partial class ContextPanel : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_uiState.OnStateChanged -= OnStateChanged;
+			_uiStateFeature.OnStateChanged -= OnStateChanged;
 			_dotNetHelper?.Dispose();
 		}
 	}

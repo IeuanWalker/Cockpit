@@ -6,15 +6,20 @@ namespace Cockpit.Components.Pages.ContextPanel;
 
 public sealed partial class SessionCommands : ComponentBase, IDisposable
 {
-	[Inject] SessionPermissionFeature _sessionPermissionFeature { get; set; } = null!;
-	[Inject] SessionListFeature _sessionManager { get; set; } = null!;
+	readonly SessionPermissionFeature _sessionPermissionFeature;
+	readonly SessionListFeature _sessionListFeature;
+	public SessionCommands(SessionPermissionFeature sessionPermissionFeature, SessionListFeature sessionListFeature)
+	{
+		_sessionPermissionFeature = sessionPermissionFeature;
+		_sessionListFeature = sessionListFeature;
+	}
 
 	public List<string> Commands { get; set; } = [];
 
 	protected override void OnInitialized()
 	{
 		RefreshCommands();
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnStateChanged += OnStateChanged;
 	}
 
 	void OnStateChanged()
@@ -25,7 +30,7 @@ public sealed partial class SessionCommands : ComponentBase, IDisposable
 
 	void RefreshCommands()
 	{
-		string? sessionId = _sessionManager.CurrentSession?.Id;
+		string? sessionId = _sessionListFeature.CurrentSession?.Id;
 		Commands = string.IsNullOrEmpty(sessionId)
 			? []
 			: _sessionPermissionFeature.GetAll(sessionId);
@@ -33,7 +38,7 @@ public sealed partial class SessionCommands : ComponentBase, IDisposable
 
 	void RemoveCommand(string command)
 	{
-		string? sessionId = _sessionManager.CurrentSession?.Id;
+		string? sessionId = _sessionListFeature.CurrentSession?.Id;
 		if(string.IsNullOrEmpty(sessionId))
 		{
 			return;
@@ -44,6 +49,6 @@ public sealed partial class SessionCommands : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionManager.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnStateChanged -= OnStateChanged;
 	}
 }

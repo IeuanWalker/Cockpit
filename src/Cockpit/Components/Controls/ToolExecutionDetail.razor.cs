@@ -6,13 +6,14 @@ namespace Cockpit.Components.Controls;
 
 public sealed partial class ToolExecutionDetail : IDisposable
 {
-	[Inject] TimestampFeature _timestampFeature { get; set; } = default!;
+	[Parameter] public ToolExecutionModel Tool { get; set; } = default!;
+	[Parameter] public bool IsLive { get; set; }
 
-	[Parameter]
-	public ToolExecutionModel Tool { get; set; } = default!;
-
-	[Parameter]
-	public bool IsLive { get; set; }
+	readonly TimestampFeature _timestampFeature;
+	public ToolExecutionDetail(TimestampFeature timestampFeature)
+	{
+		_timestampFeature = timestampFeature;
+	}
 
 	protected override void OnInitialized()
 	{
