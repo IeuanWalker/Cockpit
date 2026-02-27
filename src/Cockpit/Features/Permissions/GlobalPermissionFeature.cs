@@ -19,7 +19,7 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 
 	readonly List<string> _commands = [];
 	readonly ReaderWriterLockSlim _permissionsLock = new();
-	static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+	static readonly JsonSerializerOptions jsonOptions = new() { WriteIndented = true };
 	public event Action? OnPermissionsChanged;
 
 	public bool HasPermission(string command)
@@ -187,7 +187,7 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 	{
 		try
 		{
-			string json = JsonSerializer.Serialize(snapshot, _jsonOptions);
+			string json = JsonSerializer.Serialize(snapshot, jsonOptions);
 			File.WriteAllText(_permissionsFilePath, json);
 			_logger.LogDebug("Saved permissions to {Path}", _permissionsFilePath);
 		}

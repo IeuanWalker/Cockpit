@@ -7,7 +7,7 @@ namespace Cockpit.Features.Permissions;
 /// Manages the global deny list — commands that are never allowed to be globally approved.
 /// When a command is on this list the "Allow globally" option is suppressed in the UI.
 /// </summary>
-public sealed class GlobalDenyFeature : IDisposable
+public sealed partial class GlobalDenyFeature : IDisposable
 {
 	readonly ILogger<GlobalDenyFeature> _logger;
 	readonly string _denyFilePath;
@@ -21,7 +21,7 @@ public sealed class GlobalDenyFeature : IDisposable
 
 	readonly List<string> _commands = [];
 	readonly ReaderWriterLockSlim _lock = new();
-	static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+	static readonly JsonSerializerOptions jsonOptions = new() { WriteIndented = true };
 	public event Action? OnDenyListChanged;
 
 	/// <summary>Returns true if the command is on the deny list.</summary>
@@ -152,7 +152,7 @@ public sealed class GlobalDenyFeature : IDisposable
 	{
 		try
 		{
-			string json = JsonSerializer.Serialize(snapshot, _jsonOptions);
+			string json = JsonSerializer.Serialize(snapshot, jsonOptions);
 			File.WriteAllText(_denyFilePath, json);
 			_logger.LogDebug("Saved deny list to {Path}", _denyFilePath);
 		}

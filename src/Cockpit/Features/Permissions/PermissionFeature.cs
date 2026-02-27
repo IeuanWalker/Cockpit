@@ -66,47 +66,61 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 		if(request.Kind.Equals("read", StringComparison.InvariantCultureIgnoreCase) ||
 		   request.Kind.Equals("write", StringComparison.InvariantCultureIgnoreCase))
 		{
+			string? path = null;
+
 			if(request.ExtensionData?.TryGetValue("path", out object? pathObject) ?? false)
 			{
 				if(pathObject is JsonElement element && element.ValueKind == JsonValueKind.String)
 				{
-					string? path = element.GetString();
-					if(!string.IsNullOrWhiteSpace(path))
+					path = element.GetString();
+				}
+			}
+
+			if(string.IsNullOrWhiteSpace(path))
+			{
+				if(request.ExtensionData?.TryGetValue("fileName", out object? fileNameObject) ?? false)
+				{
+					if(fileNameObject is JsonElement element && element.ValueKind == JsonValueKind.String)
 					{
-						bool isWrite = request.Kind.Equals("write", StringComparison.InvariantCultureIgnoreCase);
-						string verb = isWrite ? "write" : "read";
-
-						FilePathCategory category = ClassifyFilePath(path, session.Context.CurrentWorkingDirectory);
-
-						(string title, bool canApproveForSession, bool canApproveGlobally) = category switch
-						{
-							FilePathCategory.CopilotSession => (
-								$"Allow {verb} .copilot session file",
-								true,
-								true),
-							FilePathCategory.WorkingDirectory => (
-								$"Allow {verb} workspace file",
-								true,
-								true),
-							_ => (
-								$"Allow {verb} file outside workspace",
-								true,
-								false)
-						};
-
-						return new PermissionRequestModel
-						{
-							SessionId = sessionId,
-							FullCommand = path,
-							Commands = [$"{verb} - {category}"],
-							RequestTitle = title,
-							Intention = intention,
-							CanApproveGlobally = canApproveGlobally,
-							CanApproveForSession = canApproveForSession,
-							FullRequestJson = JsonSerializer.Serialize(request)
-						};
+						path = element.GetString();
 					}
 				}
+			}
+
+			if(!string.IsNullOrWhiteSpace(path))
+			{
+				bool isWrite = request.Kind.Equals("write", StringComparison.InvariantCultureIgnoreCase);
+				string verb = isWrite ? "write" : "read";
+
+				FilePathCategory category = ClassifyFilePath(path, session.Context.CurrentWorkingDirectory);
+
+				(string title, bool canApproveForSession, bool canApproveGlobally) = category switch
+				{
+					FilePathCategory.CopilotSession => (
+						$"Allow {verb} .copilot session file",
+						true,
+						true),
+					FilePathCategory.WorkingDirectory => (
+						$"Allow {verb} workspace file",
+						true,
+						true),
+					_ => (
+						$"Allow {verb} file outside workspace",
+						true,
+						false)
+				};
+
+				return new PermissionRequestModel
+				{
+					SessionId = sessionId,
+					FullCommand = path,
+					Commands = [$"{verb} - {category}"],
+					RequestTitle = title,
+					Intention = intention,
+					CanApproveGlobally = canApproveGlobally,
+					CanApproveForSession = canApproveForSession,
+					FullRequestJson = JsonSerializer.Serialize(request)
+				};
 			}
 		}
 
@@ -205,8 +219,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 			PermissionRequestModel permissionRequest = ToRequestModel(request, session);
 
-			_logger.LogInformation("Permission request: Kind={Kind}, Commands={Commands}, SessionId={SessionId}",
-				request.Kind, string.Join(", ", permissionRequest.Commands), session.Id);
+			_logger.LogInformation("Permission request: Kind={Kind}, Commands={Commands}, SessionId={SessionId}", request.Kind, string.Join(", ", permissionRequest.Commands), session.Id);
 
 			// Check permission through our service
 			PermissionDecisionEnum decision = await CheckPermissionAsync(permissionRequest, session.IsYolo);
@@ -586,24 +599,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			return FilePathCategory.External;
 		}
 
-		// Normalise to absolute path when possible
-		string fullPath = filePath;
-		try
-		{
-			fullPath = Path.GetFullPath(filePath);
-		}
-		catch
-		{
-			// If we can't resolve the path just use it as-is
-		}
-
-		// Check for .copilot directory in the path (case-insensitive on all platforms)
-		if(fullPath.Contains(Path.DirectorySeparatorChar + ".copilot" + Path.DirectorySeparatorChar,
-							  StringComparison.OrdinalIgnoreCase) ||
-		   fullPath.Contains(Path.AltDirectorySeparatorChar + ".copilot" + Path.AltDirectorySeparatorChar,
-							  StringComparison.OrdinalIgnoreCase) ||
-		   fullPath.EndsWith(Path.DirectorySeparatorChar + ".copilot", StringComparison.OrdinalIgnoreCase) ||
-		   fullPath.EndsWith(Path.AltDirectorySeparatorChar + ".copilot", StringComparison.OrdinalIgnoreCase))
+		if(filePath.Contains(".copilot"))
 		{
 			return FilePathCategory.CopilotSession;
 		}
@@ -613,22 +609,9 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			return FilePathCategory.External;
 		}
 
-		try
+		if(filePath.StartsWith(workingDirectory, StringComparison.OrdinalIgnoreCase))
 		{
-			string normalizedCwd = Path.GetFullPath(workingDirectory)
-				.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-				+ Path.DirectorySeparatorChar;
-
-			string normalizedFile = Path.GetFullPath(filePath);
-
-			if(normalizedFile.StartsWith(normalizedCwd, StringComparison.OrdinalIgnoreCase))
-			{
-				return FilePathCategory.WorkingDirectory;
-			}
-		}
-		catch
-		{
-			// Fall through to External
+			return FilePathCategory.WorkingDirectory;
 		}
 
 		return FilePathCategory.External;
