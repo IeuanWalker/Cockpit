@@ -199,6 +199,35 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 			PermissionRequestModel permissionRequest = ToRequestModel(request, session);
 
+			// Pre-filter: strip commands already covered by the safe list, session allowlist, or global
+			// allowlist so only genuinely unapproved commands reach the dialog.
+			// Destructive commands are never auto-approved here — they always need explicit user confirmation.
+			if(!session.IsYolo && !permissionRequest.IsDestructive)
+			{
+				List<string> unapproved = [.. permissionRequest.Commands
+					.Where(cmd => !CommandExtractor.IsCommandSafe(cmd) &&
+								  !_sessionPermissionFeature.HasPermission(permissionRequest.SessionId, cmd) &&
+								  !_globalPermissionFeature.HasPermissions([cmd]))];
+
+				if(unapproved.Count == 0)
+				{
+					_logger.LogDebug("All commands pre-filtered as already approved: {Commands}",
+						string.Join(", ", permissionRequest.Commands));
+					return new PermissionRequestResult { Kind = "approved" };
+				}
+
+				if(unapproved.Count < permissionRequest.Commands.Count)
+				{
+					_logger.LogInformation("Pre-filtered approved commands. Original: {Original}, Remaining: {Remaining}",
+						string.Join(", ", permissionRequest.Commands), string.Join(", ", unapproved));
+					permissionRequest.Commands.Clear();
+					permissionRequest.Commands.AddRange(unapproved);
+
+					string commandList = string.Join("`, `", unapproved);
+					permissionRequest.RequestTitle = $"Allow running `{commandList}`";
+				}
+			}
+
 			_logger.LogInformation("Permission request: Kind={Kind}, Commands={Commands}, SessionId={SessionId}",
 				request.Kind, string.Join(", ", permissionRequest.Commands), session.Id);
 

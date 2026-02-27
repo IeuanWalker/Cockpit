@@ -735,6 +735,11 @@ public static partial class CommandExtractor
 	}
 
 	/// <summary>
+	/// Check whether a single command is in the internal safe list.
+	/// </summary>
+	public static bool IsCommandSafe(string command) => safeCommands.Contains(command);
+
+	/// <summary>
 	/// Check if an executable identifier is destructive (can delete files/data).
 	/// </summary>
 	public static bool IsDestructiveExecutable(string executableId)
