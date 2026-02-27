@@ -61,19 +61,28 @@
                     {
                         @if(childEvt.EventJson is not null && childEvt.EventJson.Count > 0)
                         {
-                            <div class="thinking-message cursor-pointer" @onclick="() => ToggleEventExpanded(childEvt.Id)">
-                                <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
-                                @if(IsEventExpanded(childEvt.Id))
-                                {
-                                    <div class="code-block-borderless mt-2">
-                                        @{
-    var parsedJsonList = childEvt.EventJson.Select(j => System.Text.Json.JsonSerializer.Deserialize<object>(j.Value)).ToList();
-    var prettyJson = System.Text.Json.JsonSerializer.Serialize(parsedJsonList, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-}
-<CodeBlock Code="@prettyJson" Language="json" />
-                                    </div>
-                                }
-                            </div>
+                            if(childEvt.Id is null)
+                            {
+                                <div class="thinking-message">
+                                    <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="thinking-message cursor-pointer" @onclick="() => ToggleEventExpanded(childEvt.Id)">
+                                    <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
+                                    @if(IsEventExpanded(childEvt.Id))
+                                    {
+                                        <div class="code-block-borderless mt-2">
+                                            @{
+                                                var parsedJsonList = childEvt.EventJson.Select(j => System.Text.Json.JsonSerializer.Deserialize<object>(j.Value)).ToList();
+                                                var prettyJson = System.Text.Json.JsonSerializer.Serialize(parsedJsonList, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                                            }
+                                            <CodeBlock Code="@prettyJson" Language="json" />
+                                        </div>
+                                    }
+                                </div>
+                            }
                         }
                         else
                         {
