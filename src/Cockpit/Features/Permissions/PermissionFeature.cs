@@ -599,9 +599,13 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			return FilePathCategory.External;
 		}
 
-		if(filePath.Contains(".copilot"))
+		string[] segments = filePath.Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries);
+		foreach(string segment in segments)
 		{
-			return FilePathCategory.CopilotSession;
+			if(string.Equals(segment, ".copilot", StringComparison.Ordinal))
+			{
+				return FilePathCategory.CopilotSession;
+			}
 		}
 
 		if(string.IsNullOrWhiteSpace(workingDirectory))
