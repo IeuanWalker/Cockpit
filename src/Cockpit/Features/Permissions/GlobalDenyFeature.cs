@@ -21,6 +21,7 @@ public sealed class GlobalDenyFeature : IDisposable
 
 	readonly List<string> _commands = [];
 	readonly ReaderWriterLockSlim _lock = new();
+	static readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
 	public event Action? OnDenyListChanged;
 
 	/// <summary>Returns true if the command is on the deny list.</summary>
@@ -66,13 +67,15 @@ public sealed class GlobalDenyFeature : IDisposable
 
 	public void Add(string command)
 	{
+		List<string>? snapshot = null;
+
 		_lock.EnterWriteLock();
 		try
 		{
 			if(!_commands.Contains(command))
 			{
 				_commands.Add(command);
-				Save();
+				snapshot = [.. _commands];
 			}
 		}
 		finally
@@ -80,23 +83,35 @@ public sealed class GlobalDenyFeature : IDisposable
 			_lock.ExitWriteLock();
 		}
 
-		OnDenyListChanged?.Invoke();
+		if(snapshot is not null)
+		{
+			Save(snapshot);
+			OnDenyListChanged?.Invoke();
+		}
 	}
 
 	public void Remove(string command)
 	{
+		List<string>? snapshot = null;
+
 		_lock.EnterWriteLock();
 		try
 		{
-			_commands.Remove(command);
-			Save();
+			if(_commands.Remove(command))
+			{
+				snapshot = [.. _commands];
+			}
 		}
 		finally
 		{
 			_lock.ExitWriteLock();
 		}
 
-		OnDenyListChanged?.Invoke();
+		if(snapshot is not null)
+		{
+			Save(snapshot);
+			OnDenyListChanged?.Invoke();
+		}
 	}
 
 	void Load()
@@ -133,11 +148,11 @@ public sealed class GlobalDenyFeature : IDisposable
 		}
 	}
 
-	void Save()
+	void Save(List<string> snapshot)
 	{
 		try
 		{
-			string json = JsonSerializer.Serialize(_commands, new JsonSerializerOptions { WriteIndented = true });
+			string json = JsonSerializer.Serialize(snapshot, _jsonOptions);
 			File.WriteAllText(_denyFilePath, json);
 			_logger.LogDebug("Saved deny list to {Path}", _denyFilePath);
 		}

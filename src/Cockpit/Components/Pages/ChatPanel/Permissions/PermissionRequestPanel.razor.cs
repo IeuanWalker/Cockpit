@@ -53,7 +53,7 @@ public partial class PermissionRequestPanel : ComponentBase, IDisposable
 		StateHasChanged();
 	}
 
-	void OpenMoeInfoPopup() => _moreInfoPopup.Open();
+	void OpenMoreInfoPopup() => _moreInfoPopup.Open();
 
 	void OnStateChanged()
 	{

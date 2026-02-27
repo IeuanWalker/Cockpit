@@ -763,8 +763,13 @@ public static partial class CommandExtractor
 		ReadOnlySpan<char> lower = command.ToLowerInvariant().AsSpan();
 
 		// git push with --force or -f
+		// Note: --force-if-includes and --force-with-lease are intentionally excluded as they are
+		// non-destructive safety guards, not force-push flags.
 		if(lower.Contains("git push", StringComparison.Ordinal) &&
-		   (lower.Contains("--force", StringComparison.Ordinal) || lower.Contains(" -f", StringComparison.Ordinal)))
+		   (lower.Contains("--force ", StringComparison.Ordinal) ||
+		    lower.EndsWith("--force", StringComparison.Ordinal) ||
+		    lower.Contains(" -f ", StringComparison.Ordinal) ||
+		    lower.EndsWith(" -f", StringComparison.Ordinal)))
 		{
 			return true;
 		}
