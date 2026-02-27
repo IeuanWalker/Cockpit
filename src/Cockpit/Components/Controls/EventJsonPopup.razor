@@ -1,0 +1,9 @@
+@using Cockpit.Components.Controls
+
+<PopupBase @ref="_popup" Title="Event JSON">
+    <Content>
+        <div class="code-block-borderless">
+            <CodeBlock Code="@FormatAsJson(Json)" Language="json" />
+        </div>
+    </Content>
+</PopupBase>
