@@ -66,47 +66,53 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 		if(request.Kind.Equals("read", StringComparison.InvariantCultureIgnoreCase) ||
 		   request.Kind.Equals("write", StringComparison.InvariantCultureIgnoreCase))
 		{
-			bool isWrite = request.Kind.Equals("write", StringComparison.InvariantCultureIgnoreCase);
-			string verb = isWrite ? "write" : "read";
-
-			// The file path is carried in fullCommandText for read/write requests
-			string filePath = fullCommand;
-
-			FilePathCategory category = ClassifyFilePath(filePath, session.Context.CurrentWorkingDirectory);
-
-			(string title, bool canApproveForSession, bool canApproveGlobally) = category switch
+			if(request.ExtensionData?.TryGetValue("path", out object? pathObject) ?? false)
 			{
-				FilePathCategory.CopilotSession => (
-					$"Allow {verb} .copilot session file",
-					true,
-					true),
-				FilePathCategory.WorkingDirectory => (
-					$"Allow {verb} workspace file",
-					true,
-					true),
-				_ => (
-					$"Allow {verb} file outside workspace",
-					true,
-					false)
-			};
+				if(pathObject is JsonElement element && element.ValueKind == JsonValueKind.String)
+				{
+					string? path = element.GetString();
+					if(!string.IsNullOrWhiteSpace(path))
+					{
+						bool isWrite = request.Kind.Equals("write", StringComparison.InvariantCultureIgnoreCase);
+						string verb = isWrite ? "write" : "read";
 
-			return new PermissionRequestModel
-			{
-				SessionId = sessionId,
-				FullCommand = filePath,
-				Commands = [$"{verb}"],
-				RequestTitle = title,
-				Intention = intention,
-				CanApproveGlobally = canApproveGlobally,
-				CanApproveForSession = canApproveForSession,
-				FullRequestJson = JsonSerializer.Serialize(request)
-			};
+						FilePathCategory category = ClassifyFilePath(path, session.Context.CurrentWorkingDirectory);
+
+						(string title, bool canApproveForSession, bool canApproveGlobally) = category switch
+						{
+							FilePathCategory.CopilotSession => (
+								$"Allow {verb} .copilot session file",
+								true,
+								true),
+							FilePathCategory.WorkingDirectory => (
+								$"Allow {verb} workspace file",
+								true,
+								true),
+							_ => (
+								$"Allow {verb} file outside workspace",
+								true,
+								false)
+						};
+
+						return new PermissionRequestModel
+						{
+							SessionId = sessionId,
+							FullCommand = path,
+							Commands = [$"{verb} - {category}"],
+							RequestTitle = title,
+							Intention = intention,
+							CanApproveGlobally = canApproveGlobally,
+							CanApproveForSession = canApproveForSession,
+							FullRequestJson = JsonSerializer.Serialize(request)
+						};
+					}
+				}
+			}
 		}
 
 		// Try to extract command from various possible fields
 		if(!string.IsNullOrWhiteSpace(fullCommand))
 		{
-
 			// Extract meaningful executables (filters out cd, pwd, etc.)
 			List<string> meaningfulExecutables = CommandExtractor.ExtractMeaningfulExecutables(fullCommand);
 
