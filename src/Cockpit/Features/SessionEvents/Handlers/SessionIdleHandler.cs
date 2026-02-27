@@ -10,11 +10,14 @@ static class SessionIdleHandler
 	{
 		if(session.ActiveWorkingGroup is not null)
 		{
-			Handle(session, session.ActiveWorkingGroup.Events.Last().Timestamp, onStreamSummary, groupStatus);
+			ThinkingEventModel? lastEvent = session.ActiveWorkingGroup.Events.LastOrDefault();
+			DateTimeOffset timestamp = lastEvent is not null ? lastEvent.Timestamp : DateTimeOffset.UtcNow;
+			Handle(session, timestamp, onStreamSummary, groupStatus);
 		}
 		else
 		{
-			Handle(session, session.Messages.Last().Timestamp, onStreamSummary, groupStatus);
+			DateTimeOffset timestamp = session.Messages.LastOrDefault()?.Timestamp ?? DateTimeOffset.UtcNow;
+			Handle(session, timestamp, onStreamSummary, groupStatus);
 		}
 	}
 	internal static void Handle(SessionModel session, DateTimeOffset eventTimestamp, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)

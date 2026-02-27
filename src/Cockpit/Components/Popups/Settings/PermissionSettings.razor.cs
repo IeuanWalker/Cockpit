@@ -5,57 +5,85 @@ namespace Cockpit.Components.Popups.Settings;
 public partial class PermissionSettings
 {
 	readonly GlobalPermissionFeature _globalPermissionFeature;
-	List<string> _commands = [];
-	bool _showAddDialog;
-	string _newCommand = string.Empty;
+	readonly GlobalDenyFeature _globalDenyFeature;
 
-	public PermissionSettings(GlobalPermissionFeature globalPermissionFeature)
+	List<string> _allowedCommands = [];
+	List<string> _deniedCommands = [];
+
+	bool _showAddAllowDialog;
+	bool _showAddDenyDialog;
+	string _newAllowCommand = string.Empty;
+	string _newDenyCommand = string.Empty;
+
+	public PermissionSettings(GlobalPermissionFeature globalPermissionFeature, GlobalDenyFeature globalDenyFeature)
 	{
 		_globalPermissionFeature = globalPermissionFeature;
+		_globalDenyFeature = globalDenyFeature;
 	}
 
 	protected override void OnInitialized()
 	{
 		LoadPermissions();
 		_globalPermissionFeature.OnPermissionsChanged += LoadPermissions;
+		_globalDenyFeature.OnDenyListChanged += LoadPermissions;
 	}
 
 	void LoadPermissions()
 	{
-		_commands = [.. _globalPermissionFeature.GetAll()];
+		_allowedCommands = [.. _globalPermissionFeature.GetAll()];
+		_deniedCommands = [.. _globalDenyFeature.GetAll()];
 		StateHasChanged();
 	}
 
-	void ShowAddDialog()
+	// ---- Allow list ----
+
+	void ShowAddAllowDialog()
 	{
-		_showAddDialog = true;
-		_newCommand = string.Empty;
+		_showAddAllowDialog = true;
+		_newAllowCommand = string.Empty;
 	}
 
-	void HideAddDialog()
-	{
-		_showAddDialog = false;
-	}
+	void HideAddAllowDialog() => _showAddAllowDialog = false;
 
-	void AddPermission()
+	void AddAllowedPermission()
 	{
-		if(string.IsNullOrWhiteSpace(_newCommand))
+		if(string.IsNullOrWhiteSpace(_newAllowCommand))
 		{
 			return;
 		}
 
-		_globalPermissionFeature.Add(_newCommand);
-
-		HideAddDialog();
+		_globalPermissionFeature.Add(_newAllowCommand);
+		HideAddAllowDialog();
 	}
 
-	void RemovePermission(string command)
+	void RemoveAllowedPermission(string command) => _globalPermissionFeature.Remove(command);
+
+	// ---- Deny list ----
+
+	void ShowAddDenyDialog()
 	{
-		_globalPermissionFeature.Remove(command);
+		_showAddDenyDialog = true;
+		_newDenyCommand = string.Empty;
 	}
+
+	void HideAddDenyDialog() => _showAddDenyDialog = false;
+
+	void AddDeniedCommand()
+	{
+		if(string.IsNullOrWhiteSpace(_newDenyCommand))
+		{
+			return;
+		}
+
+		_globalDenyFeature.Add(_newDenyCommand);
+		HideAddDenyDialog();
+	}
+
+	void RemoveDeniedCommand(string command) => _globalDenyFeature.Remove(command);
 
 	public void Dispose()
 	{
 		_globalPermissionFeature.OnPermissionsChanged -= LoadPermissions;
+		_globalDenyFeature.OnDenyListChanged -= LoadPermissions;
 	}
 }

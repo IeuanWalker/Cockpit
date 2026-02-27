@@ -68,7 +68,17 @@ public static partial class CommandExtractor
 	static readonly HashSet<string> shellBuiltinsToSkip = ["true", "false"];
 
 	// Shell keywords that are part of control flow syntax, not executables
-	static readonly HashSet<string> shellKeywordsToSkip = ["for", "in", "do", "done", "while", "until", "if", "then", "else", "elif", "fi", "case", "esac", "select"];
+	// Includes both bash/sh and PowerShell keywords
+	static readonly HashSet<string> shellKeywordsToSkip = new(StringComparer.OrdinalIgnoreCase)
+	{
+		// bash/sh control flow
+		"for", "in", "do", "done", "while", "until", "if", "then", "else", "elif", "fi", "case", "esac", "select",
+		// PowerShell control flow keywords that can appear as tokens
+		"foreach", "elseif", "break", "continue", "return", "exit", "throw",
+		"begin", "process", "end", "filter", "function", "param",
+		// Things that are clearly not commands (common false-positive tokens leaked from text)
+		"from", "to", "old", "new", "url",
+	};
 
 	// Flags that are commonly followed by values that might look like commands
 	// Must be comprehensive to avoid false positives where flag values are treated as commands
@@ -114,6 +124,44 @@ public static partial class CommandExtractor
 	// Navigation/setup commands that don't need permission (informational only)
 	static readonly HashSet<string> navigationCommands = ["cd", "pushd", "popd", "pwd"];
 
+	// Commands that are always safe and should never require a permission prompt.
+	// These are read-only, informational or navigation commands with no side-effects.
+	// NOTE: entries must match what CommandExtractor.ExtractExecutables returns (executable + subcommand),
+	// not the raw shell string.
+	static readonly HashSet<string> safeCommands = new(StringComparer.OrdinalIgnoreCase)
+	{
+		// Navigation
+		"cd", "pushd", "popd", "pwd",
+		"Set-Location", "Get-Location",
+		// Directory listing (find excluded — can be destructive with -delete/-exec rm)
+		"ls", "dir",
+		// Output / inspection
+		"echo", "printf", "cat", "type", "head", "tail", "less", "more",
+		"Out-Host", "Out-Null", "Out-String",
+		// Search / filter
+		"grep", "rg", "ag", "Select-String", "Where-Object",
+		// Pipeline transforms (read-only — no I/O side effects)
+		"Select-Object", "Sort-Object", "Group-Object", "Format-List", "Format-Table",
+		"ForEach-Object", "ConvertFrom-Json", "ConvertTo-Json", "Join-String",
+		// File / path inspection
+		"Get-Content", "Get-Item", "Get-ChildItem", "Test-Path",
+		// Process / system inspection
+		"Get-Process",
+		// Command lookup
+		"which", "where", "whereis",
+		// Environment
+		"env", "printenv",
+		// Git read-only subcommands (extracted as "git <subcommand>" by CommandExtractor)
+		"git status", "git log", "git diff", "git branch", "git show",
+		"git remote", "git tag", "git describe",
+		// npm info subcommands
+		"npm list", "npm ls", "npm outdated",
+		// dotnet info subcommand
+		"dotnet list",
+		// Misc read-only
+		"uname", "hostname", "whoami", "id", "date",
+	};
+
 	// PowerShell cmdlets where we keep scriptblock content
 	static readonly HashSet<string> cmdletsKeepContent = new(StringComparer.OrdinalIgnoreCase)
 	{
@@ -127,15 +175,69 @@ public static partial class CommandExtractor
 	};
 
 	/// <summary>
-	/// Decode Unicode escape sequences and common escape sequences in a string (e.g., \u0027 -> ', \n -> newline)
+	/// Decode Unicode escape sequences in a string (e.g., \u0026 -&gt; &amp;, \u003E -&gt; &gt;).
+	/// Also decodes \n -&gt; newline so multi-command strings like "echo hello\nls" are split correctly.
 	/// </summary>
 	static string DecodeUnicodeEscapes(string input)
 	{
-		// Decode Unicode escapes and common escape sequences
-		return UnicodeEscapePattern().Replace(input, m => ((char)Convert.ToInt32(m.Groups[1].Value, 16)).ToString())
-									 .Replace("\\n", "\n")
-									 .Replace("\\r", "\r")
-									 .Replace("\\t", "\t");
+		string decoded = UnicodeEscapePattern().Replace(input, m => ((char)Convert.ToInt32(m.Groups[1].Value, 16)).ToString());
+		return decoded.Replace("\\n", "\n");
+	}
+
+	/// <summary>
+	/// Split a shell command string by operators (;, &amp;, |, newlines) while respecting
+	/// single-quoted and double-quoted strings. Characters inside quotes are never treated
+	/// as operators, preventing PS regex patterns like '...;...' from being incorrectly split.
+	/// </summary>
+	static IEnumerable<string> SplitByShellOperators(string input)
+	{
+		StringBuilder current = new(input.Length);
+		bool inSingleQuote = false;
+		bool inDoubleQuote = false;
+		char prev = '\0';
+
+		for(int i = 0; i < input.Length; i++)
+		{
+			char c = input[i];
+
+			if(!inDoubleQuote && c == '\'')
+			{
+				if(inSingleQuote)
+				{
+					// Always close single quotes
+					inSingleQuote = false;
+				}
+				else if(!char.IsLetterOrDigit(prev) && prev != '_')
+				{
+					// Only open single quotes at the start of a word (not in apostrophes like it's)
+					inSingleQuote = true;
+				}
+			}
+			else if(!inSingleQuote && c == '"' && prev != '`')
+			{
+				inDoubleQuote = !inDoubleQuote;
+			}
+
+			if(!inSingleQuote && !inDoubleQuote && (c == ';' || c == '&' || c == '|' || c == '\n' || c == '\r'))
+			{
+				if(current.Length > 0)
+				{
+					yield return current.ToString();
+					current.Clear();
+				}
+			}
+			else
+			{
+				current.Append(c);
+			}
+
+			prev = c;
+		}
+
+		if(current.Length > 0)
+		{
+			yield return current.ToString();
+		}
 	}
 
 	/// <summary>
@@ -263,6 +365,44 @@ public static partial class CommandExtractor
 					while(i < input.Length && depth > 0)
 					{
 						char c = input[i];
+
+						// Skip string literals so { and } inside them don't affect depth
+						if(c == '"' || c == '\'')
+						{
+							char quote = c;
+							char prevC = '\0';
+							if(keepContent)
+							{
+								result.Append(c);
+							}
+
+							i++;
+							while(i < input.Length)
+							{
+								char sc = input[i];
+								// PS double-quoted strings use backtick as escape; single-quoted need no escape
+								bool isEscaped = quote == '"' && prevC == '`';
+								if(sc == quote && !isEscaped)
+								{
+									if(keepContent)
+									{
+										result.Append(sc);
+									}
+
+									i++;
+									break;
+								}
+								if(keepContent)
+								{
+									result.Append(sc);
+								}
+
+								prevC = sc;
+								i++;
+							}
+							continue;
+						}
+
 						if(c == '{')
 						{
 							depth++;
@@ -299,11 +439,18 @@ public static partial class CommandExtractor
 	{
 		HashSet<string> executables = [];
 
-		// Clean and normalize the command
-		string cleaned = CleanCommand(command);
+		// Phase 1: transformations that need the full multi-line text.
+		// RemoveScriptblocks MUST run here — multi-line scriptblocks like
+		// `[regex]::Replace($x, $pat, { ... })` span multiple lines and would
+		// leak their content as false-positive segments if we split first.
+		string preprocessed = DecodeUnicodeEscapes(command);
+		preprocessed = HeredocWithMarkerPattern().Replace(preprocessed, "");
+		preprocessed = HeredocEndPattern().Replace(preprocessed, "");
+		preprocessed = RemoveScriptblocks(preprocessed);
 
-		// Split on shell operators, separators, and newlines
-		foreach(string segment in cleaned.Split([';', '&', '|', '\n'], StringSplitOptions.RemoveEmptyEntries))
+		// Phase 2: split and process each segment.
+		// SplitByShellOperators respects quoted strings — ';' inside '...' is not an operator.
+		foreach(string segment in SplitByShellOperators(preprocessed))
 		{
 			string trimmed = segment.Trim();
 			if(string.IsNullOrWhiteSpace(trimmed) || HeredocMarkerPattern().IsMatch(trimmed))
@@ -311,7 +458,52 @@ public static partial class CommandExtractor
 				continue;
 			}
 
-			string[] parts = trimmed.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
+			// Launcher detection on the pre-processed segment (string literals still intact).
+			// Must happen before CleanSegment so `powershell -c "..."` keeps its quoted inner command.
+			string[] rawParts = trimmed.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
+			if(rawParts.Length == 0)
+			{
+				continue;
+			}
+
+			string launcher = rawParts[0].ToLowerInvariant();
+			if((launcher == "cmd" || launcher == "cmd.exe") && rawParts.Length > 2
+				&& rawParts[1].Equals("/c", StringComparison.OrdinalIgnoreCase))
+			{
+				string inner = StripOuterQuotes(string.Join(' ', rawParts[2..]));
+				foreach(string innerExec in ExtractExecutables(inner))
+				{
+					executables.Add(innerExec);
+				}
+
+				continue;
+			}
+
+			if((launcher == "powershell" || launcher == "powershell.exe") && rawParts.Length > 2)
+			{
+				int idx = Array.FindIndex(rawParts, p =>
+					p.Equals("-Command", StringComparison.OrdinalIgnoreCase)
+					|| p.Equals("-c", StringComparison.OrdinalIgnoreCase));
+				if(idx >= 0 && idx < rawParts.Length - 1)
+				{
+					string inner = StripOuterQuotes(string.Join(' ', rawParts[(idx + 1)..]));
+					foreach(string innerExec in ExtractExecutables(inner))
+					{
+						executables.Add(innerExec);
+					}
+
+					continue;
+				}
+			}
+
+			// Standard path: apply remaining per-segment cleaning and extract.
+			string cleaned = CleanSegment(trimmed);
+			if(string.IsNullOrWhiteSpace(cleaned))
+			{
+				continue;
+			}
+
+			string[] parts = cleaned.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
 			if(TryExtractExecutable(parts, out string? exec, out string? subcommand) && exec is not null)
 			{
 				executables.Add(subcommand is not null ? $"{exec} {subcommand}" : exec);
@@ -322,18 +514,42 @@ public static partial class CommandExtractor
 	}
 
 	/// <summary>
+	/// Strip matching outer single or double quotes from a string (used to unwrap launcher args).
+	/// </summary>
+	static string StripOuterQuotes(string s)
+	{
+		s = s.Trim();
+		if(s.Length >= 2 && ((s[0] == '"' && s[^1] == '"') || (s[0] == '\'' && s[^1] == '\'')))
+		{
+			return s[1..^1];
+		}
+
+		return s;
+	}
+
+	/// <summary>
 	/// Clean command by removing strings, substitutions, comments, etc.
+	/// Used when the full command is passed as a single string (e.g. recursive inner-command calls).
 	/// </summary>
 	static string CleanCommand(string command)
 	{
 		command = DecodeUnicodeEscapes(command);
 		command = HeredocWithMarkerPattern().Replace(command, "");
 		command = HeredocEndPattern().Replace(command, "");
-		command = StringLiteralsPattern().Replace(command, m => new string(m.Value[0], 2));
-		command = ProcessCommandSubstitutions(command);
 		command = RemoveScriptblocks(command);
-		command = ExpandParentheses(command);
-		return CommentsAndRedirectionsPattern().Replace(command, "");
+		return CleanSegment(command);
+	}
+
+	/// <summary>
+	/// Apply per-segment cleaning (string literals, substitutions, parentheses, redirections).
+	/// Assumes heredocs and scriptblocks have already been removed from the text.
+	/// </summary>
+	static string CleanSegment(string segment)
+	{
+		segment = StringLiteralsPattern().Replace(segment, m => new string(m.Value[0], 2));
+		segment = ProcessCommandSubstitutions(segment);
+		segment = ExpandParentheses(segment);
+		return CommentsAndRedirectionsPattern().Replace(segment, "");
 	}
 
 	/// <summary>
@@ -507,6 +723,15 @@ public static partial class CommandExtractor
 	{
 		List<string> all = ExtractExecutables(command);
 		return [.. all.Where(cmd => !navigationCommands.Contains(cmd))];
+	}
+
+	/// <summary>
+	/// Returns true if all commands extracted from the given shell command are considered
+	/// safe (read-only / informational) and can be auto-approved without user interaction.
+	/// </summary>
+	public static bool AreAllCommandsSafe(List<string> commands)
+	{
+		return commands.Count > 0 && commands.All(cmd => safeCommands.Contains(cmd));
 	}
 
 	/// <summary>

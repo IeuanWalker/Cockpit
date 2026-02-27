@@ -63,6 +63,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<CopilotClientFeature>();
 		builder.Services.AddSingleton<ConnectionFeature>();
 		builder.Services.AddSingleton<GlobalPermissionFeature>();
+		builder.Services.AddSingleton<GlobalDenyFeature>();
 		builder.Services.AddSingleton<SessionPermissionFeature>();
 		builder.Services.AddSingleton<SessionEventProcessor>();
 

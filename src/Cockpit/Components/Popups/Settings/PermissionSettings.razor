@@ -7,12 +7,12 @@
     <div class="permissions-list">
         <div class="permissions-list-header">
             <h5 class="text-xs font-semibold text-app-title">Global Allowlist</h5>
-            <button class="btn btn-sm btn-primary" @onclick="ShowAddDialog">
+            <button class="btn btn-sm btn-primary" @onclick="ShowAddAllowDialog">
                 <span>+ Add Command</span>
             </button>
         </div>
 
-        @if(_commands.Count == 0)
+        @if(_allowedCommands.Count == 0)
         {
             <div class="empty-state">
                 <p class="text-xs text-app-description">No allowed commands yet. Add commands to auto-approve</p>
@@ -21,14 +21,14 @@
         else
         {
             <div class="permissions-table">
-                @foreach(string permission in _commands)
+                @foreach(string permission in _allowedCommands)
                 {
                     <div class="permission-row">
                         <div class="permission-pattern">
                             <div>@permission</div>
                         </div>
                         <div class="permission-actions">
-                            <button class="btn-icon" @onclick="() => RemovePermission(permission)" title="Remove">
+                            <button class="btn-icon" @onclick="() => RemoveAllowedPermission(permission)" title="Remove">
                                 <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
@@ -40,18 +40,74 @@
         }
     </div>
 
-    @if(_showAddDialog)
+    @if(_showAddAllowDialog)
     {
         <div class="add-permission-dialog">
             <h5 class="text-sm font-semibold text-app-title mb-3">Allow Command</h5>
             <div class="form-group">
                 <label class="text-xs text-app-description">Command</label>
-                <input type="text" class="form-input" @bind="_newCommand" placeholder="e.g., git status, npm, dotnet build" />
+                <input type="text" class="form-input" @bind="_newAllowCommand" placeholder="e.g., git status, npm, dotnet build" />
             </div>
             <div class="dialog-actions">
-                <button class="btn btn-secondary" @onclick="HideAddDialog">Cancel</button>
-                <button class="btn btn-primary" @onclick="AddPermission">
+                <button class="btn btn-secondary" @onclick="HideAddAllowDialog">Cancel</button>
+                <button class="btn btn-primary" @onclick="AddAllowedPermission">
                     Allow
+                </button>
+            </div>
+        </div>
+    }
+
+    <div class="permissions-list mt-6">
+        <div class="permissions-list-header">
+            <h5 class="text-xs font-semibold text-app-title">Global Deny List</h5>
+            <button class="btn btn-sm btn-primary" @onclick="ShowAddDenyDialog">
+                <span>+ Add Command</span>
+            </button>
+        </div>
+        <p class="text-xs text-app-description mb-2">
+            Commands on this list will never show the "Allow globally" option when prompted.
+        </p>
+
+        @if(_deniedCommands.Count == 0)
+        {
+            <div class="empty-state">
+                <p class="text-xs text-app-description">No denied commands yet.</p>
+            </div>
+        }
+        else
+        {
+            <div class="permissions-table">
+                @foreach(string denied in _deniedCommands)
+                {
+                    <div class="permission-row">
+                        <div class="permission-pattern">
+                            <div>@denied</div>
+                        </div>
+                        <div class="permission-actions">
+                            <button class="btn-icon" @onclick="() => RemoveDeniedCommand(denied)" title="Remove">
+                                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @if(_showAddDenyDialog)
+    {
+        <div class="add-permission-dialog">
+            <h5 class="text-sm font-semibold text-app-title mb-3">Deny Global Approval</h5>
+            <div class="form-group">
+                <label class="text-xs text-app-description">Command</label>
+                <input type="text" class="form-input" @bind="_newDenyCommand" placeholder="e.g., rm, git push" />
+            </div>
+            <div class="dialog-actions">
+                <button class="btn btn-secondary" @onclick="HideAddDenyDialog">Cancel</button>
+                <button class="btn btn-primary" @onclick="AddDeniedCommand">
+                    Add to Deny List
                 </button>
             </div>
         </div>

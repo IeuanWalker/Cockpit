@@ -36,7 +36,9 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		PermissionRequestModel request = new()
 		{
@@ -67,7 +69,9 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		globalFeature.Add("npm");
 
@@ -100,7 +104,9 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		const string sessionId = "session1";
 		stateProvider.AddSession(new SessionModel
@@ -150,7 +156,9 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		const string sessionId = "session1";
 		stateProvider.AddSession(new SessionModel
@@ -201,7 +209,9 @@ public class PermissionFeatureTests
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		const string sessionId = "session1";
 		globalFeature.Add("npm");
@@ -262,7 +272,9 @@ public class PermissionFeatureTests
 			}
 		};
 		stateProvider.AddSession(session);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		PermissionRequestModel request = new()
 		{
@@ -314,7 +326,9 @@ public class PermissionFeatureTests
 			}
 		};
 		stateProvider.AddSession(session);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		PermissionRequestModel request = new()
 		{
@@ -366,7 +380,9 @@ public class PermissionFeatureTests
 			}
 		};
 		stateProvider.AddSession(session);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		PermissionRequestModel request = new()
 		{
@@ -418,7 +434,9 @@ public class PermissionFeatureTests
 			}
 		};
 		stateProvider.AddSession(session);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		PermissionRequestModel request = new()
 		{
@@ -487,7 +505,9 @@ public class PermissionFeatureTests
 		};
 		stateProvider.AddSession(session1);
 		stateProvider.AddSession(session2);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		// Create two pending requests for the same command in different sessions
 		PermissionRequestModel request1 = new()
@@ -571,7 +591,9 @@ public class PermissionFeatureTests
 		};
 		stateProvider.AddSession(session1);
 		stateProvider.AddSession(session2);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		PermissionRequestModel request1 = new()
 		{
@@ -640,7 +662,9 @@ public class PermissionFeatureTests
 			}
 		};
 		stateProvider.AddSession(session);
-		PermissionFeature feature = new(globalFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
 		globalFeature.Add(["npm", "yarn", "git"]);
 

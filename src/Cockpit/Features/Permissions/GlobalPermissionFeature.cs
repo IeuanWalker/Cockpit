@@ -39,7 +39,7 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 		_permissionsLock.EnterReadLock();
 		try
 		{
-			return [.. _commands];
+			return [.. _commands.Order()];
 		}
 		finally
 		{

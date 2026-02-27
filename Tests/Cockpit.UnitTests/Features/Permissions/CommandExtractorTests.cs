@@ -1,4 +1,5 @@
 ﻿using Cockpit.Features.Permissions;
+using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Permissions;
 
@@ -642,5 +643,92 @@ public class CommandExtractorTests
 		""");
 
 		return commands;
+	}
+
+	// -----------------------------------------------------------------------
+	// Shell launcher passthrough tests (cmd, powershell)
+	// Verifies that ExtractExecutables sees THROUGH shell launchers and extracts
+	// the actual inner command — the one the user needs to approve or deny.
+	// -----------------------------------------------------------------------
+
+	[Theory]
+	[InlineData("cmd /c del /f /s *.*",                           "del")]
+	[InlineData("cmd /c npm install",                             "npm install")]
+	[InlineData("cmd /c dir",                                     "dir")]
+	[InlineData("cmd.exe /c git push --force",                    "git push")]
+	[InlineData("powershell -Command Get-Process",                "Get-Process")]
+	[InlineData("powershell.exe -Command rm -rf /",               "rm")]
+	[InlineData("powershell -c \"Remove-Item -Recurse .\"",       "Remove-Item")]
+	public void ExtractExecutables_ShellLaunchers_ExtractInnerCommand(string command, string expectedInner)
+	{
+		List<string> result = CommandExtractor.ExtractExecutables(command);
+
+		// The inner command is extracted — not the launcher wrapper
+		result.Count.ShouldBe(1, $"Expected exactly one inner command but got: {string.Join(", ", result)}");
+		result[0].ShouldBe(expectedInner);
+	}
+
+	[Fact]
+	public void ExtractExecutables_PowershellWithFileFlag_ReturnsPowershell()
+	{
+		// -File flag executes a script file — we can't see inside it, so powershell itself is returned
+		List<string> result = CommandExtractor.ExtractExecutables("powershell -ExecutionPolicy Bypass -File s.ps1");
+		result.Count.ShouldBe(1);
+		result[0].ShouldBe("powershell");
+	}
+
+	// -----------------------------------------------------------------------
+	// AreAllCommandsSafe tests
+	// -----------------------------------------------------------------------
+
+	[Theory]
+	[InlineData("git status")]
+	[InlineData("git log --oneline")]
+	[InlineData("git diff HEAD~1")]
+	[InlineData("ls -la")]
+	[InlineData("Get-Content file.txt")]
+	[InlineData("Get-ChildItem .")]
+	[InlineData("Get-Process")]
+	[InlineData("Test-Path ./foo")]
+	[InlineData("Select-Object -First 10")]
+	[InlineData("Sort-Object Name")]
+	[InlineData("Where-Object -Property Name -eq foo")] // scriptblock-free syntax; {}-form is consumed by RemoveScriptblocks
+	[InlineData("ConvertFrom-Json")]
+	[InlineData("cd /tmp")]
+	[InlineData("Set-Location /tmp")]
+	[InlineData("pwd")]
+	[InlineData("Get-Location")]
+	public void AreAllCommandsSafe_SafeCommand_ReturnsTrue(string command)
+	{
+		List<string> commands = CommandExtractor.ExtractExecutables(command);
+		commands.ShouldNotBeEmpty();
+		CommandExtractor.AreAllCommandsSafe(commands).ShouldBeTrue(
+			$"Expected '{command}' → {string.Join(", ", commands)} to be safe");
+	}
+
+	[Theory]
+	[InlineData("npm install")]
+	[InlineData("dotnet build")]
+	[InlineData("dotnet restore")]
+	[InlineData("dotnet test")]
+	[InlineData("git push")]
+	[InlineData("git commit -m 'msg'")]
+	[InlineData("git checkout -b new-branch")]
+	[InlineData("rm -rf ./dist")]
+	[InlineData("Remove-Item -Recurse .")]
+	[InlineData("Set-Content file.txt content")]
+	[InlineData("mkdir output")]
+	[InlineData("Tee-Object -FilePath out.txt")]
+	[InlineData("Add-Type -TypeDefinition $code")]
+	[InlineData("cmd /c npm install")]           // inner: npm install — not safe
+	[InlineData("cmd /c git push --force")]      // inner: git push — not safe
+	[InlineData("powershell -Command Remove-Item -Recurse .")] // inner: Remove-Item — not safe
+	[InlineData("powershell -c \"rm -rf /\"")]   // inner: rm — not safe
+	public void AreAllCommandsSafe_UnsafeCommand_ReturnsFalse(string command)
+	{
+		List<string> commands = CommandExtractor.ExtractExecutables(command);
+		commands.ShouldNotBeEmpty();
+		CommandExtractor.AreAllCommandsSafe(commands).ShouldBeFalse(
+			$"Expected '{command}' → {string.Join(", ", commands)} to NOT be safe");
 	}
 }
