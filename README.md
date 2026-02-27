@@ -11,7 +11,10 @@
 - Git diff viewer
 - Image and attachment support
 - Clean chat history, without hiding anything
-- Global/ session command handling
+- Fine-grained permission handling
+    - Global
+    - Session
+    - YOLO mode
 - Works directly with the CLI, start a session in the cli, pick it up in Cockpit _(and vice-versa)_
 
 ### Requirement
