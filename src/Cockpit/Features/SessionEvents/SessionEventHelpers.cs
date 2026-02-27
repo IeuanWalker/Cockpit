@@ -30,13 +30,28 @@ static class SessionEventHelpers
 				return evt.Tool;
 			}
 
-			ToolExecutionModel? child = evt.Tool
-				.GetChildrenSnapshot()
-				.FirstOrDefault(c => c.ToolCallId == toolCallId);
-
-			if(child is not null)
+			ToolExecutionModel? found = FindToolExecutionRecursive(evt.Tool, toolCallId);
+			if(found is not null)
 			{
-				return child;
+				return found;
+			}
+
+			// Local recursive helper
+			static ToolExecutionModel? FindToolExecutionRecursive(ToolExecutionModel tool, string searchId)
+			{
+				foreach(ToolExecutionModel child in tool.GetChildrenSnapshot())
+				{
+					if(child.ToolCallId == searchId)
+					{
+						return child;
+					}
+					ToolExecutionModel? found = FindToolExecutionRecursive(child, searchId);
+					if(found is not null)
+					{
+						return found;
+					}
+				}
+				return null;
 			}
 		}
 
