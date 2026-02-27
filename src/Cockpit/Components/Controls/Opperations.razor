@@ -16,9 +16,28 @@
             {
                 @if(evt.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrEmpty(evt.Message))
                 {
-                    <div class="thinking-message">
-                        <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
-                    </div>
+                    @if(evt.EventJson is not null && evt.EventJson.Count > 0)
+                    {
+                        <div class="thinking-message cursor-pointer" @onclick="() => ToggleEventExpanded(evt.Id ?? evt.Message ?? string.Empty)">
+                            <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
+                            @if(IsEventExpanded(evt.Id ?? evt.Message ?? string.Empty))
+                            {
+                                <div class="code-block-borderless mt-2">
+                                    @{
+    var parsedJsonList = evt.EventJson.Select(j => System.Text.Json.JsonSerializer.Deserialize<object>(j.Value)).ToList();
+    var prettyJson = System.Text.Json.JsonSerializer.Serialize(parsedJsonList, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+}
+<CodeBlock Code="@prettyJson" Language="json" />
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="thinking-message">
+                            <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
+                        </div>
+                    }
                 }
                 else if(evt.Type == ThinkingEventTypeEnum.Tool && evt.Tool is not null)
                 {

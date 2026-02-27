@@ -58,6 +58,14 @@
     word-break: break-word;
 }
 
+.thinking-message.cursor-pointer {
+    cursor: pointer;
+}
+
+.code-block-borderless {
+    border: none;
+}
+
     .thinking-message pre {
         overflow-x: auto;
         max-width: 100%;

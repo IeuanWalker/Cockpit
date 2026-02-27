@@ -6,24 +6,23 @@ namespace Cockpit.Components.Controls;
 public partial class EventJsonPopup
 {
 	PopupBase? _popup;
-	[Parameter] public string? Json { get; set; }
+	[Parameter] public List<string>? JsonList { get; set; }
 	public void Open() => _popup?.Open();
 
-	string FormatAsJson(string? json)
+	string FormatAsJson(List<string>? jsonList)
 	{
-		if(string.IsNullOrWhiteSpace(json))
+		if(jsonList == null || jsonList.Count == 0)
 		{
 			return string.Empty;
 		}
-
 		try
 		{
-			JsonDocument parsed = JsonDocument.Parse(json);
-			return JsonSerializer.Serialize(parsed, new JsonSerializerOptions { WriteIndented = true });
+			var parsedList = jsonList.Select(json => JsonDocument.Parse(json).RootElement).ToList();
+			return JsonSerializer.Serialize(parsedList, new JsonSerializerOptions { WriteIndented = true });
 		}
 		catch
 		{
-			return json ?? string.Empty;
+			return string.Join("\n\n", jsonList);
 		}
 	}
 }

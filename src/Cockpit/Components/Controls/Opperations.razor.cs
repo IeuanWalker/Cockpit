@@ -44,6 +44,16 @@ public partial class Opperations
 		return "✓";
 	}
 
+	readonly Dictionary<string, bool> _expandedEventJson = new();
+
+	void ToggleEventExpanded(string key)
+	{
+		_expandedEventJson[key] = !_expandedEventJson.GetValueOrDefault(key);
+		StateHasChanged();
+	}
+
+	bool IsEventExpanded(string key) => _expandedEventJson.GetValueOrDefault(key);
+
 	string GenerateSummary()
 	{
 		List<ToolExecutionModel> tools = [.. Group.Tools]; // Create snapshot

@@ -44,7 +44,7 @@ static class UserMessageHandler
 				EventType = evt.Type,
 				IsPending = wasAgentBusy,
 				Attachments = attachments,
-				EventJson = new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))
+				EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 			};
 			session.Messages.Add(message);
 		}

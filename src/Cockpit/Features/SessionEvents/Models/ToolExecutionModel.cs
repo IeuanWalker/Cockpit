@@ -50,7 +50,7 @@ public class ToolExecutionModel
 			Type = ThinkingEventTypeEnum.Tool,
 			Tool = child,
 			Timestamp = child.StartTime,
-			EventJson = null
+			EventJson = child._rawEvents
 		});
 	}
 

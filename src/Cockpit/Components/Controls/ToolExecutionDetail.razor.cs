@@ -207,6 +207,17 @@ public sealed partial class ToolExecutionDetail : IDisposable
 		}
 	}
 
+	readonly Dictionary<string, bool> _expandedEventJson = new();
+
+	void ToggleEventExpanded(string key)
+	{
+		_expandedEventJson[key] = !_expandedEventJson.GetValueOrDefault(key);
+		StateHasChanged();
+	}
+
+	bool IsEventExpanded(string key) => _expandedEventJson.GetValueOrDefault(key);
+
+
 	int GetAllChildrenCount()
 	{
 		static int CountAll(ToolExecutionModel tool)

@@ -27,7 +27,7 @@ public class ChatMessageModel
 	/// </summary>
 	public List<AttachmentModel>? Attachments { get; set; }
 
-	public required Lazy<string>? EventJson { get; set; }
+	public required List<Lazy<string>>? EventJson { get; set; }
 }
 
 public enum MessageTypeEnum

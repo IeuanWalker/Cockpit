@@ -5,12 +5,12 @@
 
 @code {
     private EventJsonPopup? _eventJsonPopup;
-    private string? _eventJsonContent;
+    private List<string>? _eventJsonContent;
 
     private async Task ShowEventJson(ChatMessageModel message)
     {
         if(await IsTextSelected()) return;
-        _eventJsonContent = message.EventJson?.Value;
+        _eventJsonContent = message.EventJson?.Select(j => j.Value).ToList();
         _eventJsonPopup?.Open();
     }
 
@@ -174,5 +174,5 @@
         </button>
     }
 
-    <EventJsonPopup @ref="_eventJsonPopup" Json="@_eventJsonContent" />
+    <EventJsonPopup @ref="_eventJsonPopup" JsonList="_eventJsonContent" />
 </div>
