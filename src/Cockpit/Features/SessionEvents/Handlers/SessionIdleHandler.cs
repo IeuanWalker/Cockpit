@@ -88,7 +88,7 @@ static class SessionIdleHandler
 					Type = MessageTypeEnum.Text,
 					IsStreaming = true,
 					IsComplete = false,
-					EventJson = null
+					EventJson = lastMessage.EventJson
 				};
 			}
 
@@ -99,7 +99,8 @@ static class SessionIdleHandler
 				{
 					Type = ThinkingEventTypeEnum.Message,
 					Message = "Session aborted",
-					Timestamp = eventTimestamp.LocalDateTime
+					Timestamp = eventTimestamp.LocalDateTime,
+					EventJson = null
 				});
 			}
 			else if(hasStoppedTools)
@@ -108,7 +109,8 @@ static class SessionIdleHandler
 				{
 					Type = ThinkingEventTypeEnum.Message,
 					Message = "Session stopped",
-					Timestamp = eventTimestamp.LocalDateTime
+					Timestamp = eventTimestamp.LocalDateTime,
+					EventJson = null
 				});
 			}
 

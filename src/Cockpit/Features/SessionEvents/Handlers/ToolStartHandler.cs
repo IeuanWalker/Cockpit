@@ -79,7 +79,8 @@ static class ToolStartHandler
 		{
 			Type = ThinkingEventTypeEnum.Tool,
 			Tool = toolExec,
-			Timestamp = evt.Timestamp.LocalDateTime
+			Timestamp = evt.Timestamp.LocalDateTime,
+			EventJson = new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))
 		});
 	}
 }

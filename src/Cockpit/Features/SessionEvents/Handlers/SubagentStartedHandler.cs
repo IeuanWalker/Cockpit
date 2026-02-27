@@ -44,7 +44,8 @@ static class SubagentStartedHandler
 			{
 				Type = ThinkingEventTypeEnum.Tool,
 				Tool = subagentExec,
-				Timestamp = evt.Timestamp.LocalDateTime
+				Timestamp = evt.Timestamp.LocalDateTime,
+				EventJson = new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))
 			});
 		}
 	}

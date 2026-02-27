@@ -14,7 +14,8 @@ public class SessionEventHelpersTests
 		group.AddEvent(new ThinkingEventModel
 		{
 			Type = ThinkingEventTypeEnum.Tool,
-			Tool = tool
+			Tool = tool,
+			EventJson = null
 		});
 		return group;
 	}
@@ -101,10 +102,11 @@ public class SessionEventHelpersTests
 		{
 			Type = ThinkingEventTypeEnum.Message,
 			Message = "some message",
-			Tool = null
+			Tool = null,
+			EventJson = null
 		});
 		ToolExecutionModel tool = new() { ToolCallId = "tc1", StartTime = DateTime.Now };
-		group.AddEvent(new ThinkingEventModel { Type = ThinkingEventTypeEnum.Tool, Tool = tool });
+		group.AddEvent(new ThinkingEventModel { Type = ThinkingEventTypeEnum.Tool, Tool = tool, EventJson = null });
 
 		// Act
 		ToolExecutionModel? result = SessionEventHelpers.FindToolExecution(group, "tc1");

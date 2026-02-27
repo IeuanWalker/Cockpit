@@ -49,7 +49,8 @@ static class AssistantMessageHandler
 					Id = messageId,
 					Type = ThinkingEventTypeEnum.Message,
 					Message = content,
-					Timestamp = evt.Timestamp.LocalDateTime
+					Timestamp = evt.Timestamp.LocalDateTime,
+					EventJson = new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))
 				};
 
 				// If this message belongs to a subagent, nest it under the parent tool call
