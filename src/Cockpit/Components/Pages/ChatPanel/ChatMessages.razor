@@ -1,40 +1,6 @@
 @using Cockpit.Components.Controls
 @using Cockpit.Features.SessionEvents.Models
 
-@inject Microsoft.JSInterop.IJSRuntime JSRuntime;
-
-@code {
-    private EventJsonPopup? _eventJsonPopup;
-    private List<string>? _eventJsonContent;
-
-    private async Task ShowEventJson(ChatMessageModel message)
-    {
-        if(await IsTextSelected()) return;
-        _eventJsonContent = message.EventJson?.Select(j => j.Value).ToList();
-        _eventJsonPopup?.Open();
-    }
-
-    private async Task<bool> IsTextSelected()
-    {
-        var selection = await JSRuntime.InvokeAsync<string>("eval", "window.getSelection().toString()");
-        return !string.IsNullOrEmpty(selection);
-    }
-
-    private string FormatAsJson(string json)
-    {
-        if(string.IsNullOrWhiteSpace(json)) return "";
-        try
-        {
-            var parsed = System.Text.Json.JsonDocument.Parse(json);
-            return System.Text.Json.JsonSerializer.Serialize(parsed, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-        }
-        catch
-        {
-            return json;
-        }
-    }
-}
-
 <div class="chat-messages-container">
     <div id="chatMessages" class="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin p-3 space-y-3">
         @if(_sessionListFeature.CurrentSession?.Messages is not null)
@@ -173,6 +139,6 @@
             </svg>
         </button>
     }
-
-    <EventJsonPopup @ref="_eventJsonPopup" JsonList="_eventJsonContent" />
 </div>
+
+<EventJsonPopup @ref="_eventJsonPopup" JsonList="_eventJsonContent" />
