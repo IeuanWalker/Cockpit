@@ -31,6 +31,7 @@
 }
 
 .btn-details {
+	color: var(--link-color);
     background: none;
     border: none;
     color: var(--accent-color);
@@ -139,6 +140,8 @@
 }
 
 .btn-deny {
+	background: var(--danger-bg);
+	color: var(--danger-text);
     background: var(--sidebar-color);
     color: var(--text-color);
 }
