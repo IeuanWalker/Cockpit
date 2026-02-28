@@ -97,15 +97,15 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 				(string title, bool canApproveForSession, bool canApproveGlobally) = category switch
 				{
 					FilePathCategory.CopilotSession => (
-						$"Allow {verb} .copilot session file",
+						$"Allow {verb} in copilot session file",
 						true,
 						true),
 					FilePathCategory.WorkingDirectory => (
-						$"Allow {verb} workspace file",
+						$"Allow {verb} in current working directory",
 						true,
 						true),
 					_ => (
-						$"Allow {verb} file outside workspace",
+						$"Allow {verb} in file outside of current working directory",
 						true,
 						false)
 				};
