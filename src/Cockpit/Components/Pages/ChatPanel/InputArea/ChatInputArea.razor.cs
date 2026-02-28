@@ -92,6 +92,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			{
 				await Task.Delay(textareaResizeYieldMs);
 				await OnTextareaInput();
+				await FocusInputAsync();
 			}
 		});
 	}
@@ -126,6 +127,18 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		catch(Exception ex)
 		{
 			_logger.LogDebug(ex, "Failed to resize chat input");
+		}
+	}
+
+	async Task FocusInputAsync()
+	{
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("cockpit.focusElement", "chatInput");
+		}
+		catch(Exception ex)
+		{
+			_logger.LogDebug(ex, "Failed to focus chat input");
 		}
 	}
 
