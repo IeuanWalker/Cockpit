@@ -31,9 +31,16 @@ public partial class ModelControl : ComponentBase, IDisposable
 		InvokeAsync(StateHasChanged);
 	}
 
+	void CloseAllDropdowns()
+	{
+		_isModelDropdownOpen = false;
+		_isReasoningEffortDropdownOpen = false;
+	}
+
 	void ToggleModelDropdown()
 	{
 		_isModelDropdownOpen = !_isModelDropdownOpen;
+		_isReasoningEffortDropdownOpen = false;
 	}
 
 	void SelectModel(ModelInfo model)
@@ -81,6 +88,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 	void ToggleReasoningEffortDropdown()
 	{
 		_isReasoningEffortDropdownOpen = !_isReasoningEffortDropdownOpen;
+		_isModelDropdownOpen = false;
 	}
 
 	void SelectReasoningEffort(string effort)

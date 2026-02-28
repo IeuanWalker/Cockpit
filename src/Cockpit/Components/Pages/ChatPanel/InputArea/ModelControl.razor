@@ -1,5 +1,10 @@
 @namespace Cockpit.Components.Pages.ChatPanel
 
+@if (_isModelDropdownOpen || _isReasoningEffortDropdownOpen)
+{
+    <div class="fixed inset-0" style="z-index: 999;" @onclick="CloseAllDropdowns"></div>
+}
+
 <div class="flex items-center space-x-2">
     <label class="text-xs secondary-text">Model:</label>
     <div class="relative">
