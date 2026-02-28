@@ -74,11 +74,7 @@
                                     @if(IsEventExpanded(childEvt.Id))
                                     {
                                         <div class="code-block-borderless mt-2">
-                                            @{
-                                                var parsedJsonList = childEvt.EventJson.Select(j => System.Text.Json.JsonSerializer.Deserialize<object>(j.Value)).ToList();
-                                                var prettyJson = System.Text.Json.JsonSerializer.Serialize(parsedJsonList, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                                            }
-                                            <CodeBlock Code="@prettyJson" Language="json" />
+                                                <CodeBlock Code="@JsonUtil.FormatJsonList(childEvt.EventJson?.Select(j => j.Value))" Language="json" />
                                         </div>
                                     }
                                 </div>
