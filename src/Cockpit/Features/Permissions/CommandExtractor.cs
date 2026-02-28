@@ -137,7 +137,7 @@ public static partial class CommandExtractor
 		"ls", "dir",
 		// Output / inspection
 		"echo", "printf", "cat", "type", "head", "tail", "less", "more",
-		"Out-Host", "Out-Null", "Out-String",
+		"Out-Host", "Out-Null", "Out-String", "Write-Host", "Write-Output", "Write-Information", "Write-Verbose", "Write-Debug",
 		// Search / filter
 		"grep", "rg", "ag", "Select-String", "Where-Object",
 		// Pipeline transforms (read-only — no I/O side effects)
@@ -528,19 +528,6 @@ public static partial class CommandExtractor
 	}
 
 	/// <summary>
-	/// Clean command by removing strings, substitutions, comments, etc.
-	/// Used when the full command is passed as a single string (e.g. recursive inner-command calls).
-	/// </summary>
-	static string CleanCommand(string command)
-	{
-		command = DecodeUnicodeEscapes(command);
-		command = HeredocWithMarkerPattern().Replace(command, "");
-		command = HeredocEndPattern().Replace(command, "");
-		command = RemoveScriptblocks(command);
-		return CleanSegment(command);
-	}
-
-	/// <summary>
 	/// Apply per-segment cleaning (string literals, substitutions, parentheses, redirections).
 	/// Assumes heredocs and scriptblocks have already been removed from the text.
 	/// </summary>
@@ -767,9 +754,9 @@ public static partial class CommandExtractor
 		// non-destructive safety guards, not force-push flags.
 		if(lower.Contains("git push", StringComparison.Ordinal) &&
 		   (lower.Contains("--force ", StringComparison.Ordinal) ||
-		    lower.EndsWith("--force", StringComparison.Ordinal) ||
-		    lower.Contains(" -f ", StringComparison.Ordinal) ||
-		    lower.EndsWith(" -f", StringComparison.Ordinal)))
+			lower.EndsWith("--force", StringComparison.Ordinal) ||
+			lower.Contains(" -f ", StringComparison.Ordinal) ||
+			lower.EndsWith(" -f", StringComparison.Ordinal)))
 		{
 			return true;
 		}
