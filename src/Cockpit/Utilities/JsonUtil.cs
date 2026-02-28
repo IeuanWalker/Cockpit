@@ -4,7 +4,10 @@ namespace Cockpit.Utilities;
 
 public static class JsonUtil
 {
-	static readonly JsonSerializerOptions _indentedOptions = new() { WriteIndented = true };
+	static readonly JsonSerializerOptions indentedOptions = new()
+	{
+		WriteIndented = true
+	};
 
 	public static string FormatJsonList(IEnumerable<string>? jsonList)
 	{
@@ -23,7 +26,7 @@ public static class JsonUtil
 		try
 		{
 			List<JsonElement> parsed = [.. list.Select(json => JsonSerializer.Deserialize<JsonElement>(json))];
-			return JsonSerializer.Serialize(parsed, _indentedOptions);
+			return JsonSerializer.Serialize(parsed, indentedOptions);
 		}
 		catch
 		{
