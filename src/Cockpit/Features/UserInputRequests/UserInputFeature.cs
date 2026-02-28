@@ -149,16 +149,11 @@ public sealed class UserInputFeature : IUserInputHandler
 		{
 			session.PendingUserInputRequests.TryRemove(requestId, out _);
 
-			if(session.PendingPermissionRequests.IsEmpty && session.PendingUserInputRequests.IsEmpty)
-			{
-				session.Status = session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle;
-			}
-			else
-			{
-				session.Status = session.PendingPermissionRequests.IsEmpty
+			session.Status = session.PendingPermissionRequests.IsEmpty && session.PendingUserInputRequests.IsEmpty
+				? session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle
+				: session.PendingPermissionRequests.IsEmpty
 					? SessionStatusEnum.NeedsUserInput
 					: SessionStatusEnum.NeedsPermission;
-			}
 		}
 
 		_sessionStateProvider.NotifyStateChanged();

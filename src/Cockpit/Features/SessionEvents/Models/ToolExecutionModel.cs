@@ -49,7 +49,8 @@ public class ToolExecutionModel
 		{
 			Type = ThinkingEventTypeEnum.Tool,
 			Tool = child,
-			Timestamp = child.StartTime
+			Timestamp = child.StartTime,
+			EventJson = child.GetRawEventsSnapshot()
 		});
 	}
 

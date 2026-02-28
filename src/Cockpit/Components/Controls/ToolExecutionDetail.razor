@@ -59,9 +59,33 @@
                 {
                     @if(childEvt.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrEmpty(childEvt.Message))
                     {
-                        <div class="thinking-message">
-                            <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
-                        </div>
+                        @if(childEvt.EventJson is not null && childEvt.EventJson.Count > 0)
+                        {
+                            if(childEvt.Id is null)
+                            {
+                                <div class="thinking-message">
+                                    <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="thinking-message cursor-pointer" @onclick="() => ToggleEventExpanded(childEvt.Id)">
+                                    <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
+                                    @if(IsEventExpanded(childEvt.Id))
+                                    {
+                                        <div class="code-block-borderless mt-2">
+                                                <CodeBlock Code="@JsonUtil.FormatJsonList(childEvt.EventJson?.Select(j => j.Value))" Language="json" />
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="thinking-message">
+                                <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
+                            </div>
+                        }
                     }
                     else if(childEvt.Type == ThinkingEventTypeEnum.Tool && childEvt.Tool is not null)
                     {

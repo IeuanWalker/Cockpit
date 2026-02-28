@@ -44,7 +44,14 @@ public class SessionEventProcessorTests
 		group.AddEvent(new ThinkingEventModel
 		{
 			Type = ThinkingEventTypeEnum.Tool,
-			Tool = new ToolExecutionModel { ToolName = "read_file", ToolCallId = "tc1", Status = ToolStatusEnum.Success, StartTime = DateTime.Now }
+			Tool = new ToolExecutionModel
+			{
+				ToolName = "read_file",
+				ToolCallId = "tc1",
+				Status = ToolStatusEnum.Success,
+				StartTime = DateTime.Now
+			},
+			EventJson = null
 		});
 		session.ActiveWorkingGroup = group;
 
@@ -128,7 +135,7 @@ public class SessionEventProcessorTests
 		// Arrange
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = true });
+		session.Messages.Add(new ChatMessageModel { IsUser = true, EventJson = null });
 
 		processor.Process(session, new ToolExecutionStartEvent
 		{

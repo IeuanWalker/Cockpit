@@ -49,7 +49,8 @@ static class AssistantMessageHandler
 					Id = messageId,
 					Type = ThinkingEventTypeEnum.Message,
 					Message = content,
-					Timestamp = evt.Timestamp.LocalDateTime
+					Timestamp = evt.Timestamp.LocalDateTime,
+					EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 				};
 
 				// If this message belongs to a subagent, nest it under the parent tool call
@@ -94,7 +95,8 @@ static class AssistantMessageHandler
 				Timestamp = evt.Timestamp,
 				Type = MessageTypeEnum.Text,
 				IsComplete = true,
-				EventType = evt.Type
+				EventType = evt.Type,
+				EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 			};
 			// Insert before any pending user messages so the summary appears before the next queued message
 			int pendingIdx = session.Messages.FindIndex(m => m.IsUser && m.IsPending);

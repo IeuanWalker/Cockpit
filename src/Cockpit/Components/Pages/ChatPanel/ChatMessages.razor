@@ -15,7 +15,7 @@
                 @* Typing indicator removed - using thinking panel instead *@
                 else if(message.Type == MessageTypeEnum.Error)
                 {
-                    <div class="error-message">
+                    <div class="error-message cursor-pointer" @onclick="() => ShowEventJson(message)">
                         <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
                     </div>
                 }
@@ -24,9 +24,19 @@
                     <!-- User Message -->
                     <div class="flex justify-end">
                         <div class="max-w-2xl flex flex-col items-end">
-                            <div class="chat-bubble rounded-lg px-4 py-2.5 @(message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")">
-                                <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
-                            </div>
+                            @if(message.EventJson is null)
+                            {
+                                <div class="chat-bubble rounded-lg px-4 py-2.5 @(message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")">
+                                    <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="chat-bubble rounded-lg px-4 py-2.5 cursor-pointer event-message @(message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")" @onclick="() => ShowEventJson(message)">
+                                    <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                                </div>
+                            }
+
                             @if(message.Attachments?.Count > 0)
                             {
                                 bool expanded = _expandedAttachments.Contains(message);
@@ -94,9 +104,19 @@
                         <div class="max-w-2xl flex items-start">
                             <img src="/images/logo.png" alt="Agent avatar" style="max-height:45px; margin: 0 5px 0 0" />
                             <div class="flex flex-col min-w-0">
-                                <div class="bg-app-sidebar border border-app-border rounded-lg px-4 py-3">
-                                    <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
-                                </div>
+                                @if(message.EventJson is null)
+                                {
+                                    <div class="bg-app-sidebar border border-app-border rounded-lg px-4 py-3">
+                                        <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="bg-app-sidebar border border-app-border rounded-lg px-4 py-3 cursor-pointer event-message" @onclick="() => ShowEventJson(message)">
+                                        <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                                    </div>
+                                }
+
                                 @if(_uiStateFeature.TextToSpeechEnabled && !message.IsStreaming)
                                 {
                                     <div class="message-actions mt-1">
@@ -120,3 +140,5 @@
         </button>
     }
 </div>
+
+<EventJsonPopup @ref="_eventJsonPopup" JsonList="_eventJsonContent" />

@@ -45,6 +45,7 @@ public partial class CreateSessionPopup : ComponentBase
 
 	async Task BrowseDirectory()
 	{
+#if WINDOWS || MACCATALYST
 		try
 		{
 			FolderPickerResult result = await FolderPicker.Default.PickAsync();
@@ -68,6 +69,7 @@ public partial class CreateSessionPopup : ComponentBase
 			ErrorMessage = $"Failed to open directory picker: {ex.Message}";
 			StateHasChanged();
 		}
+#endif
 	}
 
 	bool IsValidDirectory()

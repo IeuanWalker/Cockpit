@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using Markdig;
 
 namespace Cockpit.Features.Markdown;
@@ -51,6 +52,21 @@ public class MarkdownFeature
 		return sb.ToString();
 	}
 
+	static readonly Regex preOpenTag = new(@"<pre(?:\s[^>]*)?>", RegexOptions.Compiled);
+	const string copyButton = "<button type=\"button\" class=\"code-copy-button\">Copy</button>";
+
+	static string WrapCodeBlocks(string html)
+	{
+		if(!html.Contains("<pre"))
+		{
+			return html;
+		}
+
+		html = preOpenTag.Replace(html, m => $"<div class=\"code-block\">{copyButton}{m.Value}");
+		html = html.Replace("</pre>", "</pre></div>");
+		return html;
+	}
+
 	public string ToHtml(string markdown)
 	{
 		if(string.IsNullOrWhiteSpace(markdown))
@@ -61,6 +77,6 @@ public class MarkdownFeature
 		// Replace lone surrogates and other invalid Unicode that Markdig rejects
 		markdown = ReplaceLoneSurrogates(markdown);
 
-		return Markdig.Markdown.ToHtml(markdown, _pipeline);
+		return WrapCodeBlocks(Markdig.Markdown.ToHtml(markdown, _pipeline));
 	}
 }

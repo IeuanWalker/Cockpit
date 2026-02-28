@@ -215,6 +215,15 @@ public sealed partial class SessionFeature
 					}
 				});
 
+				// Any message still IsPending after replay was sent while the session was
+				// mid-turn and never picked up by a subsequent assistant.turn_start (the session
+				// was interrupted). Clear the flag so history renders in the correct order and
+				// without the "Pending…" indicator.
+				foreach(ChatMessageModel msg in tempSession.Messages)
+				{
+					msg.IsPending = false;
+				}
+
 				session.Messages = tempSession.Messages;
 				session.ActiveWorkingGroup = null;
 				session.LastActivity = tempSession.LastActivity;

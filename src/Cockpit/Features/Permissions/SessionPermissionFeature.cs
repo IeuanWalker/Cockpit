@@ -223,7 +223,7 @@ public sealed class SessionPermissionFeature
 
 		lock(session.Context.SessionPermissionCommandsLock)
 		{
-			return [.. session.Context.SessionPermissionCommands];
+			return [.. session.Context.SessionPermissionCommands.Order()];
 		}
 	}
 

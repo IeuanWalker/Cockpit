@@ -10,11 +10,14 @@ static class SessionIdleHandler
 	{
 		if(session.ActiveWorkingGroup is not null)
 		{
-			Handle(session, session.ActiveWorkingGroup.Events.Last().Timestamp, onStreamSummary, groupStatus);
+			ThinkingEventModel? lastEvent = session.ActiveWorkingGroup.Events.LastOrDefault();
+			DateTimeOffset timestamp = lastEvent is not null ? lastEvent.Timestamp : DateTimeOffset.UtcNow;
+			Handle(session, timestamp, onStreamSummary, groupStatus);
 		}
 		else
 		{
-			Handle(session, session.Messages.Last().Timestamp, onStreamSummary, groupStatus);
+			DateTimeOffset timestamp = session.Messages.LastOrDefault()?.Timestamp ?? DateTimeOffset.UtcNow;
+			Handle(session, timestamp, onStreamSummary, groupStatus);
 		}
 	}
 	internal static void Handle(SessionModel session, DateTimeOffset eventTimestamp, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
@@ -84,7 +87,8 @@ static class SessionIdleHandler
 					Timestamp = eventTimestamp.LocalDateTime,
 					Type = MessageTypeEnum.Text,
 					IsStreaming = true,
-					IsComplete = false
+					IsComplete = false,
+					EventJson = lastMessage.EventJson
 				};
 			}
 
@@ -95,7 +99,8 @@ static class SessionIdleHandler
 				{
 					Type = ThinkingEventTypeEnum.Message,
 					Message = "Session aborted",
-					Timestamp = eventTimestamp.LocalDateTime
+					Timestamp = eventTimestamp.LocalDateTime,
+					EventJson = null
 				});
 			}
 			else if(hasStoppedTools)
@@ -104,7 +109,8 @@ static class SessionIdleHandler
 				{
 					Type = ThinkingEventTypeEnum.Message,
 					Message = "Session stopped",
-					Timestamp = eventTimestamp.LocalDateTime
+					Timestamp = eventTimestamp.LocalDateTime,
+					EventJson = null
 				});
 			}
 
@@ -143,7 +149,8 @@ static class SessionIdleHandler
 					Type = MessageTypeEnum.ActivityGroup,
 					ActivityGroup = group,
 					Timestamp = group.EndTime ?? DateTime.Now,
-					Content = group.Tools.Any() ? GenerateActivitySummary(group) : "Aborted"
+					Content = group.Tools.Any() ? GenerateActivitySummary(group) : "Aborted",
+					EventJson = null
 				};
 
 				int activityIndex;
@@ -192,12 +199,12 @@ static class SessionIdleHandler
 				if(onStreamSummary is not null)
 				{
 					// Stream progressively for the current (visible) session
-					_ = onStreamSummary(summaryMsg, lastMessage!.Message);
+					_ = onStreamSummary(summaryMsg, lastMessage?.Message ?? string.Empty);
 				}
 				else
 				{
 					// For background sessions, set the content immediately
-					summaryMsg.Content = lastMessage!.Message;
+					summaryMsg.Content = lastMessage?.Message ?? string.Empty;
 					summaryMsg.IsStreaming = false;
 					summaryMsg.IsComplete = true;
 				}

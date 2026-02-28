@@ -29,12 +29,14 @@ static class AssistantMessageDeltaHandler
 					Type = MessageTypeEnum.Text,
 					IsStreaming = true,
 					IsComplete = false,
-					EventType = evt.Type
+					EventType = evt.Type,
+					EventJson = []
 				};
 				session.StreamingMessages[messageId] = message;
 				// DON'T add to session.Messages - it will go in thinking panel
 			}
 
+			message.EventJson?.Add(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 			message.Content += evt.Data.DeltaContent ?? string.Empty;
 			return;
 		}
@@ -51,12 +53,14 @@ static class AssistantMessageDeltaHandler
 				Type = MessageTypeEnum.Text,
 				IsStreaming = true,
 				IsComplete = false,
-				EventType = evt.Type
+				EventType = evt.Type,
+				EventJson = []
 			};
 			session.StreamingMessages[messageId] = msg;
 			session.Messages.Add(msg);
 		}
 
+		msg.EventJson?.Add(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 		msg.Content += evt.Data.DeltaContent ?? string.Empty;
 	}
 }

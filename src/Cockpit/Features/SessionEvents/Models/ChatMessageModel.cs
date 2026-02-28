@@ -26,6 +26,8 @@ public class ChatMessageModel
 	/// Attachments included with this user message, for display in the message bubble.
 	/// </summary>
 	public List<AttachmentModel>? Attachments { get; set; }
+
+	public required List<Lazy<string>>? EventJson { get; set; }
 }
 
 public enum MessageTypeEnum

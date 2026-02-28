@@ -19,7 +19,21 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 
 	readonly List<string> _commands = [];
 	readonly ReaderWriterLockSlim _permissionsLock = new();
+	static readonly JsonSerializerOptions jsonOptions = new() { WriteIndented = true };
 	public event Action? OnPermissionsChanged;
+
+	public bool HasPermission(string command)
+	{
+		_permissionsLock.EnterReadLock();
+		try
+		{
+			return _commands.Contains(command);
+		}
+		finally
+		{
+			_permissionsLock.ExitReadLock();
+		}
+	}
 
 	public bool HasPermissions(List<string> commands)
 	{
@@ -39,7 +53,7 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 		_permissionsLock.EnterReadLock();
 		try
 		{
-			return [.. _commands];
+			return [.. _commands.Order()];
 		}
 		finally
 		{
@@ -49,14 +63,15 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 
 	public void Add(string command)
 	{
+		List<string>? snapshot = null;
+
 		_permissionsLock.EnterWriteLock();
 		try
 		{
 			if(!_commands.Contains(command))
 			{
 				_commands.Add(command);
-
-				Save();
+				snapshot = [.. _commands];
 			}
 		}
 		finally
@@ -64,11 +79,17 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 			_permissionsLock.ExitWriteLock();
 		}
 
-		OnPermissionsChanged?.Invoke();
+		if(snapshot is not null)
+		{
+			Save(snapshot);
+			OnPermissionsChanged?.Invoke();
+		}
 	}
 
 	public void Add(List<string> commands)
 	{
+		List<string>? snapshot = null;
+
 		_permissionsLock.EnterWriteLock();
 		try
 		{
@@ -84,7 +105,7 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 
 			if(modified)
 			{
-				Save();
+				snapshot = [.. _commands];
 			}
 		}
 		finally
@@ -92,24 +113,35 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 			_permissionsLock.ExitWriteLock();
 		}
 
-		OnPermissionsChanged?.Invoke();
+		if(snapshot is not null)
+		{
+			Save(snapshot);
+			OnPermissionsChanged?.Invoke();
+		}
 	}
 
 	public void Remove(string command)
 	{
+		List<string>? snapshot = null;
+
 		_permissionsLock.EnterWriteLock();
 		try
 		{
-			_commands.Remove(command);
-
-			Save();
+			if(_commands.Remove(command))
+			{
+				snapshot = [.. _commands];
+			}
 		}
 		finally
 		{
 			_permissionsLock.ExitWriteLock();
 		}
 
-		OnPermissionsChanged?.Invoke();
+		if(snapshot is not null)
+		{
+			Save(snapshot);
+			OnPermissionsChanged?.Invoke();
+		}
 	}
 
 	/// <summary>
@@ -121,7 +153,32 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 		{
 			if(!File.Exists(_permissionsFilePath))
 			{
-				_logger.LogInformation("No permissions file found, starting with empty permissions");
+				// Default allow list
+				List<string> defaultCommands =
+				[
+					// Git read-only subcommands (extracted as "git <subcommand>" by CommandExtractor)
+					"git status", "git log", "git diff", "git branch", "git show",
+					"git remote", "git tag", "git describe",
+					// npm info subcommands
+					"npm list", "npm ls", "npm outdated",
+					// dotnet info subcommand
+					"dotnet list",
+				];
+
+				_permissionsLock.EnterWriteLock();
+				try
+				{
+					_commands.Clear();
+					// Only load allowlist - denylist removed as per Cooper's approach
+					_commands.AddRange(defaultCommands);
+				}
+				finally
+				{
+					_permissionsLock.ExitWriteLock();
+				}
+
+				_logger.LogInformation("Default global permissions loaded");
+
 				return;
 			}
 
@@ -151,19 +208,12 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 		}
 	}
 
-	void Save()
+	void Save(List<string> snapshot)
 	{
 		try
 		{
-			// Lock is already held by caller (Add/Remove methods)
-			// This method should only be called from within a write lock
-			string json = JsonSerializer.Serialize(_commands, new JsonSerializerOptions
-			{
-				WriteIndented = true
-			});
-
+			string json = JsonSerializer.Serialize(snapshot, jsonOptions);
 			File.WriteAllText(_permissionsFilePath, json);
-
 			_logger.LogDebug("Saved permissions to {Path}", _permissionsFilePath);
 		}
 		catch(Exception ex)

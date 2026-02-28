@@ -1,4 +1,5 @@
 using Blazor.Sonner.Services;
+using Cockpit.Components.Controls;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.TextToSpeech;
@@ -33,6 +34,9 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	bool _isScrolledUp = false;
 
 	string? _previousSessionId;
+
+	EventJsonPopup? _eventJsonPopup;
+	List<string>? _eventJsonContent;
 
 	protected override void OnInitialized()
 	{
@@ -121,6 +125,23 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 			await _jsRuntime.InvokeVoidAsync("cockpit.showImageLightbox", src, alt);
 		}
 		catch { /* ignore if JS unavailable */ }
+	}
+
+	async Task ShowEventJson(ChatMessageModel message)
+	{
+		if(await IsTextSelected())
+		{
+			return;
+		}
+
+		_eventJsonContent = message.EventJson?.Select(j => j.Value).ToList();
+		_eventJsonPopup?.Open();
+	}
+
+	async Task<bool> IsTextSelected()
+	{
+		string selection = await _jsRuntime.InvokeAsync<string>("eval", "window.getSelection().toString()");
+		return !string.IsNullOrEmpty(selection);
 	}
 
 	public async ValueTask DisposeAsync()

@@ -124,7 +124,8 @@ public class UserMessageHandlerTests
 		{
 			Content = "Queued message",
 			IsUser = true,
-			IsComplete = false
+			IsComplete = false,
+			EventJson = null
 		});
 
 		UserMessageEvent evt = new()
@@ -155,7 +156,8 @@ public class UserMessageHandlerTests
 			Id = optimisticId,
 			Content = "Queued message",
 			IsUser = true,
-			IsComplete = false
+			IsComplete = false,
+			EventJson = null
 		});
 
 		processor.Process(session, new UserMessageEvent
@@ -181,7 +183,8 @@ public class UserMessageHandlerTests
 			Content = "and again",
 			IsUser = true,
 			IsComplete = false,
-			IsPending = true
+			IsPending = true,
+			EventJson = null
 		};
 		ChatMessageModel second = new()
 		{
@@ -189,7 +192,8 @@ public class UserMessageHandlerTests
 			Content = "and again",
 			IsUser = true,
 			IsComplete = false,
-			IsPending = true
+			IsPending = true,
+			EventJson = null
 		};
 		session.Messages.Add(first);
 		session.Messages.Add(second);
@@ -217,8 +221,8 @@ public class UserMessageHandlerTests
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
-		ChatMessageModel pending1 = new() { Content = "First", IsUser = true, IsComplete = true, IsPending = true };
-		ChatMessageModel pending2 = new() { Content = "Second", IsUser = true, IsComplete = true, IsPending = true };
+		ChatMessageModel pending1 = new() { Content = "First", IsUser = true, IsComplete = true, IsPending = true, EventJson = null };
+		ChatMessageModel pending2 = new() { Content = "Second", IsUser = true, IsComplete = true, IsPending = true, EventJson = null };
 		session.Messages.Add(pending1);
 		session.Messages.Add(pending2);
 
@@ -236,8 +240,8 @@ public class UserMessageHandlerTests
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
-		ChatMessageModel pending1 = new() { Content = "First", IsUser = true, IsComplete = true, IsPending = true };
-		ChatMessageModel pending2 = new() { Content = "Second", IsUser = true, IsComplete = true, IsPending = true };
+		ChatMessageModel pending1 = new() { Content = "First", IsUser = true, IsComplete = true, IsPending = true, EventJson = null };
+		ChatMessageModel pending2 = new() { Content = "Second", IsUser = true, IsComplete = true, IsPending = true, EventJson = null };
 		session.Messages.Add(pending1);
 		session.Messages.Add(pending2);
 

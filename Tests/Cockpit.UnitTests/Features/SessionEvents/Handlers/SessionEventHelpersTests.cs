@@ -14,7 +14,8 @@ public class SessionEventHelpersTests
 		group.AddEvent(new ThinkingEventModel
 		{
 			Type = ThinkingEventTypeEnum.Tool,
-			Tool = tool
+			Tool = tool,
+			EventJson = null
 		});
 		return group;
 	}
@@ -101,10 +102,11 @@ public class SessionEventHelpersTests
 		{
 			Type = ThinkingEventTypeEnum.Message,
 			Message = "some message",
-			Tool = null
+			Tool = null,
+			EventJson = null
 		});
 		ToolExecutionModel tool = new() { ToolCallId = "tc1", StartTime = DateTime.Now };
-		group.AddEvent(new ThinkingEventModel { Type = ThinkingEventTypeEnum.Tool, Tool = tool });
+		group.AddEvent(new ThinkingEventModel { Type = ThinkingEventTypeEnum.Tool, Tool = tool, EventJson = null });
 
 		// Act
 		ToolExecutionModel? result = SessionEventHelpers.FindToolExecution(group, "tc1");
@@ -183,7 +185,7 @@ public class SessionEventHelpersTests
 	public async Task StreamSummaryTextAsync_StreamsFullContent()
 	{
 		// Arrange
-		ChatMessageModel message = new() { Content = string.Empty, IsStreaming = true };
+		ChatMessageModel message = new() { Content = string.Empty, IsStreaming = true, EventJson = null };
 		const string fullText = "abc";
 		int notifyCount = 0;
 
@@ -201,7 +203,7 @@ public class SessionEventHelpersTests
 	public async Task StreamSummaryTextAsync_EmptyText_CompletesImmediately()
 	{
 		// Arrange
-		ChatMessageModel message = new() { Content = "existing", IsStreaming = true };
+		ChatMessageModel message = new() { Content = "existing", IsStreaming = true, EventJson = null };
 
 		// Act
 		await SessionEventHelpers.StreamSummaryTextAsync(message, string.Empty, () => { });

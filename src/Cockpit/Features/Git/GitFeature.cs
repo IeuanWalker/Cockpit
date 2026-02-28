@@ -250,7 +250,7 @@ public sealed partial class GitFeature
 				CreateNoWindow = true
 			};
 
-			foreach(var arg in arguments)
+			foreach(string arg in arguments)
 			{
 				psi.ArgumentList.Add(arg);
 			}

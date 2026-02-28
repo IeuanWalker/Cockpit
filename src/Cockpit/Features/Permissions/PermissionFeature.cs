@@ -14,6 +14,7 @@ namespace Cockpit.Features.Permissions;
 public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 {
 	readonly GlobalPermissionFeature _globalPermissionFeature;
+	readonly GlobalDenyFeature _globalDenyFeature;
 	readonly SessionPermissionFeature _sessionPermissionFeature;
 	readonly ISessionStateProvider _sessionStateProvider;
 	readonly ILogger<PermissionFeature> _logger;
@@ -28,18 +29,22 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 	public PermissionFeature(
 		GlobalPermissionFeature globalPermissionFeature,
+		GlobalDenyFeature globalDenyFeature,
 		SessionPermissionFeature sessionPermissionFeature,
 		ISessionStateProvider sessionStateProvider,
 		ILogger<PermissionFeature> logger)
 	{
 		_globalPermissionFeature = globalPermissionFeature;
+		_globalDenyFeature = globalDenyFeature;
 		_sessionPermissionFeature = sessionPermissionFeature;
 		_sessionStateProvider = sessionStateProvider;
 		_logger = logger;
 	}
 
-	PermissionRequestModel ToRequestModel(PermissionRequest request, string sessionId)
+	PermissionRequestModel ToRequestModel(PermissionRequest request, SessionModel session)
 	{
+		string sessionId = session.Id;
+
 		string intention = string.Empty;
 		if(request.ExtensionData?.TryGetValue("intention", out object? intentionObj) ?? false)
 		{
@@ -58,36 +63,70 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			}
 		}
 
-		if(request.Kind.Equals("read", StringComparison.InvariantCultureIgnoreCase))
+		if(request.Kind.Equals("read", StringComparison.InvariantCultureIgnoreCase) ||
+		   request.Kind.Equals("write", StringComparison.InvariantCultureIgnoreCase))
 		{
-			return new PermissionRequestModel
+			string? path = null;
+
+			if(request.ExtensionData?.TryGetValue("path", out object? pathObject) ?? false)
 			{
-				SessionId = sessionId,
-				FullCommand = fullCommand,
-				Commands = ["read"],
-				RequestTitle = "Allow read file(s)",
-				Intention = intention,
-				CanApproveGlobally = true,
-				CanApproveForSession = true,
-				FullRequestJson = JsonSerializer.Serialize(request)
-			};
-		}
+				if(pathObject is JsonElement element && element.ValueKind == JsonValueKind.String)
+				{
+					path = element.GetString();
+				}
+			}
 
-		if(request.Kind.Equals("write", StringComparison.InvariantCultureIgnoreCase))
-		{
-			// TODO: Get path of write file
+			if(string.IsNullOrWhiteSpace(path))
+			{
+				if(request.ExtensionData?.TryGetValue("fileName", out object? fileNameObject) ?? false)
+				{
+					if(fileNameObject is JsonElement element && element.ValueKind == JsonValueKind.String)
+					{
+						path = element.GetString();
+					}
+				}
+			}
 
-			// TODO: Get current working diretory that the request belongs to
+			if(!string.IsNullOrWhiteSpace(path))
+			{
+				bool isWrite = request.Kind.Equals("write", StringComparison.InvariantCultureIgnoreCase);
+				string verb = isWrite ? "write" : "read";
 
-			// if in current working directory
+				FilePathCategory category = ClassifyFilePath(path, session.Context.CurrentWorkingDirectory);
 
-			// if outside current working directory
+				(string title, bool canApproveForSession, bool canApproveGlobally) = category switch
+				{
+					FilePathCategory.CopilotSession => (
+						$"Allow {verb} in copilot session file",
+						true,
+						true),
+					FilePathCategory.WorkingDirectory => (
+						$"Allow {verb} in current working directory",
+						true,
+						true),
+					_ => (
+						$"Allow {verb} in file outside of current working directory",
+						true,
+						false)
+				};
+
+				return new PermissionRequestModel
+				{
+					SessionId = sessionId,
+					FullCommand = path,
+					Commands = [$"{verb} - {category}"],
+					RequestTitle = title,
+					Intention = intention,
+					CanApproveGlobally = canApproveGlobally,
+					CanApproveForSession = canApproveForSession,
+					FullRequestJson = JsonSerializer.Serialize(request)
+				};
+			}
 		}
 
 		// Try to extract command from various possible fields
 		if(!string.IsNullOrWhiteSpace(fullCommand))
 		{
-
 			// Extract meaningful executables (filters out cd, pwd, etc.)
 			List<string> meaningfulExecutables = CommandExtractor.ExtractMeaningfulExecutables(fullCommand);
 
@@ -124,6 +163,9 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 				requestTitle += $" (deletes {filesToDelete.Count} file(s))";
 			}
 
+			// Deny list: suppress global approval if any command is explicitly denied
+			bool canApproveGlobally = !isDestructive && !_globalDenyFeature.AnyDenied(commands);
+
 			return new PermissionRequestModel
 			{
 				SessionId = sessionId,
@@ -131,7 +173,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 				Commands = commands,
 				RequestTitle = requestTitle,
 				Intention = intention,
-				CanApproveGlobally = !isDestructive, // Destructive commands can't be globally approved
+				CanApproveGlobally = canApproveGlobally,
 				CanApproveForSession = true,
 				FullRequestJson = JsonSerializer.Serialize(request),
 				IsDestructive = isDestructive,
@@ -175,10 +217,9 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 				};
 			}
 
-			PermissionRequestModel permissionRequest = ToRequestModel(request, invocation.SessionId);
+			PermissionRequestModel permissionRequest = ToRequestModel(request, session);
 
-			_logger.LogInformation("Permission request: Kind={Kind}, Commands={Commands}, SessionId={SessionId}",
-				request.Kind, string.Join(", ", permissionRequest.Commands), session.Id);
+			_logger.LogInformation("Permission request: Kind={Kind}, Commands={Commands}, SessionId={SessionId}", request.Kind, string.Join(", ", permissionRequest.Commands), session.Id);
 
 			// Check permission through our service
 			PermissionDecisionEnum decision = await CheckPermissionAsync(permissionRequest, session.IsYolo);
@@ -211,16 +252,11 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 		{
 			session.PendingPermissionRequests.TryRemove(requestId, out _);
 
-			if(session.PendingPermissionRequests.IsEmpty && session.PendingUserInputRequests.IsEmpty)
-			{
-				session.Status = session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle;
-			}
-			else
-			{
-				session.Status = session.PendingPermissionRequests.IsEmpty
+			session.Status = session.PendingPermissionRequests.IsEmpty && session.PendingUserInputRequests.IsEmpty
+				? session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle
+				: session.PendingPermissionRequests.IsEmpty
 					? SessionStatusEnum.NeedsUserInput
 					: SessionStatusEnum.NeedsPermission;
-			}
 		}
 
 		// Notify UI (outside lock to avoid potential deadlocks)
@@ -273,6 +309,13 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			return PermissionDecisionEnum.Once;
 		}
 
+		// Safe commands - auto-approve without prompting the user
+		if(!request.IsDestructive && CommandExtractor.AreAllCommandsSafe(request.Commands))
+		{
+			_logger.LogDebug("All commands are safe, auto-approving: {Commands}", string.Join(", ", request.Commands));
+			return PermissionDecisionEnum.Once;
+		}
+
 		_permissionsLock.EnterReadLock();
 		bool needsFiltering = false;
 		List<string> unapprovedCommands = [];
@@ -293,10 +336,12 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 				return PermissionDecisionEnum.Global;
 			}
 
-			// Filter out already-approved commands
+			// Filter out already-approved commands; for destructive requests every command
+			// reaches the dialog regardless of the safe list, matching the pre-approval behaviour.
 			unapprovedCommands = [.. request.Commands
-				.Where(cmd => !_sessionPermissionFeature.HasPermission(request.SessionId, cmd) &&
-							  !_globalPermissionFeature.HasPermissions([cmd]))];
+				.Where(cmd => (request.IsDestructive || !CommandExtractor.IsCommandSafe(cmd)) &&
+							  !_sessionPermissionFeature.HasPermission(request.SessionId, cmd) &&
+							  !_globalPermissionFeature.HasPermission(cmd))];
 
 			// If all commands are approved, auto-approve
 			if(unapprovedCommands.Count == 0)
@@ -498,12 +543,6 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 		foreach(PermissionRequestModel pendingRequest in pendingForSession)
 		{
-			// Skip if already removed (in case of concurrent processing)
-			if(!_pendingRequests.ContainsKey(pendingRequest.Id))
-			{
-				continue;
-			}
-
 			// Check if ANY command in the pending request is in the newly granted commands
 			bool hasMatchingCommand = pendingRequest.Commands.Any(cmd => commands.Contains(cmd));
 			if(!hasMatchingCommand)
@@ -530,6 +569,51 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 				OnPermissionResolved?.Invoke(sessionId, pendingRequest.Id);
 			}
 		}
+	}
+
+	/// <summary>
+	/// Categories for file path classification in read/write permission requests.
+	/// </summary>
+	enum FilePathCategory
+	{
+		/// <summary>File is inside a .copilot sub-directory (internal agent session state).</summary>
+		CopilotSession,
+		/// <summary>File is inside the session's working directory.</summary>
+		WorkingDirectory,
+		/// <summary>File is outside the session's working directory.</summary>
+		External
+	}
+
+	/// <summary>
+	/// Classifies a file path relative to the session's working directory.
+	/// </summary>
+	static FilePathCategory ClassifyFilePath(string filePath, string workingDirectory)
+	{
+		if(string.IsNullOrWhiteSpace(filePath))
+		{
+			return FilePathCategory.External;
+		}
+
+		string[] segments = filePath.Split(['\\', '/'], StringSplitOptions.RemoveEmptyEntries);
+		foreach(string segment in segments)
+		{
+			if(string.Equals(segment, ".copilot", StringComparison.Ordinal))
+			{
+				return FilePathCategory.CopilotSession;
+			}
+		}
+
+		if(string.IsNullOrWhiteSpace(workingDirectory))
+		{
+			return FilePathCategory.External;
+		}
+
+		if(filePath.StartsWith(workingDirectory, StringComparison.OrdinalIgnoreCase))
+		{
+			return FilePathCategory.WorkingDirectory;
+		}
+
+		return FilePathCategory.External;
 	}
 
 	public void Dispose()

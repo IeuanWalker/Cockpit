@@ -53,7 +53,7 @@ public partial class PermissionRequestPanel : ComponentBase, IDisposable
 		StateHasChanged();
 	}
 
-	void OpenMoeInfoPopup() => _moreInfoPopup.Open();
+	void OpenMoreInfoPopup() => _moreInfoPopup.Open();
 
 	void OnStateChanged()
 	{
@@ -71,6 +71,10 @@ public partial class PermissionRequestPanel : ComponentBase, IDisposable
 
 		_logger.LogInformation("OnDecision called: isApproved={IsApproved}, decision={Scope}, sessionId={SessionId}",
 			!decision.Equals(PermissionDecisionEnum.Denied), decision, currentRequest.SessionId);
+
+		// Reset to default so the next request always starts with "Allow Once"
+		_selectedAllowOption = PermissionDecisionEnum.Once;
+		_showDropdown = false;
 
 		_permissionFeature.ResolvePermissionRequest(currentRequest.Id, decision);
 		return Task.CompletedTask;
