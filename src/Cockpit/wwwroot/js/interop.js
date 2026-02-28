@@ -203,29 +203,21 @@ window.cockpit = {
             return;
         }
 
-        container.querySelectorAll('pre').forEach((pre) => {
-            if (pre.parentNode.classList.contains('code-block')) {
+        container.querySelectorAll('.code-block').forEach((block) => {
+            const button = block.querySelector('.code-copy-button');
+            const pre = block.querySelector('pre');
+            if (!button || !pre || button.dataset.initialized) {
                 return;
             }
+
+            button.dataset.initialized = 'true';
+            pre.classList.add('scrollbar-thin');
 
             const code = pre.querySelector('code');
             if (!code) {
                 return;
             }
 
-            // Wrap pre in a positioned container so the copy button doesn't scroll with code
-            const wrapper = document.createElement('div');
-            wrapper.className = 'code-block';
-            pre.parentNode.insertBefore(wrapper, pre);
-            wrapper.appendChild(pre);
-
-            // Apply thin scrollbar styling to the pre
-            pre.classList.add('scrollbar-thin');
-
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'code-copy-button';
-            button.textContent = 'Copy';
             button.addEventListener('click', async () => {
                 try {
                     await navigator.clipboard.writeText(code.innerText);
@@ -242,8 +234,6 @@ window.cockpit = {
                     }, 1500);
                 }
             });
-
-            wrapper.appendChild(button);
         });
     },
     initializeResize: function (handleId, sidebarId, side, dotnetHelper) {
