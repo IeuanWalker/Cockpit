@@ -11,7 +11,7 @@ public static class JsonUtil
 
 	public static string FormatJsonList(IEnumerable<string>? jsonList)
 	{
-		if(jsonList == null)
+		if(jsonList is null)
 		{
 			return string.Empty;
 		}
