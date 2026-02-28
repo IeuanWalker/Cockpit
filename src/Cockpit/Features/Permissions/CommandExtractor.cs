@@ -151,13 +151,6 @@ public static partial class CommandExtractor
 		"which", "where", "whereis",
 		// Environment
 		"env", "printenv",
-		// Git read-only subcommands (extracted as "git <subcommand>" by CommandExtractor)
-		"git status", "git log", "git diff", "git branch", "git show",
-		"git remote", "git tag", "git describe",
-		// npm info subcommands
-		"npm list", "npm ls", "npm outdated",
-		// dotnet info subcommand
-		"dotnet list",
 		// Misc read-only
 		"uname", "hostname", "whoami", "id", "date",
 	};
