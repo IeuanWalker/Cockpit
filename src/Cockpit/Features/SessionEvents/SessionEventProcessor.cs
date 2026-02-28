@@ -38,7 +38,7 @@ public sealed class SessionEventProcessor
 					{
 						SessionIdleHandler.Handle(session);
 					}
-					var content = userMsg.Data?.Content ?? string.Empty;
+					string content = userMsg.Data?.Content ?? string.Empty;
 					_logger.LogDebug("Session {SessionId} user message: {Content}", session.Id, content[..Math.Min(50, content.Length)]);
 					UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
 					break;
