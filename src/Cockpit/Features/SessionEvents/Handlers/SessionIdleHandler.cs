@@ -199,12 +199,12 @@ static class SessionIdleHandler
 				if(onStreamSummary is not null)
 				{
 					// Stream progressively for the current (visible) session
-					_ = onStreamSummary(summaryMsg, lastMessage!.Message);
+					_ = onStreamSummary(summaryMsg, lastMessage?.Message ?? string.Empty);
 				}
 				else
 				{
 					// For background sessions, set the content immediately
-					summaryMsg.Content = lastMessage!.Message;
+					summaryMsg.Content = lastMessage?.Message ?? string.Empty;
 					summaryMsg.IsStreaming = false;
 					summaryMsg.IsComplete = true;
 				}

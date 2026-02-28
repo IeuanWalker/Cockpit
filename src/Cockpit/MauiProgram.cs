@@ -14,11 +14,11 @@ using Cockpit.Features.TextToSpeech;
 using Cockpit.Features.Theme;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
+using Cockpit.Features.UserInputRequests;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
-using Cockpit.Features.UserInputRequests;
 
 namespace Cockpit;
 
@@ -29,7 +29,9 @@ public static class MauiProgram
 		MauiAppBuilder builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
+#if WINDOWS || MACCATALYST
 			.UseMauiCommunityToolkit()
+#endif
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
