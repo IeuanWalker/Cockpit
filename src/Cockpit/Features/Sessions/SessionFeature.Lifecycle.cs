@@ -1,3 +1,4 @@
+using Cockpit.Features.Agents;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
@@ -196,7 +197,11 @@ public sealed partial class SessionFeature
 
 			// Restore previously selected agent (needs agents loaded first)
 			IEnumerable<AgentProfile> allAgents = [.. _globalAgentFeature.Agents, .. session.Context.RepoAgents];
-			_modelFeature.TryRestoreAgentSelection(session, allAgents);
+			AgentProfile? restoredAgent = await AgentPersistence.TryRestoreSessionAgentAsync(session, allAgents);
+			if(restoredAgent is not null)
+			{
+				session.Context.SelectedAgent = restoredAgent;
+			}
 
 			List<CustomAgentConfig> agents = GetSessionAgentConfigs(session);
 

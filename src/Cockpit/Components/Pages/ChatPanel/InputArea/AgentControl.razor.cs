@@ -85,8 +85,8 @@ public partial class AgentControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.Context.SelectedAgent = agent;
 		_sessionListFeature.CurrentSession.AgentChanged = true;
 
-		// Persist immediately so restarts restore the selection even without a message send
-		_ = _modelFeature.SaveSessionModelSettings(_sessionListFeature.CurrentSession)
+		// Persist agent selection immediately
+		_ = Cockpit.Features.Agents.AgentPersistence.SaveSessionAgentAsync(_sessionListFeature.CurrentSession)
 			.ContinueWith(t =>
 			{
 				if(t.IsFaulted)

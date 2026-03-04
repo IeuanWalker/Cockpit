@@ -65,23 +65,7 @@ public partial class EditedFilesPopup : ComponentBase, IDisposable
 
 	void RevealFile()
 	{
-		if(_selectedFilePath is null)
-		{
-			return;
-		}
-
-		try
-		{
-			if(OperatingSystem.IsWindows())
-			{
-				Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"/select,\"{_selectedFilePath}\"", UseShellExecute = true });
-			}
-			else if(OperatingSystem.IsMacOS())
-			{
-				Process.Start(new ProcessStartInfo { FileName = "open", Arguments = $"-R \"{_selectedFilePath}\"", UseShellExecute = false });
-			}
-		}
-		catch { /* best-effort */ }
+		Cockpit.Utilities.FileUtil.RevealFile(_selectedFilePath);
 	}
 
 	public void Dispose()
