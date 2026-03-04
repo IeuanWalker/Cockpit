@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -101,7 +102,8 @@ public sealed partial class ModelFeature : IDisposable
 			Dictionary<string, string> modelSettings = new()
 			{
 				["ModelId"] = session.Model.Id,
-				["ReasoningEffort"] = session.ReasoningEffort ?? string.Empty
+				["ReasoningEffort"] = session.ReasoningEffort ?? string.Empty,
+				["AgentName"] = session.Context.SelectedAgent?.Config.Name ?? string.Empty
 			};
 
 			string json = JsonSerializer.Serialize(modelSettings, new JsonSerializerOptions
@@ -179,6 +181,41 @@ public sealed partial class ModelFeature : IDisposable
 		{
 			_logger.LogWarning(ex, "Failed to restore model settings for session {SessionId} from {Path}", session.Id, modelSettingsFilePath);
 			return false;
+		}
+	}
+
+	/// <summary>
+	/// Restores the previously selected agent for a session from the persisted model settings file.
+	/// Must be called after agents are loaded into session context.
+	/// </summary>
+	public void TryRestoreAgentSelection(SessionModel session, IEnumerable<AgentProfile> allAgents)
+	{
+		string? modelSettingsFilePath = GetModelsFilePath(session);
+		if(string.IsNullOrWhiteSpace(modelSettingsFilePath) || !File.Exists(modelSettingsFilePath))
+		{
+			return;
+		}
+
+		try
+		{
+			string json = File.ReadAllText(modelSettingsFilePath);
+			Dictionary<string, string>? modelSettings = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+
+			if(modelSettings is null || !modelSettings.TryGetValue("AgentName", out string? agentName) || string.IsNullOrWhiteSpace(agentName))
+			{
+				return;
+			}
+
+			AgentProfile? match = allAgents.FirstOrDefault(a => string.Equals(a.Config.Name, agentName, StringComparison.OrdinalIgnoreCase));
+			if(match is not null)
+			{
+				session.Context.SelectedAgent = match;
+				_logger.LogInformation("Restored selected agent '{AgentName}' for session {SessionId}", agentName, session.Id);
+			}
+		}
+		catch(Exception ex)
+		{
+			_logger.LogWarning(ex, "Failed to restore agent selection for session {SessionId}", session.Id);
 		}
 	}
 

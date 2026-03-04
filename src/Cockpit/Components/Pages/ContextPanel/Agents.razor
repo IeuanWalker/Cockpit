@@ -1,0 +1,36 @@
+@using Cockpit.Components.Controls
+
+<Expander>
+    <Icon>
+        <svg class="icon-xs mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-color);">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+    </Icon>
+    <Title>Agents (@TotalCount)</Title>
+    <Content>
+        @if(_allAgents.Count == 0)
+        {
+            <div class="px-3 py-2 text-xs secondary-text">No agents available</div>
+        }
+        else
+        {
+            @foreach(var agent in _allAgents)
+            {
+                bool isSelected = _selectedAgent?.Config.Name == agent.Config.Name && _selectedAgent?.Source == agent.Source;
+                <div class="px-3 py-1.5 text-xs transition-colors flex items-center justify-between cursor-pointer @(isSelected ? "" : "hover:bg-app-hover")"
+                     style="@(isSelected ? "background-color: var(--accent-color); color: white;" : "")"
+                     @onclick="() => ShowAgentInfo(agent)">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="truncate">@agent.DisplayLabel</span>
+                    </div>
+                    <span class="flex-shrink-0 text-xs px-1.5 py-0.5 rounded ml-2"
+                          style="@(isSelected ? "background-color: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white;" : "background-color: var(--input-bg); border: 1px solid var(--input-border);")">
+                        @(agent.Source == AgentSource.Global ? "global" : "repo")
+                    </span>
+                </div>
+            }
+        }
+    </Content>
+</Expander>
+
+<AgentInfoPopup @ref="_agentInfoPopup" />

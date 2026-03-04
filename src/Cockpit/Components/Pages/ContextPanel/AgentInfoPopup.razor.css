@@ -1,0 +1,23 @@
+/* Popup action button styling to match EditedFilesPopup */
+.popup-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.popup-action-btn:hover:not(:disabled) {
+    background-color: var(--hover-color);
+}
+
+.popup-action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}

@@ -16,10 +16,11 @@ public sealed partial class SessionFeature
 
 		try
 		{
-			if(CurrentSession.ModelChanged)
+			if(CurrentSession.ModelChanged || CurrentSession.AgentChanged)
 			{
 				await _modelFeature.SaveSessionModelSettings(CurrentSession);
 				CurrentSession.ModelChanged = false;
+				CurrentSession.AgentChanged = false;
 
 				await RestartSessionWithPendingConfig(CurrentSession);
 			}
