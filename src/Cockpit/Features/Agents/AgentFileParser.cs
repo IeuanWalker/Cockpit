@@ -75,7 +75,6 @@ public static class AgentFileParser
 	{
 		CustomAgentConfig config = new();
 		List<string>? currentList = null;
-		string? currentListKey = null;
 
 		foreach(string rawLine in yaml.Split('\n'))
 		{
@@ -94,7 +93,6 @@ public static class AgentFileParser
 			if(colonIdx <= 0)
 			{
 				currentList = null;
-				currentListKey = null;
 				continue;
 			}
 
@@ -102,7 +100,6 @@ public static class AgentFileParser
 			string value = line[(colonIdx + 1)..].Trim().Trim('"').Trim('\'');
 
 			currentList = null;
-			currentListKey = null;
 
 			switch(key)
 			{
@@ -133,7 +130,6 @@ public static class AgentFileParser
 					{
 						config.Tools ??= [];
 						currentList = config.Tools;
-						currentListKey = key;
 					}
 					else if(value.StartsWith('[') && value.EndsWith(']'))
 					{
