@@ -1,11 +1,9 @@
 using Cockpit.Components.Controls;
 using Cockpit.Features.Agents.Models;
 using Microsoft.AspNetCore.Components;
-
-namespace Cockpit.Components.Pages.ContextPanel;
-
 using System.Diagnostics;
 
+namespace Cockpit.Components.Pages.ContextPanel;
 public partial class AgentInfoPopup : ComponentBase
 {
 	PopupBase? _popup;
