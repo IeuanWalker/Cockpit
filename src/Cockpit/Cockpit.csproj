@@ -67,10 +67,10 @@
 
   <ItemGroup>
     <PackageReference Include="Blazor.Sonner" Version="0.0.5" />
-    <PackageReference Include="CommunityToolkit.Maui" Version="14.0.0" />
-    <PackageReference Include="GitHub.Copilot.SDK" Version="0.1.25" />
+    <PackageReference Include="CommunityToolkit.Maui" Version="14.0.1" />
+    <PackageReference Include="GitHub.Copilot.SDK" Version="0.1.30" />
     <PackageReference Include="Humanizer" Version="3.0.1" />
-    <PackageReference Include="Markdig" Version="0.45.0" />
+    <PackageReference Include="Markdig" Version="1.1.0" />
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.3.0" />
     <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="10.0.41" />
