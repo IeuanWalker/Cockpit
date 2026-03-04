@@ -103,7 +103,8 @@ public sealed partial class ModelFeature : IDisposable
 			{
 				["ModelId"] = session.Model.Id,
 				["ReasoningEffort"] = session.ReasoningEffort ?? string.Empty,
-				["AgentName"] = session.Context.SelectedAgent?.Config.Name ?? string.Empty
+				["AgentName"] = session.Context.SelectedAgent?.Config.Name ?? string.Empty,
+				["AgentSource"] = session.Context.SelectedAgent?.Source.ToString() ?? string.Empty
 			};
 
 			string json = JsonSerializer.Serialize(modelSettings, new JsonSerializerOptions
@@ -206,11 +207,24 @@ public sealed partial class ModelFeature : IDisposable
 				return;
 			}
 
-			AgentProfile? match = allAgents.FirstOrDefault(a => string.Equals(a.Config.Name, agentName, StringComparison.OrdinalIgnoreCase));
+			AgentProfile? match;
+			if(modelSettings.TryGetValue("AgentSource", out string? agentSourceStr) &&
+				Enum.TryParse<AgentSource>(agentSourceStr, out AgentSource agentSource))
+			{
+				match = allAgents.FirstOrDefault(a =>
+					string.Equals(a.Config.Name, agentName, StringComparison.OrdinalIgnoreCase) &&
+					a.Source == agentSource);
+			}
+			else
+			{
+				// Fallback for legacy data persisted without AgentSource
+				match = allAgents.FirstOrDefault(a => string.Equals(a.Config.Name, agentName, StringComparison.OrdinalIgnoreCase));
+			}
+
 			if(match is not null)
 			{
 				session.Context.SelectedAgent = match;
-				_logger.LogInformation("Restored selected agent '{AgentName}' for session {SessionId}", agentName, session.Id);
+				_logger.LogInformation("Restored selected agent '{AgentName}' (source: {AgentSource}) for session {SessionId}", agentName, match.Source, session.Id);
 			}
 		}
 		catch(Exception ex)
