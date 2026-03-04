@@ -80,7 +80,7 @@ public sealed partial class ModelFeature : IDisposable
 	/// Save session model settings
 	/// </summary>
 	/// <param name="session"></param>
-	public async Task SaveSessionModelSettings(SessionModel session)
+	public void SaveSessionModelSettings(SessionModel session)
 	{
 		string? modelSettingsFilePath = GetModelsFilePath(session);
 		if(string.IsNullOrWhiteSpace(modelSettingsFilePath))
@@ -102,8 +102,6 @@ public sealed partial class ModelFeature : IDisposable
 			{
 				["ModelId"] = session.Model.Id,
 				["ReasoningEffort"] = session.ReasoningEffort ?? string.Empty,
-
-
 			};
 
 			string json = JsonSerializer.Serialize(modelSettings, new JsonSerializerOptions
@@ -111,7 +109,7 @@ public sealed partial class ModelFeature : IDisposable
 				WriteIndented = true
 			});
 
-			await File.WriteAllTextAsync(modelSettingsFilePath, json);
+			File.WriteAllText(modelSettingsFilePath, json);
 		}
 		catch(Exception ex)
 		{
