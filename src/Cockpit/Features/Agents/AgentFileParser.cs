@@ -1,6 +1,4 @@
-using System.Text;
 using Cockpit.Features.Agents.Models;
-using GitHub.Copilot.SDK;
 
 namespace Cockpit.Features.Agents;
 
