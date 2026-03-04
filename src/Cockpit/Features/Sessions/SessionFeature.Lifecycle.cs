@@ -589,8 +589,16 @@ public sealed partial class SessionFeature
 		AgentProfile? selected = session.Context.SelectedAgent;
 		if(selected is not null)
 		{
-			all.Remove(selected);
-			all.Insert(0, selected);
+			AgentProfile? match = all.FirstOrDefault(a =>
+				string.Equals(a.Config.Name, selected.Config.Name, StringComparison.OrdinalIgnoreCase)
+				&& a.Source == selected.Source);
+
+			if(match is not null)
+			{
+				all.Remove(match);
+				all.Insert(0, match);
+				session.Context.SelectedAgent = match;
+			}
 		}
 
 		return [.. all.Select(a => a.Config)];

@@ -36,7 +36,7 @@ public static class AgentFileParser
 			return null;
 		}
 
-		int firstEnd = content.IndexOf("\n---", 3);
+		int firstEnd = FindFrontmatterEnd(content, 3);
 		if(firstEnd < 0)
 		{
 			return null;
@@ -155,5 +155,32 @@ public static class AgentFileParser
 		return [.. inner.Split(',')
 			.Select(s => s.Trim().Trim('"').Trim('\''))
 			.Where(s => !string.IsNullOrWhiteSpace(s))];
+	}
+
+	/// <summary>
+	/// Finds the index of the first <c>\n---</c> that is a bare closing delimiter
+	/// (i.e., followed by <c>\n</c> or end-of-string), not a <c>---</c>-prefixed YAML value.
+	/// </summary>
+	static int FindFrontmatterEnd(string content, int startIdx)
+	{
+		int idx = startIdx;
+		while(idx < content.Length)
+		{
+			int candidate = content.IndexOf("\n---", idx);
+			if(candidate < 0)
+			{
+				return -1;
+			}
+
+			int afterDashes = candidate + 4; // position after \n---
+			if(afterDashes >= content.Length || content[afterDashes] == '\n')
+			{
+				return candidate;
+			}
+
+			idx = candidate + 1;
+		}
+
+		return -1;
 	}
 }

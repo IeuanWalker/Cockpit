@@ -3,6 +3,7 @@ using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Models;
 using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Components.Pages.ChatPanel;
 
@@ -11,12 +12,14 @@ public partial class AgentControl : ComponentBase, IDisposable
 	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SessionListFeature _sessionListFeature;
 	readonly ModelFeature _modelFeature;
+	readonly ILogger<AgentControl> _logger;
 
-	public AgentControl(GlobalAgentFeature globalAgentFeature, SessionListFeature sessionListFeature, ModelFeature modelFeature)
+	public AgentControl(GlobalAgentFeature globalAgentFeature, SessionListFeature sessionListFeature, ModelFeature modelFeature, ILogger<AgentControl> logger)
 	{
 		_globalAgentFeature = globalAgentFeature;
 		_sessionListFeature = sessionListFeature;
 		_modelFeature = modelFeature;
+		_logger = logger;
 	}
 
 	List<AgentProfile> _allAgents = [];
@@ -31,14 +34,12 @@ public partial class AgentControl : ComponentBase, IDisposable
 
 	void OnStateChanged()
 	{
-		RefreshAgents();
-		InvokeAsync(StateHasChanged);
+		InvokeAsync(() => { RefreshAgents(); StateHasChanged(); });
 	}
 
 	void OnAgentsChanged()
 	{
-		RefreshAgents();
-		InvokeAsync(StateHasChanged);
+		InvokeAsync(() => { RefreshAgents(); StateHasChanged(); });
 	}
 
 	void RefreshAgents()
@@ -85,7 +86,12 @@ public partial class AgentControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.AgentChanged = true;
 
 		// Persist immediately so restarts restore the selection even without a message send
-		_ = _modelFeature.SaveSessionModelSettings(_sessionListFeature.CurrentSession);
+		_ = _modelFeature.SaveSessionModelSettings(_sessionListFeature.CurrentSession)
+			.ContinueWith(t =>
+			{
+				if(t.IsFaulted)
+					_logger.LogWarning(t.Exception, "Failed to persist agent selection");
+			}, TaskScheduler.Default);
 
 		_isDropdownOpen = false;
 		_sessionListFeature.NotifyStateChanged();

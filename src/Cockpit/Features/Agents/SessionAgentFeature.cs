@@ -22,6 +22,8 @@ public sealed class SessionAgentFeature
 	/// </summary>
 	public void LoadForSession(SessionModel session)
 	{
+		session.Context.RepoAgents = [];
+
 		if(string.IsNullOrWhiteSpace(session.Context.GitRoot))
 		{
 			return;

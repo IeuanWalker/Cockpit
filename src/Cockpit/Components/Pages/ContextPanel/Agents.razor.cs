@@ -34,8 +34,7 @@ public sealed partial class Agents : ComponentBase, IDisposable
 
 	void OnStateChanged()
 	{
-		Refresh();
-		InvokeAsync(StateHasChanged);
+		InvokeAsync(() => { Refresh(); StateHasChanged(); });
 	}
 
 	void Refresh()
