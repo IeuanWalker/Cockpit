@@ -1,8 +1,6 @@
 @using Cockpit.Components.Controls
 @using Cockpit.Features.Agents.Models
 @using GitHub.Copilot.SDK
-<style src="./AgentInfoPopup.razor.css"></style>
-
 <PopupBase @ref="_popup" Title="@(_agent?.DisplayLabel ?? "Agent")">
     <HeaderRight>
         @if (_agent is not null)
