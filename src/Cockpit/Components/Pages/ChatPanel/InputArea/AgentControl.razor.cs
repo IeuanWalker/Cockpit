@@ -1,6 +1,5 @@
 using Cockpit.Features.Agents;
 using Cockpit.Features.Agents.Models;
-using Cockpit.Features.Models;
 using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
@@ -11,14 +10,12 @@ public partial class AgentControl : ComponentBase, IDisposable
 {
 	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SessionListFeature _sessionListFeature;
-	readonly ModelFeature _modelFeature;
 	readonly ILogger<AgentControl> _logger;
 
-	public AgentControl(GlobalAgentFeature globalAgentFeature, SessionListFeature sessionListFeature, ModelFeature modelFeature, ILogger<AgentControl> logger)
+	public AgentControl(GlobalAgentFeature globalAgentFeature, SessionListFeature sessionListFeature, ILogger<AgentControl> logger)
 	{
 		_globalAgentFeature = globalAgentFeature;
 		_sessionListFeature = sessionListFeature;
-		_modelFeature = modelFeature;
 		_logger = logger;
 	}
 
@@ -86,7 +83,7 @@ public partial class AgentControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.AgentChanged = true;
 
 		// Persist agent selection immediately
-		_ = Cockpit.Features.Agents.AgentPersistence.SaveSessionAgentAsync(_sessionListFeature.CurrentSession)
+		_ = AgentPersistence.SaveSessionAgentAsync(_sessionListFeature.CurrentSession)
 			.ContinueWith(t =>
 			{
 				if(t.IsFaulted)

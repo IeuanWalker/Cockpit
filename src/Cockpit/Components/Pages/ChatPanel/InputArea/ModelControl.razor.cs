@@ -2,6 +2,7 @@ using Cockpit.Features.Models;
 using Cockpit.Features.Sessions;
 using GitHub.Copilot.SDK;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Components.Pages.ChatPanel;
 
@@ -9,10 +10,12 @@ public partial class ModelControl : ComponentBase, IDisposable
 {
 	readonly ModelFeature _modelFeature;
 	readonly SessionListFeature _sessionListFeature;
-	public ModelControl(ModelFeature modelFeature, SessionListFeature sessionListFeature)
+	readonly ILogger<ModelControl> _logger;
+	public ModelControl(ModelFeature modelFeature, SessionListFeature sessionListFeature, ILogger<ModelControl> logger)
 	{
 		_modelFeature = modelFeature;
 		_sessionListFeature = sessionListFeature;
+		_logger = logger;
 	}
 
 	List<ModelInfo> _availableModels = [];
@@ -60,6 +63,16 @@ public partial class ModelControl : ComponentBase, IDisposable
 		// Update model and mark session for restart
 		_sessionListFeature.CurrentSession.Model = model;
 		_sessionListFeature.CurrentSession.ModelChanged = true;
+
+		//// Persist agent selection immediately
+		//_ = AgentPersistence.SaveSessionAgentAsync(_sessionListFeature.CurrentSession)
+		//	.ContinueWith(t =>
+		//	{
+		//		if(t.IsFaulted)
+		//		{
+		//			_logger.LogWarning(t.Exception, "Failed to persist agent selection");
+		//		}
+		//	}, TaskScheduler.Default);
 
 		_isModelDropdownOpen = false;
 
