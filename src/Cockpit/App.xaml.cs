@@ -32,12 +32,13 @@ public partial class App : Application
 					{
 						new Button
 						{
-							Text = "⚙",
-							FontSize = 14,
+							Text = "\ue0a2",
+							FontSize = 16,
 							Background = Colors.Transparent,
 							BorderWidth = 0,
 							TextColor = Color.FromArgb("#CCCCCC"),
-							Command = new Command(OnSettingsClicked)
+							Command = new Command(OnSettingsClicked),
+							FontFamily = "FluentSystemIconsLight"
 						},
 					}
 				}

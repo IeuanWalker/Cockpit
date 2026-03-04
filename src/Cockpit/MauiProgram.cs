@@ -35,6 +35,7 @@ public static class MauiProgram
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+				fonts.AddFont("FluentSystemIcons-Light.ttf", "FluentSystemIconsLight");
 			});
 
 		builder.Services.AddMauiBlazorWebView();
