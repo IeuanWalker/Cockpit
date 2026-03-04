@@ -1,9 +1,10 @@
+using System.Diagnostics;
 using Cockpit.Components.Controls;
 using Cockpit.Features.Agents.Models;
 using Microsoft.AspNetCore.Components;
-using System.Diagnostics;
 
 namespace Cockpit.Components.Pages.ContextPanel;
+
 public partial class AgentInfoPopup : ComponentBase
 {
 	PopupBase? _popup;
@@ -17,7 +18,11 @@ public partial class AgentInfoPopup : ComponentBase
 
 	void RevealAgentFile()
 	{
-		if(_agent?.FilePath is not string path || string.IsNullOrWhiteSpace(path)) return;
+		if(_agent?.FilePath is not string path || string.IsNullOrWhiteSpace(path))
+		{
+			return;
+		}
+
 		try
 		{
 			if(OperatingSystem.IsWindows())

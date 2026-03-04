@@ -4,7 +4,7 @@ using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Agents;
 
-public class AgentFileParserTests : IDisposable
+public sealed class AgentFileParserTests : IDisposable
 {
 	readonly string _tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 

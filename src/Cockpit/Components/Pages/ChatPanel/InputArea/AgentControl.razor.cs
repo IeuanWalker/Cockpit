@@ -90,7 +90,9 @@ public partial class AgentControl : ComponentBase, IDisposable
 			.ContinueWith(t =>
 			{
 				if(t.IsFaulted)
+				{
 					_logger.LogWarning(t.Exception, "Failed to persist agent selection");
+				}
 			}, TaskScheduler.Default);
 
 		_isDropdownOpen = false;
