@@ -44,6 +44,7 @@ public class SessionModel
 	/// </summary>
 	public SdkSessionStateEnum SdkState { get; set; } = SdkSessionStateEnum.NotLoaded;
 	public bool ModelChanged { get; set; }
+	public bool AgentChanged { get; set; }
 	public bool IsYolo { get; set; }
 	public bool IsTerminalOpen { get; set; }
 

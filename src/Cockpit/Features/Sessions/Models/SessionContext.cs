@@ -1,3 +1,4 @@
+using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Git.Models;
 
 namespace Cockpit.Features.Sessions.Models;
@@ -22,4 +23,14 @@ public class SessionContext
 	public List<string> AgentSkills { get; set; } = [];
 	public string McpServerUrl { get; set; } = "localhost:8080";
 	public bool McpServerConnected { get; set; } = true;
+
+	/// <summary>
+	/// Custom agents discovered from the repo's .github/agents/ directory.
+	/// </summary>
+	public List<AgentProfile> RepoAgents { get; set; } = [];
+
+	/// <summary>
+	/// The currently selected agent for this session. Null means default Copilot behaviour.
+	/// </summary>
+	public AgentProfile? SelectedAgent { get; set; }
 }

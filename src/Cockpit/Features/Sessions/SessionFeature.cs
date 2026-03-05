@@ -1,4 +1,5 @@
 using Blazor.Sonner.Services;
+using Cockpit.Features.Agents;
 using Cockpit.Features.Git;
 using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
@@ -26,6 +27,10 @@ public sealed partial class SessionFeature : IDisposable
 	readonly UserInputFeature _userInputHandler;
 	readonly GitFeature _gitFeature;
 	readonly SdkSessionRegistry _sdkRegistry;
+	readonly AgentPersistence _agentPersistence;
+	readonly GlobalAgentFeature _globalAgentFeature;
+	readonly SessionAgentFeature _sessionAgentFeature;
+
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
 		ILogger<SessionFeature> logger,
@@ -37,7 +42,10 @@ public sealed partial class SessionFeature : IDisposable
 		IPermissionHandler permissionHandler,
 		UserInputFeature userInputHandler,
 		GitFeature gitFeature,
-		SdkSessionRegistry sdkRegistry)
+		SdkSessionRegistry sdkRegistry,
+		AgentPersistence agentPersistence,
+		GlobalAgentFeature globalAgentFeature,
+		SessionAgentFeature sessionAgentFeature)
 	{
 		_clientFeature = clientFeature;
 		_logger = logger;
@@ -50,6 +58,9 @@ public sealed partial class SessionFeature : IDisposable
 		_userInputHandler = userInputHandler;
 		_gitFeature = gitFeature;
 		_sdkRegistry = sdkRegistry;
+		_agentPersistence = agentPersistence;
+		_globalAgentFeature = globalAgentFeature;
+		_sessionAgentFeature = sessionAgentFeature;
 	}
 
 	IDisposable? _currentWatcher;

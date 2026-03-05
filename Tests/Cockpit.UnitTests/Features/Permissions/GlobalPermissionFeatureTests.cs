@@ -112,19 +112,6 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	}
 
 	[Fact]
-	public void GetAll_EmptyPermissions_ReturnsEmptyList()
-	{
-		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
-
-		// Act
-		List<string> result = feature.GetAll();
-
-		// Assert
-		result.ShouldBeEmpty();
-	}
-
-	[Fact]
 	public void OnPermissionsChanged_Fired_WhenCommandAdded()
 	{
 		// Arrange

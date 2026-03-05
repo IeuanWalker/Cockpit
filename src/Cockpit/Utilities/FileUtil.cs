@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Cockpit.Utilities;
 
 public static class FileUtil
@@ -20,4 +22,25 @@ public static class FileUtil
 		"json" => "application/json",
 		_ => "application/octet-stream"
 	};
+
+	public static void RevealFile(string? filePath)
+	{
+		if(string.IsNullOrWhiteSpace(filePath))
+		{
+			return;
+		}
+
+		try
+		{
+			if(OperatingSystem.IsWindows())
+			{
+				Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"/select,\"{filePath}\"", UseShellExecute = true });
+			}
+			else if(OperatingSystem.IsMacOS())
+			{
+				Process.Start(new ProcessStartInfo { FileName = "open", Arguments = $"-R \"{filePath}\"", UseShellExecute = false });
+			}
+		}
+		catch { /* best-effort */ }
+	}
 }

@@ -1,5 +1,6 @@
 using Blazor.Sonner.Extensions;
 using Blazor.Sonner.Services;
+using Cockpit.Features.Agents;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Connection;
 using Cockpit.Features.Git;
@@ -85,6 +86,11 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IUserInputHandler>(sp => sp.GetRequiredService<UserInputFeature>());
 
 		builder.Services.AddSingleton<ModelFeature>();
+
+		// Register agent services
+		builder.Services.AddSingleton<AgentPersistence>();
+		builder.Services.AddSingleton<GlobalAgentFeature>();
+		builder.Services.AddSingleton<SessionAgentFeature>();
 
 		return builder.Build();
 	}

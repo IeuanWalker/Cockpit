@@ -65,6 +65,9 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 		// Update reasoning effort based on new model's defaults
 		UpdateReasoningEffortForSelectedModel();
+
+		// Persist model selection immediately (best-effort, fire-and-forget)
+		_ = _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession);
 	}
 
 	void UpdateReasoningEffortForSelectedModel()
@@ -110,6 +113,9 @@ public partial class ModelControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.ModelChanged = true;
 
 		_isReasoningEffortDropdownOpen = false;
+
+		// Persist model selection immediately (best-effort, fire-and-forget)
+		_ = _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession);
 	}
 
 	string GetSelectedReasoningEffortDisplay()

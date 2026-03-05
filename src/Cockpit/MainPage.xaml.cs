@@ -1,12 +1,24 @@
-﻿using Microsoft.JSInterop;
+﻿using Cockpit.Features.Agents;
+using Microsoft.JSInterop;
 
 namespace Cockpit;
 
 public partial class MainPage : ContentPage
 {
-	public MainPage()
+	readonly GlobalAgentFeature _globalAgentFeature;
+	public MainPage(GlobalAgentFeature globalAgentFeature)
 	{
 		InitializeComponent();
+
+		_globalAgentFeature = globalAgentFeature;
+	}
+
+	// TODO: Create extended splashscreen and move this logic
+	protected override async void OnAppearing()
+	{
+		base.OnAppearing();
+
+		await _globalAgentFeature.Load();
 	}
 
 	public async Task InvokeJavaScriptAsync(string script)

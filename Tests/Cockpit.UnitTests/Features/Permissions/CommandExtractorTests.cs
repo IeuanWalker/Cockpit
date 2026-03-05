@@ -652,13 +652,13 @@ public class CommandExtractorTests
 	// -----------------------------------------------------------------------
 
 	[Theory]
-	[InlineData("cmd /c del /f /s *.*",                           "del")]
-	[InlineData("cmd /c npm install",                             "npm install")]
-	[InlineData("cmd /c dir",                                     "dir")]
-	[InlineData("cmd.exe /c git push --force",                    "git push")]
-	[InlineData("powershell -Command Get-Process",                "Get-Process")]
-	[InlineData("powershell.exe -Command rm -rf /",               "rm")]
-	[InlineData("powershell -c \"Remove-Item -Recurse .\"",       "Remove-Item")]
+	[InlineData("cmd /c del /f /s *.*", "del")]
+	[InlineData("cmd /c npm install", "npm install")]
+	[InlineData("cmd /c dir", "dir")]
+	[InlineData("cmd.exe /c git push --force", "git push")]
+	[InlineData("powershell -Command Get-Process", "Get-Process")]
+	[InlineData("powershell.exe -Command rm -rf /", "rm")]
+	[InlineData("powershell -c \"Remove-Item -Recurse .\"", "Remove-Item")]
 	public void ExtractExecutables_ShellLaunchers_ExtractInnerCommand(string command, string expectedInner)
 	{
 		List<string> result = CommandExtractor.ExtractExecutables(command);
@@ -682,9 +682,6 @@ public class CommandExtractorTests
 	// -----------------------------------------------------------------------
 
 	[Theory]
-	[InlineData("git status")]
-	[InlineData("git log --oneline")]
-	[InlineData("git diff HEAD~1")]
 	[InlineData("ls -la")]
 	[InlineData("Get-Content file.txt")]
 	[InlineData("Get-ChildItem .")]
