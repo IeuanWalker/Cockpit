@@ -43,8 +43,11 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	void OnStateChanged()
 	{
-		RefreshPastSessions();
-		InvokeAsync(StateHasChanged);
+		InvokeAsync(() =>
+		{
+			RefreshPastSessions();
+			StateHasChanged();
+		});
 	}
 
 	bool _isLoadingSessions = true;

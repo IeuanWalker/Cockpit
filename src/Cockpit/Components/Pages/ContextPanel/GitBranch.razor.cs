@@ -13,6 +13,20 @@ public partial class GitBranch : ComponentBase, IDisposable
 
 	string CurrentBranch => _sessionListFeature.CurrentSession?.Context?.Branch ?? string.Empty;
 
+	string _renderedBranch = string.Empty;
+
+	protected override bool ShouldRender()
+	{
+		string current = CurrentBranch;
+		if(current == _renderedBranch)
+		{
+			return false;
+		}
+
+		_renderedBranch = current;
+		return true;
+	}
+
 	protected override void OnInitialized()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;

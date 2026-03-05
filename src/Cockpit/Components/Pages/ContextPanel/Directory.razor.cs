@@ -14,6 +14,20 @@ public partial class Directory : ComponentBase, IDisposable
 
 	string CurrentDirectory => _sessionListFeature.CurrentSession?.Context?.CurrentWorkingDirectory ?? string.Empty;
 
+	string _renderedDirectory = string.Empty;
+
+	protected override bool ShouldRender()
+	{
+		string current = CurrentDirectory;
+		if(current == _renderedDirectory)
+		{
+			return false;
+		}
+
+		_renderedDirectory = current;
+		return true;
+	}
+
 	protected override void OnInitialized()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;

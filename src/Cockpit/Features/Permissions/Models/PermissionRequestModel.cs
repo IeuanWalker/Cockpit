@@ -18,7 +18,7 @@ public class PermissionRequestModel
 	/// <summary>
 	/// TaskCompletionSource to await user decision
 	/// </summary>
-	public TaskCompletionSource<PermissionDecisionEnum> CompletionSource { get; } = new();
+	public TaskCompletionSource<PermissionDecisionEnum> CompletionSource { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
 	/// <summary>
 	/// Get the awaitable task for user decision

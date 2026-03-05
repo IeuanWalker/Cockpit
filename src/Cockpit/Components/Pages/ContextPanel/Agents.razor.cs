@@ -37,6 +37,21 @@ public sealed partial class Agents : ComponentBase, IDisposable
 
 	void ShowAgentInfo(AgentProfile agent) => _agentInfoPopup?.Open(agent);
 
+	int _renderedAgentCount = -1;
+	AgentProfile? _renderedSelectedAgent;
+
+	protected override bool ShouldRender()
+	{
+		if(_renderedAgentCount == _allAgents.Count && ReferenceEquals(_renderedSelectedAgent, _selectedAgent))
+		{
+			return false;
+		}
+
+		_renderedAgentCount = _allAgents.Count;
+		_renderedSelectedAgent = _selectedAgent;
+		return true;
+	}
+
 	void Refresh()
 	{
 		List<AgentProfile> global = [.. _globalAgentFeature.Agents];

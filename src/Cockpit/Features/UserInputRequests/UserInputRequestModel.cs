@@ -13,7 +13,7 @@ public class UserInputRequestModel
 	/// <summary>
 	/// TaskCompletionSource to await user response
 	/// </summary>
-	public TaskCompletionSource<string?> CompletionSource { get; } = new();
+	public TaskCompletionSource<string?> CompletionSource { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
 	/// <summary>
 	/// Get the awaitable task for user response

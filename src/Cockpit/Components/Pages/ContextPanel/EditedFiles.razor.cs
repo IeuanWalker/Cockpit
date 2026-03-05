@@ -15,6 +15,20 @@ public partial class EditedFiles : ComponentBase, IDisposable
 
 	List<GitChangedFileModel> Files => _sessionListFeature.CurrentSession?.Context?.EditedFiles ?? [];
 
+	List<GitChangedFileModel> _renderedFiles = [];
+
+	protected override bool ShouldRender()
+	{
+		List<GitChangedFileModel> current = Files;
+		if(ReferenceEquals(current, _renderedFiles))
+		{
+			return false;
+		}
+
+		_renderedFiles = current;
+		return true;
+	}
+
 	EditedFilesPopup _diffPopup = default!;
 
 	protected override void OnInitialized()
