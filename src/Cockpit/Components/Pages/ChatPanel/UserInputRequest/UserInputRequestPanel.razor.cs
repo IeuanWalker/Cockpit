@@ -59,8 +59,11 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 		InvokeAsync(async () =>
 		{
 			StateHasChanged();
-			await Task.Delay(10);
-			await ResizeTextarea();
+			if(Request is not null)
+			{
+				await Task.Delay(10);
+				await ResizeTextarea();
+			}
 		});
 	}
 

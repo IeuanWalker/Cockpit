@@ -418,7 +418,7 @@ public sealed partial class SessionFeature
 				await sdkSession.DisposeAsync();
 			}
 
-			_terminalFeature.CloseSession(sessionId);
+			await _terminalFeature.CloseSession(sessionId);
 			_userInputHandler.CancelPendingRequestsForSession(sessionId);
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -511,6 +511,7 @@ public sealed partial class SessionFeature
 			{
 				session.Messages.Clear();
 				session.ActiveWorkingGroup = null;
+				session.MessagesSnapshot = [];
 			}
 			_sessionListFeature.NotifyStateChanged();
 
@@ -532,6 +533,7 @@ public sealed partial class SessionFeature
 				lock(session.SessionEventLock)
 				{
 					_processor.Process(session, evt, streamCallback);
+					session.MessagesSnapshot = [.. session.Messages];
 				}
 				_sessionListFeature.NotifyStateChanged();
 
@@ -544,6 +546,7 @@ public sealed partial class SessionFeature
 				{
 					_processor.FinalizeOpenGroup(session);
 				}
+				session.MessagesSnapshot = [.. session.Messages];
 			}
 			_sessionListFeature.NotifyStateChanged();
 

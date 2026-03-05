@@ -13,7 +13,23 @@ public class SessionModel
 	public required DateTime CreatedAt { get; set; }
 	public required DateTime LastActivity { get; set; }
 	public SessionStatusEnum Status { get; set; } = SessionStatusEnum.Active;
-	public List<ChatMessageModel> Messages { get; set; } = [];
+	List<ChatMessageModel> _messages = [];
+	public List<ChatMessageModel> Messages
+	{
+		get => _messages;
+		set
+		{
+			_messages = value;
+			MessagesSnapshot = [.. value];
+		}
+	}
+
+	/// <summary>
+	/// A snapshot of <see cref="Messages"/> taken inside <see cref="SessionEventLock"/> after each event is processed,
+	/// or whenever <see cref="Messages"/> is replaced. The Blazor renderer reads this instead of <see cref="Messages"/>
+	/// directly to avoid concurrent-modification exceptions.
+	/// </summary>
+	public List<ChatMessageModel> MessagesSnapshot { get; set; } = [];
 	public required SessionContext Context { get; set; }
 	public required ModelInfo Model { get; set; }
 	public string? ReasoningEffort { get; set; }

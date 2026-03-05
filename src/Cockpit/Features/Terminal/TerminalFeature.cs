@@ -199,7 +199,7 @@ public sealed partial class TerminalFeature : IDisposable
 		}
 	}
 
-	public void CloseSession(string sessionId)
+	public async Task CloseSession(string sessionId)
 	{
 		if(_sessions.TryRemove(sessionId, out TerminalSessionModel? session))
 		{
@@ -209,7 +209,10 @@ public sealed partial class TerminalFeature : IDisposable
 			try
 			{
 				// Wait for the task to complete
-				session.ReadTask?.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
+				if(session.ReadTask is not null)
+				{
+					await session.ReadTask.WaitAsync(TimeSpan.FromSeconds(2));
+				}
 			}
 			catch(Exception ex)
 			{
