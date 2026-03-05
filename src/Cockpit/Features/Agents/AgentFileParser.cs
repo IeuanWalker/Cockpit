@@ -118,6 +118,7 @@ public static class AgentFileParser
 						config.Prompt = value;
 					}
 					break;
+				// TODO: Support newer variable
 				case "infer":
 					if(bool.TryParse(value, out bool inferVal))
 					{
