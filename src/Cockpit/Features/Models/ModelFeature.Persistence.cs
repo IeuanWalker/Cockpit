@@ -32,8 +32,9 @@ public partial class ModelFeature
 			string json = JsonSerializer.Serialize(modelSettings, new JsonSerializerOptions { WriteIndented = true });
 			await File.WriteAllTextAsync(modelFilePath, json);
 		}
-		catch
+		catch(Exception ex)
 		{
+			_logger.LogWarning(ex, "Failed to save model settings for session {SessionId} to {Path}", session.Id, modelFilePath);
 			/* best-effort */
 		}
 	}
