@@ -2,8 +2,14 @@
 
 <Expander>
     <Icon>
-        <svg class="icon-xs mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-color);">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        <svg class="icon-xs mr-2 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-width="1.5" d="M12 2v3" />
+            <circle cx="12" cy="2" r="1" fill="currentColor" stroke="none" />
+            <rect x="4" y="5" width="16" height="14" rx="2.5" stroke-width="1.5" stroke-linejoin="round" />
+            <circle cx="9" cy="11" r="1.5" fill="currentColor" stroke="none" />
+            <circle cx="15" cy="11" r="1.5" fill="currentColor" stroke="none" />
+            <path stroke-linecap="round" stroke-width="1.5" d="M9 15h6" />
+            <path stroke-linecap="round" stroke-width="1.5" d="M4 11H2M20 11h2" />
         </svg>
     </Icon>
     <Title>Agents (@TotalCount)</Title>
@@ -18,7 +24,7 @@
             {
                 bool isSelected = _selectedAgent?.Config.Name == agent.Config.Name && _selectedAgent?.Source == agent.Source;
                 <div class="px-3 py-1.5 text-xs transition-colors flex items-center justify-between cursor-pointer @(isSelected ? "" : "hover:bg-app-hover")"
-                     style="@(isSelected ? "background-color: var(--accent-color); color: white;" : "")"
+                     style="@(isSelected ? "background-color: var(--accent-color); color: white;" : string.Empty)"
                      @onclick="() => ShowAgentInfo(agent)">
                     <div class="flex items-center gap-2 min-w-0">
                         <span class="truncate">@agent.DisplayLabel</span>

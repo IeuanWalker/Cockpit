@@ -9,11 +9,15 @@ public partial class AgentInfoPopup : ComponentBase
 {
 	PopupBase? _popup;
 	AgentProfile? _agent;
+	string _title = "Agents";
 
 	public void Open(AgentProfile agent)
 	{
 		_agent = agent;
+		_title = agent.DisplayLabel;
 		_popup?.Open();
+
+		StateHasChanged();
 	}
 
 	void RevealAgentFile()

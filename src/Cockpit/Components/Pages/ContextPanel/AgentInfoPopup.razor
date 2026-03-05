@@ -2,10 +2,10 @@
 @using Cockpit.Features.Agents.Models
 @using GitHub.Copilot.SDK
 
-@if(_agent is not null)
-{
-    <PopupBase @ref="_popup" Title="@_agent.DisplayLabel">
-        <HeaderRight>
+<PopupBase @ref="_popup" Title="@_title">
+    <HeaderRight>
+        @if(_agent is not null)
+        {
             <button class="popup-action-btn" @onclick="RevealAgentFile" title="Reveal agent file in explorer">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -16,8 +16,11 @@
                   style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
                 @(_agent.Source == AgentSource.Global ? "global" : "repo")
             </span>
-        </HeaderRight>
-        <Content>
+        }
+    </HeaderRight>
+    <Content>
+        @if(_agent is not null)
+        {
             <div class="p-4 flex flex-col gap-4">
                 @if(!string.IsNullOrWhiteSpace(_agent.Config.Description))
                 {
@@ -65,7 +68,6 @@
                     </div>
                 }
             </div>
-        </Content>
-    </PopupBase>
-
-}
+        }
+    </Content>
+</PopupBase>
