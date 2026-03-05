@@ -104,7 +104,6 @@ public sealed partial class SessionFeature
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.CreateSessionAsync(config);
-
 			_sdkRegistry.Register(sdkSession, evt =>
 			{
 				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
