@@ -82,26 +82,10 @@ public sealed partial class SessionFeature
 			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
 			GitContext gitContext = await _gitFeature.GetContext(workingDirectory);
 
-			// Load repo agents so they can be passed to the SDK session
-			SessionModel tempContext = new()
-			{
-				Id = "temp",
-				Title = string.Empty,
-				CreatedAt = DateTime.Now,
-				LastActivity = DateTime.Now,
-				Model = defaultModel,
-				Context = new()
-				{
-					CurrentWorkingDirectory = workingDirectory,
-					WorkspacePath = null,
-					GitRoot = gitContext.GitRoot,
-					Repository = gitContext.Repository,
-					Branch = gitContext.Branch
-				}
-			};
-			await _sessionAgentFeature.Load(tempContext);
+			IReadOnlyList<AgentProfile> globalAgents = _globalAgentFeature.Agents;
+			IReadOnlyList<AgentProfile> repoAgents = await _sessionAgentFeature.Load(gitContext.GitRoot);
 
-			List<CustomAgentConfig> agents = GetSessionAgentConfigs(tempContext);
+			List<AgentProfile> agents = [.. globalAgents, .. repoAgents];
 
 			SessionConfig config = new()
 			{
@@ -115,7 +99,7 @@ public sealed partial class SessionFeature
 				WorkingDirectory = workingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				CustomAgents = agents.Count > 0 ? agents : null
+				CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null
 			};
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -143,7 +127,7 @@ public sealed partial class SessionFeature
 					GitRoot = gitContext.GitRoot,
 					Repository = gitContext.Repository,
 					Branch = gitContext.Branch,
-					RepoAgents = tempContext.Context.RepoAgents
+					RepoAgents = agents
 				},
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
@@ -192,10 +176,10 @@ public sealed partial class SessionFeature
 
 			_logger.LogInformation("Loading session {SessionId}", sessionId);
 
-			// Load repo agents before resuming so they can be passed to SDK config
-			await _sessionAgentFeature.Load(session);
+			IReadOnlyList<AgentProfile> globalAgents = _globalAgentFeature.Agents;
+			IReadOnlyList<AgentProfile> repoAgents = await _sessionAgentFeature.Load(session.Context.GitRoot);
 
-			List<CustomAgentConfig> agents = GetSessionAgentConfigs(session);
+			List<AgentProfile> agents = [.. globalAgents, .. repoAgents];
 
 			ResumeSessionConfig config = new()
 			{
@@ -205,7 +189,7 @@ public sealed partial class SessionFeature
 				DisableResume = true,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				CustomAgents = agents.Count > 0 ? agents : null
+				CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null
 			};
 
 			session.SdkState = SdkSessionStateEnum.Loading;
@@ -362,7 +346,10 @@ public sealed partial class SessionFeature
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
 			CopilotSession newSdkSession;
 
-			List<CustomAgentConfig> agents = chatSession is not null ? GetSessionAgentConfigs(chatSession) : [];
+			IReadOnlyList<AgentProfile> globalAgents = _globalAgentFeature.Agents;
+			IReadOnlyList<AgentProfile> repoAgents = chatSession?.Context.RepoAgents ?? [];
+
+			List<AgentProfile> agents = [.. globalAgents, .. repoAgents];
 
 			bool hasMessages = chatSession?.Messages.Count > 0;
 			if(hasMessages)
@@ -374,7 +361,7 @@ public sealed partial class SessionFeature
 					Streaming = true,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-					CustomAgents = agents.Count > 0 ? agents : null
+					CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null
 				};
 				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
 			}
@@ -392,7 +379,7 @@ public sealed partial class SessionFeature
 					WorkingDirectory = chatSession?.Context.CurrentWorkingDirectory,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-					CustomAgents = agents.Count > 0 ? agents : null
+					CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null
 				};
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
 
@@ -566,40 +553,5 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogError(ex, "Replay failed for session {SessionId}", session.Id);
 		}
-	}
-
-	/// <summary>
-	/// Builds the combined list of <see cref="CustomAgentConfig"/> for a session: global agents
-	/// first, then repo agents, with the selected agent (if any) promoted to the front.
-	/// </summary>
-	List<CustomAgentConfig> GetSessionAgentConfigs(SessionModel session)
-	{
-		IReadOnlyList<AgentProfile> globalAgents = _globalAgentFeature.Agents;
-		IReadOnlyList<AgentProfile> repoAgents = session.Context.RepoAgents;
-
-		List<AgentProfile> all = [.. globalAgents, .. repoAgents];
-
-		if(all.Count == 0)
-		{
-			return [];
-		}
-
-		// If there's a selected agent, surface its config at the front
-		AgentProfile? selected = session.Context.SelectedAgent;
-		if(selected is not null)
-		{
-			AgentProfile? match = all.FirstOrDefault(a =>
-				string.Equals(a.Config.Name, selected.Config.Name, StringComparison.OrdinalIgnoreCase)
-				&& a.Source == selected.Source);
-
-			if(match is not null)
-			{
-				all.Remove(match);
-				all.Insert(0, match);
-				session.Context.SelectedAgent = match;
-			}
-		}
-
-		return [.. all.Select(a => a.Config)];
 	}
 }

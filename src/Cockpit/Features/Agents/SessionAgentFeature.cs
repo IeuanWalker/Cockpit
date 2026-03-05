@@ -19,21 +19,19 @@ public sealed class SessionAgentFeature
 	/// <summary>
 	/// Scans the repo's .github/agents/ directory and stores the results in the session context.
 	/// </summary>
-	public async Task Load(SessionModel session)
+	public async Task<List<AgentProfile>> Load(string? gitRoot)
 	{
-		session.Context.RepoAgents = [];
-
-		if(string.IsNullOrWhiteSpace(session.Context.GitRoot))
+		if(string.IsNullOrWhiteSpace(gitRoot))
 		{
-			return;
+			return [];
 		}
 
-		string agentsDir = Path.Combine(session.Context.GitRoot, ".github", "agents");
+		string agentsDir = Path.Combine(gitRoot, ".github", "agents");
 
 		if(!Directory.Exists(agentsDir))
 		{
-			_logger.LogDebug("Repo agents directory not found for session {SessionId}: {Path}", session.Id, agentsDir);
-			return;
+			_logger.LogDebug("Repo agents directory not found for session: {Path}", agentsDir);
+			return [];
 		}
 
 		List<AgentProfile> loaded = [];
@@ -55,12 +53,15 @@ public sealed class SessionAgentFeature
 				}
 			}
 
-			session.Context.RepoAgents = loaded;
-			_logger.LogInformation("Loaded {Count} repo agents for session {SessionId}", loaded.Count, session.Id);
+			_logger.LogInformation("Loaded {Count} repo agents for session in {Path}", loaded.Count, agentsDir);
+
+			return loaded;
 		}
 		catch(Exception ex)
 		{
-			_logger.LogError(ex, "Failed to load repo agents for session {SessionId} from {Path}", session.Id, agentsDir);
+			_logger.LogError(ex, "Failed to load repo agents for session from {Path}", agentsDir);
+
+			return [];
 		}
 	}
 
