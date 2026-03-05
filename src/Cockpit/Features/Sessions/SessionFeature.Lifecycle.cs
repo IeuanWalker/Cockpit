@@ -254,7 +254,7 @@ public sealed partial class SessionFeature
 				await _agentPersistence.TryRestoreSessionAgentAsync(session);
 				if(session.Context.SelectedAgent is not null)
 				{
-					await sdkSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.DisplayLabel);
+					await sdkSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Config.Name);
 				}
 
 				_sdkRegistry.Register(sdkSession, evt =>

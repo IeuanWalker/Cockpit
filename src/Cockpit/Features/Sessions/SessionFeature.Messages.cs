@@ -36,7 +36,7 @@ public sealed partial class SessionFeature
 				}
 				else
 				{
-					await existingSession.Rpc.Agent.SelectAsync(CurrentSession.Context.SelectedAgent.DisplayLabel);
+					await existingSession.Rpc.Agent.SelectAsync(CurrentSession.Context.SelectedAgent.Config.Name);
 				}
 
 				CurrentSession.AgentChanged = false;
