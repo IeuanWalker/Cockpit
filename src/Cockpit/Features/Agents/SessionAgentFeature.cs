@@ -17,7 +17,7 @@ public sealed class SessionAgentFeature
 	}
 
 	/// <summary>
-	/// Scans the repo's .github/agents/ directory and stores the results in the session context.
+	/// Scans the repo's .github/agents/ directory and returns the discovered agent profiles.
 	/// </summary>
 	public async Task<List<AgentProfile>> Load(string? gitRoot)
 	{
