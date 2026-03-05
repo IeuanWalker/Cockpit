@@ -16,12 +16,30 @@ public sealed partial class SessionFeature
 
 		try
 		{
-			if(CurrentSession.ModelChanged || CurrentSession.AgentChanged)
+			if(CurrentSession.ModelChanged)
 			{
-				CurrentSession.ModelChanged = false;
-				CurrentSession.AgentChanged = false;
-
 				await RestartSessionWithPendingConfig(CurrentSession);
+
+				CurrentSession.ModelChanged = false;
+			}
+
+			if(CurrentSession.AgentChanged)
+			{
+				if(!_sdkRegistry.TryRemove(CurrentSession.Id, out CopilotSession? existingSession))
+				{
+					throw new InvalidOperationException($"Session {CurrentSession.Id} not found");
+				}
+
+				if(CurrentSession.Context.SelectedAgent is null)
+				{
+					await existingSession.Rpc.Agent.DeselectAsync();
+				}
+				else
+				{
+					await existingSession.Rpc.Agent.SelectAsync(CurrentSession.Context.SelectedAgent.DisplayLabel);
+				}
+
+				CurrentSession.AgentChanged = false;
 			}
 
 			if(CurrentSession.SdkState == SdkSessionStateEnum.Loaded)
