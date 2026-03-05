@@ -23,21 +23,24 @@ public static class FileUtil
 		_ => "application/octet-stream"
 	};
 
-    public static void RevealFile(string? filePath)
-    {
-        if (string.IsNullOrWhiteSpace(filePath))
-            return;
-        try
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"/select,\"{filePath}\"", UseShellExecute = true });
-            }
-            else if (OperatingSystem.IsMacOS())
-            {
-                Process.Start(new ProcessStartInfo { FileName = "open", Arguments = $"-R \"{filePath}\"", UseShellExecute = false });
-            }
-        }
-        catch { /* best-effort */ }
-    }
+	public static void RevealFile(string? filePath)
+	{
+		if(string.IsNullOrWhiteSpace(filePath))
+		{
+			return;
+		}
+
+		try
+		{
+			if(OperatingSystem.IsWindows())
+			{
+				Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"/select,\"{filePath}\"", UseShellExecute = true });
+			}
+			else if(OperatingSystem.IsMacOS())
+			{
+				Process.Start(new ProcessStartInfo { FileName = "open", Arguments = $"-R \"{filePath}\"", UseShellExecute = false });
+			}
+		}
+		catch { /* best-effort */ }
+	}
 }

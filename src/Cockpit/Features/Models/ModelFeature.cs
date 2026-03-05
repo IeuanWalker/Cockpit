@@ -80,7 +80,7 @@ public sealed partial class ModelFeature : IDisposable
 	/// Save session model settings
 	/// </summary>
 	/// <param name="session"></param>
-	public void SaveSessionModelSettings(SessionModel session)
+	public async Task SaveSessionModelSettings(SessionModel session)
 	{
 		string? modelSettingsFilePath = GetModelsFilePath(session);
 		if(string.IsNullOrWhiteSpace(modelSettingsFilePath))
@@ -109,7 +109,7 @@ public sealed partial class ModelFeature : IDisposable
 				WriteIndented = true
 			});
 
-			File.WriteAllText(modelSettingsFilePath, json);
+			await File.WriteAllTextAsync(modelSettingsFilePath, json);
 		}
 		catch(Exception ex)
 		{
