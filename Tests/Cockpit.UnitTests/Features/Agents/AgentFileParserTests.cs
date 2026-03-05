@@ -157,7 +157,7 @@ public sealed class AgentFileParserTests : IDisposable
 	// ── Invalid cases ─────────────────────────────────────────────────────────
 
 	[Fact]
-	public void TryParse_NoFrontmatterDelimiter_ReturnsNull()
+	public async Task TryParse_NoFrontmatterDelimiter_ReturnsNull()
 	{
 		string path = WriteAgent("plain.agent.md",
 			"""
@@ -165,11 +165,13 @@ public sealed class AgentFileParserTests : IDisposable
 			Just body text with no frontmatter.
 			""");
 
-		AgentFileParser.TryParse(path, AgentSource.Global).ShouldBeNull();
+		AgentProfile? result = await AgentFileParser.TryParse(path, AgentSource.Global);
+
+		result.ShouldBeNull();
 	}
 
 	[Fact]
-	public void TryParse_UnclosedFrontmatter_ReturnsNull()
+	public async Task TryParse_UnclosedFrontmatter_ReturnsNull()
 	{
 		string path = WriteAgent("unclosed.agent.md",
 			"""
@@ -178,11 +180,13 @@ public sealed class AgentFileParserTests : IDisposable
 			description: Missing closing delimiter
 			""");
 
-		AgentFileParser.TryParse(path, AgentSource.Global).ShouldBeNull();
+		AgentProfile? result = await AgentFileParser.TryParse(path, AgentSource.Global);
+
+		result.ShouldBeNull();
 	}
 
 	[Fact]
-	public void TryParse_EmptyNameAndEmptyFilename_ReturnsNull()
+	public async Task TryParse_EmptyNameAndEmptyFilename_ReturnsNull()
 	{
 		// Create a file whose double-stripped name is empty (".agent.md → "" after stripping twice)
 		string path = WriteAgent(".agent.md",
@@ -192,15 +196,19 @@ public sealed class AgentFileParserTests : IDisposable
 			---
 			""");
 
-		AgentFileParser.TryParse(path, AgentSource.Global).ShouldBeNull();
+		AgentProfile? result = await AgentFileParser.TryParse(path, AgentSource.Global);
+
+		result.ShouldBeNull();
 	}
 
 	[Fact]
-	public void TryParse_NonExistentFile_ReturnsNull()
+	public async Task TryParse_NonExistentFile_ReturnsNull()
 	{
 		string path = Path.Combine(_tempDir, "does-not-exist.agent.md");
 
-		AgentFileParser.TryParse(path, AgentSource.Global).ShouldBeNull();
+		AgentProfile? result = await AgentFileParser.TryParse(path, AgentSource.Global);
+
+		result.ShouldBeNull();
 	}
 
 	// ── Source is forwarded ───────────────────────────────────────────────────
