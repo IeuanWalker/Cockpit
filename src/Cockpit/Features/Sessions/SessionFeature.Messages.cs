@@ -25,7 +25,7 @@ public sealed partial class SessionFeature
 
 			if(CurrentSession.AgentChanged)
 			{
-				if(!_sdkRegistry.TryRemove(CurrentSession.Id, out CopilotSession? existingSession))
+				if(!_sdkRegistry.TryGet(CurrentSession.Id, out CopilotSession? existingSession))
 				{
 					throw new InvalidOperationException($"Session {CurrentSession.Id} not found");
 				}
