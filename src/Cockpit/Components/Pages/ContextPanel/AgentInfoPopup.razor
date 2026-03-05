@@ -1,10 +1,11 @@
 @using Cockpit.Components.Controls
 @using Cockpit.Features.Agents.Models
 @using GitHub.Copilot.SDK
-<PopupBase @ref="_popup" Title="@(_agent?.DisplayLabel ?? "Agent")">
-    <HeaderRight>
-        @if (_agent is not null)
-        {
+
+@if(_agent is not null)
+{
+    <PopupBase @ref="_popup" Title="@_agent.DisplayLabel">
+        <HeaderRight>
             <button class="popup-action-btn" @onclick="RevealAgentFile" title="Reveal agent file in explorer">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -15,25 +16,22 @@
                   style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
                 @(_agent.Source == AgentSource.Global ? "global" : "repo")
             </span>
-        }
-    </HeaderRight>
-    <Content>
-        @if (_agent is not null)
-        {
+        </HeaderRight>
+        <Content>
             <div class="p-4 flex flex-col gap-4">
-                @if (!string.IsNullOrWhiteSpace(_agent.Config.Description))
+                @if(!string.IsNullOrWhiteSpace(_agent.Config.Description))
                 {
                     <div>
                         <div class="text-xs font-semibold secondary-text uppercase tracking-wide mb-1">Description</div>
                         <div class="text-sm text-app-text" style="white-space: pre-wrap;">@(_agent.Config.Description?.Replace("\\n", "\n"))</div>
                     </div>
                 }
-                @if (_agent.Config.Tools is { Count: > 0 })
+                @if(_agent.Config.Tools is { Count: > 0 })
                 {
                     <div>
                         <div class="text-xs font-semibold secondary-text uppercase tracking-wide mb-1">Tools</div>
                         <div class="flex flex-wrap gap-1">
-                            @foreach (var tool in _agent.Config.Tools)
+                            @foreach(var tool in _agent.Config.Tools)
                             {
                                 <span class="text-xs px-1.5 py-0.5 rounded"
                                       style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
@@ -43,7 +41,7 @@
                         </div>
                     </div>
                 }
-                @if (!string.IsNullOrWhiteSpace(_agent.Config.Prompt))
+                @if(!string.IsNullOrWhiteSpace(_agent.Config.Prompt))
                 {
                     <div>
                         <div class="text-xs font-semibold secondary-text uppercase tracking-wide mb-1">System Prompt</div>
@@ -51,12 +49,12 @@
                              style="background-color: var(--input-bg); border: 1px solid var(--input-border);">@_agent.Config.Prompt</pre>
                     </div>
                 }
-                @if (_agent.Config.McpServers is { Count: > 0 })
+                @if(_agent.Config.McpServers is { Count: > 0 })
                 {
                     <div>
                         <div class="text-xs font-semibold secondary-text uppercase tracking-wide mb-1">MCP Servers</div>
                         <div class="flex flex-wrap gap-1">
-                            @foreach (var key in _agent.Config.McpServers.Keys)
+                            @foreach(var key in _agent.Config.McpServers.Keys)
                             {
                                 <span class="text-xs px-1.5 py-0.5 rounded"
                                       style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
@@ -67,6 +65,7 @@
                     </div>
                 }
             </div>
-        }
-    </Content>
-</PopupBase>
+        </Content>
+    </PopupBase>
+
+}

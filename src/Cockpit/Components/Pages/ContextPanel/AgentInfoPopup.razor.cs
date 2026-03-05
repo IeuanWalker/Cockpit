@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using Cockpit.Components.Controls;
 using Cockpit.Features.Agents.Models;
+using Cockpit.Utilities;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
@@ -18,6 +18,6 @@ public partial class AgentInfoPopup : ComponentBase
 
 	void RevealAgentFile()
 	{
-		Cockpit.Utilities.FileUtil.RevealFile(_agent?.FilePath);
+		FileUtil.RevealFile(_agent?.FilePath);
 	}
 }
