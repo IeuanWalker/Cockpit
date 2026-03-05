@@ -23,9 +23,10 @@
             @foreach(var agent in _allAgents)
             {
                 bool isSelected = _selectedAgent?.Config.Name == agent.Config.Name && _selectedAgent?.Source == agent.Source;
-                <div class="px-3 py-1.5 text-xs transition-colors flex items-center justify-between cursor-pointer @(isSelected ? "" : "hover:bg-app-hover")"
-                     style="@(isSelected ? "background-color: var(--accent-color); color: white;" : string.Empty)"
-                     @onclick="() => ShowAgentInfo(agent)">
+                <button type="button"
+                        class="w-full px-3 py-1.5 text-xs transition-colors flex items-center justify-between @(isSelected ? "" : "hover:bg-app-hover")"
+                        style="@(isSelected ? "background-color: var(--accent-color); color: white;" : string.Empty)"
+                        @onclick="() => ShowAgentInfo(agent)">
                     <div class="flex items-center gap-2 min-w-0">
                         <span class="truncate">@agent.DisplayLabel</span>
                     </div>
@@ -33,7 +34,7 @@
                           style="@(isSelected ? "background-color: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white;" : "background-color: var(--input-bg); border: 1px solid var(--input-border);")">
                         @(agent.Source == AgentSource.Global ? "global" : "repo")
                     </span>
-                </div>
+                </button>
             }
         }
     </Content>
