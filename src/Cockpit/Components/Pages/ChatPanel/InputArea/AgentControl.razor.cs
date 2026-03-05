@@ -2,7 +2,6 @@ using Cockpit.Features.Agents;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Components.Pages.ChatPanel;
 
@@ -11,18 +10,15 @@ public partial class AgentControl : ComponentBase, IDisposable
 	readonly AgentPersistence _agentPersistence;
 	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SessionListFeature _sessionListFeature;
-	readonly ILogger<AgentControl> _logger;
 
 	public AgentControl(
 		AgentPersistence agentPersistence,
 		GlobalAgentFeature globalAgentFeature,
-		SessionListFeature sessionListFeature,
-		ILogger<AgentControl> logger)
+		SessionListFeature sessionListFeature)
 	{
 		_agentPersistence = agentPersistence;
 		_globalAgentFeature = globalAgentFeature;
 		_sessionListFeature = sessionListFeature;
-		_logger = logger;
 	}
 
 	List<AgentProfile> _allAgents = [];
