@@ -29,7 +29,7 @@ public class SessionModel
 	/// or whenever <see cref="Messages"/> is replaced. The Blazor renderer reads this instead of <see cref="Messages"/>
 	/// directly to avoid concurrent-modification exceptions.
 	/// </summary>
-	public List<ChatMessageModel> MessagesSnapshot { get; set; } = [];
+	public IReadOnlyList<ChatMessageModel> MessagesSnapshot { get; internal set; } = [];
 	public required SessionContext Context { get; set; }
 	public required ModelInfo Model { get; set; }
 	public string? ReasoningEffort { get; set; }
