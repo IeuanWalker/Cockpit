@@ -1,8 +1,8 @@
-using System.Diagnostics;
 using Cockpit.Components.Controls;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Sessions;
+using Cockpit.Utilities;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Popups;
@@ -65,7 +65,7 @@ public partial class EditedFilesPopup : ComponentBase, IDisposable
 
 	void RevealFile()
 	{
-		Cockpit.Utilities.FileUtil.RevealFile(_selectedFilePath);
+		FileUtil.RevealFile(_selectedFilePath);
 	}
 
 	public void Dispose()
