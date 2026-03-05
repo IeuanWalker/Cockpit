@@ -45,7 +45,7 @@ public sealed class SessionAgentFeature
 				if(profile is not null)
 				{
 					loaded.Add(profile);
-					_logger.LogDebug("Loaded repo agent '{Name}' for session {SessionId} from {Path}", profile.Config.Name, session.Id, file);
+					_logger.LogDebug("Loaded repo agent '{Name}' for session, from {Path}", profile.Config.Name, file);
 				}
 				else
 				{
