@@ -76,6 +76,9 @@ public static class AgentFileParser
 		CustomAgentConfig config = new();
 		List<string>? currentList = null;
 
+		Dictionary<string, string> frontmatter = [];
+		Dictionary<string, List<string>> frontmatterLists = [];
+
 		foreach(string rawLine in yaml.Split('\n'))
 		{
 			string line = rawLine.TrimEnd();
@@ -99,45 +102,68 @@ public static class AgentFileParser
 			string key = line[..colonIdx].Trim().ToLowerInvariant();
 			string value = line[(colonIdx + 1)..].Trim().Trim('"').Trim('\'');
 
-			currentList = null;
+			if(string.IsNullOrWhiteSpace(value))
+			{
+				currentList = [];
+				frontmatterLists[key] = currentList;
+			}
+			else
+			{
+				currentList = null;
+				frontmatter[key] = value;
+			}
+		}
 
-			switch(key)
+
+		foreach(KeyValuePair<string, string> kvp in frontmatter)
+		{
+			switch(kvp.Key)
 			{
 				case "name":
-					config.Name = value;
+					config.Name = kvp.Value;
 					break;
 				case "displayname":
-					config.DisplayName = string.IsNullOrWhiteSpace(value) ? null : value;
+					config.DisplayName = string.IsNullOrWhiteSpace(kvp.Value) ? null : kvp.Value;
 					break;
 				case "description":
-					config.Description = string.IsNullOrWhiteSpace(value) ? null : value;
+					config.Description = string.IsNullOrWhiteSpace(kvp.Value) ? null : kvp.Value;
 					break;
 				case "prompt":
-					if(!string.IsNullOrWhiteSpace(value))
+					if(!string.IsNullOrWhiteSpace(kvp.Value))
 					{
-						config.Prompt = value;
+						config.Prompt = kvp.Value;
 					}
 					break;
-				// TODO: Support newer variable
-				case "infer":
-					if(bool.TryParse(value, out bool inferVal))
+				case "disable-model-invocation":
+					if(bool.TryParse(kvp.Value, out bool disableModelInvocation))
 					{
-						config.Infer = inferVal;
+						config.Infer = disableModelInvocation;
+					}
+					break;
+				case "infer":
+					if(!frontmatter.TryGetValue("disable-model-invocation", out string? _))
+					{
+						if(bool.TryParse(kvp.Value, out bool inferValue))
+						{
+							config.Infer = inferValue;
+						}
 					}
 					break;
 				case "tools":
-					// Either inline list or block list on next lines
-					if(string.IsNullOrWhiteSpace(value))
+					// Inline list: tools: [item1, item2]
+					if(kvp.Value.StartsWith('[') && kvp.Value.EndsWith(']'))
 					{
-						config.Tools ??= [];
-						currentList = config.Tools;
-					}
-					else if(value.StartsWith('[') && value.EndsWith(']'))
-					{
-						config.Tools = ParseInlineList(value);
+						config.Tools = ParseInlineList(kvp.Value);
 					}
 					break;
+					// TODO: Support more - target, mcp-servers
 			}
+		}
+
+		// Handle block-list values (e.g. tools: followed by - item lines)
+		if(frontmatterLists.TryGetValue("tools", out List<string>? toolsList))
+		{
+			config.Tools ??= toolsList;
 		}
 
 		return config;
