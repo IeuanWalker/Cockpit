@@ -126,7 +126,7 @@ public sealed partial class SessionFeature
 					GitRoot = gitContext.GitRoot,
 					Repository = gitContext.Repository,
 					Branch = gitContext.Branch,
-					RepoAgents = agents
+					RepoAgents = repoAgents
 				},
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
@@ -177,6 +177,7 @@ public sealed partial class SessionFeature
 
 			IReadOnlyList<AgentProfile> globalAgents = _globalAgentFeature.Agents;
 			IReadOnlyList<AgentProfile> repoAgents = await _sessionAgentFeature.Load(session.Context.GitRoot);
+			session.Context.RepoAgents = repoAgents;
 
 			List<AgentProfile> agents = [.. globalAgents, .. repoAgents];
 

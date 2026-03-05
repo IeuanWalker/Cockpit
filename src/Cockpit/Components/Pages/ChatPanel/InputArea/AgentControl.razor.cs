@@ -89,14 +89,7 @@ public partial class AgentControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.AgentChanged = true;
 
 		// Persist agent selection immediately
-		_ = _agentPersistence.SaveSessionAgent(_sessionListFeature.CurrentSession)
-			.ContinueWith(t =>
-			{
-				if(t.IsFaulted)
-				{
-					_logger.LogWarning(t.Exception, "Failed to persist agent selection");
-				}
-			}, TaskScheduler.Default);
+		_ = _agentPersistence.SaveSessionAgent(_sessionListFeature.CurrentSession);
 
 		_isDropdownOpen = false;
 		_sessionListFeature.NotifyStateChanged();
