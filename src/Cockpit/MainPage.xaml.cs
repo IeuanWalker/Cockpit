@@ -13,9 +13,11 @@ public partial class MainPage : ContentPage
 		_globalAgentFeature = globalAgentFeature;
 	}
 
-	// TODO: Create extened splashscreen and move this logic
+	// TODO: Create extended splashscreen and move this logic
 	protected override async void OnAppearing()
 	{
+		base.OnAppearing();
+
 		await _globalAgentFeature.Load();
 	}
 
