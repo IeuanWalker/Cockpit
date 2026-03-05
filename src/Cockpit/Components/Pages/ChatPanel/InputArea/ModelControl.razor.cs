@@ -61,13 +61,13 @@ public partial class ModelControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.Model = model;
 		_sessionListFeature.CurrentSession.ModelChanged = true;
 
-		// Persist model selection immediately (best-effort, fire-and-forget)
-		_ = _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession);
-
 		_isModelDropdownOpen = false;
 
 		// Update reasoning effort based on new model's defaults
 		UpdateReasoningEffortForSelectedModel();
+
+		// Persist model selection immediately (best-effort, fire-and-forget)
+		_ = _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession);
 	}
 
 	void UpdateReasoningEffortForSelectedModel()
