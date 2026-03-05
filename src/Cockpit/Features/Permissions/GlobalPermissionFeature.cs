@@ -7,11 +7,12 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 {
 	readonly ILogger<GlobalPermissionFeature> _logger;
 	readonly string _permissionsFilePath;
+	readonly bool _useDefaults;
 
 	public GlobalPermissionFeature(ILogger<GlobalPermissionFeature> logger, string? permissionsFilePath = null)
 	{
 		_logger = logger;
-
+		_useDefaults = permissionsFilePath is null;
 		_permissionsFilePath = permissionsFilePath ?? Path.Combine(FileSystem.AppDataDirectory, "global-commands.json");
 
 		Load();
@@ -153,31 +154,33 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 		{
 			if(!File.Exists(_permissionsFilePath))
 			{
-				// Default allow list
-				List<string> defaultCommands =
-				[
-					// Git read-only subcommands (extracted as "git <subcommand>" by CommandExtractor)
-					"git status", "git log", "git diff", "git branch", "git show",
-					"git remote", "git tag", "git describe",
-					// npm info subcommands
-					"npm list", "npm ls", "npm outdated",
-					// dotnet info subcommand
-					"dotnet list",
-				];
-
-				_permissionsLock.EnterWriteLock();
-				try
+				if(_useDefaults)
 				{
-					_commands.Clear();
-					// Only load allowlist - denylist removed as per Cooper's approach
-					_commands.AddRange(defaultCommands);
-				}
-				finally
-				{
-					_permissionsLock.ExitWriteLock();
-				}
+					// Default allow list
+					List<string> defaultCommands =
+					[
+						// Git read-only subcommands (extracted as "git <subcommand>" by CommandExtractor)
+						"git status", "git log", "git diff", "git branch", "git show",
+						"git remote", "git tag", "git describe",
+						// npm info subcommands
+						"npm list", "npm ls", "npm outdated",
+						// dotnet info subcommand
+						"dotnet list",
+					];
 
-				_logger.LogInformation("Default global permissions loaded");
+					_permissionsLock.EnterWriteLock();
+					try
+					{
+						_commands.Clear();
+						_commands.AddRange(defaultCommands);
+					}
+					finally
+					{
+						_permissionsLock.ExitWriteLock();
+					}
+
+					_logger.LogInformation("Default global permissions loaded");
+				}
 
 				return;
 			}
