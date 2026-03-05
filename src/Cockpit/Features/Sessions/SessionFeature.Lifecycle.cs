@@ -127,7 +127,7 @@ public sealed partial class SessionFeature
 					GitRoot = gitContext.GitRoot,
 					Repository = gitContext.Repository,
 					Branch = gitContext.Branch,
-					RepoAgents = agents
+					RepoAgents = repoAgents
 				},
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
