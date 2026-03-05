@@ -120,15 +120,8 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 		_isReasoningEffortDropdownOpen = false;
 
-		// Persist model selection immediately
-		_ = _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession)
-			.ContinueWith(t =>
-			{
-				if(t.IsFaulted)
-				{
-					_logger.LogWarning(t.Exception, "Failed to persist agent selection");
-				}
-			}, TaskScheduler.Default);
+		// Persist model selection immediately (best-effort, fire-and-forget)
+		_ = _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession);
 	}
 
 	string GetSelectedReasoningEffortDisplay()
