@@ -26,7 +26,7 @@
                         <div class="text-sm text-app-text" style="white-space: pre-wrap;">@(_agent.Config.Description?.Replace("\\n", "\n"))</div>
                     </div>
                 }
-                @if(_agent.Config.Tools is { Count: > 0 })
+                @if(_agent.Config.Tools?.Count > 0)
                 {
                     <div>
                         <div class="text-xs font-semibold secondary-text uppercase tracking-wide mb-1">Tools</div>
@@ -49,7 +49,7 @@
                              style="background-color: var(--input-bg); border: 1px solid var(--input-border);">@_agent.Config.Prompt</pre>
                     </div>
                 }
-                @if(_agent.Config.McpServers is { Count: > 0 })
+                @if(_agent.Config.McpServers?.Count > 0)
                 {
                     <div>
                         <div class="text-xs font-semibold secondary-text uppercase tracking-wide mb-1">MCP Servers</div>
