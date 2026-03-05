@@ -7,12 +7,10 @@ namespace Cockpit.Features.Agents;
 public class AgentPersistence
 {
 	readonly GlobalAgentFeature _globalAgentFeature;
-	readonly SessionAgentFeature _sessionAgentFeature;
 
-	public AgentPersistence(GlobalAgentFeature globalAgentFeature, SessionAgentFeature sessionAgentFeature)
+	public AgentPersistence(GlobalAgentFeature globalAgentFeature)
 	{
 		_globalAgentFeature = globalAgentFeature;
-		_sessionAgentFeature = sessionAgentFeature;
 	}
 	public string? GetAgentFilePath(SessionModel session)
 	{
