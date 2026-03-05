@@ -9,8 +9,6 @@ public sealed partial class Agents : ComponentBase, IDisposable
 {
 	AgentInfoPopup? _agentInfoPopup;
 
-	void ShowAgentInfo(AgentProfile agent) => _agentInfoPopup?.Open(agent);
-
 	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SessionListFeature _sessionListFeature;
 
@@ -36,6 +34,8 @@ public sealed partial class Agents : ComponentBase, IDisposable
 	{
 		InvokeAsync(() => { Refresh(); StateHasChanged(); });
 	}
+
+	void ShowAgentInfo(AgentProfile agent) => _agentInfoPopup?.Open(agent);
 
 	void Refresh()
 	{
