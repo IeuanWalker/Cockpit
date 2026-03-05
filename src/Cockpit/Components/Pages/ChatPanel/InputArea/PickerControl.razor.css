@@ -1,0 +1,24 @@
+.picker-dropdown-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--input-bg);
+    border-bottom: 1px solid var(--input-border);
+}
+
+.bg-app-tooltip {
+    background: rgba(30, 30, 30, 0.85); /* fallback for dark */
+    background: var(--tooltip-bg, rgba(30, 30, 30, 0.85));
+    backdrop-filter: blur(2px);
+}
+
+.light-theme .bg-app-tooltip {
+    background: rgba(255,255,255,0.97) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--input-border) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+:root .bg-app-tooltip {
+    background: rgba(30,30,30,0.85);
+}

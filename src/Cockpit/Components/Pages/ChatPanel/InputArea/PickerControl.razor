@@ -1,0 +1,36 @@
+@namespace Cockpit.Components.Pages.ChatPanel
+
+@if(_isOpen)
+{
+    <div class="fixed inset-0" style="z-index: 999;" @onclick="Close"></div>
+}
+
+<div class="relative">
+    <div class="relative group">
+        <button @onclick="Toggle"
+                class="rounded px-2 py-0.5 text-xs focus:outline-none flex items-center space-x-1 transition-opacity duration-200 @(IsDisabled ? "opacity-50 cursor-not-allowed" : "")"
+                style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color); min-width: @MinWidth;"
+                disabled="@IsDisabled">
+            <span class="flex-1 text-left">
+                @SelectedContent
+            </span>
+            <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+        </button>
+        @if(!string.IsNullOrEmpty(TooltipText))
+        {
+            <div class="absolute left-0 bottom-full mb-1 px-2 py-1 rounded bg-app-tooltip text-xs text-white shadow-lg z-50 hidden group-hover:block">
+                @TooltipText
+            </div>
+        }
+    </div>
+    @if(_isOpen)
+    {
+        <div class="absolute bottom-full mb-1 right-0 rounded border shadow-lg overflow-y-auto scrollbar-thin"
+             style="background-color: var(--input-bg); border-color: var(--input-border); z-index: 1000; min-width: @DropdownMinWidth; max-height: @DropdownMaxHeight;">
+            <div class="picker-dropdown-header px-3 py-1.5 text-xs secondary-text border-b" style="border-color: var(--input-border);">@Title</div>
+            @DropdownContent
+        </div>
+    }
+</div>

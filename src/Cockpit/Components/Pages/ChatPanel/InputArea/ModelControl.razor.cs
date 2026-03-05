@@ -16,8 +16,8 @@ public partial class ModelControl : ComponentBase, IDisposable
 	}
 
 	List<ModelInfo> _availableModels = [];
-	bool _isModelDropdownOpen = false;
-	bool _isReasoningEffortDropdownOpen = false;
+	PickerControl _modelPicker = default!;
+	PickerControl? _reasoningPicker;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -31,18 +31,6 @@ public partial class ModelControl : ComponentBase, IDisposable
 		InvokeAsync(StateHasChanged);
 	}
 
-	void CloseAllDropdowns()
-	{
-		_isModelDropdownOpen = false;
-		_isReasoningEffortDropdownOpen = false;
-	}
-
-	void ToggleModelDropdown()
-	{
-		_isModelDropdownOpen = !_isModelDropdownOpen;
-		_isReasoningEffortDropdownOpen = false;
-	}
-
 	void SelectModel(ModelInfo model)
 	{
 		if(_sessionListFeature.CurrentSession is null)
@@ -53,7 +41,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		// Check if model actually changed
 		if(_sessionListFeature.CurrentSession.Model.Id == model.Id)
 		{
-			_isModelDropdownOpen = false;
+			_modelPicker.Close();
 			return;
 		}
 
@@ -61,7 +49,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.Model = model;
 		_sessionListFeature.CurrentSession.ModelChanged = true;
 
-		_isModelDropdownOpen = false;
+		_modelPicker.Close();
 
 		// Update reasoning effort based on new model's defaults
 		UpdateReasoningEffortForSelectedModel();
@@ -88,12 +76,6 @@ public partial class ModelControl : ComponentBase, IDisposable
 		}
 	}
 
-	void ToggleReasoningEffortDropdown()
-	{
-		_isReasoningEffortDropdownOpen = !_isReasoningEffortDropdownOpen;
-		_isModelDropdownOpen = false;
-	}
-
 	void SelectReasoningEffort(string effort)
 	{
 		if(_sessionListFeature.CurrentSession is null)
@@ -104,7 +86,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		// Check if reasoning effort actually changed
 		if(_sessionListFeature.CurrentSession.ReasoningEffort == effort)
 		{
-			_isReasoningEffortDropdownOpen = false;
+			_reasoningPicker?.Close();
 			return;
 		}
 
@@ -112,7 +94,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.ReasoningEffort = effort;
 		_sessionListFeature.CurrentSession.ModelChanged = true;
 
-		_isReasoningEffortDropdownOpen = false;
+		_reasoningPicker?.Close();
 
 		// Persist model selection immediately (best-effort, fire-and-forget)
 		_ = _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession);

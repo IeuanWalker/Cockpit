@@ -22,7 +22,7 @@ public partial class AgentControl : ComponentBase, IDisposable
 	}
 
 	List<AgentProfile> _allAgents = [];
-	bool _isDropdownOpen;
+	PickerControl _picker = default!;
 
 	protected override void OnInitialized()
 	{
@@ -48,21 +48,11 @@ public partial class AgentControl : ComponentBase, IDisposable
 		_allAgents = [.. global, .. repo];
 	}
 
-	void ToggleDropdown()
-	{
-		_isDropdownOpen = !_isDropdownOpen;
-	}
-
-	void CloseDropdown()
-	{
-		_isDropdownOpen = false;
-	}
-
 	void SelectAgent(AgentProfile? agent)
 	{
 		if(_sessionListFeature.CurrentSession is null)
 		{
-			_isDropdownOpen = false;
+			_picker.Close();
 			return;
 		}
 
@@ -71,13 +61,13 @@ public partial class AgentControl : ComponentBase, IDisposable
 		// No change
 		if(agent is null && current is null)
 		{
-			_isDropdownOpen = false;
+			_picker.Close();
 			return;
 		}
 
 		if(agent is not null && current is not null && agent.Config.Name == current.Config.Name && agent.Source == current.Source)
 		{
-			_isDropdownOpen = false;
+			_picker.Close();
 			return;
 		}
 
@@ -87,7 +77,7 @@ public partial class AgentControl : ComponentBase, IDisposable
 		// Persist agent selection immediately
 		_ = _agentPersistence.SaveSessionAgent(_sessionListFeature.CurrentSession);
 
-		_isDropdownOpen = false;
+		_picker.Close();
 		_sessionListFeature.NotifyStateChanged();
 	}
 
