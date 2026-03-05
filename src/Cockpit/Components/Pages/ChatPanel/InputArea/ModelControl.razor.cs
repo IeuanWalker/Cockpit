@@ -64,15 +64,15 @@ public partial class ModelControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.Model = model;
 		_sessionListFeature.CurrentSession.ModelChanged = true;
 
-		//// Persist agent selection immediately
-		//_ = AgentPersistence.SaveSessionAgentAsync(_sessionListFeature.CurrentSession)
-		//	.ContinueWith(t =>
-		//	{
-		//		if(t.IsFaulted)
-		//		{
-		//			_logger.LogWarning(t.Exception, "Failed to persist agent selection");
-		//		}
-		//	}, TaskScheduler.Default);
+		// Persist model selection immediately
+		_ = _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession)
+			.ContinueWith(t =>
+			{
+				if(t.IsFaulted)
+				{
+					_logger.LogWarning(t.Exception, "Failed to persist agent selection");
+				}
+			}, TaskScheduler.Default);
 
 		_isModelDropdownOpen = false;
 
@@ -123,6 +123,16 @@ public partial class ModelControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.ModelChanged = true;
 
 		_isReasoningEffortDropdownOpen = false;
+
+		// Persist model selection immediately
+		_ = _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession)
+			.ContinueWith(t =>
+			{
+				if(t.IsFaulted)
+				{
+					_logger.LogWarning(t.Exception, "Failed to persist agent selection");
+				}
+			}, TaskScheduler.Default);
 	}
 
 	string GetSelectedReasoningEffortDisplay()

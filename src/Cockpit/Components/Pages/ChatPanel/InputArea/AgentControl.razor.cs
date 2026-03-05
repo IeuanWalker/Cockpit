@@ -8,12 +8,18 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class AgentControl : ComponentBase, IDisposable
 {
+	readonly AgentPersistence _agentPersistence;
 	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SessionListFeature _sessionListFeature;
 	readonly ILogger<AgentControl> _logger;
 
-	public AgentControl(GlobalAgentFeature globalAgentFeature, SessionListFeature sessionListFeature, ILogger<AgentControl> logger)
+	public AgentControl(
+		AgentPersistence agentPersistence,
+		GlobalAgentFeature globalAgentFeature,
+		SessionListFeature sessionListFeature,
+		ILogger<AgentControl> logger)
 	{
+		_agentPersistence = agentPersistence;
 		_globalAgentFeature = globalAgentFeature;
 		_sessionListFeature = sessionListFeature;
 		_logger = logger;
@@ -83,7 +89,7 @@ public partial class AgentControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.AgentChanged = true;
 
 		// Persist agent selection immediately
-		_ = AgentPersistence.SaveSessionAgentAsync(_sessionListFeature.CurrentSession)
+		_ = _agentPersistence.SaveSessionAgent(_sessionListFeature.CurrentSession)
 			.ContinueWith(t =>
 			{
 				if(t.IsFaulted)

@@ -3,23 +3,18 @@ using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Agents;
 
-public sealed class GlobalAgentFeature : IDisposable
+public sealed partial class GlobalAgentFeature : IDisposable
 {
 	readonly ILogger<GlobalAgentFeature> _logger;
-	readonly string _agentsDirectory;
 
 	readonly List<AgentProfile> _agents = [];
 	readonly ReaderWriterLockSlim _lock = new();
 
 	public event Action? OnAgentsChanged;
 
-	public GlobalAgentFeature(ILogger<GlobalAgentFeature> logger, string? agentsDirectory = null)
+	public GlobalAgentFeature(ILogger<GlobalAgentFeature> logger)
 	{
 		_logger = logger;
-		_agentsDirectory = agentsDirectory
-			?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".copilot", "agents");
-
-		Load();
 	}
 
 	public IReadOnlyList<AgentProfile> Agents
@@ -38,22 +33,29 @@ public sealed class GlobalAgentFeature : IDisposable
 		}
 	}
 
-	public void Load()
+	public async ValueTask Load()
 	{
+		if(Agents.Count > 0)
+		{
+			return;
+		}
+
+		string agentsDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".copilot", "agents");
+
 		try
 		{
-			if(!Directory.Exists(_agentsDirectory))
+			if(!Directory.Exists(agentsDirectory))
 			{
-				_logger.LogDebug("Global agents directory not found: {Path}", _agentsDirectory);
+				_logger.LogDebug("Global agents directory not found: {Path}", agentsDirectory);
 				return;
 			}
 
-			IEnumerable<string> files = Directory.EnumerateFiles(_agentsDirectory, "*.agent.md", SearchOption.TopDirectoryOnly);
+			IEnumerable<string> files = Directory.EnumerateFiles(agentsDirectory, "*.agent.md", SearchOption.TopDirectoryOnly);
 
 			List<AgentProfile> loaded = [];
 			foreach(string file in files)
 			{
-				AgentProfile? profile = AgentFileParser.TryParse(file, AgentSource.Global);
+				AgentProfile? profile = await AgentFileParser.TryParse(file, AgentSource.Global);
 				if(profile is not null)
 				{
 					loaded.Add(profile);
@@ -76,12 +78,12 @@ public sealed class GlobalAgentFeature : IDisposable
 				_lock.ExitWriteLock();
 			}
 
-			_logger.LogInformation("Loaded {Count} global agents from {Path}", loaded.Count, _agentsDirectory);
+			_logger.LogInformation("Loaded {Count} global agents from {Path}", loaded.Count, agentsDirectory);
 			OnAgentsChanged?.Invoke();
 		}
 		catch(Exception ex)
 		{
-			_logger.LogError(ex, "Failed to load global agents from {Path}", _agentsDirectory);
+			_logger.LogError(ex, "Failed to load global agents from {Path}", agentsDirectory);
 		}
 	}
 

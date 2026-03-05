@@ -11,11 +11,11 @@ public static class AgentFileParser
 	/// <summary>
 	/// Attempts to parse an agent file. Returns null if the file cannot be parsed or has no name.
 	/// </summary>
-	public static AgentProfile? TryParse(string filePath, AgentSource source)
+	public static async Task<AgentProfile?> TryParse(string filePath, AgentSource source)
 	{
 		try
 		{
-			string content = File.ReadAllText(filePath);
+			string content = await File.ReadAllTextAsync(filePath);
 			return ParseContent(content, filePath, source);
 		}
 		catch
@@ -55,8 +55,7 @@ public static class AgentFileParser
 		if(string.IsNullOrWhiteSpace(config.Name))
 		{
 			// Fall back to filename without extension
-			config.Name = Path.GetFileNameWithoutExtension(
-				Path.GetFileNameWithoutExtension(filePath)); // strip .agent.md
+			config.Name = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(filePath)); // strip .agent.md
 		}
 
 		if(string.IsNullOrWhiteSpace(config.Name))

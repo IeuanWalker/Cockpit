@@ -27,8 +27,10 @@ public sealed partial class SessionFeature : IDisposable
 	readonly UserInputFeature _userInputHandler;
 	readonly GitFeature _gitFeature;
 	readonly SdkSessionRegistry _sdkRegistry;
+	readonly AgentPersistence _agentPersistence;
 	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SessionAgentFeature _sessionAgentFeature;
+
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
 		ILogger<SessionFeature> logger,
@@ -41,6 +43,7 @@ public sealed partial class SessionFeature : IDisposable
 		UserInputFeature userInputHandler,
 		GitFeature gitFeature,
 		SdkSessionRegistry sdkRegistry,
+		AgentPersistence agentPersistence,
 		GlobalAgentFeature globalAgentFeature,
 		SessionAgentFeature sessionAgentFeature)
 	{
@@ -55,6 +58,7 @@ public sealed partial class SessionFeature : IDisposable
 		_userInputHandler = userInputHandler;
 		_gitFeature = gitFeature;
 		_sdkRegistry = sdkRegistry;
+		_agentPersistence = agentPersistence;
 		_globalAgentFeature = globalAgentFeature;
 		_sessionAgentFeature = sessionAgentFeature;
 	}

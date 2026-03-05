@@ -88,6 +88,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<ModelFeature>();
 
 		// Register agent services
+		builder.Services.AddSingleton<AgentPersistence>();
 		builder.Services.AddSingleton<GlobalAgentFeature>();
 		builder.Services.AddSingleton<SessionAgentFeature>();
 

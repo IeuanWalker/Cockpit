@@ -2,7 +2,6 @@ using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Cockpit.Features.Agents;
 
@@ -11,16 +10,16 @@ public sealed class SessionAgentFeature
 	readonly ISessionStateProvider _sessionStateProvider;
 	readonly ILogger<SessionAgentFeature> _logger;
 
-	public SessionAgentFeature(ISessionStateProvider sessionStateProvider, ILogger<SessionAgentFeature>? logger = null)
+	public SessionAgentFeature(ISessionStateProvider sessionStateProvider, ILogger<SessionAgentFeature> logger)
 	{
 		_sessionStateProvider = sessionStateProvider;
-		_logger = logger ?? NullLogger<SessionAgentFeature>.Instance;
+		_logger = logger;
 	}
 
 	/// <summary>
 	/// Scans the repo's .github/agents/ directory and stores the results in the session context.
 	/// </summary>
-	public void LoadForSession(SessionModel session)
+	public async Task Load(SessionModel session)
 	{
 		session.Context.RepoAgents = [];
 
@@ -44,7 +43,7 @@ public sealed class SessionAgentFeature
 
 			foreach(string file in files)
 			{
-				AgentProfile? profile = AgentFileParser.TryParse(file, AgentSource.Repo);
+				AgentProfile? profile = await AgentFileParser.TryParse(file, AgentSource.Repo);
 				if(profile is not null)
 				{
 					loaded.Add(profile);

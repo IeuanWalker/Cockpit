@@ -1,17 +1,23 @@
-﻿namespace Cockpit;
+﻿using Cockpit.Features.Agents;
+
+namespace Cockpit;
 
 public partial class App : Application
 {
 	Window? _mainWindow;
 
-	public App()
+	readonly GlobalAgentFeature _globalAgentFeature;
+
+	public App(GlobalAgentFeature globalAgentFeature)
 	{
 		InitializeComponent();
+
+		_globalAgentFeature = globalAgentFeature;
 	}
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		_mainWindow = new Window(new MainPage())
+		_mainWindow = new Window(new MainPage(_globalAgentFeature))
 		{
 			Title = "Cockpit",
 			TitleBar = new TitleBar

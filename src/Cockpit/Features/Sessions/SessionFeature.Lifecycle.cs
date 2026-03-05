@@ -1,4 +1,3 @@
-using Cockpit.Features.Agents;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
@@ -100,7 +99,7 @@ public sealed partial class SessionFeature
 					Branch = gitContext.Branch
 				}
 			};
-			_sessionAgentFeature.LoadForSession(tempContext);
+			await _sessionAgentFeature.Load(tempContext);
 
 			List<CustomAgentConfig> agents = GetSessionAgentConfigs(tempContext);
 
@@ -153,7 +152,8 @@ public sealed partial class SessionFeature
 
 			_sessionListFeature.AddSession(chatSession);
 
-			await _modelFeature.SaveSessionModelSettings(chatSession);
+			await _modelFeature.SaveSessionModel(chatSession);
+			await _agentPersistence.SaveSessionAgent(chatSession);
 
 			await SwitchCurrentSessionAsync(chatSession);
 
@@ -193,15 +193,7 @@ public sealed partial class SessionFeature
 			_logger.LogInformation("Loading session {SessionId}", sessionId);
 
 			// Load repo agents before resuming so they can be passed to SDK config
-			_sessionAgentFeature.LoadForSession(session);
-
-			// Restore previously selected agent (needs agents loaded first)
-			IEnumerable<AgentProfile> allAgents = [.. _globalAgentFeature.Agents, .. session.Context.RepoAgents];
-			AgentProfile? restoredAgent = await AgentPersistence.TryRestoreSessionAgentAsync(session, allAgents);
-			if(restoredAgent is not null)
-			{
-				session.Context.SelectedAgent = restoredAgent;
-			}
+			await _sessionAgentFeature.Load(session);
 
 			List<CustomAgentConfig> agents = GetSessionAgentConfigs(session);
 
@@ -275,6 +267,8 @@ public sealed partial class SessionFeature
 				session.Context.WorkspacePath = sdkSession.WorkspacePath;
 				SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 				await _modelFeature.TryRestoreModelSettings(session);
+				await _agentPersistence.TryRestoreSessionAgentAsync(session);
+
 				_sdkRegistry.Register(sdkSession, evt =>
 				{
 					_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);

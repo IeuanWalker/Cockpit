@@ -4,9 +4,17 @@ using Cockpit.Features.Sessions.Models;
 
 namespace Cockpit.Features.Agents;
 
-public static class AgentPersistence
+public class AgentPersistence
 {
-	public static string? GetAgentFilePath(SessionModel session)
+	readonly GlobalAgentFeature _globalAgentFeature;
+	readonly SessionAgentFeature _sessionAgentFeature;
+
+	public AgentPersistence(GlobalAgentFeature globalAgentFeature, SessionAgentFeature sessionAgentFeature)
+	{
+		_globalAgentFeature = globalAgentFeature;
+		_sessionAgentFeature = sessionAgentFeature;
+	}
+	public string? GetAgentFilePath(SessionModel session)
 	{
 		if(string.IsNullOrWhiteSpace(session.Context.WorkspacePath))
 		{
@@ -16,7 +24,7 @@ public static class AgentPersistence
 		return Path.Combine(session.Context.WorkspacePath, "Cockpit", "session-agent.json");
 	}
 
-	public static async Task SaveSessionAgentAsync(SessionModel session)
+	public async Task SaveSessionAgent(SessionModel session)
 	{
 		string? agentFilePath = GetAgentFilePath(session);
 		if(string.IsNullOrWhiteSpace(agentFilePath))
@@ -45,13 +53,15 @@ public static class AgentPersistence
 		catch { /* best-effort */ }
 	}
 
-	public static async Task<AgentProfile?> TryRestoreSessionAgentAsync(SessionModel session, IEnumerable<AgentProfile> allAgents)
+	public async Task<bool> TryRestoreSessionAgentAsync(SessionModel session)
 	{
 		string? agentFilePath = GetAgentFilePath(session);
 		if(string.IsNullOrWhiteSpace(agentFilePath) || !File.Exists(agentFilePath))
 		{
-			return null;
+			return false;
 		}
+
+		IEnumerable<AgentProfile> allAgents = [.. _globalAgentFeature.Agents, .. session.Context.RepoAgents];
 
 		try
 		{
@@ -59,18 +69,20 @@ public static class AgentPersistence
 			Dictionary<string, string>? agentSettings = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
 			if(agentSettings is null || !agentSettings.TryGetValue("AgentName", out string? agentName) || string.IsNullOrWhiteSpace(agentName))
 			{
-				return null;
+				return false;
 			}
 
 			AgentProfile? match = agentSettings.TryGetValue("AgentSource", out string? agentSourceStr) && Enum.TryParse<AgentSource>(agentSourceStr, out AgentSource agentSource)
 				? allAgents.FirstOrDefault(a => string.Equals(a.Config.Name, agentName, StringComparison.OrdinalIgnoreCase) && a.Source == agentSource)
 				: allAgents.FirstOrDefault(a => string.Equals(a.Config.Name, agentName, StringComparison.OrdinalIgnoreCase));
 
-			return match;
+			session.Context.SelectedAgent = match;
+
+			return true;
 		}
 		catch
 		{
-			return null;
+			return false;
 		}
 	}
 }

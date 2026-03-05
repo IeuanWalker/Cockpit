@@ -28,7 +28,7 @@ public sealed class AgentFileParserTests : IDisposable
 	// ── Valid full frontmatter ────────────────────────────────────────────────
 
 	[Fact]
-	public void TryParse_AllFrontmatterFields_PopulatesConfig()
+	public async Task TryParse_AllFrontmatterFields_PopulatesConfig()
 	{
 		string path = WriteAgent("my-agent.agent.md",
 			"""
@@ -44,7 +44,7 @@ public sealed class AgentFileParserTests : IDisposable
 			---
 			""");
 
-		AgentProfile? result = AgentFileParser.TryParse(path, AgentSource.Global);
+		AgentProfile? result = await AgentFileParser.TryParse(path, AgentSource.Global);
 
 		result.ShouldNotBeNull();
 		result.Config.Name.ShouldBe("MyAgent");
@@ -61,7 +61,7 @@ public sealed class AgentFileParserTests : IDisposable
 	// ── Prompt body overrides frontmatter prompt ─────────────────────────────
 
 	[Fact]
-	public void TryParse_BodyPresent_BodyOverridesFrontmatterPrompt()
+	public async Task TryParse_BodyPresent_BodyOverridesFrontmatterPrompt()
 	{
 		string path = WriteAgent("override.agent.md",
 			"""
@@ -72,14 +72,14 @@ public sealed class AgentFileParserTests : IDisposable
 			Body prompt wins
 			""");
 
-		AgentProfile? result = AgentFileParser.TryParse(path, AgentSource.Repo);
+		AgentProfile? result = await AgentFileParser.TryParse(path, AgentSource.Repo);
 
 		result.ShouldNotBeNull();
 		result.Config.Prompt.ShouldBe("Body prompt wins");
 	}
 
 	[Fact]
-	public void TryParse_EmptyBody_FrontmatterPromptKept()
+	public async Task TryParse_EmptyBody_FrontmatterPromptKept()
 	{
 		string path = WriteAgent("nofallback.agent.md",
 			"""
@@ -89,7 +89,7 @@ public sealed class AgentFileParserTests : IDisposable
 			---
 			""");
 
-		AgentProfile? result = AgentFileParser.TryParse(path, AgentSource.Global);
+		AgentProfile? result = await AgentFileParser.TryParse(path, AgentSource.Global);
 
 		result.ShouldNotBeNull();
 		result.Config.Prompt.ShouldBe("Keep this");
@@ -98,7 +98,7 @@ public sealed class AgentFileParserTests : IDisposable
 	// ── Tools — inline list ───────────────────────────────────────────────────
 
 	[Fact]
-	public void TryParse_InlineToolsList_ParsedCorrectly()
+	public async Task TryParse_InlineToolsList_ParsedCorrectly()
 	{
 		string path = WriteAgent("inline-tools.agent.md",
 			"""
@@ -108,7 +108,7 @@ public sealed class AgentFileParserTests : IDisposable
 			---
 			""");
 
-		AgentProfile? result = AgentFileParser.TryParse(path, AgentSource.Global);
+		AgentProfile? result = await AgentFileParser.TryParse(path, AgentSource.Global);
 
 		result.ShouldNotBeNull();
 		result.Config.Tools.ShouldBe(["tool_x", "tool_y", "tool_z"]);
@@ -117,7 +117,7 @@ public sealed class AgentFileParserTests : IDisposable
 	// ── Tools — block list ────────────────────────────────────────────────────
 
 	[Fact]
-	public void TryParse_BlockToolsList_ParsedCorrectly()
+	public async Task TryParse_BlockToolsList_ParsedCorrectly()
 	{
 		string path = WriteAgent("block-tools.agent.md",
 			"""
@@ -130,7 +130,7 @@ public sealed class AgentFileParserTests : IDisposable
 			---
 			""");
 
-		AgentProfile? result = AgentFileParser.TryParse(path, AgentSource.Repo);
+		AgentProfile? result = await AgentFileParser.TryParse(path, AgentSource.Repo);
 
 		result.ShouldNotBeNull();
 		result.Config.Tools.ShouldBe(["read_file", "write_file", "run_terminal_command"]);
@@ -139,7 +139,7 @@ public sealed class AgentFileParserTests : IDisposable
 	// ── Name fallback from filename ───────────────────────────────────────────
 
 	[Fact]
-	public void TryParse_NoNameInFrontmatter_FallsBackToFilename()
+	public async Task TryParse_NoNameInFrontmatter_FallsBackToFilename()
 	{
 		string path = WriteAgent("my-fallback.agent.md",
 			"""
@@ -148,7 +148,7 @@ public sealed class AgentFileParserTests : IDisposable
 			---
 			""");
 
-		AgentProfile? result = AgentFileParser.TryParse(path, AgentSource.Global);
+		AgentProfile? result = await AgentFileParser.TryParse(path, AgentSource.Global);
 
 		result.ShouldNotBeNull();
 		result.Config.Name.ShouldBe("my-fallback");
@@ -208,7 +208,7 @@ public sealed class AgentFileParserTests : IDisposable
 	[Theory]
 	[InlineData(AgentSource.Global)]
 	[InlineData(AgentSource.Repo)]
-	public void TryParse_Source_ForwardedToProfile(AgentSource source)
+	public async Task TryParse_Source_ForwardedToProfile(AgentSource source)
 	{
 		string path = WriteAgent($"src-{source}.agent.md",
 			"""
@@ -217,7 +217,7 @@ public sealed class AgentFileParserTests : IDisposable
 			---
 			""");
 
-		AgentProfile? result = AgentFileParser.TryParse(path, source);
+		AgentProfile? result = await AgentFileParser.TryParse(path, source);
 
 		result.ShouldNotBeNull();
 		result.Source.ShouldBe(source);

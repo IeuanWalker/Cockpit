@@ -18,7 +18,6 @@ public sealed partial class SessionFeature
 		{
 			if(CurrentSession.ModelChanged || CurrentSession.AgentChanged)
 			{
-				await _modelFeature.SaveSessionModelSettings(CurrentSession);
 				CurrentSession.ModelChanged = false;
 				CurrentSession.AgentChanged = false;
 
