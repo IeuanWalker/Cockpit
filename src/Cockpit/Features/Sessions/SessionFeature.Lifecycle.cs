@@ -198,11 +198,6 @@ public sealed partial class SessionFeature
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
 
-			if(session.Context.SelectedAgent is not null)
-			{
-				await sdkSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.DisplayLabel);
-			}
-
 			bool registered = false;
 			try
 			{
@@ -257,6 +252,10 @@ public sealed partial class SessionFeature
 				SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 				await _modelFeature.TryRestoreModelSettings(session);
 				await _agentPersistence.TryRestoreSessionAgentAsync(session);
+				if(session.Context.SelectedAgent is not null)
+				{
+					await sdkSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.DisplayLabel);
+				}
 
 				_sdkRegistry.Register(sdkSession, evt =>
 				{
