@@ -178,6 +178,7 @@ public sealed partial class SessionFeature
 
 			IReadOnlyList<AgentProfile> globalAgents = _globalAgentFeature.Agents;
 			IReadOnlyList<AgentProfile> repoAgents = await _sessionAgentFeature.Load(session.Context.GitRoot);
+			session.Context.RepoAgents = repoAgents;
 
 			List<AgentProfile> agents = [.. globalAgents, .. repoAgents];
 
