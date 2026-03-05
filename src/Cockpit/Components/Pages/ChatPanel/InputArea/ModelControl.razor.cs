@@ -11,7 +11,10 @@ public partial class ModelControl : ComponentBase, IDisposable
 	readonly ModelFeature _modelFeature;
 	readonly SessionListFeature _sessionListFeature;
 	readonly ILogger<ModelControl> _logger;
-	public ModelControl(ModelFeature modelFeature, SessionListFeature sessionListFeature, ILogger<ModelControl> logger)
+	public ModelControl(
+		ModelFeature modelFeature,
+		SessionListFeature sessionListFeature,
+		ILogger<ModelControl> logger)
 	{
 		_modelFeature = modelFeature;
 		_sessionListFeature = sessionListFeature;
