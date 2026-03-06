@@ -3,7 +3,7 @@ using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
 
-namespace Cockpit.Components.Pages.ChatPanel;
+namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
 public partial class AgentControl : ComponentBase, IDisposable
 {
