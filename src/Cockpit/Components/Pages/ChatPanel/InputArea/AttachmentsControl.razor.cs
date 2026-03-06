@@ -1,4 +1,3 @@
-using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
@@ -8,25 +7,37 @@ namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
 public partial class AttachmentsControl : ComponentBase
 {
-	readonly SessionFeature _sessionFeature;
 	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<AttachmentsControl> _logger;
-	[Parameter] public string? SessionId { get; set; }
-	[Parameter] public int AttachmentCount { get; set; }
+	[Parameter] public SessionModel? Session { get; set; }
 
 	public AttachmentsControl(
-		SessionFeature sessionFeature,
 		IJSRuntime jsRuntime,
 		ILogger<AttachmentsControl> logger)
 	{
-		_sessionFeature = sessionFeature;
 		_jsRuntime = jsRuntime;
 		_logger = logger;
 	}
 
+	IReadOnlyList<AttachmentModel> AttachmentsSnapshot
+	{
+		get
+		{
+			if(Session is null)
+			{
+				return [];
+			}
+
+			lock(Session.PendingAttachmentsLock)
+			{
+				return [.. Session.PendingAttachments];
+			}
+		}
+	}
+
 	void RemoveAttachment(int index)
 	{
-		SessionModel? session = _sessionFeature.CurrentSession;
+		SessionModel? session = Session;
 		if(session is null)
 		{
 			return;
@@ -48,8 +59,9 @@ public partial class AttachmentsControl : ComponentBase
 
 		// Only delete if it's a session-owned file (pasted images saved to Cockpit\Files\)
 		// Never delete user's original files selected via the file picker
-		string sessionFilesDir = GetSessionFilesPath(session);
-		bool isSessionOwned = filePath.StartsWith(sessionFilesDir, StringComparison.OrdinalIgnoreCase);
+		string sessionFilesDir = Path.GetFullPath(GetSessionFilesPath(session)) + Path.DirectorySeparatorChar;
+		string normalizedFilePath = Path.GetFullPath(filePath);
+		bool isSessionOwned = normalizedFilePath.StartsWith(sessionFilesDir, StringComparison.OrdinalIgnoreCase);
 
 		if(isSessionOwned)
 		{
