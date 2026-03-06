@@ -74,6 +74,7 @@ public sealed partial class SessionFeature
 					EventJson = null
 				};
 				CurrentSession.Messages.Add(optimisticMessage);
+				CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
 			}
 			_sessionListFeature.NotifyStateChanged();
 

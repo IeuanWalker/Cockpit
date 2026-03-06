@@ -31,8 +31,24 @@ public sealed partial class AllowedCommands : ComponentBase, IDisposable
 
 	void OnStateChanged()
 	{
-		RefreshCount();
-		InvokeAsync(StateHasChanged);
+		InvokeAsync(() =>
+		{
+			RefreshCount();
+			StateHasChanged();
+		});
+	}
+
+	int _renderedCommandsCount = -1;
+
+	protected override bool ShouldRender()
+	{
+		if(_renderedCommandsCount == TotalCommandsCount)
+		{
+			return false;
+		}
+
+		_renderedCommandsCount = TotalCommandsCount;
+		return true;
 	}
 
 	void RefreshCount()

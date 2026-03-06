@@ -132,15 +132,13 @@ public sealed partial class GitFeature
 			AutoReset = false
 		};
 
-		bool running = false;
+		int running = 0;
 		debounce.Elapsed += async (_, _) =>
 		{
-			if(running)
+			if(Interlocked.CompareExchange(ref running, 1, 0) != 0)
 			{
 				return;
 			}
-
-			running = true;
 
 			try
 			{
@@ -151,7 +149,7 @@ public sealed partial class GitFeature
 				_logger.LogError(ex, "GitFeature.Watch callback exception");
 			}
 
-			running = false;
+			Interlocked.Exchange(ref running, 0);
 		};
 
 		watcher.Changed += handler;

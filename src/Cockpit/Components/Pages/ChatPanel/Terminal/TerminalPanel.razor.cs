@@ -54,7 +54,17 @@ public partial class TerminalPanel : IDisposable
 
 	TerminalAddToMessagePopup _terminalAddToMessagePopup = default!;
 
-	async void OpenAddToMessagePopup() => await _terminalAddToMessagePopup.Open();
+	async void OpenAddToMessagePopup()
+	{
+		try
+		{
+			await _terminalAddToMessagePopup.Open();
+		}
+		catch(Exception ex)
+		{
+			_logger.LogError(ex, "Failed to open terminal add-to-message popup");
+		}
+	}
 
 	protected override void OnInitialized()
 	{

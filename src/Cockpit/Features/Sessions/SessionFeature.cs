@@ -91,6 +91,7 @@ public sealed partial class SessionFeature : IDisposable
 		lock(session.SessionEventLock)
 		{
 			_processor.Process(session, evt, streamCallback);
+			session.MessagesSnapshot = [.. session.Messages];
 		}
 
 		if(session == _sessionListFeature.CurrentSession)

@@ -37,6 +37,21 @@ public sealed partial class Agents : ComponentBase, IDisposable
 
 	void ShowAgentInfo(AgentProfile agent) => _agentInfoPopup?.Open(agent);
 
+	AgentProfile? _renderedSelectedAgent;
+	List<AgentProfile> _renderedAgents = [];
+
+	protected override bool ShouldRender()
+	{
+		if(ReferenceEquals(_allAgents, _renderedAgents) && ReferenceEquals(_renderedSelectedAgent, _selectedAgent))
+		{
+			return false;
+		}
+
+		_renderedAgents = _allAgents;
+		_renderedSelectedAgent = _selectedAgent;
+		return true;
+	}
+
 	void Refresh()
 	{
 		List<AgentProfile> global = [.. _globalAgentFeature.Agents];

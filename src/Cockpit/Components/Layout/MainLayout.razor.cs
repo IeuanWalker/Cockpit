@@ -50,6 +50,29 @@ public partial class MainLayout : IDisposable
 		InvokeAsync(StateHasChanged);
 	}
 
+	bool _renderedHasSession;
+	bool _renderedLeftCollapsed;
+	bool _renderedRightCollapsed;
+
+	protected override bool ShouldRender()
+	{
+		bool hasSession = _sessionListFeature.CurrentSession is not null;
+		bool leftCollapsed = _uiStateFeature.LeftSidebarCollapsed;
+		bool rightCollapsed = _uiStateFeature.RightSidebarCollapsed;
+
+		if(hasSession == _renderedHasSession &&
+		   leftCollapsed == _renderedLeftCollapsed &&
+		   rightCollapsed == _renderedRightCollapsed)
+		{
+			return false;
+		}
+
+		_renderedHasSession = hasSession;
+		_renderedLeftCollapsed = leftCollapsed;
+		_renderedRightCollapsed = rightCollapsed;
+		return true;
+	}
+
 	[JSInvokable("ToggleSettingsFromTitleBar")]
 	public void ToggleSettingsFromTitleBar()
 	{

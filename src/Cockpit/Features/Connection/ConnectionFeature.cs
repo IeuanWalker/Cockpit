@@ -35,9 +35,19 @@ public sealed partial class ConnectionFeature : IDisposable
 	public ConnectionStatusEnum Status { get; private set; } = ConnectionStatusEnum.Unknown;
 	public PingResponse? LastResponse { get; private set; }
 	public DateTime? LastChecked { get; private set; }
-	public IReadOnlyList<ConnectionCheckRecordModel> History => _history;
+	public IReadOnlyList<ConnectionCheckRecordModel> History
+	{
+		get
+		{
+			lock(_historyLock)
+			{
+				return [.. _history];
+			}
+		}
+	}
 
 	readonly List<ConnectionCheckRecordModel> _history = [];
+	readonly object _historyLock = new();
 
 	public const int PollIntervalSeconds = 20;
 	public const int MaxHistorySize = 100;
@@ -102,16 +112,19 @@ public sealed partial class ConnectionFeature : IDisposable
 
 		void AddToHistory(ConnectionStatusEnum status, DateTime lastChecked, string jsonResult)
 		{
-			if(_history.Count >= MaxHistorySize)
+			lock(_historyLock)
 			{
-				_history.RemoveAt(0);
+				if(_history.Count >= MaxHistorySize)
+				{
+					_history.RemoveAt(0);
+				}
+				_history.Add(new ConnectionCheckRecordModel()
+				{
+					Status = status,
+					CheckedAt = lastChecked,
+					ResponseJson = jsonResult
+				});
 			}
-			_history.Add(new ConnectionCheckRecordModel()
-			{
-				Status = status,
-				CheckedAt = lastChecked,
-				ResponseJson = jsonResult
-			});
 		}
 	}
 

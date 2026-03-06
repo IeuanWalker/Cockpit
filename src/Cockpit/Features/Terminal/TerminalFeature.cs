@@ -199,7 +199,19 @@ public sealed partial class TerminalFeature : IDisposable
 		}
 	}
 
+	/// <summary>
+	/// Fire-and-forget wrapper for backward API compatibility. Exceptions are not observed by the caller.
+	/// Use <see cref="CloseSessionAsync"/> when you need to await completion or handle exceptions.
+	/// </summary>
 	public void CloseSession(string sessionId)
+	{
+		_ = CloseSessionAsync(sessionId);
+	}
+
+	/// <summary>
+	/// Closes the terminal session, cancelling any background read tasks and disposing resources.
+	/// </summary>
+	public async Task CloseSessionAsync(string sessionId)
 	{
 		if(_sessions.TryRemove(sessionId, out TerminalSessionModel? session))
 		{
@@ -209,7 +221,10 @@ public sealed partial class TerminalFeature : IDisposable
 			try
 			{
 				// Wait for the task to complete
-				session.ReadTask?.WaitAsync(TimeSpan.FromSeconds(2)).GetAwaiter().GetResult();
+				if(session.ReadTask is not null)
+				{
+					await session.ReadTask.WaitAsync(TimeSpan.FromSeconds(2));
+				}
 			}
 			catch(Exception ex)
 			{
