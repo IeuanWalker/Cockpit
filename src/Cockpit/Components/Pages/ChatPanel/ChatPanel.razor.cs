@@ -30,6 +30,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	}
 
 	bool _shouldScrollToBottom = false;
+	bool _forcedScrollToBottom = false;
 	bool _isUserScrolledUpFromChat = false;
 	int _lastMessageCount = 0;
 	string? _lastSessionId;
@@ -62,9 +63,10 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 			_lastSessionId = _sessionFeature.CurrentSession?.Id;
 		}
 
-		if(_shouldScrollToBottom && !_isUserScrolledUpFromChat)
+		if(_shouldScrollToBottom && (!_isUserScrolledUpFromChat || _forcedScrollToBottom))
 		{
 			_shouldScrollToBottom = false;
+			_forcedScrollToBottom = false;
 			await ScrollToBottom();
 		}
 	}
@@ -77,6 +79,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		if(currentSessionId != _lastSessionId)
 		{
 			_shouldScrollToBottom = true;
+			_forcedScrollToBottom = true;
 			_isUserScrolledUpFromChat = false;
 		}
 
