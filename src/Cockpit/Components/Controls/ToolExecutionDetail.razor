@@ -1,7 +1,7 @@
 @using Cockpit.Features.SessionEvents.Models
 
 <div class="tool-execution @GetStatusClass()">
-    <div class="tool-summary" @onclick="ToggleExpanded">
+    <div class="tool-summary" @onmousedown="OnToolSummaryMouseDown" @onmousemove="OnToolSummaryMouseMove" @onclick="ToggleExpanded">
         <span class="tool-dot @GetStatusClass()"></span>
         <span class="tool-label" style="color: @GetLabelColor()">@GetToolLabel()</span>
         @{
@@ -69,12 +69,12 @@
                             }
                             else
                             {
-                                <div class="thinking-message cursor-pointer" @onclick="() => ToggleEventExpanded(childEvt.Id)">
+                                <div class="thinking-message cursor-pointer" @onmousedown="OnThinkingMouseDown" @onmousemove="OnThinkingMouseMove" @onclick="() => ToggleEventExpandedIfNotSelecting(childEvt.Id)">
                                     <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
                                     @if(IsEventExpanded(childEvt.Id))
                                     {
                                         <div class="code-block-borderless mt-2">
-                                                <CodeBlock Code="@JsonUtil.FormatJsonList(childEvt.EventJson?.Select(j => j.Value))" Language="json" />
+                                            <CodeBlock Code="@JsonUtil.FormatJsonList(childEvt.EventJson?.Select(j => j.Value))" Language="json" />
                                         </div>
                                     }
                                 </div>

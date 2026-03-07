@@ -8,11 +8,24 @@ public partial class Opperations
 {
 	[Parameter] public ActivityGroupModel Group { get; set; } = default!;
 
+	private bool _isSelecting = false;
+	private bool _isSelectingThinking = false;
+
+	void OnGroupHeaderMouseDown(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) => _isSelecting = false;
+	void OnGroupHeaderMouseMove(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) { if(e.Buttons == 1) _isSelecting = true; }
+	void OnThinkingMouseDown(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) => _isSelectingThinking = false;
+	void OnThinkingMouseMove(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) { if(e.Buttons == 1) _isSelectingThinking = true; }
+
 	void ToggleExpanded()
 	{
-		Group.IsExpanded = !Group.IsExpanded;
-		StateHasChanged();
-	}
+		if(_isSelecting)
+		{
+			_isSelecting = false;
+			return;
+		}
+    Group.IsExpanded = !Group.IsExpanded;
+    StateHasChanged();
+}
 
 	string GetStatusClass()
 	{
@@ -45,6 +58,16 @@ public partial class Opperations
 	}
 
 	readonly Dictionary<string, bool> _expandedEventJson = new();
+
+	void ToggleEventExpandedIfNotSelecting(string key)
+	{
+		if(_isSelectingThinking)
+		{
+			_isSelectingThinking = false;
+			return;
+		}
+		ToggleEventExpanded(key);
+	}
 
 	void ToggleEventExpanded(string key)
 	{

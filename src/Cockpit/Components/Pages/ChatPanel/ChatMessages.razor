@@ -32,7 +32,7 @@
                             }
                             else
                             {
-                                <div class="chat-bubble rounded-lg px-4 py-2.5 cursor-pointer event-message @(message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")" @onclick="() => ShowEventJson(message)">
+                                <div class="chat-bubble rounded-lg px-4 py-2.5 event-message @(message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")" @onclick="() => ShowEventJson(message)">
                                     <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
                                 </div>
                             }
@@ -112,7 +112,7 @@
                                 }
                                 else
                                 {
-                                    <div class="bg-app-sidebar border border-app-border rounded-lg px-4 py-3 cursor-pointer event-message" @onclick="() => ShowEventJson(message)">
+                                    <div class="bg-app-sidebar border border-app-border rounded-lg px-4 py-3 event-message" @onclick="() => ShowEventJson(message)">
                                         <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
                                     </div>
                                 }

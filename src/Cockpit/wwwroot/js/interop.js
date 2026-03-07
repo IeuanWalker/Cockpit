@@ -469,6 +469,91 @@ window.cockpit = {
     }
 };
 
+// Isolate links and buttons inside Blazor clickable containers so they don't bubble up
+// to parent onclick handlers (e.g. event-message popup, tool-summary expander).
+(function () {
+    const ISOLATED = ['.event-message', '.tool-summary', '.thinking-message.cursor-pointer'];
+
+    function attachIsolation(el) {
+        if (el._clickIsolated) return;
+        el._clickIsolated = true;
+        el.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+
+    function scanAndIsolate(root) {
+        if (!root.querySelectorAll) return;
+        var selector = ISOLATED.map(function (s) { return s + ' a, ' + s + ' button'; }).join(', ');
+        root.querySelectorAll(selector).forEach(attachIsolation);
+    }
+
+    var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+            mutation.addedNodes.forEach(function (node) {
+                if (node.nodeType !== 1) return;
+                scanAndIsolate(node);
+                if (node.tagName === 'A' || node.tagName === 'BUTTON') {
+                    if (ISOLATED.some(function (s) { return node.closest && node.closest(s); })) {
+                        attachIsolation(node);
+                    }
+                }
+            });
+        });
+    });
+
+    function start() {
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    if (document.body) {
+        start();
+    } else {
+        document.addEventListener('DOMContentLoaded', start);
+    }
+})();
+
+// Suppress clicks on expander headers when the user has selected text (e.g. dragging to highlight).
+// Reads getSelection() at mouseup time (most reliable — selection is cleared before click fires),
+// and combines with mouse-movement check as fallback.
+(function () {
+    const EXPANDERS = ['.group-header', '.tool-summary', '.thinking-message.cursor-pointer'];
+
+    var _downX = 0, _downY = 0;
+    var _hadSelection = false;
+
+    // Reset on every new press
+    document.addEventListener('mousedown', function (e) {
+        if (e.button !== 0) return;
+        _downX = e.clientX;
+        _downY = e.clientY;
+        _hadSelection = false;
+    }, { capture: true });
+
+    // Capture selection state at mouseup — selection is still present here
+    document.addEventListener('mouseup', function (e) {
+        if (e.button !== 0) return;
+        var sel = window.getSelection && window.getSelection();
+        _hadSelection = !!(sel && sel.toString().length > 0);
+    }, { capture: true });
+
+    document.addEventListener('click', function (e) {
+        var dx = e.clientX - _downX;
+        var dy = e.clientY - _downY;
+        var moved = Math.sqrt(dx * dx + dy * dy) > 4;
+
+        if (!_hadSelection && !moved) return;
+        _hadSelection = false;
+
+        var t = e.target;
+        if (!t || !t.closest) return;
+        for (var i = 0; i < EXPANDERS.length; i++) {
+            if (t.closest(EXPANDERS[i])) {
+                e.stopImmediatePropagation();
+                return;
+            }
+        }
+    }, { capture: true });
+})();
+
 // Global function to toggle settings from MAUI title bar
 window.toggleSettings = function () {
     if (window._mainLayoutRef) {
