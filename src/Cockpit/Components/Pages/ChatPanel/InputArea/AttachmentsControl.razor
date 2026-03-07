@@ -1,11 +1,14 @@
 @namespace Cockpit.Components.Pages.ChatPanel.InputArea
 
-@if(_sessionFeature.CurrentSession?.PendingAttachments.Count > 0)
+@{
+    IReadOnlyList<AttachmentModel> _attachments = AttachmentsSnapshot;
+}
+@if(_attachments.Count > 0)
 {
     <div class="flex flex-wrap gap-2 pb-2">
-        @for(int i = 0; i < _sessionFeature.CurrentSession.PendingAttachments.Count; i++)
+        @for(int i = 0; i < _attachments.Count; i++)
         {
-            var att = _sessionFeature.CurrentSession.PendingAttachments[i];
+            var att = _attachments[i];
             int idx = i;
             if(att.IsImage)
             {

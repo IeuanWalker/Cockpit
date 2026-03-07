@@ -6,8 +6,7 @@
         {
             <div class="absolute inset-0 bg-black bg-opacity-30 z-10 rounded-lg cursor-not-allowed"></div>
         }
-        <AttachmentsControl SessionId="@_sessionFeature.CurrentSession?.Id"
-                            AttachmentCount="@(_sessionFeature.CurrentSession?.PendingAttachments.Count ?? 0)" />
+        <AttachmentsControl Session="@_sessionFeature.CurrentSession" />
         <div class="bg-app-bg border border-app-border rounded-lg overflow-visible">
             <div class="flex items-stretch">
                 <div class="flex-1" style="align-content: flex-end">
