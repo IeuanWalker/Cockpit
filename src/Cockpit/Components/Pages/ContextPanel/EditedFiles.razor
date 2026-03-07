@@ -2,47 +2,50 @@
 @using Cockpit.Features.Git.Models
 @using Cockpit.Components.Popups
 
-<Expander>
-    <Icon>
-        <svg class="icon-xs mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
-        </svg>
-    </Icon>
-    <Title>Edited Files (@Files.Count)</Title>
-    <Content>
-        @foreach(var file in Files)
-        {
-            var borderColor = file.Status switch
+@if (!string.IsNullOrEmpty(_sessionListFeature.CurrentSession?.Context?.GitRoot))
+{
+    <Expander>
+        <Icon>
+            <svg class="icon-xs mr-2 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+            </svg>
+        </Icon>
+        <Title>Edited Files (@Files.Count)</Title>
+        <Content>
+            @foreach(var file in Files)
             {
-                GitFileStatusEnum.Modified => "border-yellow-500",
-                GitFileStatusEnum.Added => "border-green-500",
-                GitFileStatusEnum.Deleted => "border-red-500",
-                GitFileStatusEnum.Renamed => "border-blue-500",
-                _ => "border-gray-600"
-            };
-            var statusBadge = file.Status switch
-            {
-                GitFileStatusEnum.Modified => ("M", "bg-yellow-600"),
-                GitFileStatusEnum.Added => ("A", "bg-green-600"),
-                GitFileStatusEnum.Deleted => ("D", "bg-red-600"),
-                GitFileStatusEnum.Renamed => ("R", "bg-blue-600"),
-                _ => ("U", "bg-gray-600")
-            };
+                var borderColor = file.Status switch
+                {
+                    GitFileStatusEnum.Modified => "border-yellow-500",
+                    GitFileStatusEnum.Added => "border-green-500",
+                    GitFileStatusEnum.Deleted => "border-red-500",
+                    GitFileStatusEnum.Renamed => "border-blue-500",
+                    _ => "border-gray-600"
+                };
+                var statusBadge = file.Status switch
+                {
+                    GitFileStatusEnum.Modified => ("M", "bg-yellow-600"),
+                    GitFileStatusEnum.Added => ("A", "bg-green-600"),
+                    GitFileStatusEnum.Deleted => ("D", "bg-red-600"),
+                    GitFileStatusEnum.Renamed => ("R", "bg-blue-600"),
+                    _ => ("U", "bg-gray-600")
+                };
 
-            <div class="px-3 py-1.5 hover:bg-app-hover cursor-pointer border-l-2 @borderColor"
-                 @onclick="() => OpenDiffPopup(file)">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1 min-w-0">
-                        <div class="text-xs truncate @(file.Status == GitFileStatusEnum.Deleted ? "line-through secondary-text" : "")">@file.Name</div>
+                <div class="px-3 py-1.5 hover:bg-app-hover cursor-pointer border-l-2 @borderColor"
+                     @onclick="() => OpenDiffPopup(file)">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs truncate @(file.Status == GitFileStatusEnum.Deleted ? "line-through secondary-text" : "")">@file.Name</div>
+                        </div>
+                        @if(!string.IsNullOrEmpty(statusBadge.Item1))
+                        {
+                            <span class="ml-2 text-xs @statusBadge.Item2 text-white px-1 rounded">@statusBadge.Item1</span>
+                        }
                     </div>
-                    @if(!string.IsNullOrEmpty(statusBadge.Item1))
-                    {
-                        <span class="ml-2 text-xs @statusBadge.Item2 text-white px-1 rounded">@statusBadge.Item1</span>
-                    }
                 </div>
-            </div>
-        }
-    </Content>
-</Expander>
+            }
+        </Content>
+    </Expander>
 
-<EditedFilesPopup @ref="_diffPopup" />
+    <EditedFilesPopup @ref="_diffPopup" />
+}
