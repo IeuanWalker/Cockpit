@@ -14,7 +14,7 @@
             {
                 var previewSrc = att.GetPreviewSrc();
                 <div class="relative group">
-                    <img src="@previewSrc" alt="@att.FileName" role="button" aria-label="@($"View full size image of {att.FileName}")"
+                    <img src="@previewSrc" alt="Attachment preview for @att.FileName" role="button" aria-label="@($"View full size image of {att.FileName}")"
                          class="rounded-md object-cover border border-app-border cursor-zoom-in" style="height:64px;max-width:96px"
                          title="@att.FilePath"
                          @onclick="@(async () => await OpenLightbox(previewSrc ?? string.Empty, att.FileName))" />

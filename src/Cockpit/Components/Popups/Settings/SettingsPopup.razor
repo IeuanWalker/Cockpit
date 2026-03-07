@@ -11,12 +11,14 @@
         <div class="settings-popup-content">
             <nav class="settings-menu border-r border-app-border">
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Appearance ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSectionEnum.Appearance)">
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Appearance)"
+                        aria-label="Select Appearance settings section">
                     <span class="text-sm font-medium text-app-title">Appearance</span>
                     <span class="text-xs secondary-text">Theme, accent</span>
                 </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Commands ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSectionEnum.Commands)">
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Commands)"
+                        aria-label="Select Commands settings section">
                     <span class="text-sm font-medium text-app-title">Commands</span>
                     <span class="text-xs secondary-text">Allowlist, tools</span>
                 </button>

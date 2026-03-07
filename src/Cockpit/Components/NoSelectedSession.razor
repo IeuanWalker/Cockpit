@@ -1,7 +1,7 @@
 @using Cockpit.Components.Popups
 <div class="flex flex-col items-center justify-center h-full bg-app-bg">
     <div class="text-center max-w-md px-6">
-        <img src="/images/logo.png" class="logo-responsive" />
+        <img src="/images/logo.png" class="logo-responsive" alt="Cockpit logo" />
         <h1 class="text-2xl font-semibold text-app-title mb-3">Welcome to Cockpit</h1>
         <p class="text-app-secondary mb-8">Get started by selecting a previous session or creating a new one.</p>
 
@@ -9,7 +9,8 @@
         <div class="space-y-3">
             <button @onclick="CreateNewSession"
                     class="w-full px-6 py-3 rounded-lg font-medium text-white flex items-center justify-center space-x-2"
-                    style="background-color: var(--accent-color);">
+                    style="background-color: var(--accent-color);"
+                    aria-label="Create a new session">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>

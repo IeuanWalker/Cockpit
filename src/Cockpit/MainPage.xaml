@@ -3,9 +3,12 @@
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:components="clr-namespace:Cockpit.Components"
-             xmlns:local="clr-namespace:Cockpit">
+             xmlns:local="clr-namespace:Cockpit"
+             SemanticProperties.Description="Cockpit main page">
 
-    <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
+
+    <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html"
+                SemanticProperties.Description="Main Cockpit interface">
         <BlazorWebView.RootComponents>
             <RootComponent ComponentType="{x:Type components:Routes}" Selector="#app" />
         </BlazorWebView.RootComponents>

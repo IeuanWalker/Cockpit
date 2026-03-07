@@ -68,7 +68,7 @@
                                                      aria-label="@($"Open image {att.FileName}")"
                                                      @onclick="@(() => OpenLightbox(previewSrc ?? string.Empty, att.FileName))"
                                                      title="@att.FilePath">
-                                                    <img src="@previewSrc" alt="@att.FileName"
+                                                    <img src="@previewSrc" alt="Preview image for @att.FileName"
                                                          class="rounded-lg object-cover border border-app-border" style="height:80px;max-width:120px" />
                                                 </div>
                                             }
@@ -102,7 +102,7 @@
                     <!-- Copilot Response -->
                     <div class="flex justify-start">
                         <div class="max-w-2xl flex items-start">
-                            <img src="/images/logo.png" alt="Agent avatar" style="max-height:45px; margin: 0 5px 0 0" />
+                            <img src="/images/logo.png" alt="Agent avatar for Copilot" style="max-height:45px; margin: 0 5px 0 0" />
                             <div class="flex flex-col min-w-0">
                                 @if(message.EventJson is null)
                                 {
