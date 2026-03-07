@@ -69,15 +69,6 @@ body,
     z-index: 2;
 }
 
-:root {
-    --sidebar-shadow-color: rgba(0,0,0,0.35);
-}
-
-.light-theme {
-    --sidebar-shadow-color: rgba(60,60,60,0.12);
-}
-
-
 .bg-app-bg {
     background-color: var(--bg-color) !important;
 }
@@ -484,19 +475,19 @@ input[type="number"] {
     transition: background-color 0.15s, color 0.15s, border-color 0.15s;
 }
 
-input[type="number"]:focus {
-    outline: none;
-    border-color: var(--accent-color);
-    background: var(--bg-color);
+    input[type="number"]:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        background: var(--bg-color);
+    }
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
 }
 
-    input[type="color"]::-webkit-color-swatch-wrapper {
-        padding: 0;
-    }
-
-    input[type="color"]::-webkit-color-swatch {
-        border: none;
-    }
+input[type="color"]::-webkit-color-swatch {
+    border: none;
+}
 
 .code-block-borderless :is(.code-block-pre) {
     border: none !important;
