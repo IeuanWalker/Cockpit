@@ -13,7 +13,7 @@
     <Properties>
         <DisplayName>Cockpit</DisplayName>
         <PublisherDisplayName>Ieuan Walker</PublisherDisplayName>
-        <Logo>logo.png</Logo>
+        <Logo>$placeholder$.png</Logo>
     </Properties>
 
     <Dependencies>
