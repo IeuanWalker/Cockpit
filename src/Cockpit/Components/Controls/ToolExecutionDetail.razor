@@ -73,7 +73,7 @@
                                     <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
                                     @if(IsEventExpanded(childEvt.Id))
                                     {
-                                        <div class="code-block-borderless mt-2">
+                                        <div class="code-block-borderless mt-2" @onclick:stopPropagation="true">
                                             <CodeBlock Code="@JsonUtil.FormatJsonList(childEvt.EventJson?.Select(j => j.Value))" Language="json" />
                                         </div>
                                     }
