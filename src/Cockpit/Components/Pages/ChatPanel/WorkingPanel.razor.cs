@@ -2,6 +2,7 @@ using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
@@ -198,11 +199,17 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 		await _sessionFeature.AbortSession(_sessionFeature.CurrentSession.Id);
 	}
 
-	readonly Dictionary<string, bool> _expandedEventJson = new();
+	readonly Dictionary<string, bool> _expandedEventJson = [];
 	bool _isSelectingThinking = false;
 
-	void OnThinkingMouseDown(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) => _isSelectingThinking = false;
-	void OnThinkingMouseMove(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) { if(e.Buttons == 1) _isSelectingThinking = true; }
+	void OnThinkingMouseDown(MouseEventArgs e) => _isSelectingThinking = false;
+	void OnThinkingMouseMove(MouseEventArgs e)
+	{
+		if(e.Buttons == 1)
+		{
+			_isSelectingThinking = true;
+		}
+	}
 
 	void ToggleEventExpandedIfNotSelecting(string key)
 	{

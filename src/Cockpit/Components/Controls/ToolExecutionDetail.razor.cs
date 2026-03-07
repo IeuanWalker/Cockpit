@@ -1,6 +1,7 @@
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Timestamp;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace Cockpit.Components.Controls;
 
@@ -33,13 +34,25 @@ public sealed partial class ToolExecutionDetail : IDisposable
 		_timestampFeature.OnTick -= OnTick;
 	}
 
-	private bool _isSelecting = false;
-	private bool _isSelectingThinking = false;
+	bool _isSelecting = false;
+	bool _isSelectingThinking = false;
 
-	void OnToolSummaryMouseDown(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) => _isSelecting = false;
-	void OnToolSummaryMouseMove(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) { if(e.Buttons == 1) _isSelecting = true; }
-	void OnThinkingMouseDown(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) => _isSelectingThinking = false;
-	void OnThinkingMouseMove(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) { if(e.Buttons == 1) _isSelectingThinking = true; }
+	void OnToolSummaryMouseDown(MouseEventArgs e) => _isSelecting = false;
+	void OnToolSummaryMouseMove(MouseEventArgs e)
+	{
+		if(e.Buttons == 1)
+		{
+			_isSelecting = true;
+		}
+	}
+	void OnThinkingMouseDown(MouseEventArgs e) => _isSelectingThinking = false;
+	void OnThinkingMouseMove(MouseEventArgs e)
+	{
+		if(e.Buttons == 1)
+		{
+			_isSelectingThinking = true;
+		}
+	}
 
 	void ToggleExpanded()
 	{

@@ -1,6 +1,7 @@
 using Cockpit.Features.SessionEvents.Models;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace Cockpit.Components.Controls;
 
@@ -8,13 +9,25 @@ public partial class Opperations
 {
 	[Parameter] public ActivityGroupModel Group { get; set; } = default!;
 
-	private bool _isSelecting = false;
-	private bool _isSelectingThinking = false;
+	bool _isSelecting = false;
+	bool _isSelectingThinking = false;
 
-	void OnGroupHeaderMouseDown(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) => _isSelecting = false;
-	void OnGroupHeaderMouseMove(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) { if(e.Buttons == 1) _isSelecting = true; }
-	void OnThinkingMouseDown(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) => _isSelectingThinking = false;
-	void OnThinkingMouseMove(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) { if(e.Buttons == 1) _isSelectingThinking = true; }
+	void OnGroupHeaderMouseDown(MouseEventArgs e) => _isSelecting = false;
+	void OnGroupHeaderMouseMove(MouseEventArgs e)
+	{
+		if(e.Buttons == 1)
+		{
+			_isSelecting = true;
+		}
+	}
+	void OnThinkingMouseDown(MouseEventArgs e) => _isSelectingThinking = false;
+	void OnThinkingMouseMove(MouseEventArgs e)
+	{
+		if(e.Buttons == 1)
+		{
+			_isSelectingThinking = true;
+		}
+	}
 
 	void ToggleExpanded()
 	{
@@ -23,9 +36,9 @@ public partial class Opperations
 			_isSelecting = false;
 			return;
 		}
-    Group.IsExpanded = !Group.IsExpanded;
-    StateHasChanged();
-}
+		Group.IsExpanded = !Group.IsExpanded;
+		StateHasChanged();
+	}
 
 	string GetStatusClass()
 	{
