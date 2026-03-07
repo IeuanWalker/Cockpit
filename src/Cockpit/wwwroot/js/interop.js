@@ -511,49 +511,6 @@ window.cockpit = {
     }
 })();
 
-// Suppress clicks on expander headers when the user has selected text (e.g. dragging to highlight).
-// Reads getSelection() at mouseup time (most reliable — selection is cleared before click fires),
-// and combines with mouse-movement check as fallback.
-(function () {
-    const EXPANDERS = ['.group-header', '.tool-summary', '.thinking-message.cursor-pointer'];
-
-    var _downX = 0, _downY = 0;
-    var _hadSelection = false;
-
-    // Reset on every new press
-    document.addEventListener('mousedown', function (e) {
-        if (e.button !== 0) return;
-        _downX = e.clientX;
-        _downY = e.clientY;
-        _hadSelection = false;
-    }, { capture: true });
-
-    // Capture selection state at mouseup — selection is still present here
-    document.addEventListener('mouseup', function (e) {
-        if (e.button !== 0) return;
-        var sel = window.getSelection && window.getSelection();
-        _hadSelection = !!(sel && sel.toString().length > 0);
-    }, { capture: true });
-
-    document.addEventListener('click', function (e) {
-        var dx = e.clientX - _downX;
-        var dy = e.clientY - _downY;
-        var moved = Math.sqrt(dx * dx + dy * dy) > 4;
-
-        if (!_hadSelection && !moved) return;
-        _hadSelection = false;
-
-        var t = e.target;
-        if (!t || !t.closest) return;
-        for (var i = 0; i < EXPANDERS.length; i++) {
-            if (t.closest(EXPANDERS[i])) {
-                e.stopImmediatePropagation();
-                return;
-            }
-        }
-    }, { capture: true });
-})();
-
 // Global function to toggle settings from MAUI title bar
 window.toggleSettings = function () {
     if (window._mainLayoutRef) {
