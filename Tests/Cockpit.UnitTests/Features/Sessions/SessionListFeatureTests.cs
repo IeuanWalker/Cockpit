@@ -44,7 +44,7 @@ public class SessionListFeatureTests
 	}
 
 	[Fact]
-	public void SetCurrentSession_UpdatesCurrentAndFiresEvent()
+	public async Task SetCurrentSession_UpdatesCurrentAndFiresEvent()
 	{
 		SessionListFeature feature = CreateFeature();
 		SessionModel session = MakeSession("x");
@@ -54,6 +54,8 @@ public class SessionListFeatureTests
 		feature.OnStateChanged += () => eventFired = true;
 
 		feature.SetCurrentSession(session);
+
+		await Task.Delay(50);
 
 		feature.CurrentSession.ShouldBe(session);
 		eventFired.ShouldBeTrue();
@@ -129,7 +131,7 @@ public class SessionListFeatureTests
 	}
 
 	[Fact]
-	public void NotifyStateChanged_FiresOnStateChangedEvent()
+	public async Task NotifyStateChanged_FiresOnStateChangedEvent()
 	{
 		SessionListFeature feature = CreateFeature();
 		int callCount = 0;
@@ -138,7 +140,10 @@ public class SessionListFeatureTests
 		feature.NotifyStateChanged();
 		feature.NotifyStateChanged();
 
-		callCount.ShouldBe(2);
+		await Task.Delay(50);
+
+		// Two rapid calls are coalesced into a single notification
+		callCount.ShouldBe(1);
 	}
 
 	[Fact]
