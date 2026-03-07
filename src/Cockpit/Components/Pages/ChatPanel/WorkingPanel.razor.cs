@@ -197,4 +197,23 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 
 		await _sessionFeature.AbortSession(_sessionFeature.CurrentSession.Id);
 	}
+
+	readonly Dictionary<string, bool> _expandedEventJson = new();
+	bool _isSelectingThinking = false;
+
+	void OnThinkingMouseDown(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) => _isSelectingThinking = false;
+	void OnThinkingMouseMove(Microsoft.AspNetCore.Components.Web.MouseEventArgs e) { if(e.Buttons == 1) _isSelectingThinking = true; }
+
+	void ToggleEventExpandedIfNotSelecting(string key)
+	{
+		if(_isSelectingThinking)
+		{
+			_isSelectingThinking = false;
+			return;
+		}
+		_expandedEventJson[key] = !_expandedEventJson.GetValueOrDefault(key);
+		StateHasChanged();
+	}
+
+	bool IsEventExpanded(string key) => _expandedEventJson.GetValueOrDefault(key);
 }
