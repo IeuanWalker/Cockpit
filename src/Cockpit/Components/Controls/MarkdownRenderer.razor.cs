@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Cockpit.Features.Markdown;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -23,13 +24,22 @@ public partial class MarkdownRenderer : ComponentBase
 	string? _lastContent;
 	bool _contentChanged;
 
+	static readonly Regex _linkTagRegex = new(@"<a(\s[^>]*)>(.*?)</a>",
+		RegexOptions.Compiled | RegexOptions.Singleline);
+
+	static string WrapLinkSpans(string html) =>
+		html.Contains("<a", StringComparison.Ordinal)
+			? _linkTagRegex.Replace(html, static m =>
+				$"<a{m.Groups[1].Value}><span>{m.Groups[2].Value}</span></a>")
+			: html;
+
 	protected override void OnParametersSet()
 	{
 		string content = Content ?? string.Empty;
 		if(content != _lastContent)
 		{
 			_lastContent = content;
-			_html = _markdownFeature.ToHtml(content);
+			_html = WrapLinkSpans(_markdownFeature.ToHtml(content));
 			_contentChanged = true;
 		}
 	}
