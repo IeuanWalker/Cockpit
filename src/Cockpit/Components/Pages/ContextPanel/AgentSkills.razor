@@ -8,12 +8,12 @@
     </Icon>
     <Title>Agent Skills</Title>
     <Content>
-        @foreach(var skill in new[] { "Code Generation", "File Operations", "Git Operations", "Terminal Access", "Web Search" })
+        @*   @foreach(var skill in new[] { "Code Generation", "File Operations", "Git Operations", "Terminal Access", "Web Search" })
         {
             <div class="px-3 py-1 flex items-center text-xs">
                 <input type="checkbox" checked="@IsSkillEnabled(skill)" @onchange="() => ToggleSkill(skill)" class="mr-2" />
                 <span>@skill</span>
             </div>
-        }
+        } *@
     </Content>
 </Expander>
