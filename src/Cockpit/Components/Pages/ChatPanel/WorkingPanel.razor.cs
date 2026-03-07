@@ -28,6 +28,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	Timer? _timer;
 	bool _isUserScrolledUpFromWorking = false;
 	bool _scrollTrackingSetup = false;
+	bool _pendingScrollToBottom = false;
 	DotNetObjectReference<WorkingPanel>? _dotNetRef;
 
 	string? _prevSessionId;
@@ -42,6 +43,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 		if((currentSessionId != _prevSessionId || currentWorkingGroupId != _prevWorkingGroupId) && IsVisible && Group is not null && Group.Status == GroupStatusEnum.Running)
 		{
 			_isUserScrolledUpFromWorking = false; // Re-enable auto-scroll
+			_pendingScrollToBottom = true;
 			_prevSessionId = currentSessionId;
 			_prevWorkingGroupId = currentWorkingGroupId;
 		}
@@ -77,6 +79,12 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 		{
 			await SetupSmartScroll();
 			_scrollTrackingSetup = true;
+		}
+
+		if(_pendingScrollToBottom && IsVisible)
+		{
+			_pendingScrollToBottom = false;
+			await ScrollToBottom();
 		}
 	}
 

@@ -58,6 +58,26 @@ body,
     transition: background-color 0.10s ease, color 0.10s ease, border-color 0.10s ease;
 }
 
+.sidebar-shadow-top {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -32px;
+    height: 32px;
+    background: linear-gradient(to bottom, transparent, var(--sidebar-color));
+    pointer-events: none;
+    z-index: 2;
+}
+
+:root {
+    --sidebar-shadow-color: rgba(0,0,0,0.35);
+}
+
+.light-theme {
+    --sidebar-shadow-color: rgba(60,60,60,0.12);
+}
+
+
 .bg-app-bg {
     background-color: var(--bg-color) !important;
 }
