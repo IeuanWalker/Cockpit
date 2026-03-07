@@ -5,7 +5,7 @@ using Cockpit.Features.Sessions;
 using Cockpit.Utilities;
 using Microsoft.AspNetCore.Components;
 
-namespace Cockpit.Components.Popups;
+namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class EditedFilesPopup : ComponentBase, IDisposable
 {

@@ -8,10 +8,14 @@
         <span class="text-app-title font-semibold text-sm">Edited Files (@Files.Count)</span>
     </TitleArea>
     <HeaderRight>
-        <div class="view-toggle">
-            <button class="toggle-btn @(!_splitView ? "active" : "")" @onclick='() => SetSplitView(false)'>Inline</button>
-            <button class="toggle-btn @(_splitView ? "active" : "")" @onclick='() => SetSplitView(true)'>Split</button>
-        </div>
+        @if(_selectedFile?.Status.Equals(GitFileStatusEnum.Modified) ?? false)
+        {
+            <div class="view-toggle">
+                <button class="toggle-btn @(!_splitView ? "active" : "")" @onclick='() => SetSplitView(false)'>Inline</button>
+                <button class="toggle-btn @(_splitView ? "active" : "")" @onclick='() => SetSplitView(true)'>Split</button>
+            </div>
+        }
+
         <button class="popup-action-btn"
                 @onclick="RevealFile"
                 disabled="@(_selectedFile is null || _selectedFile.Status == GitFileStatusEnum.Deleted)"
