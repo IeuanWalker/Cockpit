@@ -240,7 +240,6 @@ public sealed partial class SessionFeature
 
 				session.Messages = tempSession.Messages;
 				session.ActiveWorkingGroup = null;
-				session.LastActivity = tempSession.LastActivity;
 				if(session.Title != tempSession.Title)
 				{
 					session.Title = tempSession.Title;
