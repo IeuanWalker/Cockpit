@@ -309,7 +309,8 @@ window.cockpit = {
         }
     },
 
-    highlightDiffCells: function (containerId, language) {        if (!window.hljs) return;
+    highlightDiffCells: function (containerId, language) {
+        if (!window.hljs) return;
         const container = document.getElementById(containerId);
         if (!container) return;
 
@@ -468,6 +469,48 @@ window.cockpit = {
         document.body.appendChild(overlay);
     }
 };
+
+// Isolate links and buttons inside Blazor clickable containers so they don't bubble up
+// to parent onclick handlers (e.g. event-message popup, tool-summary expander).
+(function () {
+    const ISOLATED = ['.event-message', '.tool-summary', '.thinking-message', '.working-message'];
+
+    function attachIsolation(el) {
+        if (el._clickIsolated) return;
+        el._clickIsolated = true;
+        el.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+
+    function scanAndIsolate(root) {
+        if (!root.querySelectorAll) return;
+        var selector = ISOLATED.map(function (s) { return s + ' a, ' + s + ' button'; }).join(', ');
+        root.querySelectorAll(selector).forEach(attachIsolation);
+    }
+
+    var observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+            mutation.addedNodes.forEach(function (node) {
+                if (node.nodeType !== 1) return;
+                scanAndIsolate(node);
+                if (node.tagName === 'A' || node.tagName === 'BUTTON') {
+                    if (ISOLATED.some(function (s) { return node.closest && node.closest(s); })) {
+                        attachIsolation(node);
+                    }
+                }
+            });
+        });
+    });
+
+    function start() {
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    if (document.body) {
+        start();
+    } else {
+        document.addEventListener('DOMContentLoaded', start);
+    }
+})();
 
 // Global function to toggle settings from MAUI title bar
 window.toggleSettings = function () {

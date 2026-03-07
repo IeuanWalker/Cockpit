@@ -24,12 +24,9 @@ public partial class MarkdownRenderer : ComponentBase
 	string? _lastContent;
 	bool _contentChanged;
 
-	static readonly Regex _linkTagRegex = new(@"<a(\s[^>]*)>(.*?)</a>",
-		RegexOptions.Compiled | RegexOptions.Singleline);
-
 	static string WrapLinkSpans(string html) =>
 		html.Contains("<a", StringComparison.Ordinal)
-			? _linkTagRegex.Replace(html, static m =>
+			? LinkTagRegex().Replace(html, static m =>
 				$"<a{m.Groups[1].Value}><span>{m.Groups[2].Value}</span></a>")
 			: html;
 
@@ -63,4 +60,7 @@ public partial class MarkdownRenderer : ComponentBase
 			// Handle error silently
 		}
 	}
+
+	[GeneratedRegex(@"<a(\s[^>]*)>(.*?)</a>", RegexOptions.Compiled | RegexOptions.Singleline)]
+	private static partial Regex LinkTagRegex();
 }

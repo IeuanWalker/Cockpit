@@ -1,6 +1,7 @@
 using Cockpit.Features.SessionEvents.Models;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace Cockpit.Components.Controls;
 
@@ -8,8 +9,33 @@ public partial class Opperations
 {
 	[Parameter] public ActivityGroupModel Group { get; set; } = default!;
 
+	bool _isSelecting = false;
+	bool _isSelectingThinking = false;
+
+	void OnGroupHeaderMouseDown(MouseEventArgs e) => _isSelecting = false;
+	void OnGroupHeaderMouseMove(MouseEventArgs e)
+	{
+		if(e.Buttons == 1)
+		{
+			_isSelecting = true;
+		}
+	}
+	void OnThinkingMouseDown(MouseEventArgs e) => _isSelectingThinking = false;
+	void OnThinkingMouseMove(MouseEventArgs e)
+	{
+		if(e.Buttons == 1)
+		{
+			_isSelectingThinking = true;
+		}
+	}
+
 	void ToggleExpanded()
 	{
+		if(_isSelecting)
+		{
+			_isSelecting = false;
+			return;
+		}
 		Group.IsExpanded = !Group.IsExpanded;
 		StateHasChanged();
 	}
@@ -45,6 +71,16 @@ public partial class Opperations
 	}
 
 	readonly Dictionary<string, bool> _expandedEventJson = new();
+
+	void ToggleEventExpandedIfNotSelecting(string key)
+	{
+		if(_isSelectingThinking)
+		{
+			_isSelectingThinking = false;
+			return;
+		}
+		ToggleEventExpanded(key);
+	}
 
 	void ToggleEventExpanded(string key)
 	{

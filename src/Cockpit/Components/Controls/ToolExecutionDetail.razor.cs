@@ -1,6 +1,7 @@
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Timestamp;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace Cockpit.Components.Controls;
 
@@ -33,10 +34,45 @@ public sealed partial class ToolExecutionDetail : IDisposable
 		_timestampFeature.OnTick -= OnTick;
 	}
 
+	bool _isSelecting = false;
+	bool _isSelectingThinking = false;
+
+	void OnToolSummaryMouseDown(MouseEventArgs e) => _isSelecting = false;
+	void OnToolSummaryMouseMove(MouseEventArgs e)
+	{
+		if(e.Buttons == 1)
+		{
+			_isSelecting = true;
+		}
+	}
+	void OnThinkingMouseDown(MouseEventArgs e) => _isSelectingThinking = false;
+	void OnThinkingMouseMove(MouseEventArgs e)
+	{
+		if(e.Buttons == 1)
+		{
+			_isSelectingThinking = true;
+		}
+	}
+
 	void ToggleExpanded()
 	{
+		if(_isSelecting)
+		{
+			_isSelecting = false;
+			return;
+		}
 		Tool.IsExpanded = !Tool.IsExpanded;
 		StateHasChanged();
+	}
+
+	void ToggleEventExpandedIfNotSelecting(string key)
+	{
+		if(_isSelectingThinking)
+		{
+			_isSelectingThinking = false;
+			return;
+		}
+		ToggleEventExpanded(key);
 	}
 
 	string GetStatusClass()

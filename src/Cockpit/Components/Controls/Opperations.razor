@@ -2,7 +2,7 @@
 @using Cockpit.Features.SessionEvents.Models
 
 <div class="activity-group @GetStatusClass()">
-    <div class="group-header" @onclick="ToggleExpanded">
+    <div class="group-header" @onmousedown="OnGroupHeaderMouseDown" @onmousemove="OnGroupHeaderMouseMove" @onclick="ToggleExpanded">
         <span class="expand-arrow">@(Group.IsExpanded ? "▾" : "▸")</span>
         <span class="status-icon">@GetStatusIcon()</span>
         <span class="group-summary">@GenerateSummary()</span>
@@ -18,11 +18,11 @@
                 {
                     @if(evt.EventJson is not null && evt.EventJson.Count > 0)
                     {
-                        <div class="thinking-message cursor-pointer" @onclick="() => ToggleEventExpanded(evt.Id ?? evt.Message ?? string.Empty)">
+                        <div class="thinking-message" @onmousedown="OnThinkingMouseDown" @onmousemove="OnThinkingMouseMove" @onclick="() => ToggleEventExpandedIfNotSelecting(evt.Id ?? evt.Message ?? string.Empty)">
                             <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
                             @if(IsEventExpanded(evt.Id ?? evt.Message ?? string.Empty))
                             {
-                                <div class="code-block-borderless mt-2">
+                                <div class="code-block-borderless mt-2" @onclick:stopPropagation="true">
                                     <CodeBlock Code="@JsonUtil.FormatJsonList(evt.EventJson?.Select(j => j.Value))" Language="json" />
                                 </div>
                             }
