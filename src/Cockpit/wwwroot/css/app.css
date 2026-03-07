@@ -58,6 +58,17 @@ body,
     transition: background-color 0.10s ease, color 0.10s ease, border-color 0.10s ease;
 }
 
+.sidebar-shadow-top {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -32px;
+    height: 32px;
+    background: linear-gradient(to bottom, transparent, var(--sidebar-color));
+    pointer-events: none;
+    z-index: 2;
+}
+
 .bg-app-bg {
     background-color: var(--bg-color) !important;
 }
@@ -464,19 +475,19 @@ input[type="number"] {
     transition: background-color 0.15s, color 0.15s, border-color 0.15s;
 }
 
-input[type="number"]:focus {
-    outline: none;
-    border-color: var(--accent-color);
-    background: var(--bg-color);
+    input[type="number"]:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        background: var(--bg-color);
+    }
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
 }
 
-    input[type="color"]::-webkit-color-swatch-wrapper {
-        padding: 0;
-    }
-
-    input[type="color"]::-webkit-color-swatch {
-        border: none;
-    }
+input[type="color"]::-webkit-color-swatch {
+    border: none;
+}
 
 .code-block-borderless :is(.code-block-pre) {
     border: none !important;

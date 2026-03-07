@@ -28,7 +28,7 @@
     </div>
 
     <!-- Sessions List -->
-    <div class="flex-1 overflow-y-auto scrollbar-thin">
+    <div class="flex-1 overflow-y-auto scrollbar-thin relative">
         @if(_isLoadingSessions)
         {
             <SessionListSkeleton />
@@ -41,12 +41,17 @@
         {
             <SessionList @ref="_sessionList" DeletePopup="@_deletePopup" ShowSearch="@_showSearch" />
         }
+
     </div>
 
     <!-- Past Sessions (pinned above New Session button, hidden while searching) -->
     @if(!_isLoadingSessions && !IsSearchActive && _pastSessions.Count > 0)
     {
-        <div class="border-t border-app-border">
+        <div class="border-t border-app-border relative">
+            @if(_pastSessionsExpanded)
+            {
+                <div class="sidebar-shadow-top"></div>
+            }
             <button @onclick="() => _pastSessionsExpanded = !_pastSessionsExpanded"
                     class="w-full px-3 py-1.5 flex items-center justify-between hover:bg-app-hover" aria-label="Expand or collapse past sessions">
                 <span class="secondary-text font-medium uppercase tracking-wide" style="font-size: 10px;">Past Sessions (@_pastSessions.Count)</span>

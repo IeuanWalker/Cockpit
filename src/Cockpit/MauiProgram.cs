@@ -39,9 +39,9 @@ public static class MauiProgram
 				fonts.AddFont("FluentSystemIcons-Light.ttf", "FluentSystemIconsLight");
 			});
 
+		// Core Blazor and Toolkit services
 		builder.Services.AddMauiBlazorWebView();
 		builder.Services.AddSonner();
-		// Re-register as singleton so it's accessible from singleton services in MAUI Blazor
 		builder.Services.RemoveAll<ToastService>();
 		builder.Services.AddSingleton<ToastService>();
 
@@ -50,11 +50,12 @@ public static class MauiProgram
 		builder.Logging.AddDebug();
 #endif
 
+		// Speech and Text features
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
 		builder.Services.AddSingleton<ITextToSpeech>(TextToSpeech.Default);
 		builder.Services.AddSingleton<TextToSpeechFeature>();
 
-		// Register application services
+		// UI and App features
 		builder.Services.AddSingleton<IAppSettingsFeature, AppSettingsFeature>();
 		builder.Services.AddScoped<ThemeFeature>();
 		builder.Services.AddScoped<MarkdownFeature>();
@@ -63,7 +64,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<TerminalFeature>();
 		builder.Services.AddSingleton<GitFeature>();
 
-		// Register Copilot SDK services
+		// Copilot SDK and Permissions
 		builder.Services.AddSingleton<CopilotClientFeature>();
 		builder.Services.AddSingleton<ConnectionFeature>();
 		builder.Services.AddSingleton<GlobalPermissionFeature>();
@@ -71,13 +72,14 @@ public static class MauiProgram
 		builder.Services.AddSingleton<SessionPermissionFeature>();
 		builder.Services.AddSingleton<SessionEventProcessor>();
 
-		// Register session management
+		// Session management
 		builder.Services.AddSingleton<SdkSessionRegistry>();
 		builder.Services.AddSingleton<SessionListFeature>();
 		builder.Services.AddSingleton<ISessionStateProvider>(sp => sp.GetRequiredService<SessionListFeature>());
 		builder.Services.AddSingleton<SessionFeature>();
 
-		// Register PermissionFeature
+		// Permission features
+
 		builder.Services.AddSingleton<PermissionFeature>();
 		builder.Services.AddSingleton<IPermissionHandler>(sp => sp.GetRequiredService<PermissionFeature>());
 

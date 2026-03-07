@@ -21,7 +21,7 @@ jobs:
         run: dotnet workload restore
 
       - name: Build solution
-        run: dotnet build Cockpit.slnx --no-restore --configuration Release
+        run: dotnet build Cockpit.slnx --configuration Release
 
       - name: Run tests
         run: dotnet test Cockpit.slnx --no-build --configuration Release

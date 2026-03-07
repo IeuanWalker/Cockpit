@@ -32,6 +32,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 
 	DotNetObjectReference<ChatMessages>? _dotNetRef;
 	bool _isScrolledUp = false;
+	bool _pendingScrollToBottom = false;
 
 	string? _previousSessionId;
 
@@ -53,6 +54,12 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 			_dotNetRef = DotNetObjectReference.Create(this);
 			await _jsRuntime.InvokeVoidAsync("cockpit.setupScrollAnchor", "chatMessages");
 			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged");
+		}
+
+		if(_pendingScrollToBottom)
+		{
+			_pendingScrollToBottom = false;
+			await ScrollToBottom();
 		}
 	}
 
@@ -79,6 +86,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 				if(currentSessionId != _previousSessionId)
 				{
 					_previousSessionId = currentSessionId;
+					_pendingScrollToBottom = true;
 					await _textToSpeechFeature.Stop();
 				}
 			}
