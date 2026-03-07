@@ -3,7 +3,7 @@ using Cockpit.Features.Sessions;
 using GitHub.Copilot.SDK;
 using Microsoft.AspNetCore.Components;
 
-namespace Cockpit.Components.Pages.ChatPanel;
+namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
 public partial class ModelControl : ComponentBase, IDisposable
 {

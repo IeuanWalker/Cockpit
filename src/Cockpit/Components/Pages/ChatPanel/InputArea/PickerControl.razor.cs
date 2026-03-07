@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 
-namespace Cockpit.Components.Pages.ChatPanel;
+namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
 public partial class PickerControl : ComponentBase
 {

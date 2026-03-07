@@ -3,7 +3,7 @@ using Cockpit.Features.UIState;
 using CommunityToolkit.Maui.Media;
 using Microsoft.AspNetCore.Components;
 
-namespace Cockpit.Components.Pages.ChatPanel;
+namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
 public sealed partial class SpeechToTextControl : ComponentBase, IDisposable
 {

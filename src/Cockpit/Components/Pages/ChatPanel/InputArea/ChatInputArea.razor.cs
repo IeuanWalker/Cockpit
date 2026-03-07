@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
-namespace Cockpit.Components.Pages.ChatPanel;
+namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
 public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 {
@@ -270,47 +270,6 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		}
 	}
 
-	void RemoveAttachment(int index)
-	{
-		SessionModel? session = _sessionFeature.CurrentSession;
-		if(session is null)
-		{
-			return;
-		}
-
-		string filePath;
-		lock(session.PendingAttachmentsLock)
-		{
-			if(index < 0 || index >= session.PendingAttachments.Count)
-			{
-				return;
-			}
-
-			filePath = session.PendingAttachments[index].FilePath;
-			session.PendingAttachments.RemoveAt(index);
-		}
-
-		// Only delete if it's a session-owned file (pasted images saved to Cockpit\Files\)
-		// Never delete user's original files selected via the file picker
-		string sessionFilesDir = GetSessionFilesPath(session);
-		bool isSessionOwned = filePath.StartsWith(sessionFilesDir, StringComparison.OrdinalIgnoreCase);
-
-		if(isSessionOwned)
-		{
-			try
-			{
-				if(File.Exists(filePath))
-				{
-					File.Delete(filePath);
-				}
-			}
-			catch(Exception ex)
-			{
-				_logger.LogDebug(ex, "Failed to delete attachment file {FilePath}", filePath);
-			}
-		}
-	}
-
 	bool CanSend => !string.IsNullOrWhiteSpace(UserInput) && _sessionFeature.CurrentSession?.PendingPermissionRequests?.Count == 0;
 
 	async Task SendMessage()
@@ -352,19 +311,21 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		}
 	}
 
-	async Task OpenLightbox(string src, string alt)
-	{
-		try
-		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.showImageLightbox", src, alt);
-		}
-		catch { /* ignore if JS unavailable */ }
-	}
-
 	static string GetSessionFilesPath(SessionModel session)
 	{
 		string basePath = session.Context.WorkspacePath ?? Path.GetTempPath();
 		return Path.Combine(basePath, "Cockpit", "Files");
+	}
+
+	void ToggleYoloMode()
+	{
+		if(_sessionFeature.CurrentSession is null)
+		{
+			return;
+		}
+
+		_sessionFeature.CurrentSession.IsYolo = !_sessionFeature.CurrentSession.IsYolo;
+		StateHasChanged();
 	}
 
 	public async ValueTask DisposeAsync()
@@ -387,16 +348,5 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		}
 
 		_dotNetRef?.Dispose();
-	}
-
-	void ToggleYoloMode()
-	{
-		if(_sessionFeature.CurrentSession is null)
-		{
-			return;
-		}
-
-		_sessionFeature.CurrentSession.IsYolo = !_sessionFeature.CurrentSession.IsYolo;
-		StateHasChanged();
 	}
 }
