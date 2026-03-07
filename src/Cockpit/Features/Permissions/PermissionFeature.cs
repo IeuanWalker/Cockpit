@@ -516,7 +516,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			// Check if other pending requests for this session can now be auto-approved
 			if(decision.Equals(PermissionDecisionEnum.Global) || decision.Equals(PermissionDecisionEnum.Session))
 			{
-				AutoResolveMatchingRequests(request.SessionId, request.Commands, decision);
+				AutoResolveMatchingRequests(request.SessionId, request.Id, request.Commands, decision);
 			}
 		}
 
@@ -530,7 +530,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 		OnPermissionResolved?.Invoke(request.SessionId, request.Id);
 	}
 
-	void AutoResolveMatchingRequests(string sessionId, List<string> commands, PermissionDecisionEnum decision)
+	void AutoResolveMatchingRequests(string sessionId, string excludeRequestId, List<string> commands, PermissionDecisionEnum decision)
 	{
 		if(decision.Equals(PermissionDecisionEnum.Denied))
 		{
@@ -543,6 +543,12 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 		foreach(PermissionRequestModel pendingRequest in pendingForSession)
 		{
+			// Skip the request being resolved by the caller — it is handled directly there.
+			if(pendingRequest.Id == excludeRequestId)
+			{
+				continue;
+			}
+
 			// Check if ANY command in the pending request is in the newly granted commands
 			bool hasMatchingCommand = pendingRequest.Commands.Any(cmd => commands.Contains(cmd));
 			if(!hasMatchingCommand)

@@ -695,6 +695,82 @@ public class PermissionFeatureTests
 		globalFeature.Dispose();
 	}
 
+	[Fact]
+	public async Task ResolvePermissionRequest_SessionScope_DoesNotResetStatusToIdle_WhenMultipleRequestsHaveSameCommands()
+	{
+		// Regression test: approving request A with Session scope must not cause status to revert to Idle.
+		// Previously AutoResolveMatchingRequests included A itself, double-popping StatusHistory and landing on Idle.
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		const string sessionId = "session1";
+		SessionModel session = new()
+		{
+			Id = sessionId,
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Status = SessionStatusEnum.Running,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
+		};
+		stateProvider.AddSession(session);
+
+		// Two concurrent requests for the same command in the same session
+		PermissionRequestModel requestA = new()
+		{
+			SessionId = sessionId,
+			FullCommand = "npm install",
+			Commands = ["npm"],
+			RequestTitle = "Allow npm",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			FullRequestJson = "{}"
+		};
+
+		PermissionRequestModel requestB = new()
+		{
+			SessionId = sessionId,
+			FullCommand = "npm run build",
+			Commands = ["npm"],
+			RequestTitle = "Allow npm",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			FullRequestJson = "{}"
+		};
+
+		Task<PermissionDecisionEnum> taskA = feature.CheckPermissionAsync(requestA);
+		Task<PermissionDecisionEnum> taskB = feature.CheckPermissionAsync(requestB);
+
+		await Task.Delay(100, TestContext.Current.CancellationToken);
+
+		// Approve A with Session scope — B should auto-resolve, session should end up Running (not Idle)
+		feature.ResolvePermissionRequest(requestA.Id, PermissionDecisionEnum.Session);
+
+		PermissionDecisionEnum resultA = await taskA.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		PermissionDecisionEnum resultB = await taskB.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+		resultA.ShouldBe(PermissionDecisionEnum.Session);
+		resultB.ShouldBe(PermissionDecisionEnum.Session);
+		session.Status.ShouldBe(SessionStatusEnum.Running);
+
+		globalFeature.Dispose();
+	}
+
 	// Helper to access private field via reflection (for testing only)
 	static List<PermissionRequestModel> GetPendingRequests(PermissionFeature feature)
 	{

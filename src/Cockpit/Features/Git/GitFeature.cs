@@ -245,7 +245,8 @@ public sealed partial class GitFeature
 				RedirectStandardOutput = true,
 				RedirectStandardError = true,
 				UseShellExecute = false,
-				CreateNoWindow = true
+				CreateNoWindow = true,
+				StandardOutputEncoding = Encoding.UTF8
 			};
 
 			foreach(string arg in arguments)
