@@ -309,7 +309,8 @@ window.cockpit = {
         }
     },
 
-    highlightDiffCells: function (containerId, language) {        if (!window.hljs) return;
+    highlightDiffCells: function (containerId, language) {
+        if (!window.hljs) return;
         const container = document.getElementById(containerId);
         if (!container) return;
 
@@ -472,7 +473,7 @@ window.cockpit = {
 // Isolate links and buttons inside Blazor clickable containers so they don't bubble up
 // to parent onclick handlers (e.g. event-message popup, tool-summary expander).
 (function () {
-    const ISOLATED = ['.event-message', '.tool-summary', '.thinking-message.cursor-pointer'];
+    const ISOLATED = ['.event-message', '.tool-summary', '.thinking-message', '.working-message'];
 
     function attachIsolation(el) {
         if (el._clickIsolated) return;
