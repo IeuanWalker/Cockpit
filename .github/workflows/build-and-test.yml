@@ -1,0 +1,27 @@
+name: Build and Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore MAUI workloads
+        run: dotnet workload restore
+
+      - name: Build solution
+        run: dotnet build Cockpit.slnx --no-restore --configuration Release
+
+      - name: Run tests
+        run: dotnet test Cockpit.slnx --no-build --configuration Release

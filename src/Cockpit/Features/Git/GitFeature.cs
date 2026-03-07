@@ -69,9 +69,25 @@ public sealed partial class GitFeature
 					continue;
 				}
 
-				// New folder not file, ignore
-				if(line.Last().Equals('/'))
+				// If untracked directory, recursively enumerate files
+				if(line[0] == '?' && line[1] == '?' && line.Last().Equals('/'))
 				{
+					string dirPath = line[3..].Trim();
+					string fullDirPath = Path.Combine(gitRoot, dirPath);
+					if(Directory.Exists(fullDirPath))
+					{
+						foreach(string untrackedFile in Directory.EnumerateFiles(fullDirPath, "*", SearchOption.AllDirectories))
+						{
+							GitChangedFileModel fileModel = new()
+							{
+								Name = Path.GetFileName(untrackedFile),
+								Path = Path.GetRelativePath(gitRoot, untrackedFile),
+								Status = GitFileStatusEnum.Added,
+								Diff = await GetDiffAsync(gitRoot, Path.GetRelativePath(gitRoot, untrackedFile), GitFileStatusEnum.Untracked)
+							};
+							results.Add(fileModel);
+						}
+					}
 					continue;
 				}
 
