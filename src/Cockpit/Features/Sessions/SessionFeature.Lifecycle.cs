@@ -419,6 +419,7 @@ public sealed partial class SessionFeature
 
 			await _terminalFeature.CloseSessionAsync(sessionId);
 			_userInputHandler.CancelPendingRequestsForSession(sessionId);
+			_permissionHandler.CancelPendingRequestsForSession(sessionId);
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			await client.DeleteSessionAsync(sessionId);
@@ -473,6 +474,20 @@ public sealed partial class SessionFeature
 			{
 				throw new InvalidOperationException($"Session {sessionId} not found in SDK sessions");
 			}
+
+			// Clear status history so that resolving pending requests restores to Idle, not Running
+			SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+			if(session is not null)
+			{
+				lock(session.StatusHistoryLock)
+				{
+					session.StatusHistory.Clear();
+				}
+			}
+
+			// Cancel any pending permission/user-input requests so they are removed from the UI immediately
+			_permissionHandler.CancelPendingRequestsForSession(sessionId);
+			_userInputHandler.CancelPendingRequestsForSession(sessionId);
 
 			await sdkSession.AbortAsync();
 		}

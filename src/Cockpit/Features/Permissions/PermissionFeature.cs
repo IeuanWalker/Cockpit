@@ -622,6 +622,22 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 		return FilePathCategory.External;
 	}
 
+	/// <summary>
+	/// Cancels all pending permission requests for a session (e.g., when the session is aborted or deleted).
+	/// </summary>
+	public void CancelPendingRequestsForSession(string sessionId)
+	{
+		List<string> requestIds = [.. _pendingRequests.Values
+			.Where(r => r.SessionId == sessionId)
+			.Select(r => r.Id)];
+
+		foreach(string requestId in requestIds)
+		{
+			_logger.LogInformation("Cancelling pending permission request {RequestId} for aborted session {SessionId}", requestId, sessionId);
+			ResolvePermissionRequest(requestId, PermissionDecisionEnum.Denied);
+		}
+	}
+
 	public void Dispose()
 	{
 		Dispose(true);
