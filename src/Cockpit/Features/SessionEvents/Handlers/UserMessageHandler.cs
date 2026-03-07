@@ -31,6 +31,8 @@ static class UserMessageHandler
 			optimistic.IsPending = optimistic.IsPending || wasAgentBusy;
 			// Fill in attachments from event if the optimistic message didn't already have them
 			optimistic.Attachments ??= attachments;
+			optimistic.EventJson ??= [];
+			optimistic.EventJson.Add(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 		}
 		else
 		{
