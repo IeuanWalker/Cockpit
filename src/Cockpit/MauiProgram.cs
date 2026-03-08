@@ -15,6 +15,7 @@ using Cockpit.Features.TextToSpeech;
 using Cockpit.Features.Theme;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
+using Cockpit.Features.Updates;
 using Cockpit.Features.UserInputRequests;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
@@ -88,6 +89,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IUserInputHandler>(sp => sp.GetRequiredService<UserInputFeature>());
 
 		builder.Services.AddSingleton<ModelFeature>();
+		builder.Services.AddSingleton<UpdateFeature>();
 
 		// Register agent services
 		builder.Services.AddSingleton<AgentPersistence>();

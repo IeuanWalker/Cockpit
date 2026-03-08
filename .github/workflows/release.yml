@@ -1,0 +1,50 @@
+name: Release (Windows)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore MAUI workloads
+        run: dotnet workload restore
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish Windows app
+        run: >
+          dotnet publish src/Cockpit/Cockpit.csproj
+          --framework net10.0-windows10.0.19041.0
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:ApplicationDisplayVersion=${{ steps.version.outputs.VERSION }}
+          -p:ApplicationVersion=${{ github.run_number }}
+          --output ./publish/windows
+
+      - name: Zip publish output
+        run: Compress-Archive -Path ./publish/windows/* -DestinationPath ./Cockpit-windows-x64.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Cockpit-windows-x64.zip
+          generate_release_notes: true

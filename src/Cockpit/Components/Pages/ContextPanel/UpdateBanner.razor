@@ -1,0 +1,20 @@
+@using Cockpit.Features.Updates
+
+@if (_feature.CachedResult?.UpdateAvailable == true && _feature.CachedResult.LatestRelease?.TagName != _feature.DismissedVersion)
+{
+    <div class="update-banner">
+        <div class="update-banner-info">
+            <svg class="update-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            <div class="update-text">
+                <span class="update-title">Update available</span>
+                <span class="update-version">@_feature.CachedResult!.LatestRelease!.TagName</span>
+            </div>
+        </div>
+        <div class="update-actions">
+            <button class="update-download-btn" @onclick="Download" title="Open release page">Download</button>
+            <button class="update-dismiss-btn" @onclick="Dismiss" title="Dismiss this update">✕</button>
+        </div>
+    </div>
+}
