@@ -41,9 +41,14 @@ public sealed partial class UpdateFeature : IDisposable
 			IReadOnlyList<GitHubReleaseModel> releases = await GetReleasesAsync(cancellationToken);
 
 			GitHubReleaseModel? latest = releases
-				.Where(r => !r.IsPrerelease && !r.IsDraft)
+				.Where(r => r is { Prerelease: false, Draft: false })
 				.OrderByDescending(r => r.PublishedAt)
 				.FirstOrDefault();
+
+			if(latest?.TagName is null)
+			{
+				return new UpdateCheckResult(false, _currentVersion, null);
+			}
 
 			UpdateCheckResult result = new(
 				latest != null && IsNewerVersion(latest.TagName, _currentVersion),
