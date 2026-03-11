@@ -1,0 +1,80 @@
+.update-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    border-bottom: 1px solid var(--border-color);
+    background: color-mix(in srgb, var(--accent-color) 12%, transparent);
+    color: var(--accent-color);
+}
+
+.update-banner-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.update-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.update-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.update-title {
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.update-version {
+    opacity: 0.75;
+    font-size: 10px;
+}
+
+.update-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.update-download-btn {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid var(--accent-color);
+    background: transparent;
+    color: var(--accent-color);
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+    .update-download-btn:hover {
+        background: color-mix(in srgb, var(--accent-color) 20%, transparent);
+    }
+
+.update-dismiss-btn {
+    font-size: 10px;
+    padding: 2px 4px;
+    border: none;
+    background: transparent;
+    color: var(--accent-color);
+    opacity: 0.6;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: opacity 0.15s;
+    line-height: 1;
+}
+
+    .update-dismiss-btn:hover {
+        opacity: 1;
+    }
