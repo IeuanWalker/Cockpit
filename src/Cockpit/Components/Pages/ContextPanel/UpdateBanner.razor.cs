@@ -29,9 +29,9 @@ public partial class UpdateBanner : ComponentBase, IDisposable
 
 	void Dismiss()
 	{
-		if(_feature.CachedResult?.LatestRelease is not null)
+		if(_feature.CachedResult?.LatestRelease is { TagName: { } tagName })
 		{
-			_feature.DismissVersion(_feature.CachedResult.LatestRelease.TagName);
+			_feature.DismissVersion(tagName);
 			StateHasChanged();
 		}
 	}
