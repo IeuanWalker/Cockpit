@@ -29,16 +29,16 @@ public sealed partial class UpdateFeature : IDisposable
 		_currentVersion = AppInfo.VersionString;
 
 		// Check immediately on startup, then every hour
-		_timer = new Timer(_ => _ = CheckForUpdateAsync(), null, TimeSpan.Zero, checkInterval);
+		_timer = new Timer(_ => _ = CheckForUpdate(), null, TimeSpan.Zero, checkInterval);
 	}
 
 	public void DismissVersion(string version) => _dismissedVersion = version;
 
-	public async Task<UpdateCheckResult> CheckForUpdateAsync(CancellationToken cancellationToken = default)
+	public async Task<UpdateCheckResult> CheckForUpdate(CancellationToken cancellationToken = default)
 	{
 		try
 		{
-			IReadOnlyList<GitHubReleaseModel> releases = await GetReleasesAsync(cancellationToken);
+			IReadOnlyList<GitHubReleaseModel> releases = await GetReleases(cancellationToken);
 
 			GitHubReleaseModel? latest = releases
 				.Where(r => r is { Prerelease: false, Draft: false })
@@ -65,7 +65,7 @@ public sealed partial class UpdateFeature : IDisposable
 		}
 	}
 
-	async Task<IReadOnlyList<GitHubReleaseModel>> GetReleasesAsync(CancellationToken cancellationToken)
+	async Task<IReadOnlyList<GitHubReleaseModel>> GetReleases(CancellationToken cancellationToken)
 	{
 		JsonSerializerOptions options = new()
 		{
