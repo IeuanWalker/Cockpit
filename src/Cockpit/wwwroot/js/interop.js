@@ -347,14 +347,14 @@ window.cockpit = {
             syncing = true;
             right.scrollLeft = left.scrollLeft;
             right.scrollTop = left.scrollTop;
-            syncing = false;
+            requestAnimationFrame(() => { syncing = false; });
         };
         right._splitScrollHandler = () => {
             if (syncing) return;
             syncing = true;
             left.scrollLeft = right.scrollLeft;
             left.scrollTop = right.scrollTop;
-            syncing = false;
+            requestAnimationFrame(() => { syncing = false; });
         };
 
         left.addEventListener('scroll', left._splitScrollHandler);
