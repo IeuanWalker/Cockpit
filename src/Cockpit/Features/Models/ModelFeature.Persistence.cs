@@ -73,7 +73,11 @@ public partial class ModelFeature
 					return false;
 				}
 
-				session.Model = model;
+				if(session.Model.Id != model.Id)
+				{
+					session.Model = model;
+					session.ModelChanged = true;
+				}
 
 				if(session.Model.SupportedReasoningEfforts is null || session.Model.SupportedReasoningEfforts.Count == 0)
 				{
@@ -89,7 +93,12 @@ public partial class ModelFeature
 
 					if(session.Model.SupportedReasoningEfforts?.Contains(reasoningEffort) ?? false)
 					{
-						session.ReasoningEffort = reasoningEffort;
+						if(session.ReasoningEffort != reasoningEffort)
+						{
+							session.ReasoningEffort = reasoningEffort;
+							session.ModelChanged = true;
+						}
+
 						return true;
 					}
 				}
