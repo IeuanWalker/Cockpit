@@ -81,8 +81,10 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	void ToggleSearch()
 	{
 		_showSearch = !_showSearch;
-		if (_showSearch)
+		if(_showSearch)
+		{
 			_ = _sessionList?.FocusSearchAsync();
+		}
 	}
 
 	async Task RefreshSessions()
