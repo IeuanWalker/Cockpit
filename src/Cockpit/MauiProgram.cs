@@ -89,14 +89,22 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IUserInputHandler>(sp => sp.GetRequiredService<UserInputFeature>());
 
 		builder.Services.AddSingleton<ModelFeature>();
-		builder.Services.AddSingleton<UpdateFeature>();
+		builder.Services.AddSingleton<UpdateFeature>(sp =>
+		{
+			// HttpClient is created exclusively for UpdateFeature, which takes ownership and disposes it.
+			HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
+			client.DefaultRequestHeaders.Add("User-Agent", "Cockpit");
+			return new UpdateFeature(client);
+		});
 
 		// Register agent services
 		builder.Services.AddSingleton<AgentPersistence>();
 		builder.Services.AddSingleton<GlobalAgentFeature>();
 		builder.Services.AddSingleton<SessionAgentFeature>();
 
-		return builder.Build();
+		MauiApp app = builder.Build();
+		app.Services.GetRequiredService<UpdateFeature>().Initialize();
+		return app;
 	}
 }
 

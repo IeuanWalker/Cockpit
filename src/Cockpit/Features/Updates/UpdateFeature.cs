@@ -7,11 +7,11 @@ namespace Cockpit.Features.Updates;
 public sealed partial class UpdateFeature : IDisposable
 {
 	static readonly TimeSpan checkInterval = TimeSpan.FromHours(1);
-	const string apiUrl = "https://api.github.com/repos/IeuanWalker/Cockpit/releases";
+	const string latestReleaseUrl = "https://api.github.com/repos/IeuanWalker/Cockpit/releases/latest";
 
 	readonly HttpClient _httpClient;
 	readonly string _currentVersion;
-	readonly Timer _timer;
+	Timer? _timer;
 
 	UpdateCheckResult? _cachedResult;
 	string? _dismissedVersion;
@@ -22,13 +22,17 @@ public sealed partial class UpdateFeature : IDisposable
 
 	public event Action? OnUpdateChecked;
 
-	public UpdateFeature()
+	public UpdateFeature(HttpClient httpClient)
 	{
-		_httpClient = new HttpClient();
-		_httpClient.DefaultRequestHeaders.Add("User-Agent", "Cockpit");
+		_httpClient = httpClient;
 		_currentVersion = AppInfo.VersionString;
+	}
 
-		// Check immediately on startup, then every hour
+	/// <summary>
+	/// Starts the periodic update check. Call once after the application has started.
+	/// </summary>
+	public void Initialize()
+	{
 		_timer = new Timer(_ => _ = CheckForUpdate(), null, TimeSpan.Zero, checkInterval);
 	}
 
@@ -38,12 +42,7 @@ public sealed partial class UpdateFeature : IDisposable
 	{
 		try
 		{
-			IReadOnlyList<GitHubReleaseModel> releases = await GetReleases(cancellationToken);
-
-			GitHubReleaseModel? latest = releases
-				.Where(r => r is { Prerelease: false, Draft: false })
-				.OrderByDescending(r => r.PublishedAt)
-				.FirstOrDefault();
+			GitHubReleaseModel? latest = await GetLatestRelease(cancellationToken);
 
 			if(latest?.TagName is null)
 			{
@@ -51,7 +50,7 @@ public sealed partial class UpdateFeature : IDisposable
 			}
 
 			UpdateCheckResult result = new(
-				latest != null && IsNewerVersion(latest.TagName, _currentVersion),
+				IsNewerVersion(latest.TagName, _currentVersion),
 				_currentVersion,
 				latest);
 
@@ -65,7 +64,7 @@ public sealed partial class UpdateFeature : IDisposable
 		}
 	}
 
-	async Task<IReadOnlyList<GitHubReleaseModel>> GetReleases(CancellationToken cancellationToken)
+	async Task<GitHubReleaseModel?> GetLatestRelease(CancellationToken cancellationToken)
 	{
 		JsonSerializerOptions options = new()
 		{
@@ -73,13 +72,7 @@ public sealed partial class UpdateFeature : IDisposable
 			PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
 		};
 
-		List<GitHubReleaseModel>? dtos = await _httpClient.GetFromJsonAsync<List<GitHubReleaseModel>>(apiUrl, options, cancellationToken);
-		if(dtos is null)
-		{
-			return [];
-		}
-
-		return dtos;
+		return await _httpClient.GetFromJsonAsync<GitHubReleaseModel>(latestReleaseUrl, options, cancellationToken);
 	}
 
 	internal static bool IsNewerVersion(string remoteVersion, string currentVersion)
@@ -132,7 +125,7 @@ public sealed partial class UpdateFeature : IDisposable
 	{
 		if(disposing)
 		{
-			_timer.Dispose();
+			_timer?.Dispose();
 			_httpClient.Dispose();
 		}
 	}
