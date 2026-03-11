@@ -78,7 +78,12 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	static string GetTimeAgo(DateTime dateTime) => dateTime.Humanize();
 
-	void ToggleSearch() => _showSearch = !_showSearch;
+	void ToggleSearch()
+	{
+		_showSearch = !_showSearch;
+		if (_showSearch)
+			_ = _sessionList?.FocusSearchAsync();
+	}
 
 	async Task RefreshSessions()
 	{

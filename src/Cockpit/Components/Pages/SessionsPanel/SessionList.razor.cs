@@ -5,6 +5,7 @@ using Cockpit.Features.UIState;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
 
@@ -16,15 +17,18 @@ public partial class SessionList : ComponentBase, IDisposable
 	readonly TimestampFeature _timestampFeature;
 	readonly UIStateFeature _uiStateFeature;
 	readonly SessionFeature _sessionFeature;
+	readonly IJSRuntime _jsRuntime;
 
 	public SessionList(
 		TimestampFeature timestampFeature,
 		UIStateFeature uiStateFeature,
-		SessionFeature sessionFeature)
+		SessionFeature sessionFeature,
+		IJSRuntime jsRuntime)
 	{
 		_timestampFeature = timestampFeature;
 		_uiStateFeature = uiStateFeature;
 		_sessionFeature = sessionFeature;
+		_jsRuntime = jsRuntime;
 	}
 
 	string _searchText = string.Empty;
@@ -102,6 +106,18 @@ public partial class SessionList : ComponentBase, IDisposable
 			: path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
 	void ToggleFilterPanel() => _showFilterPanel = !_showFilterPanel;
+
+	public async Task FocusSearchAsync()
+	{
+		await InvokeAsync(StateHasChanged);
+		await _jsRuntime.InvokeVoidAsync("cockpit.focusElement", "sessionSearch");
+	}
+
+	async Task ClearAndFocusSearch()
+	{
+		_searchText = string.Empty;
+		await _jsRuntime.InvokeVoidAsync("cockpit.focusElement", "sessionSearch");
+	}
 
 	void ToggleCwdFilter(string cwd)
 	{
