@@ -21,13 +21,15 @@ public partial class UpdateBanner : ComponentBase, IDisposable
 
 	void Download()
 	{
-		if (_feature.CachedResult?.LatestRelease is not null)
+		if(_feature.CachedResult?.LatestRelease is not null)
+		{
 			_feature.OpenReleaseInBrowser(_feature.CachedResult.LatestRelease);
+		}
 	}
 
 	void Dismiss()
 	{
-		if (_feature.CachedResult?.LatestRelease is not null)
+		if(_feature.CachedResult?.LatestRelease is not null)
 		{
 			_feature.DismissVersion(_feature.CachedResult.LatestRelease.TagName);
 			StateHasChanged();
@@ -42,7 +44,7 @@ public partial class UpdateBanner : ComponentBase, IDisposable
 
 	protected virtual void Dispose(bool disposing)
 	{
-		if (disposing)
+		if(disposing)
 		{
 			_feature.OnUpdateChecked -= OnUpdateChecked;
 		}
