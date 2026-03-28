@@ -20,6 +20,7 @@ using Cockpit.Features.UserInputRequests;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
 using MauiContentButton;
+using Cockpit.Utilities.Logging;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
@@ -29,6 +30,8 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
+		RegisterCrashHandlers();
+
 		MauiAppBuilder builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
@@ -57,6 +60,7 @@ public static class MauiProgram
 		builder.Services.AddBlazorWebViewDeveloperTools();
 		builder.Logging.AddDebug();
 #endif
+		builder.Logging.AddProvider(new FileLoggerProvider());
 
 		// Speech and Text features
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
@@ -112,6 +116,40 @@ public static class MauiProgram
 		MauiApp app = builder.Build();
 		app.Services.GetRequiredService<UpdateFeature>().Initialize();
 		return app;
+	}
+
+	static void RegisterCrashHandlers()
+	{
+		AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+			LogCrash("AppDomain", args.ExceptionObject as Exception);
+
+		TaskScheduler.UnobservedTaskException += (_, args) =>
+		{
+			LogCrash("TaskScheduler", args.Exception);
+			args.SetObserved();
+		};
+	}
+
+	static void LogCrash(string source, Exception? ex)
+	{
+		try
+		{
+			string logPath = Path.Combine(LogDirectoryHelper.LogDirectory, "crash.log");
+			const long maxBytes = 5 * 1024 * 1024;
+
+			FileInfo info = new(logPath);
+			if(info.Exists && info.Length >= maxBytes)
+			{
+				string backup = logPath + ".old";
+				if(File.Exists(backup))
+					File.Delete(backup);
+				File.Move(logPath, backup);
+			}
+
+			string entry = $"\n=== {DateTime.Now:yyyy-MM-dd HH:mm:ss} [{source}] ==={Environment.NewLine}{ex}{Environment.NewLine}";
+			File.AppendAllText(logPath, entry);
+		}
+		catch { /* best-effort */ }
 	}
 }
 
