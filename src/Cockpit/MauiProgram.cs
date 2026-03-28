@@ -19,6 +19,7 @@ using Cockpit.Features.Updates;
 using Cockpit.Features.UserInputRequests;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
+using MauiContentButton;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
@@ -34,10 +35,12 @@ public static class MauiProgram
 #if WINDOWS || MACCATALYST
 			.UseMauiCommunityToolkit()
 #endif
+			.AddMauiContentButtonHandler()
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-				fonts.AddFont("FluentSystemIcons-Light.ttf", "FluentSystemIconsLight");
+				fonts.AddFont("SegoeUI-Regular.ttf", "SegoeUIRegular");
+				fonts.AddFont("FluentSystemIcons-Regular.ttf", "FluentSystemIconsRegular");
 			});
 
 		// Core Blazor and Toolkit services
