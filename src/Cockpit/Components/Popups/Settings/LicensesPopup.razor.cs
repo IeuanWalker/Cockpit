@@ -17,9 +17,10 @@ public partial class LicensesPopup : ComponentBase
 			await using Stream stream = await FileSystem.OpenAppPackageFileAsync("libraries.json");
 			_libraries = await JsonSerializer.DeserializeAsync(stream, LicensesJsonContext.Default.ListLibraryInfo) ?? [];
 		}
-		catch
+		catch (Exception ex)
 		{
 			_libraries = [];
+			Console.Error.WriteLine($"Failed to load or parse 'libraries.json' in {nameof(LicensesPopup)}: {ex}");
 		}
 	}
 
