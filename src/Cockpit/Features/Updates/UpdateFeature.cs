@@ -15,10 +15,13 @@ public sealed partial class UpdateFeature : IDisposable
 
 	UpdateCheckResult? _cachedResult;
 	string? _dismissedVersion;
+	DateTime? _lastChecked;
 
 	public UpdateCheckResult? CachedResult => _cachedResult;
 	public string? DismissedVersion => _dismissedVersion;
 	public string CurrentVersion => _currentVersion;
+	public DateTime? LastChecked => _lastChecked;
+	public DateTime? InstalledDate { get; }
 
 	public event Action? OnUpdateChecked;
 
@@ -26,6 +29,15 @@ public sealed partial class UpdateFeature : IDisposable
 	{
 		_httpClient = httpClient;
 		_currentVersion = AppInfo.VersionString;
+
+		string key = $"installed_date_{_currentVersion}";
+		if (VersionTracking.Default.IsFirstLaunchForCurrentVersion)
+		{
+			Preferences.Default.Set(key, DateTime.UtcNow);
+		}
+		InstalledDate = Preferences.Default.ContainsKey(key)
+			? Preferences.Default.Get(key, DateTime.MinValue)
+			: null;
 	}
 
 	/// <summary>
@@ -46,6 +58,8 @@ public sealed partial class UpdateFeature : IDisposable
 
 			if(latest?.TagName is null)
 			{
+				_lastChecked = DateTime.UtcNow;
+				OnUpdateChecked?.Invoke();
 				return new UpdateCheckResult(false, _currentVersion, null);
 			}
 
@@ -55,11 +69,14 @@ public sealed partial class UpdateFeature : IDisposable
 				latest);
 
 			_cachedResult = result;
+			_lastChecked = DateTime.UtcNow;
 			OnUpdateChecked?.Invoke();
 			return result;
 		}
 		catch
 		{
+			_lastChecked = DateTime.UtcNow;
+			OnUpdateChecked?.Invoke();
 			return new UpdateCheckResult(false, _currentVersion, null);
 		}
 	}

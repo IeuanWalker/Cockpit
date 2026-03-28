@@ -42,6 +42,11 @@
                     <span class="text-sm font-medium text-app-title">Diagnostics</span>
                     <span class="text-xs secondary-text">Logs, telemetry</span>
                 </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.About ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.About)">
+                    <span class="text-sm font-medium text-app-title">About app</span>
+                    <span class="text-xs secondary-text">Version, updates, libraries</span>
+                </button>
             </nav>
             <div class="settings-panel">
                 @switch(_activeSection)
@@ -63,6 +68,9 @@
                         break;
                     case SettingsSectionEnum.Diagnostics:
                         <DiagnosticsSettings />
+                        break;
+                    case SettingsSectionEnum.About:
+                        <AboutSettings />
                         break;
                 }
             </div>

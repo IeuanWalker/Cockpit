@@ -106,5 +106,16 @@
       <Generator>MSBuild:Compile</Generator>
     </MauiXaml>
   </ItemGroup>
+  <ItemGroup>
+    <!-- Exclude the build-time generator script from project compilation -->
+    <Compile Remove="generate-libraries.cs" />
+  </ItemGroup>
+
+  <Target Name="GenerateLibrariesJson" BeforeTargets="_MauiXamlComputeInflator"
+          Inputs="$(MSBuildProjectFullPath);$(MSBuildProjectDirectory)\..\..\scripts\generate-libraries.cs"
+          Outputs="$(MSBuildProjectDirectory)\Resources\Raw\libraries.json">
+    <Exec Command="dotnet run generate-libraries.cs &quot;$(MSBuildProjectFullPath)&quot; &quot;$(MSBuildProjectDirectory)\Resources\Raw\libraries.json&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)\..\..\scripts" />
+  </Target>
 
 </Project>

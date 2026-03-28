@@ -365,3 +365,6 @@ FodyWeavers.xsd
 # Verify
 *.received.*
 *.received/
+
+# Generated at build time
+src/Cockpit/Resources/Raw/libraries.json
