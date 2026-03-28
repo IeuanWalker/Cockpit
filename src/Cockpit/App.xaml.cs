@@ -1,4 +1,5 @@
-﻿using Cockpit.Features.Agents;
+﻿using Cockpit.Controls;
+using Cockpit.Features.Agents;
 
 namespace Cockpit;
 
@@ -36,6 +37,8 @@ public partial class App : Application
 				{
 					Children =
 					{
+						new SponsorButton(),
+						new ToolbarButton(),
 						new Button
 						{
 							Text = "\ue0a2",

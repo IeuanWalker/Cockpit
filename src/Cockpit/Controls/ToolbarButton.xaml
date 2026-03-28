@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView x:Class="Cockpit.Controls.ToolbarButton"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Cockpit.Controls"
+             xmlns:mcb="http://schemas.microsoft.com/dotnet/2024/maui/contentbutton"
+             Margin="2.5,8"
+             x:DataType="controls:ToolbarButton">
+    <mcb:ContentButton Padding="8,4"
+                       BackgroundColor="Transparent"
+                       Clicked="ContentButton_Clicked"
+                       StrokeColor="#2B2B2B"
+                       StrokeThickness="1">
+        <HorizontalStackLayout HorizontalOptions="Center"
+                               Spacing="7"
+                               VerticalOptions="Center">
+            <Label x:Name="IconLabel"
+                   Background="Transparent"
+                   FontFamily="FluentSystemIconsLight"
+                   FontSize="16"
+                   Text="&#xE0A2;"
+                   TextColor="#CCCCCC"
+                   VerticalOptions="Center" />
+        </HorizontalStackLayout>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="Transparent" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="PointerOver">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="#db61a2" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </VisualStateManager.VisualStateGroups>
+    </mcb:ContentButton>
+</ContentView>
