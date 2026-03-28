@@ -5,8 +5,9 @@
 
 ---
 
-By submitting a pull request, issue, patch, or any other contribution to this
-project, you ("the Contributor") agree to the following terms:
+By submitting a pull request, patch, or any other material contribution (such
+as code, documentation, or assets) to this project, you ("the Contributor")
+agree to the following terms:
 
 ---
 

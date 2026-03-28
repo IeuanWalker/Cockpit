@@ -8,22 +8,26 @@ PERMISSIONS
 --------------------------------------------------------------------------------
 
 1. USE
-   You may use this software for any purpose, including personal, commercial,
-   and non-commercial use, free of charge.
+   You may use this software for personal or internal commercial purposes
+   (e.g. running the app within your organisation), free of charge. This
+   permission covers use of the running application only, not distribution or
+   exploitation of the source code itself (see restrictions below).
 
 2. VIEW & STUDY
    You may view, read, and study the source code for any purpose.
 
-3. FORK & MODIFY (PRIVATE USE)
-   You may fork this repository and modify the source code for your own private
-   use, including running a custom build locally on your own machines.
+3. PRIVATE COPY & MODIFY
+   You may create a private copy of this repository and modify the source code
+   for your own private use, including running a custom build locally on your
+   own machines. Public forks are not permitted under these terms (see
+   restriction 5 below).
 
 4. CONTRIBUTIONS
-   You may fork this repository and submit pull requests proposing changes back
-   to the original project. By submitting a pull request or any other
-   contribution to this project, you accept and agree to the terms of the
-   Contributor License Agreement (CLA) found in CLA.md at the root of this
-   repository. You must agree to the CLA before any contribution can be
+   You may create a private copy of this repository and submit pull requests
+   proposing changes back to the original project. By submitting a pull request
+   or any other contribution to this project, you accept and agree to the terms
+   of the Contributor License Agreement (CLA) found in CLA.md at the root of
+   this repository. You must agree to the CLA before any contribution can be
    accepted.
 
 ================================================================================
@@ -52,9 +56,9 @@ RESTRICTIONS
 SUMMARY (NON-BINDING)
 --------------------------------------------------------------------------------
 
-  ✔  Use the app freely — personal or commercial
+  ✔  Use the app freely — personal or internal commercial
   ✔  Read and study the source code
-  ✔  Fork and run your own private custom build
+  ✔  Create a private copy and run your own private custom build
   ✔  Submit pull requests to contribute back
   ✘  Distribute or publish builds to others
   ✘  Sell or commercially exploit the code itself
