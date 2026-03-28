@@ -7,6 +7,8 @@ public partial class DiagnosticsSettings
 {
 	string LogDirectory => LogDirectoryHelper.LogDirectory;
 
+	ReportIssuePopup _reportIssuePopup = default!;
+
 	void OpenLogFolder()
 	{
 		try
@@ -18,4 +20,6 @@ public partial class DiagnosticsSettings
 		}
 		catch { /* best-effort */ }
 	}
+
+	void OpenReportIssue() => _reportIssuePopup.Open();
 }

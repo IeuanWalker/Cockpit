@@ -14,6 +14,7 @@ internal sealed class FileLoggerProvider : ILoggerProvider
 	{
 		_logPath = Path.Combine(LogDirectoryHelper.LogDirectory, "app.log");
 		_writer = OpenWriter();
+		WriteLine($"=== Cockpit started {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===");
 	}
 
 	public ILogger CreateLogger(string categoryName) => new FileLogger(categoryName, this);
@@ -52,7 +53,7 @@ internal sealed class FileLoggerProvider : ILoggerProvider
 		_writer = OpenWriter();
 	}
 
-	StreamWriter OpenWriter()
+	StreamWriter? OpenWriter()
 	{
 		try
 		{
@@ -60,7 +61,7 @@ internal sealed class FileLoggerProvider : ILoggerProvider
 		}
 		catch
 		{
-			return StreamWriter.Null;
+			return null;
 		}
 	}
 

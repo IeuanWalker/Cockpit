@@ -61,6 +61,7 @@ public static class MauiProgram
 		builder.Logging.AddDebug();
 #endif
 		builder.Logging.AddProvider(new FileLoggerProvider());
+		builder.Logging.AddFilter<FileLoggerProvider>(null, LogLevel.Debug);
 
 		// Speech and Text features
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
