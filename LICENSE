@@ -16,18 +16,18 @@ PERMISSIONS
 2. VIEW & STUDY
    You may view, read, and study the source code for any purpose.
 
-3. PRIVATE COPY & MODIFY
-   You may create a private copy of this repository and modify the source code
-   for your own private use, including running a custom build locally on your
-   own machines. Public forks are not permitted under these terms (see
-   restriction 5 below).
+3. FORK & MODIFY
+   You may publicly fork this repository and modify the source code for your
+   own use, including running a custom build locally on your own machines.
+   You may not release or distribute compiled builds of your fork to others
+   (see restriction 5 below).
 
 4. CONTRIBUTIONS
-   You may create a private copy of this repository and submit pull requests
-   proposing changes back to the original project. By submitting a pull request
-   or any other contribution to this project, you accept and agree to the terms
-   of the Contributor License Agreement (CLA) found in CLA.md at the root of
-   this repository. You must agree to the CLA before any contribution can be
+   You may fork this repository and submit pull requests proposing changes back
+   to the original project. By submitting a pull request or any other
+   contribution to this project, you accept and agree to the terms of the
+   Contributor License Agreement (CLA) found in CLA.md at the root of this
+   repository. You must agree to the CLA before any contribution can be
    accepted.
 
 ================================================================================
@@ -35,11 +35,13 @@ PERMISSIONS
 RESTRICTIONS
 --------------------------------------------------------------------------------
 
-5. NO REDISTRIBUTION
-   You may not distribute, publish, sublicense, or otherwise make this software
-   or any derivative of it (modified or unmodified, in source or compiled form)
-   available to any third party. This includes but is not limited to:
-     - Publishing forks or modified versions as public releases
+5. NO REDISTRIBUTION OF BUILDS
+   You may not distribute, publish, sublicense, or otherwise make compiled
+   builds of this software or any derivative of it available to any third party.
+   Public forks of the source code on GitHub (or similar platforms) are
+   permitted, but releasing builds generated from those forks is not. This
+   includes but is not limited to:
+     - Releasing compiled builds of a fork or modified version to others
      - Packaging or bundling this software into another product for distribution
      - Uploading compiled builds derived from this source to any platform
 
@@ -47,22 +49,26 @@ RESTRICTIONS
    You may not sell, rent, or commercially license this software or any
    derivative work based on it.
 
-7. NO REMOVAL OF NOTICES
-   You may not remove or alter any copyright, licence, or attribution notices
-   present in the source code or documentation.
+8. NO COPYING INTO DISTRIBUTED OR COMMERCIAL PROJECTS
+   You may not copy, reproduce, or incorporate any portion of this source code
+   into any project that is distributed to third parties or used for commercial
+   gain. Copying snippets for personal or private projects is permitted, provided
+   those projects are not distributed or commercially exploited.
 
 ================================================================================
 
 SUMMARY (NON-BINDING)
 --------------------------------------------------------------------------------
 
-  ✔  Use the app freely — personal or internal commercial
+  ✔  Use the app freely — personal or commercial
   ✔  Read and study the source code
-  ✔  Create a private copy and run your own private custom build
+  ✔  Fork the repository and run your own custom build locally
   ✔  Submit pull requests to contribute back
-  ✘  Distribute or publish builds to others
+  ✘  Release or distribute compiled builds of your fork to others
   ✘  Sell or commercially exploit the code itself
   ✘  Remove copyright or licence notices
+  ✘  Copy code into distributed or commercial projects
+  ✔  Copy snippets for personal/private use
 
 ================================================================================
 
