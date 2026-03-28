@@ -44,7 +44,8 @@ jobs:
         run: |
           $sourcePath = "${{ github.workspace }}\publish\windows"
           $version = "${{ steps.version.outputs.VERSION }}"
-          iscc /DAppVersion="$version" /DSourcePath="$sourcePath" .github/installers/windows.iss
+          $outputDir = "${{ github.workspace }}\installer-output"
+          iscc /DAppVersion="$version" /DSourcePath="$sourcePath" /DOutputDir="$outputDir" .github/installers/windows.iss
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

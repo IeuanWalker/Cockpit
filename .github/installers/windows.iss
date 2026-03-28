@@ -5,6 +5,9 @@
 #ifndef AppVersion
   #define AppVersion "0.0.0"
 #endif
+#if AppVersion == ""
+  #define AppVersion "0.0.0"
+#endif
 
 [Setup]
 AppId=com.ieuanwalker.cockpit
@@ -17,7 +20,10 @@ AppUpdatesURL={#AppURL}
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 AllowNoIcons=yes
-OutputDir=installer-output
+#ifndef OutputDir
+  #define OutputDir "installer-output"
+#endif
+OutputDir={#OutputDir}
 OutputBaseFilename=Cockpit-windows-x64-Setup
 Compression=lzma2
 SolidCompression=yes
