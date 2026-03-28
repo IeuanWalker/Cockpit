@@ -1,15 +1,19 @@
 using Cockpit.Components.Popups;
 using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Components;
 
 public partial class NoSelectedSession : ComponentBase
 {
 	readonly SessionListFeature _sessionListFeature;
-	public NoSelectedSession(SessionListFeature sessionListFeature)
+	readonly ILogger<NoSelectedSession> _logger;
+
+	public NoSelectedSession(SessionListFeature sessionListFeature, ILogger<NoSelectedSession> logger)
 	{
 		_sessionListFeature = sessionListFeature;
+		_logger = logger;
 	}
 
 	CreateSessionPopup? _createSessionPopup;
@@ -22,7 +26,7 @@ public partial class NoSelectedSession : ComponentBase
 		}
 		catch(Exception ex)
 		{
-			Console.Error.WriteLine($"Failed to open directory dialog: {ex.Message}");
+			_logger.LogError(ex, "Failed to open create session popup");
 		}
 	}
 }

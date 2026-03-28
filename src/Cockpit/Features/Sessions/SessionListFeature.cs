@@ -1,9 +1,16 @@
 using Cockpit.Features.Sessions.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;
 
 public class SessionListFeature : ISessionStateProvider
 {
+	readonly ILogger<SessionListFeature> _logger;
+
+	public SessionListFeature(ILogger<SessionListFeature> logger)
+	{
+		_logger = logger;
+	}
 	readonly List<SessionModel> _sessions = [];
 
 	public event Action? OnStateChanged;
@@ -59,10 +66,11 @@ public class SessionListFeature : ISessionStateProvider
 			Interlocked.Exchange(ref _notifyPending, 0);
 			OnStateChanged?.Invoke();
 		}
-		catch(Exception)
+		catch(Exception ex)
 		{
 			// Swallow exceptions to prevent unobserved task exceptions from crashing the app.
 			// OnStateChanged handlers are UI update callbacks; failures here are non-critical.
+			_logger.LogDebug(ex, "StateChanged notification threw");
 		}
 	}
 }
