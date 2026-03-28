@@ -4,7 +4,7 @@
 #define AppExeName "Cockpit.exe"
 
 [Setup]
-AppId={{com.ieuanwalker.cockpit}
+AppId=com.ieuanwalker.cockpit
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
