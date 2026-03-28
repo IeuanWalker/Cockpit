@@ -83,34 +83,6 @@
     <PackageReference Include="XtermBlazor" Version="2.3.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="Controls\SponsorButton.xaml.cs">
-      <DependentUpon>SponsorButton.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="Controls\ToolbarIconButton.xaml.cs">
-      <DependentUpon>ToolbarIconButton.xaml</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <MauiXaml Update="Controls\ToolbarIconButton.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </MauiXaml>
-    <MauiXaml Update="Controls\SponsorButton.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </MauiXaml>
-    <MauiXaml Update="Resources\Styles\DarkTheme.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </MauiXaml>
-    <MauiXaml Update="Resources\Styles\LightTheme.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </MauiXaml>
-  </ItemGroup>
-  <ItemGroup>
-    <!-- Exclude the build-time generator script from project compilation -->
-    <Compile Remove="generate-libraries.cs" />
-  </ItemGroup>
-
   <Target Name="GenerateLibrariesJson" BeforeTargets="_MauiXamlComputeInflator"
           Inputs="$(MSBuildProjectFullPath);$(MSBuildProjectDirectory)\..\..\scripts\generate-libraries.cs"
           Outputs="$(MSBuildProjectDirectory)\Resources\Raw\libraries.json">
