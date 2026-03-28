@@ -1,0 +1,83 @@
+Copyright (c) 2026 Ieuan Walker. All rights reserved.
+
+Source Available Licence
+
+================================================================================
+
+PERMISSIONS
+--------------------------------------------------------------------------------
+
+1. USE
+   You may use this software for personal or internal commercial purposes
+   (e.g. running the app within your organisation), free of charge. This
+   permission covers use of the running application only, not distribution or
+   exploitation of the source code itself (see restrictions below).
+
+2. VIEW & STUDY
+   You may view, read, and study the source code for any purpose.
+
+3. FORK & MODIFY
+   You may publicly fork this repository and modify the source code for your
+   own use, including running a custom build locally on your own machines.
+   You may not release or distribute compiled builds of your fork to others
+   (see restriction 5 below).
+
+4. CONTRIBUTIONS
+   You may fork this repository and submit pull requests proposing changes back
+   to the original project. By submitting a pull request or any other
+   contribution to this project, you accept and agree to the terms of the
+   Contributor Licence Agreement (CLA) found in CLA.md at the root of this
+   repository. You must agree to the CLA before any contribution can be
+   accepted.
+
+================================================================================
+
+RESTRICTIONS
+--------------------------------------------------------------------------------
+
+5. NO REDISTRIBUTION OF BUILDS
+   You may not distribute, publish, sublicence, or otherwise make compiled
+   builds of this software or any derivative of it available to any third party.
+   Public forks of the source code on GitHub (or similar platforms) are
+   permitted, but releasing builds generated from those forks is not. This
+   includes but is not limited to:
+     - Releasing compiled builds of a fork or modified version to others
+     - Packaging or bundling this software into another product for distribution
+     - Uploading compiled builds derived from this source to any platform
+
+6. NO COMMERCIAL EXPLOITATION OF THE CODE
+   You may not sell, rent, or commercially licence this software or any
+   derivative work based on it.
+
+7. NO COPYING INTO DISTRIBUTED OR COMMERCIAL PROJECTS
+   You may not copy, reproduce, or incorporate any portion of this source code
+   into any project that is distributed to third parties or used for commercial
+   gain. Copying snippets for personal or private projects is permitted, provided
+   those projects are not distributed or commercially exploited.
+
+================================================================================
+
+SUMMARY (NON-BINDING)
+--------------------------------------------------------------------------------
+
+  ✔  Use the app freely — personal or commercial
+  ✔  Read and study the source code
+  ✔  Fork the repository and run your own custom build locally
+  ✔  Submit pull requests to contribute back
+  ✘  Release or distribute compiled builds of your fork to others
+  ✘  Sell or commercially exploit the code itself
+  ✘  Remove copyright or licence notices
+  ✘  Copy code into distributed or commercial projects
+  ✔  Copy snippets for personal/private use
+
+================================================================================
+
+NO WARRANTY
+--------------------------------------------------------------------------------
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
