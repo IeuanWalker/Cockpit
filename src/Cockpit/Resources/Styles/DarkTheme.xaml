@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary x:Class="Cockpit.Resources.Styles.DarkTheme"
+                    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    <Color x:Key="SecondaryBackgroundColour">#2B2B2B</Color>
+    <Color x:Key="TextColour">#CCCCCC</Color>
+</ResourceDictionary>

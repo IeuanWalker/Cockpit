@@ -1,4 +1,5 @@
-﻿using Cockpit.Features.Agents;
+﻿using Cockpit.Controls;
+using Cockpit.Features.Agents;
 
 namespace Cockpit;
 
@@ -36,16 +37,12 @@ public partial class App : Application
 				{
 					Children =
 					{
-						new Button
+						new SponsorButton(),
+						new ToolbarIconButton
 						{
-							Text = "\ue0a2",
-							FontSize = 16,
-							Background = Colors.Transparent,
-							BorderWidth = 0,
-							TextColor = Color.FromArgb("#CCCCCC"),
-							Command = new Command(OnSettingsClicked),
-							FontFamily = "FluentSystemIconsLight"
-						},
+							Icon = "\uF6A9",
+							ClickedCommand = new Command(OnSettingsClicked)
+						}
 					}
 				}
 			}

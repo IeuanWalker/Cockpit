@@ -41,6 +41,9 @@
     <DefaultLanguage>en-GB</DefaultLanguage>
 
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <MauiXamlInflator>SourceGen</MauiXamlInflator>
+    <!--<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>-->
   </PropertyGroup>
 
   <ItemGroup>
@@ -75,8 +78,33 @@
     <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="10.0.41" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.3" />
+    <PackageReference Include="Plugin.Maui.ContentButton" Version="0.3.0" />
     <PackageReference Include="Porta.Pty" Version="1.0.7" />
     <PackageReference Include="XtermBlazor" Version="2.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Controls\SponsorButton.xaml.cs">
+      <DependentUpon>SponsorButton.xaml</DependentUpon>
+    </Compile>
+    <Compile Update="Controls\ToolbarIconButton.xaml.cs">
+      <DependentUpon>ToolbarIconButton.xaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <MauiXaml Update="Controls\ToolbarIconButton.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Controls\SponsorButton.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Resources\Styles\DarkTheme.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
+    <MauiXaml Update="Resources\Styles\LightTheme.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </MauiXaml>
   </ItemGroup>
 
 </Project>

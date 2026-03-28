@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView x:Class="Cockpit.Controls.SponsorButton"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:Cockpit.Controls"
+             xmlns:mcb="http://schemas.microsoft.com/dotnet/2024/maui/contentbutton"
+             Margin="2.5,8"
+             x:DataType="controls:SponsorButton">
+    <mcb:ContentButton Padding="8,4"
+                       BackgroundColor="Transparent"
+                       Clicked="ContentButton_Clicked"
+                       StrokeColor="{DynamicResource SecondaryBackgroundColour}"
+                       StrokeThickness="0.5">
+        <HorizontalStackLayout HorizontalOptions="Center"
+                               Spacing="7"
+                               VerticalOptions="Center">
+            <Label x:Name="HeartLabel"
+                   FontFamily="FluentSystemIconsRegular"
+                   FontSize="12"
+                   Text="&#xF479;"
+                   TextColor="#db61a2"
+                   VerticalOptions="Center" />
+            <Label x:Name="SponsorLbl"
+                   FontFamily="SegoeUIRegular"
+                   FontSize="10"
+                   Text="Sponsor"
+                   TextColor="{DynamicResource TextColour}"
+                   VerticalOptions="Center" />
+        </HorizontalStackLayout>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="Transparent" />
+                            <Setter TargetName="HeartLabel" Property="Label.TextColor" Value="#db61a2" />
+                            <Setter TargetName="SponsorLbl" Property="Label.TextColor" Value="{DynamicResource TextColour}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="PointerOver">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="#db61a2" />
+                            <Setter TargetName="HeartLabel" Property="Label.TextColor" Value="#FFFFFF" />
+                            <Setter TargetName="SponsorLbl" Property="Label.TextColor" Value="#FFFFFF" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </VisualStateManager.VisualStateGroups>
+    </mcb:ContentButton>
+</ContentView>

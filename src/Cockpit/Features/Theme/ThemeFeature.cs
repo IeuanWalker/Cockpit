@@ -1,4 +1,5 @@
 using Cockpit.Features.AppSettings;
+using Cockpit.Resources.Styles;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
@@ -76,10 +77,14 @@ public class ThemeFeature
 		if(GetEffectiveTheme().Equals(ThemeEnum.Light))
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
+
+			Application.Current!.Resources = new LightTheme();
 		}
 		else
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
+
+			Application.Current!.Resources = new DarkTheme();
 		}
 
 		ThemeEnum GetEffectiveTheme()
@@ -155,12 +160,6 @@ public class ThemeFeature
 		{
 			titleBar.BackgroundColor = isLightTheme ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
 			titleBar.ForegroundColor = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
-
-			if(titleBar.TrailingContent is HorizontalStackLayout stack &&
-				stack.Children.FirstOrDefault() is Button btn)
-			{
-				btn.TextColor = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
-			}
 		}
 	}
 }
