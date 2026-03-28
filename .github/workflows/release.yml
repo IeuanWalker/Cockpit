@@ -44,7 +44,7 @@ jobs:
         run: >
           iscc
           /DAppVersion=${{ steps.version.outputs.VERSION }}
-          /DSourcePath=./publish/windows
+          /DSourcePath=${{ github.workspace }}\publish\windows
           .github/installers/windows.iss
 
       - name: Create GitHub Release
