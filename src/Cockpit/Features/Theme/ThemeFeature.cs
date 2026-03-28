@@ -160,12 +160,6 @@ public class ThemeFeature
 		{
 			titleBar.BackgroundColor = isLightTheme ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
 			titleBar.ForegroundColor = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
-
-			if(titleBar.TrailingContent is HorizontalStackLayout stack &&
-				stack.Children.FirstOrDefault() is Button btn)
-			{
-				btn.TextColor = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
-			}
 		}
 	}
 }
