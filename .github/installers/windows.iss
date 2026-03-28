@@ -2,6 +2,9 @@
 #define AppPublisher "Ieuan Walker"
 #define AppURL "https://github.com/ieuanwalker/Cockpit"
 #define AppExeName "Cockpit.exe"
+#ifndef AppVersion
+  #define AppVersion "0.0.0"
+#endif
 
 [Setup]
 AppId=com.ieuanwalker.cockpit

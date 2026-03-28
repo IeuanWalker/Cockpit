@@ -41,11 +41,10 @@ jobs:
         run: Compress-Archive -Path ./publish/windows/* -DestinationPath ./Cockpit-windows-x64.zip
 
       - name: Build installer
-        run: >
-          iscc
-          /DAppVersion=${{ steps.version.outputs.VERSION }}
-          /DSourcePath="${{ github.workspace }}\publish\windows"
-          .github/installers/windows.iss
+        run: |
+          $sourcePath = "${{ github.workspace }}\publish\windows"
+          $version = "${{ steps.version.outputs.VERSION }}"
+          iscc /DAppVersion="$version" /DSourcePath="$sourcePath" .github/installers/windows.iss
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
