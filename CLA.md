@@ -1,4 +1,4 @@
-# Contributor License Agreement (CLA)
+# Contributor Licence Agreement (CLA)
 
 **Project:** Cockpit  
 **Copyright Holder:** Ieuan Walker
@@ -25,7 +25,7 @@ agree to the following terms:
 
 You grant the Copyright Holder a perpetual, worldwide, non-exclusive,
 royalty-free, irrevocable licence to reproduce, modify, prepare derivative
-works of, publicly display, sublicense, and distribute your Contribution and
+works of, publicly display, sublicence, and distribute your Contribution and
 such derivative works under any licence terms the Copyright Holder chooses,
 including the current project licence and any future licence terms.
 
@@ -67,7 +67,7 @@ accepted.
 
 By opening a pull request or otherwise submitting a Contribution to this
 project, you confirm that you have read, understood, and agree to the terms of
-this Contributor License Agreement.
+this Contributor Licence Agreement.
 
 ---
 

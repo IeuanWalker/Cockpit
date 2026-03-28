@@ -3,7 +3,7 @@
     <File Path=".editorconfig" />
     <File Path="CLA.md" />
     <File Path="global.json" />
-    <File Path="LICENSE" />
+    <File Path="LICENCE.md" />
     <File Path="scripts/generate-libraries.cs" />
   </Folder>
   <Project Path="src/Cockpit/Cockpit.csproj">

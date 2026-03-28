@@ -1,6 +1,6 @@
 Copyright (c) 2026 Ieuan Walker. All rights reserved.
 
-Source Available License
+Source Available Licence
 
 ================================================================================
 
@@ -26,7 +26,7 @@ PERMISSIONS
    You may fork this repository and submit pull requests proposing changes back
    to the original project. By submitting a pull request or any other
    contribution to this project, you accept and agree to the terms of the
-   Contributor License Agreement (CLA) found in CLA.md at the root of this
+   Contributor Licence Agreement (CLA) found in CLA.md at the root of this
    repository. You must agree to the CLA before any contribution can be
    accepted.
 
@@ -36,7 +36,7 @@ RESTRICTIONS
 --------------------------------------------------------------------------------
 
 5. NO REDISTRIBUTION OF BUILDS
-   You may not distribute, publish, sublicense, or otherwise make compiled
+   You may not distribute, publish, sublicence, or otherwise make compiled
    builds of this software or any derivative of it available to any third party.
    Public forks of the source code on GitHub (or similar platforms) are
    permitted, but releasing builds generated from those forks is not. This
@@ -46,7 +46,7 @@ RESTRICTIONS
      - Uploading compiled builds derived from this source to any platform
 
 6. NO COMMERCIAL EXPLOITATION OF THE CODE
-   You may not sell, rent, or commercially license this software or any
+   You may not sell, rent, or commercially licence this software or any
    derivative work based on it.
 
 8. NO COPYING INTO DISTRIBUTED OR COMMERCIAL PROJECTS
