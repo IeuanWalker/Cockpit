@@ -38,7 +38,7 @@ jobs:
           --output ./publish/windows
 
       - name: Zip publish output
-        run: Compress-Archive -Path ./publish/windows/* -DestinationPath ./Cockpit-windows-x64.zip
+        run: Compress-Archive -Path ./publish/windows/* -DestinationPath ./Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}.zip
 
       - name: Install NSIS
         run: choco install nsis --no-progress -y
@@ -47,13 +47,13 @@ jobs:
         run: |
           $sourcePath = "${{ github.workspace }}\publish\windows"
           $version    = "${{ steps.version.outputs.VERSION }}"
-          $outputPath = "${{ github.workspace }}\Cockpit-windows-x64-Setup.exe"
+          $outputPath = "${{ github.workspace }}\Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Setup.exe"
           & "C:\Program Files (x86)\NSIS\makensis.exe" /DAPP_VERSION="$version" /DSOURCE_PATH="$sourcePath" /DOUTPUT_PATH="$outputPath" .github/installers/windows.nsi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            Cockpit-windows-x64.zip
-            Cockpit-windows-x64-Setup.exe
+            Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}.zip
+            Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Setup.exe
           generate_release_notes: true
