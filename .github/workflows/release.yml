@@ -25,8 +25,8 @@ jobs:
       - name: Extract version from tag
         id: version
         run: |
-          $version = ${{ github.event.release.tag_name }}
-          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          $version = "${{ github.event.release.tag_name }}".TrimStart('v')
+          Add-Content $env:GITHUB_OUTPUT "VERSION=$version"
 
       - name: Publish Windows app
         run: >
