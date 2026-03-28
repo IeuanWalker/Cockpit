@@ -88,6 +88,10 @@
           Outputs="$(MSBuildProjectDirectory)\Resources\Raw\libraries.json">
     <Exec Command="dotnet run generate-libraries.cs &quot;$(MSBuildProjectFullPath)&quot; &quot;$(MSBuildProjectDirectory)\Resources\Raw\libraries.json&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)\..\..\scripts" />
+    <!-- Dynamically add to MauiAsset in case the glob missed it (file didn't exist at project eval time) -->
+    <ItemGroup>
+      <MauiAsset Include="$(MSBuildProjectDirectory)\Resources\Raw\libraries.json" LogicalName="libraries.json" />
+    </ItemGroup>
   </Target>
 
 </Project>
