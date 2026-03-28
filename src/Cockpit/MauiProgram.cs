@@ -39,7 +39,7 @@ public static class MauiProgram
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-				fonts.AddFont("FluentSystemIcons-Light.ttf", "FluentSystemIconsLight");
+				fonts.AddFont("FluentSystemIcons-Regular.ttf", "FluentSystemIconsRegular");
 			});
 
 		// Core Blazor and Toolkit services

@@ -38,17 +38,10 @@ public partial class App : Application
 					Children =
 					{
 						new SponsorButton(),
-						new ToolbarButton(),
-						new Button
+						new ToolbarButton
 						{
-							Text = "\ue0a2",
-							FontSize = 16,
-							Background = Colors.Transparent,
-							BorderWidth = 0,
-							TextColor = Color.FromArgb("#CCCCCC"),
-							Command = new Command(OnSettingsClicked),
-							FontFamily = "FluentSystemIconsLight"
-						},
+							ClickedCommand = new Command(OnSettingsClicked)
+						}
 					}
 				}
 			}

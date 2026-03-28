@@ -1,4 +1,5 @@
 using Cockpit.Features.AppSettings;
+using Cockpit.Resources.Styles;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
@@ -76,10 +77,14 @@ public class ThemeFeature
 		if(GetEffectiveTheme().Equals(ThemeEnum.Light))
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
+
+			Application.Current!.Resources = new LightTheme();
 		}
 		else
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
+
+			Application.Current!.Resources = new DarkTheme();
 		}
 
 		ThemeEnum GetEffectiveTheme()
