@@ -38,8 +38,9 @@ public partial class App : Application
 					Children =
 					{
 						new SponsorButton(),
-						new ToolbarButton
+						new ToolbarIconButton
 						{
+							Icon = "\uF6A9",
 							ClickedCommand = new Command(OnSettingsClicked)
 						}
 					}

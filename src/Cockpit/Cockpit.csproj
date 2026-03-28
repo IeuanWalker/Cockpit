@@ -87,13 +87,13 @@
     <Compile Update="Controls\SponsorButton.xaml.cs">
       <DependentUpon>SponsorButton.xaml</DependentUpon>
     </Compile>
-    <Compile Update="Controls\ToolbarButton.xaml.cs">
-      <DependentUpon>ToolbarButton.xaml</DependentUpon>
+    <Compile Update="Controls\ToolbarIconButton.xaml.cs">
+      <DependentUpon>ToolbarIconButton.xaml</DependentUpon>
     </Compile>
   </ItemGroup>
 
   <ItemGroup>
-    <MauiXaml Update="Controls\ToolbarButton.xaml">
+    <MauiXaml Update="Controls\ToolbarIconButton.xaml">
       <Generator>MSBuild:Compile</Generator>
     </MauiXaml>
     <MauiXaml Update="Controls\SponsorButton.xaml">
