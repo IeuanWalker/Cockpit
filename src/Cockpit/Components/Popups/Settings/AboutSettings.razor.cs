@@ -16,7 +16,6 @@ public partial class AboutSettings : ComponentBase, IDisposable
 	bool _isChecking;
 
 	DateTime? _installedDate => _updateFeature.InstalledDate?.ToLocalTime();
-	DateTime? _updatedDate => _updateFeature.CachedResult?.LatestRelease?.PublishedAt;
 
 	protected override void OnInitialized()
 	{

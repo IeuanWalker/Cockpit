@@ -31,7 +31,7 @@ public sealed partial class UpdateFeature : IDisposable
 		_currentVersion = AppInfo.VersionString;
 
 		string key = $"installed_date_{_currentVersion}";
-		if (VersionTracking.Default.IsFirstLaunchForCurrentVersion)
+		if(VersionTracking.Default.IsFirstLaunchForCurrentVersion)
 		{
 			Preferences.Default.Set(key, DateTime.UtcNow);
 		}
