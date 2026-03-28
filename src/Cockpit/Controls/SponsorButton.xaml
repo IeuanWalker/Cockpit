@@ -9,21 +9,20 @@
     <mcb:ContentButton Padding="8,4"
                        BackgroundColor="Transparent"
                        Clicked="ContentButton_Clicked"
-                       StrokeColor="#2B2B2B"
+                       StrokeColor="{DynamicResource SecondaryBackgroundColour}"
                        StrokeThickness="0.5">
         <HorizontalStackLayout HorizontalOptions="Center"
                                Spacing="7"
                                VerticalOptions="Center">
             <Label x:Name="HeartLabel"
-                   Background="Transparent"
                    FontFamily="FluentSystemIconsRegular"
-                   FontSize="16"
+                   FontSize="12"
                    Text="&#xF479;"
                    TextColor="#db61a2"
                    VerticalOptions="Center" />
             <Label FontSize="10"
                    Text="Sponsor"
-                   TextColor="#CCCCCC"
+                   TextColor="{DynamicResource TextColour}"
                    VerticalOptions="Center" />
         </HorizontalStackLayout>
         <VisualStateManager.VisualStateGroups>
