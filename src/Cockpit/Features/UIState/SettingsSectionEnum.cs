@@ -7,5 +7,6 @@ public enum SettingsSectionEnum
 	Input,
 	Voice,
 	Sounds,
-	Diagnostics
+	Diagnostics,
+	About
 }

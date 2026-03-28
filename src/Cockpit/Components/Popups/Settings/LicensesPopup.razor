@@ -1,0 +1,32 @@
+@using Cockpit.Components.Controls
+
+<PopupBase @ref="_popup" Title="Libraries &amp; Licenses" PopupStyle="width: 36rem; max-width: calc(100vw - 2.5rem);">
+    <Content>
+        <div class="p-4 space-y-2">
+            @foreach (var lib in _libraries)
+            {
+                <div class="rounded-lg p-3" style="border: 1px solid var(--border-color);">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-sm font-semibold text-app-title">@lib.Name</span>
+                                <span class="text-xs secondary-text font-mono">@lib.Version</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                <span class="text-xs secondary-text">@lib.License</span>
+                                @if (!string.IsNullOrEmpty(lib.Url))
+                                {
+                                    <button @onclick="() => OpenUrl(lib.Url!)"
+                                            class="text-xs hover:underline"
+                                            style="color: var(--accent-color);">
+                                        View source
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </Content>
+</PopupBase>

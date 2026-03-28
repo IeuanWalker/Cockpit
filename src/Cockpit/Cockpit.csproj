@@ -83,28 +83,11 @@
     <PackageReference Include="XtermBlazor" Version="2.3.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="Controls\SponsorButton.xaml.cs">
-      <DependentUpon>SponsorButton.xaml</DependentUpon>
-    </Compile>
-    <Compile Update="Controls\ToolbarIconButton.xaml.cs">
-      <DependentUpon>ToolbarIconButton.xaml</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <MauiXaml Update="Controls\ToolbarIconButton.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </MauiXaml>
-    <MauiXaml Update="Controls\SponsorButton.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </MauiXaml>
-    <MauiXaml Update="Resources\Styles\DarkTheme.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </MauiXaml>
-    <MauiXaml Update="Resources\Styles\LightTheme.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </MauiXaml>
-  </ItemGroup>
+  <Target Name="GenerateLibrariesJson" BeforeTargets="_MauiXamlComputeInflator"
+          Inputs="$(MSBuildProjectFullPath);$(MSBuildProjectDirectory)\..\..\scripts\generate-libraries.cs"
+          Outputs="$(MSBuildProjectDirectory)\Resources\Raw\libraries.json">
+    <Exec Command="dotnet run generate-libraries.cs &quot;$(MSBuildProjectFullPath)&quot; &quot;$(MSBuildProjectDirectory)\Resources\Raw\libraries.json&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)\..\..\scripts" />
+  </Target>
 
 </Project>
