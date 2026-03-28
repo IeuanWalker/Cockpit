@@ -1,0 +1,73 @@
+Copyright (c) 2026 Ieuan Walker. All rights reserved.
+
+Source Available License
+
+================================================================================
+
+PERMISSIONS
+--------------------------------------------------------------------------------
+
+1. USE
+   You may use this software for any purpose, including personal, commercial,
+   and non-commercial use, free of charge.
+
+2. VIEW & STUDY
+   You may view, read, and study the source code for any purpose.
+
+3. FORK & MODIFY (PRIVATE USE)
+   You may fork this repository and modify the source code for your own private
+   use, including running a custom build locally on your own machines.
+
+4. CONTRIBUTIONS
+   You may fork this repository and submit pull requests proposing changes back
+   to the original project. By submitting a pull request or any other
+   contribution to this project, you accept and agree to the terms of the
+   Contributor License Agreement (CLA) found in CLA.md at the root of this
+   repository. You must agree to the CLA before any contribution can be
+   accepted.
+
+================================================================================
+
+RESTRICTIONS
+--------------------------------------------------------------------------------
+
+5. NO REDISTRIBUTION
+   You may not distribute, publish, sublicense, or otherwise make this software
+   or any derivative of it (modified or unmodified, in source or compiled form)
+   available to any third party. This includes but is not limited to:
+     - Publishing forks or modified versions as public releases
+     - Packaging or bundling this software into another product for distribution
+     - Uploading compiled builds derived from this source to any platform
+
+6. NO COMMERCIAL EXPLOITATION OF THE CODE
+   You may not sell, rent, or commercially license this software or any
+   derivative work based on it.
+
+7. NO REMOVAL OF NOTICES
+   You may not remove or alter any copyright, licence, or attribution notices
+   present in the source code or documentation.
+
+================================================================================
+
+SUMMARY (NON-BINDING)
+--------------------------------------------------------------------------------
+
+  ✔  Use the app freely — personal or commercial
+  ✔  Read and study the source code
+  ✔  Fork and run your own private custom build
+  ✔  Submit pull requests to contribute back
+  ✘  Distribute or publish builds to others
+  ✘  Sell or commercially exploit the code itself
+  ✘  Remove copyright or licence notices
+
+================================================================================
+
+NO WARRANTY
+--------------------------------------------------------------------------------
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR
+IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
