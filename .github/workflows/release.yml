@@ -43,8 +43,17 @@ jobs:
       - name: Zip publish output
         run: Compress-Archive -Path ./publish/windows/* -DestinationPath ./Cockpit-windows-x64.zip
 
+      - name: Build installer
+        run: >
+          iscc
+          /DAppVersion=${{ steps.version.outputs.VERSION }}
+          /DSourcePath="${{ github.workspace }}\publish\windows"
+          .github/installers/windows.iss
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Cockpit-windows-x64.zip
+          files: |
+            Cockpit-windows-x64.zip
+            installer-output/Cockpit-windows-x64-Setup.exe
           generate_release_notes: true
