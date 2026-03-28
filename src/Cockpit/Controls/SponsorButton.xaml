@@ -20,7 +20,9 @@
                    Text="&#xF479;"
                    TextColor="#db61a2"
                    VerticalOptions="Center" />
-            <Label FontSize="10"
+            <Label x:Name="SponsorLbl"
+                   FontFamily="SegoeUIRegular"
+                   FontSize="10"
                    Text="Sponsor"
                    TextColor="{DynamicResource TextColour}"
                    VerticalOptions="Center" />
@@ -32,12 +34,14 @@
                         <VisualState.Setters>
                             <Setter Property="BackgroundColor" Value="Transparent" />
                             <Setter TargetName="HeartLabel" Property="Label.TextColor" Value="#db61a2" />
+                            <Setter TargetName="SponsorLbl" Property="Label.TextColor" Value="{DynamicResource TextColour}" />
                         </VisualState.Setters>
                     </VisualState>
                     <VisualState x:Name="PointerOver">
                         <VisualState.Setters>
                             <Setter Property="BackgroundColor" Value="#db61a2" />
-                            <Setter TargetName="HeartLabel" Property="Label.TextColor" Value="#CCCCCC" />
+                            <Setter TargetName="HeartLabel" Property="Label.TextColor" Value="#FFFFFF" />
+                            <Setter TargetName="SponsorLbl" Property="Label.TextColor" Value="#FFFFFF" />
                         </VisualState.Setters>
                     </VisualState>
                 </VisualStateGroup>
