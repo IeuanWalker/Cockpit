@@ -50,5 +50,5 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: installer-output/Cockpit-windows-x64-Setup.exe
+          files: .github/installers/installer-output/Cockpit-windows-x64-Setup.exe
           generate_release_notes: true
