@@ -9,6 +9,13 @@ public partial class SponsorButton : ContentView
 
 	async void ContentButton_Clicked(object sender, EventArgs e)
 	{
-		await Browser.Default.OpenAsync("https://github.com/sponsors/IeuanWalker");
+		try
+		{
+			await Browser.Default.OpenAsync("https://github.com/sponsors/IeuanWalker");
+		}
+		catch(Exception)
+		{
+			// Ignore any exceptions that occur when trying to open the browser
+		}
 	}
 }
