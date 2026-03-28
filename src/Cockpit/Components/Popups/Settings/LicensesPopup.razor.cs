@@ -28,9 +28,26 @@ public partial class LicensesPopup : ComponentBase
 		_popup.Open();
 	}
 
-	static void OpenUrl(string url)
+	static void OpenUrl(string? url)
 	{
-		_ = Launcher.Default.OpenAsync(new Uri(url));
+		if (string.IsNullOrWhiteSpace(url))
+		{
+			return;
+		}
+
+		if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
+		{
+			return;
+		}
+
+		string scheme = uri.Scheme;
+		if (!string.Equals(scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+		    !string.Equals(scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+		{
+			return;
+		}
+
+		_ = Launcher.Default.OpenAsync(uri);
 	}
 }
 
