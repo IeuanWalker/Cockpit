@@ -33,8 +33,6 @@ jobs:
           dotnet publish src/Cockpit/Cockpit.csproj
           --framework net10.0-windows10.0.19041.0
           --configuration Release
-          --runtime win-x64
-          --self-contained true
           -p:ApplicationDisplayVersion=${{ steps.version.outputs.VERSION }}
           -p:ApplicationVersion=${{ github.run_number }}
           --output ./publish/windows
