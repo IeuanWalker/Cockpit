@@ -49,7 +49,7 @@ RESTRICTIONS
    You may not sell, rent, or commercially licence this software or any
    derivative work based on it.
 
-8. NO COPYING INTO DISTRIBUTED OR COMMERCIAL PROJECTS
+7. NO COPYING INTO DISTRIBUTED OR COMMERCIAL PROJECTS
    You may not copy, reproduce, or incorporate any portion of this source code
    into any project that is distributed to third parties or used for commercial
    gain. Copying snippets for personal or private projects is permitted, provided
