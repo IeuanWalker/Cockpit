@@ -35,9 +35,15 @@ public sealed partial class UpdateFeature : IDisposable
 		{
 			Preferences.Default.Set(key, DateTime.UtcNow);
 		}
-		InstalledDate = Preferences.Default.ContainsKey(key)
-			? Preferences.Default.Get(key, DateTime.MinValue)
-			: null;
+
+		DateTime? installedDate = null;
+		if (Preferences.Default.ContainsKey(key))
+		{
+			DateTime stored = Preferences.Default.Get(key, DateTime.MinValue);
+			installedDate = stored == DateTime.MinValue ? null : stored;
+		}
+
+		InstalledDate = installedDate;
 	}
 
 	/// <summary>
