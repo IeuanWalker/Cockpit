@@ -55,5 +55,5 @@ jobs:
         with:
           files: |
             Cockpit-windows-x64.zip
-            .github/installers/installer-output/Cockpit-windows-x64-Setup.exe
+            installer-output/Cockpit-windows-x64-Setup.exe
           generate_release_notes: true
