@@ -13,6 +13,14 @@ public partial class App : MauiWinUIApplication
 	/// </summary>
 	public App()
 	{
+		// Redirect WebView2 user data to %LocalAppData% so the app works when
+		// installed to a read-only location such as Program Files.
+		Environment.SetEnvironmentVariable(
+			"WEBVIEW2_USER_DATA_FOLDER",
+			Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+				"Cockpit", "WebView2"));
+
 		this.InitializeComponent();
 	}
 
