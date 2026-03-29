@@ -50,6 +50,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	string _mentionFilter = string.Empty;
 	IReadOnlyList<FileSearchResult> _mentionFiles = [];
 	int _selectedMentionIndex = -1;
+	CancellationTokenSource? _mentionSearchCts;
 
 	bool IsInputDisabled =>
 		_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0
@@ -245,46 +246,68 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			{
 				_mentionFilter = filter;
 
-				SessionModel? session = _sessionFeature.CurrentSession;
-				string cwd = session?.Context.CurrentWorkingDirectory ?? string.Empty;
+				// Cancel any in-flight search and start a new debounce window
+				CancellationTokenSource? oldCts = _mentionSearchCts;
+				CancellationTokenSource cts = new();
+				_mentionSearchCts = cts;
+				oldCts?.Cancel();
+				oldCts?.Dispose();
 
-				_mentionFiles = !string.IsNullOrEmpty(cwd) ? await _fileSearchFeature.SearchAsync(cwd, filter) : [];
-
-				// Also include manually-attached files (outside CWD or not yet found by search)
-				if(session is not null)
+				try
 				{
-					List<FileSearchResult> combined = [.. _mentionFiles];
-					HashSet<string> seenPaths = new(combined.Select(f => f.FullPath), StringComparer.OrdinalIgnoreCase);
+					// Debounce: wait before running the (potentially expensive) search
+					await Task.Delay(200, cts.Token);
 
-					lock(session.PendingAttachmentsLock)
+					SessionModel? session = _sessionFeature.CurrentSession;
+					string cwd = session?.Context.CurrentWorkingDirectory ?? string.Empty;
+
+					IReadOnlyList<FileSearchResult> searchResults = !string.IsNullOrEmpty(cwd)
+						? await _fileSearchFeature.SearchAsync(cwd, filter, cancellationToken: cts.Token)
+						: [];
+
+					// Merge in manually-attached files not already in search results
+					if(session is not null)
 					{
-						foreach(AttachmentModel att in session.PendingAttachments)
-						{
-							if(att.IsMention || seenPaths.Contains(att.FilePath))
-							{
-								continue;
-							}
+						List<FileSearchResult> combined = [.. searchResults];
+						HashSet<string> seenPaths = new(combined.Select(f => f.FullPath), StringComparer.OrdinalIgnoreCase);
 
-							string fileName = Path.GetFileName(att.FilePath);
-							if(string.IsNullOrEmpty(filter) || fileName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+						lock(session.PendingAttachmentsLock)
+						{
+							foreach(AttachmentModel att in session.PendingAttachments)
 							{
-								combined.Add(new FileSearchResult(fileName, att.FilePath, att.FilePath));
-								seenPaths.Add(att.FilePath);
+								if(att.IsMention || seenPaths.Contains(att.FilePath))
+								{
+									continue;
+								}
+
+								string fileName = Path.GetFileName(att.FilePath);
+								if(string.IsNullOrEmpty(filter) || fileName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+								{
+									combined.Add(new FileSearchResult(fileName, att.FilePath, att.FilePath));
+									seenPaths.Add(att.FilePath);
+								}
 							}
 						}
+
+						searchResults = combined;
 					}
 
-					_mentionFiles = combined;
-				}
+					_mentionFiles = searchResults;
 
-				if(_mentionFiles.Count > 0)
-				{
-					_showMentionPicker = true;
-					_selectedMentionIndex = 0; // auto-select first item
+					if(_mentionFiles.Count > 0)
+					{
+						_showMentionPicker = true;
+						_selectedMentionIndex = 0; // auto-select first item
+					}
+					else
+					{
+						_showMentionPicker = !string.IsNullOrEmpty(filter); // show "no files" if user typed something
+					}
 				}
-				else
+				catch(OperationCanceledException)
 				{
-					_showMentionPicker = !string.IsNullOrEmpty(filter); // show "no files" if user typed something
+					// A newer search superseded this one — leave picker state as-is
+					return;
 				}
 			}
 			else
@@ -623,6 +646,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		}
 
 		_dotNetRef?.Dispose();
+		_mentionSearchCts?.Dispose();
 	}
 }
 

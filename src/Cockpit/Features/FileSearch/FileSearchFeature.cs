@@ -19,13 +19,12 @@ public class FileSearchFeature : IFileSearchFeature
 		_logger = logger;
 	}
 
-	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = 50)
+	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = 50, CancellationToken cancellationToken = default)
 	{
-		IReadOnlyList<FileSearchResult> results = Search(workingDirectory, filter, maxResults);
-		return Task.FromResult(results);
+		return Task.Run(() => Search(workingDirectory, filter, maxResults, cancellationToken), cancellationToken);
 	}
 
-	IReadOnlyList<FileSearchResult> Search(string workingDirectory, string filter, int maxResults)
+	IReadOnlyList<FileSearchResult> Search(string workingDirectory, string filter, int maxResults, CancellationToken cancellationToken)
 	{
 		if(string.IsNullOrWhiteSpace(workingDirectory) || !Directory.Exists(workingDirectory))
 		{
@@ -35,7 +34,7 @@ public class FileSearchFeature : IFileSearchFeature
 		try
 		{
 			List<FileSearchResult> results = [];
-			EnumerateFiles(workingDirectory, workingDirectory, filter, results, maxResults);
+			EnumerateFiles(workingDirectory, workingDirectory, filter, results, maxResults, cancellationToken);
 
 			// Sort: exact filename prefix matches first, then contains matches, then by path length
 			string lowerFilter = filter.ToLowerInvariant();
@@ -69,9 +68,9 @@ public class FileSearchFeature : IFileSearchFeature
 		}
 	}
 
-	void EnumerateFiles(string root, string dir, string filter, List<FileSearchResult> results, int maxResults)
+	void EnumerateFiles(string root, string dir, string filter, List<FileSearchResult> results, int maxResults, CancellationToken cancellationToken)
 	{
-		if(results.Count >= maxResults)
+		if(results.Count >= maxResults || cancellationToken.IsCancellationRequested)
 		{
 			return;
 		}
@@ -80,7 +79,7 @@ public class FileSearchFeature : IFileSearchFeature
 		{
 			foreach(string filePath in Directory.EnumerateFiles(dir))
 			{
-				if(results.Count >= maxResults)
+				if(results.Count >= maxResults || cancellationToken.IsCancellationRequested)
 				{
 					return;
 				}
@@ -95,7 +94,7 @@ public class FileSearchFeature : IFileSearchFeature
 
 			foreach(string subDir in Directory.EnumerateDirectories(dir))
 			{
-				if(results.Count >= maxResults)
+				if(results.Count >= maxResults || cancellationToken.IsCancellationRequested)
 				{
 					return;
 				}
@@ -106,7 +105,7 @@ public class FileSearchFeature : IFileSearchFeature
 					continue;
 				}
 
-				EnumerateFiles(root, subDir, filter, results, maxResults);
+				EnumerateFiles(root, subDir, filter, results, maxResults, cancellationToken);
 			}
 		}
 		catch(UnauthorizedAccessException)
