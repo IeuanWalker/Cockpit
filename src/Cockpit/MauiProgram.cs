@@ -126,7 +126,17 @@ public static class MauiProgram
 
 		TaskScheduler.UnobservedTaskException += (_, args) =>
 		{
-			LogCrash("TaskScheduler", args.Exception);
+			// Suppress the benign SDK exception when the CLI process exits and the
+			// background monitor checks HasExited on an already-disposed Process object.
+			bool isSdkProcessGone = args.Exception
+				.Flatten().InnerExceptions
+				.All(e => e is InvalidOperationException
+					&& e.Message.Contains("No process is associated")
+					&& (e.StackTrace?.Contains("GitHub.Copilot.SDK") ?? false));
+
+			if(!isSdkProcessGone)
+				LogCrash("TaskScheduler", args.Exception);
+
 			args.SetObserved();
 		};
 	}
