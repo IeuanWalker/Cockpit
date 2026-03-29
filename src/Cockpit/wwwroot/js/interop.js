@@ -673,7 +673,17 @@ window.cockpit = {
 
         chip.remove();
 
-        element._suppressChipRemovalCallback = false;
+        // Defer re-enabling the callback suppression flag so that any
+        // MutationObserver callbacks triggered by the removal see it as true.
+        if (typeof queueMicrotask === 'function') {
+            queueMicrotask(function () {
+                element._suppressChipRemovalCallback = false;
+            });
+        } else {
+            setTimeout(function () {
+                element._suppressChipRemovalCallback = false;
+            }, 0);
+        }
 
         window.cockpit.autoResizeContentEditable(id);
     },
