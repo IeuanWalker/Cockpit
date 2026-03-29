@@ -10,6 +10,7 @@ using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
+using Cockpit.Features.FileSearch;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.TextToSpeech;
@@ -111,7 +112,7 @@ public static class MauiProgram
 		});
 
 		// File search
-		builder.Services.AddSingleton<IFileSearchService, FileSearchService>();
+		builder.Services.AddSingleton<IFileSearchFeature, FileSearchFeature>();
 
 		// Register agent services
 		builder.Services.AddSingleton<AgentPersistence>();

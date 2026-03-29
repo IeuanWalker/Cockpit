@@ -627,11 +627,11 @@ window.cockpit = {
         const spacer = document.createTextNode('\u200B ');
         chip.after(spacer);
 
-        // Move cursor after the zero-width space
+        // Move cursor after the space (offset 2: past ZWS + space)
         const curSel = window.getSelection();
         if (curSel) {
             const newRange = document.createRange();
-            newRange.setStart(spacer, 1);
+            newRange.setStart(spacer, 2);
             newRange.collapse(true);
             curSel.removeAllRanges();
             curSel.addRange(newRange);

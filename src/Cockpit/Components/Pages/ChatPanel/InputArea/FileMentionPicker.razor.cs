@@ -1,4 +1,4 @@
-using Cockpit.Features.Sessions;
+using Cockpit.Features.FileSearch;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 

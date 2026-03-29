@@ -1,6 +1,6 @@
-namespace Cockpit.Features.Sessions;
+namespace Cockpit.Features.FileSearch;
 
-public interface IFileSearchService
+public interface IFileSearchFeature
 {
 	/// <summary>
 	/// Searches for files in the given working directory matching the filter.

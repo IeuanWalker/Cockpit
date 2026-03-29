@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Blazor.Sonner.Services;
+using Cockpit.Features.FileSearch;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.UIState;
@@ -18,7 +19,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	readonly IJSRuntime _jsRuntime;
 	readonly ToastService _toastService;
 	readonly ILogger<ChatInputArea> _logger;
-	readonly IFileSearchService _fileSearchService;
+	readonly IFileSearchFeature _fileSearchFeature;
 
 	public ChatInputArea(
 		UIStateFeature uiStateFeature,
@@ -26,14 +27,14 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		IJSRuntime jsRuntime,
 		ToastService toastService,
 		ILogger<ChatInputArea> logger,
-		IFileSearchService fileSearchService)
+		IFileSearchFeature fileSearchFeature)
 	{
 		_uiStateFeature = uiStateFeature;
 		_sessionFeature = sessionFeature;
 		_jsRuntime = jsRuntime;
 		_toastService = toastService;
 		_logger = logger;
-		_fileSearchService = fileSearchService;
+		_fileSearchFeature = fileSearchFeature;
 	}
 
 	// Brief yield to allow Blazor to flush the binding update before resizing
@@ -247,7 +248,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 				SessionModel? session = _sessionFeature.CurrentSession;
 				string cwd = session?.Context.CurrentWorkingDirectory ?? string.Empty;
 
-				_mentionFiles = !string.IsNullOrEmpty(cwd) ? await _fileSearchService.SearchAsync(cwd, filter) : [];
+				_mentionFiles = !string.IsNullOrEmpty(cwd) ? await _fileSearchFeature.SearchAsync(cwd, filter) : [];
 
 				// Also include manually-attached files (outside CWD or not yet found by search)
 				if(session is not null)

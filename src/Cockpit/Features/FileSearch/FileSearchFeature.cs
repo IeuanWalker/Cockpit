@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Logging;
 
-namespace Cockpit.Features.Sessions;
+namespace Cockpit.Features.FileSearch;
 
-public class FileSearchService : IFileSearchService
+public class FileSearchFeature : IFileSearchFeature
 {
-	readonly ILogger<FileSearchService> _logger;
+	readonly ILogger<FileSearchFeature> _logger;
 
 	// Directories to skip entirely (never recurse into)
 	static readonly HashSet<string> skipDirs = new(StringComparer.OrdinalIgnoreCase)
@@ -14,7 +14,7 @@ public class FileSearchService : IFileSearchService
 		"packages", ".nuget"
 	};
 
-	public FileSearchService(ILogger<FileSearchService> logger)
+	public FileSearchFeature(ILogger<FileSearchFeature> logger)
 	{
 		_logger = logger;
 	}
