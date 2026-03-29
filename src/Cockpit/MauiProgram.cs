@@ -147,8 +147,19 @@ public static class MauiProgram
 				File.Move(logPath, backup);
 			}
 
-			string entry = $"\n=== {DateTime.Now:yyyy-MM-dd HH:mm:ss} [{source}] ==={Environment.NewLine}{ex}{Environment.NewLine}";
-			File.AppendAllText(logPath, entry);
+			var exceptions = ex is AggregateException agg
+				? agg.Flatten().InnerExceptions
+				: (IEnumerable<Exception>)(ex is null ? [] : [ex]);
+
+			var sb = new System.Text.StringBuilder();
+			foreach(Exception inner in exceptions)
+			{
+				sb.AppendLine();
+				sb.AppendLine($"=== {DateTime.Now:yyyy-MM-dd HH:mm:ss} [{source}] ===");
+				sb.AppendLine(inner.ToString());
+			}
+
+			File.AppendAllText(logPath, sb.ToString());
 		}
 		catch { /* best-effort */ }
 	}
