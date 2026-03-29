@@ -690,7 +690,7 @@ window.cockpit = {
             if (node.nodeType !== 1) return '';
 
             if (node.classList && node.classList.contains('file-mention-chip')) {
-                return "#file:'" + node.dataset.filePath + "'";
+                return "#file:" + JSON.stringify(node.dataset.filePath);
             }
 
             const tag = node.tagName ? node.tagName.toUpperCase() : '';
