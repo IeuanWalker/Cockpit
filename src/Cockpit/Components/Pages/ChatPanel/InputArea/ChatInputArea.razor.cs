@@ -166,24 +166,28 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		try
 		{
 			string currentText = UserInput;
-			ChipInfo[] chips = await _jsRuntime.InvokeAsync<ChipInfo[]>("cockpit.setPlainText", "chatInput", currentText);
+			ChipInfo[] chips = await _jsRuntime.InvokeAsync<ChipInfo[]>("cockpit.setPlainText", "chatInput", currentText) 
+				?? Array.Empty<ChipInfo>();
 
 			SessionModel? session = _sessionFeature.CurrentSession;
 			if(session is not null)
 			{
 				lock(session.PendingAttachmentsLock)
 				{
-					// Always clear stale mention attachments; rebuild from what setPlainText returned
-					session.PendingAttachments.RemoveAll(a => a.IsMention);
-
-					foreach(ChipInfo chip in chips)
+					// Only clear/rebuild mention attachments when parsing actually returns chips
+					if(chips.Length > 0)
 					{
-						string fileName = Path.GetFileName(chip.FilePath);
-						string ext = Path.GetExtension(chip.FilePath);
-						string mimeType = FileUtil.GetMimeType(ext);
-						session.PendingAttachments.Add(new AttachmentModel(
-							fileName, chip.FilePath, null, mimeType,
-							isMention: true, chipId: chip.ChipId));
+						session.PendingAttachments.RemoveAll(a => a.IsMention);
+
+						foreach(ChipInfo chip in chips)
+						{
+							string fileName = Path.GetFileName(chip.FilePath);
+							string ext = Path.GetExtension(chip.FilePath);
+							string mimeType = FileUtil.GetMimeType(ext);
+							session.PendingAttachments.Add(new AttachmentModel(
+								fileName, chip.FilePath, null, mimeType,
+								isMention: true, chipId: chip.ChipId));
+						}
 					}
 				}
 			}
