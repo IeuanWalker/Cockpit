@@ -1,3 +1,4 @@
+using Blazor.Sonner.Services;
 using Cockpit.Features.Sessions.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
@@ -9,14 +10,17 @@ public partial class AttachmentsControl : ComponentBase
 {
 	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<AttachmentsControl> _logger;
+	readonly ToastService _toastService;
 	[Parameter] public SessionModel? Session { get; set; }
 
 	public AttachmentsControl(
 		IJSRuntime jsRuntime,
-		ILogger<AttachmentsControl> logger)
+		ILogger<AttachmentsControl> logger,
+		ToastService toastService)
 	{
 		_jsRuntime = jsRuntime;
 		_logger = logger;
+		_toastService = toastService;
 	}
 
 	IReadOnlyList<AttachmentModel> AttachmentsSnapshot
@@ -30,12 +34,33 @@ public partial class AttachmentsControl : ComponentBase
 
 			lock(Session.PendingAttachmentsLock)
 			{
-				return [.. Session.PendingAttachments];
+				// Deduplicate by file path across all attachment types.
+				// Non-mention (manually added) entries take priority so the user can remove them.
+				HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+				List<AttachmentModel> result = [];
+
+				foreach(AttachmentModel att in Session.PendingAttachments)
+				{
+					if(!att.IsMention && seen.Add(att.FilePath))
+					{
+						result.Add(att);
+					}
+				}
+
+				foreach(AttachmentModel att in Session.PendingAttachments)
+				{
+					if(att.IsMention && seen.Add(att.FilePath))
+					{
+						result.Add(att);
+					}
+				}
+
+				return result;
 			}
 		}
 	}
 
-	void RemoveAttachment(int index)
+	async Task RemoveAttachment(AttachmentModel target)
 	{
 		SessionModel? session = Session;
 		if(session is null)
@@ -43,16 +68,17 @@ public partial class AttachmentsControl : ComponentBase
 			return;
 		}
 
-		string filePath;
+		// Mention attachments are owned by their chip in the input — remove the chip instead
+		if(target.IsMention)
+		{
+			_toastService.Error("Cannot remove", opts =>
+				opts.Description = "This file is mentioned in the input. Remove the # mention from the input to detach it.");
+			return;
+		}
+
 		lock(session.PendingAttachmentsLock)
 		{
-			if(index < 0 || index >= session.PendingAttachments.Count)
-			{
-				return;
-			}
-
-			filePath = session.PendingAttachments[index].FilePath;
-			session.PendingAttachments.RemoveAt(index);
+			session.PendingAttachments.Remove(target);
 		}
 
 		StateHasChanged();
@@ -60,23 +86,25 @@ public partial class AttachmentsControl : ComponentBase
 		// Only delete if it's a session-owned file (pasted images saved to Cockpit\Files\)
 		// Never delete user's original files selected via the file picker
 		string sessionFilesDir = Path.GetFullPath(GetSessionFilesPath(session)) + Path.DirectorySeparatorChar;
-		string normalizedFilePath = Path.GetFullPath(filePath);
+		string normalizedFilePath = Path.GetFullPath(target.FilePath);
 		bool isSessionOwned = normalizedFilePath.StartsWith(sessionFilesDir, StringComparison.OrdinalIgnoreCase);
 
 		if(isSessionOwned)
 		{
 			try
 			{
-				if(File.Exists(filePath))
+				if(File.Exists(target.FilePath))
 				{
-					File.Delete(filePath);
+					File.Delete(target.FilePath);
 				}
 			}
 			catch(Exception ex)
 			{
-				_logger.LogDebug(ex, "Failed to delete attachment file {FilePath}", filePath);
+				_logger.LogDebug(ex, "Failed to delete attachment file {FilePath}", target.FilePath);
 			}
 		}
+
+		// Remove chip from contenteditable — no longer needed; mention path returns early above
 	}
 
 	async Task OpenLightbox(string src, string alt)

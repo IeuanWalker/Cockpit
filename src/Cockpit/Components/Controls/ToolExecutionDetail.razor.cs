@@ -243,7 +243,7 @@ public sealed partial class ToolExecutionDetail : IDisposable
 		}
 	}
 
-	readonly Dictionary<string, bool> _expandedEventJson = new();
+	readonly Dictionary<string, bool> _expandedEventJson = [];
 
 	void ToggleEventExpanded(string key)
 	{

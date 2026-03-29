@@ -1,5 +1,7 @@
+using System.Text.RegularExpressions;
 using Blazor.Sonner.Services;
 using Cockpit.Components.Controls;
+using Cockpit.Features.Markdown;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.TextToSpeech;
@@ -16,18 +18,21 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	readonly TextToSpeechFeature _textToSpeechFeature;
 	readonly UIStateFeature _uiStateFeature;
 	readonly ToastService _toastService;
+	readonly MarkdownFeature _markdownFeature;
 	public ChatMessages(
 		SessionListFeature sessionListFeature,
 		IJSRuntime jsRuntime,
 		TextToSpeechFeature textToSpeechFeature,
 		UIStateFeature uiStateFeature,
-		ToastService toastService)
+		ToastService toastService,
+		MarkdownFeature markdownFeature)
 	{
 		_sessionListFeature = sessionListFeature;
 		_jsRuntime = jsRuntime;
 		_textToSpeechFeature = textToSpeechFeature;
 		_uiStateFeature = uiStateFeature;
 		_toastService = toastService;
+		_markdownFeature = markdownFeature;
 	}
 
 	DotNetObjectReference<ChatMessages>? _dotNetRef;
@@ -126,6 +131,58 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		return string.Join(", ", parts);
 	}
 
+	static readonly Regex fileTokenRegex = fileMentionRegex();
+
+	/// <summary>
+	/// If the content contains no file tokens, returns null (caller should use MarkdownRenderer component).
+	/// If it has file tokens, renders the content with chip spans substituted in, returns HTML.
+	/// </summary>
+	MarkupString? RenderUserContent(string content)
+	{
+		if(!content.Contains("#file:'", StringComparison.Ordinal))
+		{
+			return null; // use normal MarkdownRenderer
+		}
+
+		// Step 1: replace tokens with safe placeholders
+		List<(string Placeholder, string ChipHtml)> chips = [];
+		int idx = 0;
+
+		string withPlaceholders = fileTokenRegex.Replace(content, m =>
+		{
+			string filePath = m.Groups[1].Value;
+			string fileName = Path.GetFileName(filePath);
+			string placeholder = $"COCKPITFILECHIP{idx++}XEND";
+
+			// Build chip HTML (the span that will show in the bubble)
+			string escapedPath = System.Net.WebUtility.HtmlEncode(filePath);
+			string escapedName = System.Net.WebUtility.HtmlEncode(fileName);
+			string chipHtml =
+				$"<span class=\"file-mention-chip-readonly\" title=\"{escapedPath}\">" +
+				"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" fill=\"none\" " +
+				"stroke=\"currentColor\" viewBox=\"0 0 24 24\" stroke-width=\"2\" " +
+				"stroke-linecap=\"round\" stroke-linejoin=\"round\">" +
+				"<path d=\"M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586 " +
+				"a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z\"/>" +
+				"</svg>" +
+				$" {escapedName}</span>";
+
+			chips.Add((placeholder, chipHtml));
+			return placeholder;
+		});
+
+		// Step 2: run through Markdig (DisableHtml is fine — our placeholders are plain text)
+		string html = _markdownFeature.ToHtml(withPlaceholders);
+
+		// Step 3: replace placeholders with chip HTML
+		foreach((string? placeholder, string? chipHtml) in chips)
+		{
+			html = html.Replace(placeholder, chipHtml);
+		}
+
+		return (MarkupString)html;
+	}
+
 	async Task OpenLightbox(string src, string alt)
 	{
 		try
@@ -169,4 +226,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		_dotNetRef?.Dispose();
 		GC.SuppressFinalize(this);
 	}
+
+	[GeneratedRegex(@"#file:'([^']*)'", RegexOptions.Compiled)]
+	private static partial Regex fileMentionRegex();
 }

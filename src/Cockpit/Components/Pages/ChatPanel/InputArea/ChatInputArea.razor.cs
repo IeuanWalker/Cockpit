@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Blazor.Sonner.Services;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
@@ -17,19 +18,22 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	readonly IJSRuntime _jsRuntime;
 	readonly ToastService _toastService;
 	readonly ILogger<ChatInputArea> _logger;
+	readonly IFileSearchService _fileSearchService;
 
 	public ChatInputArea(
 		UIStateFeature uiStateFeature,
 		SessionFeature sessionFeature,
 		IJSRuntime jsRuntime,
 		ToastService toastService,
-		ILogger<ChatInputArea> logger)
+		ILogger<ChatInputArea> logger,
+		IFileSearchService fileSearchService)
 	{
 		_uiStateFeature = uiStateFeature;
 		_sessionFeature = sessionFeature;
 		_jsRuntime = jsRuntime;
 		_toastService = toastService;
 		_logger = logger;
+		_fileSearchService = fileSearchService;
 	}
 
 	// Brief yield to allow Blazor to flush the binding update before resizing
@@ -37,8 +41,18 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	const long maxImagePreviewBytes = 10 * 1024 * 1024; // 10 MB
 	bool _subscribedToUIState;
 	DotNetObjectReference<ChatInputArea>? _dotNetRef;
-	bool _pastSetup;
+	bool _ceSetup;
 	string? _lastSessionId;
+
+	// Mention picker state
+	bool _showMentionPicker;
+	string _mentionFilter = string.Empty;
+	IReadOnlyList<FileSearchResult> _mentionFiles = [];
+	int _selectedMentionIndex = -1;
+
+	bool IsInputDisabled =>
+		_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0
+		|| _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0;
 
 	string UserInput
 	{
@@ -61,20 +75,22 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			_subscribedToUIState = true;
 
 			_dotNetRef = DotNetObjectReference.Create(this);
-			await SetupPasteHandlerAsync();
+			await SetupContentEditableAsync();
 		}
 	}
 
-	async Task SetupPasteHandlerAsync()
+	async Task SetupContentEditableAsync()
 	{
 		try
 		{
+			_dotNetRef ??= DotNetObjectReference.Create(this);
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupContentEditable", "chatInput", _dotNetRef);
 			await _jsRuntime.InvokeVoidAsync("cockpit.setupImagePaste", "chatInput", _dotNetRef);
-			_pastSetup = true;
+			_ceSetup = true;
 		}
 		catch(Exception ex)
 		{
-			_logger.LogDebug(ex, "Failed to setup image paste handler");
+			_logger.LogDebug(ex, "Failed to setup content editable");
 		}
 	}
 
@@ -91,7 +107,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			if(sessionChanged)
 			{
 				await Task.Delay(textareaResizeYieldMs);
-				await OnTextareaInput();
+				await SyncDomFromUserInput();
 				await FocusInputAsync();
 			}
 		});
@@ -110,7 +126,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupChatInputBehavior", "chatInput", _uiStateFeature.SendOnEnter);
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupContentEditableBehavior", "chatInput", _uiStateFeature.SendOnEnter);
 		}
 		catch(Exception ex)
 		{
@@ -122,11 +138,59 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.autoResizeTextarea", "chatInput");
+			await _jsRuntime.InvokeVoidAsync("cockpit.autoResizeContentEditable", "chatInput");
 		}
 		catch(Exception ex)
 		{
 			_logger.LogDebug(ex, "Failed to resize chat input");
+		}
+	}
+
+	async Task SyncUserInputFromDom()
+	{
+		try
+		{
+			string text = await _jsRuntime.InvokeAsync<string>("cockpit.getPlainText", "chatInput");
+			UserInput = text;
+		}
+		catch(Exception ex)
+		{
+			_logger.LogDebug(ex, "Failed to read contenteditable content");
+		}
+	}
+
+	async Task SyncDomFromUserInput()
+	{
+		try
+		{
+			string currentText = UserInput;
+			ChipInfo[] chips = await _jsRuntime.InvokeAsync<ChipInfo[]>("cockpit.setPlainText", "chatInput", currentText);
+
+			SessionModel? session = _sessionFeature.CurrentSession;
+			if(session is not null)
+			{
+				lock(session.PendingAttachmentsLock)
+				{
+					// Always clear stale mention attachments; rebuild from what setPlainText returned
+					session.PendingAttachments.RemoveAll(a => a.IsMention);
+
+					foreach(ChipInfo chip in chips)
+					{
+						string fileName = Path.GetFileName(chip.FilePath);
+						string ext = Path.GetExtension(chip.FilePath);
+						string mimeType = FileUtil.GetMimeType(ext);
+						session.PendingAttachments.Add(new AttachmentModel(
+							fileName, chip.FilePath, null, mimeType,
+							isMention: true, chipId: chip.ChipId));
+					}
+				}
+			}
+
+			await OnTextareaInput();
+		}
+		catch(Exception ex)
+		{
+			_logger.LogDebug(ex, "Failed to set contenteditable content");
 		}
 	}
 
@@ -146,11 +210,181 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	{
 		InvokeAsync(async () =>
 		{
-			UserInput = string.IsNullOrEmpty(UserInput) ? text : UserInput + "\n" + text;
+			// First sync current DOM content
+			await SyncUserInputFromDom();
+
+			string newContent = string.IsNullOrEmpty(UserInput) ? text : UserInput + "\n" + text;
+			UserInput = newContent;
+
+			// Sync to DOM
+			try
+			{
+				await _jsRuntime.InvokeVoidAsync("cockpit.setPlainText", "chatInput", newContent);
+			}
+			catch { }
+
 			StateHasChanged();
 			await Task.Delay(textareaResizeYieldMs);
 			await OnTextareaInput();
 		});
+	}
+
+	[JSInvokable]
+	public async Task OnContentInput()
+	{
+		try
+		{
+			// Sync text to session
+			await SyncUserInputFromDom();
+
+			// Check for active mention trigger
+			string? filter = await _jsRuntime.InvokeAsync<string?>("cockpit.getActiveMentionFilter", "chatInput");
+
+			if(filter is not null)
+			{
+				_mentionFilter = filter;
+
+				SessionModel? session = _sessionFeature.CurrentSession;
+				string cwd = session?.Context.CurrentWorkingDirectory ?? string.Empty;
+
+				_mentionFiles = !string.IsNullOrEmpty(cwd) ? await _fileSearchService.SearchAsync(cwd, filter) : [];
+
+				// Also include manually-attached files (outside CWD or not yet found by search)
+				if(session is not null)
+				{
+					List<FileSearchResult> combined = [.. _mentionFiles];
+					HashSet<string> seenPaths = new(combined.Select(f => f.FullPath), StringComparer.OrdinalIgnoreCase);
+
+					lock(session.PendingAttachmentsLock)
+					{
+						foreach(AttachmentModel att in session.PendingAttachments)
+						{
+							if(att.IsMention || seenPaths.Contains(att.FilePath))
+							{
+								continue;
+							}
+
+							string fileName = Path.GetFileName(att.FilePath);
+							if(string.IsNullOrEmpty(filter) || fileName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+							{
+								combined.Add(new FileSearchResult(fileName, att.FilePath, att.FilePath));
+								seenPaths.Add(att.FilePath);
+							}
+						}
+					}
+
+					_mentionFiles = combined;
+				}
+
+				if(_mentionFiles.Count > 0)
+				{
+					_showMentionPicker = true;
+					_selectedMentionIndex = 0; // auto-select first item
+				}
+				else
+				{
+					_showMentionPicker = !string.IsNullOrEmpty(filter); // show "no files" if user typed something
+				}
+			}
+			else
+			{
+				_showMentionPicker = false;
+			}
+
+			await InvokeAsync(StateHasChanged);
+			await OnTextareaInput();
+		}
+		catch(Exception ex)
+		{
+			_logger.LogDebug(ex, "Error handling content input");
+		}
+	}
+
+	[JSInvokable]
+	public Task OnChipRemoved(string chipId)
+	{
+		SessionModel? session = _sessionFeature.CurrentSession;
+		if(session is null)
+		{
+			return Task.CompletedTask;
+		}
+
+		lock(session.PendingAttachmentsLock)
+		{
+			int idx = session.PendingAttachments.FindIndex(a => a.ChipId == chipId);
+			if(idx >= 0)
+			{
+				session.PendingAttachments.RemoveAt(idx);
+			}
+		}
+
+		return InvokeAsync(StateHasChanged);
+	}
+
+	async Task OnFileSelectedAsync(FileSearchResult file)
+	{
+		string chipId = Guid.NewGuid().ToString();
+
+		// Insert chip into DOM
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("cockpit.insertFileChip", "chatInput", chipId, file.FullPath, file.FileName);
+		}
+		catch(Exception ex)
+		{
+			_logger.LogDebug(ex, "Failed to insert file chip");
+			CloseMentionPicker();
+			return;
+		}
+
+		// Add to pending attachments
+		SessionModel? session = _sessionFeature.CurrentSession;
+		if(session is not null)
+		{
+			string ext = Path.GetExtension(file.FileName);
+			string mimeType = FileUtil.GetMimeType(ext);
+
+			lock(session.PendingAttachmentsLock)
+			{
+				session.PendingAttachments.Add(new AttachmentModel(
+					file.FileName, file.FullPath, null, mimeType,
+					isMention: true, chipId: chipId));
+			}
+		}
+
+		// Sync text content from DOM
+		await SyncUserInputFromDom();
+
+		CloseMentionPicker();
+
+		// Re-focus the input
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("cockpit.focusElement", "chatInput");
+		}
+		catch { }
+
+		await InvokeAsync(StateHasChanged);
+	}
+
+	void CloseMentionPicker()
+	{
+		_showMentionPicker = false;
+		_mentionFilter = string.Empty;
+		_selectedMentionIndex = -1;
+	}
+
+	async Task OnSpeechInputChangedAsync(string value)
+	{
+		UserInput = value;
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("cockpit.setPlainText", "chatInput", value);
+		}
+		catch { }
+
+		await OnTextareaInput();
+		StateHasChanged();
 	}
 
 	[JSInvokable]
@@ -279,11 +513,26 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			return;
 		}
 
+		// Sync text from DOM first
+		await SyncUserInputFromDom();
+
 		SessionModel? session = _sessionFeature.CurrentSession;
 		bool hasAttachments = session?.PendingAttachments.Count > 0;
 
 		string message = UserInput.Trim();
+		if(string.IsNullOrWhiteSpace(message))
+		{
+			return;
+		}
+
 		UserInput = string.Empty;
+
+		// Clear DOM
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("cockpit.setPlainText", "chatInput", string.Empty);
+		}
+		catch { }
 
 		List<AttachmentModel>? attachments = null;
 		if(hasAttachments && session is not null)
@@ -304,9 +553,33 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	async Task HandleKeyDown(KeyboardEventArgs e)
 	{
+		if(_showMentionPicker)
+		{
+			switch(e.Key)
+			{
+				case "ArrowDown":
+					_selectedMentionIndex = (_selectedMentionIndex + 1) % Math.Max(1, _mentionFiles.Count);
+					await InvokeAsync(StateHasChanged);
+					return;
+				case "ArrowUp":
+					_selectedMentionIndex = (_selectedMentionIndex - 1 + Math.Max(1, _mentionFiles.Count)) % Math.Max(1, _mentionFiles.Count);
+					await InvokeAsync(StateHasChanged);
+					return;
+				case "Enter":
+					if(_selectedMentionIndex >= 0 && _selectedMentionIndex < _mentionFiles.Count)
+					{
+						await OnFileSelectedAsync(_mentionFiles[_selectedMentionIndex]);
+					}
+					return;
+				case "Escape":
+					CloseMentionPicker();
+					await InvokeAsync(StateHasChanged);
+					return;
+			}
+		}
+
 		if(e.Key == "Enter" && !e.ShiftKey && _uiStateFeature.SendOnEnter)
 		{
-			// Prevent default to avoid adding newline
 			await SendMessage();
 		}
 	}
@@ -338,10 +611,11 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			_uiStateFeature.OnStateChanged -= OnUIStateChangedHandler;
 		}
 
-		if(_pastSetup)
+		if(_ceSetup)
 		{
 			try
 			{
+				await _jsRuntime.InvokeVoidAsync("cockpit.cleanupContentEditable", "chatInput");
 				await _jsRuntime.InvokeVoidAsync("cockpit.cleanupImagePaste", "chatInput");
 			}
 			catch { /* component may already be detached */ }
@@ -350,3 +624,8 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		_dotNetRef?.Dispose();
 	}
 }
+
+record ChipInfo(
+	[property: JsonPropertyName("chipId")] string ChipId,
+	[property: JsonPropertyName("filePath")] string FilePath
+);

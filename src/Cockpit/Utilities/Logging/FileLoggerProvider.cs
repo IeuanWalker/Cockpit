@@ -36,18 +36,25 @@ internal sealed class FileLoggerProvider : ILoggerProvider
 	void RotateIfNeeded()
 	{
 		if(_writer is null)
+		{
 			return;
+		}
 
 		FileInfo info = new(_logPath);
 		if(!info.Exists || info.Length < MaxBytes)
+		{
 			return;
+		}
 
 		_writer.Dispose();
 		_writer = null;
 
 		string backup = _logPath + ".old";
 		if(File.Exists(backup))
+		{
 			File.Delete(backup);
+		}
+
 		File.Move(_logPath, backup);
 
 		_writer = OpenWriter();

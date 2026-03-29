@@ -11,7 +11,9 @@ internal sealed class FileLogger(string category, FileLoggerProvider provider) :
 	public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
 	{
 		if(!IsEnabled(logLevel))
+		{
 			return;
+		}
 
 		string level = logLevel switch
 		{
@@ -27,7 +29,9 @@ internal sealed class FileLogger(string category, FileLoggerProvider provider) :
 		string message = formatter(state, exception);
 		string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{level}] {category}: {message}";
 		if(exception is not null)
+		{
 			line += Environment.NewLine + exception;
+		}
 
 		provider.WriteLine(line);
 	}

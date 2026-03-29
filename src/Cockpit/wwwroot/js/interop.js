@@ -467,6 +467,460 @@ window.cockpit = {
         overlay.querySelector('#_cockpit_lightbox_img').src = src;
         overlay.querySelector('#_cockpit_lightbox_img').alt = alt ?? '';
         document.body.appendChild(overlay);
+    },
+
+    // -------------------------------------------------------------------------
+    // ContentEditable methods for the chat input div
+    // -------------------------------------------------------------------------
+
+    setupContentEditable: function (id, dotnetRef) {
+        const element = document.getElementById(id);
+        if (!element) return;
+
+        // Clean up any existing observer/listener
+        if (element._ceObserver) {
+            element._ceObserver.disconnect();
+            delete element._ceObserver;
+        }
+        if (element._ceInputHandler) {
+            element.removeEventListener('input', element._ceInputHandler);
+            delete element._ceInputHandler;
+        }
+
+        element._ceRef = dotnetRef;
+        element._suppressChipRemovalCallback = false;
+
+        // Click delegation: handle chip × delete button
+        element._ceClickHandler = function (event) {
+            const deleteBtn = event.target.closest && event.target.closest('.chip-delete');
+            if (deleteBtn) {
+                const chip = deleteBtn.closest('.file-mention-chip');
+                if (chip) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    // Remove adjacent zero-width spacer after chip
+                    let next = chip.nextSibling;
+                    while (next && next.nodeType === 3 && next.textContent.startsWith('\u200B')) {
+                        const toRemove = next;
+                        next = next.nextSibling;
+                        toRemove.remove();
+                    }
+                    chip.remove();
+                    window.cockpit.autoResizeContentEditable(id);
+                }
+            }
+        };
+        element.addEventListener('click', element._ceClickHandler);
+
+        // Input event → notify C#
+        element._ceInputHandler = function () {
+            dotnetRef.invokeMethodAsync('OnContentInput').catch(() => {});
+        };
+        element.addEventListener('input', element._ceInputHandler);
+
+        // MutationObserver to detect chip removal
+        const observer = new MutationObserver(function (mutations) {
+            for (const mutation of mutations) {
+                for (const node of mutation.removedNodes) {
+                    if (node.nodeType === 1 && node.classList && node.classList.contains('file-mention-chip')) {
+                        if (!element._suppressChipRemovalCallback) {
+                            const chipId = node.dataset.chipId;
+                            if (chipId) {
+                                dotnetRef.invokeMethodAsync('OnChipRemoved', chipId).catch(() => {});
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        observer.observe(element, { childList: true, subtree: true });
+        element._ceObserver = observer;
+    },
+
+    getActiveMentionFilter: function (id) {
+        const element = document.getElementById(id);
+        if (!element) return null;
+
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return null;
+        const range = sel.getRangeAt(0);
+        if (!range.collapsed) return null;
+
+        // If cursor is inside a chip, return null
+        const node = range.startContainer;
+        if (node.nodeType === 1 && node.classList && node.classList.contains('file-mention-chip')) return null;
+        if (node.nodeType === 3 && node.parentElement && node.parentElement.closest('.file-mention-chip')) return null;
+
+        // Must be a text node inside our div
+        if (node.nodeType !== 3) return null;
+        if (!element.contains(node)) return null;
+
+        const textBeforeCursor = node.textContent.substring(0, range.startOffset);
+        const hashIndex = textBeforeCursor.lastIndexOf('#');
+        if (hashIndex === -1) return null;
+
+        const afterHash = textBeforeCursor.substring(hashIndex + 1);
+
+        // If there's any whitespace between # and cursor → not an active mention
+        if (/\s/.test(afterHash)) return null;
+
+        // If # is preceded by a non-whitespace character → mid-word #, not a trigger
+        if (hashIndex > 0 && /\S/.test(textBeforeCursor[hashIndex - 1])) return null;
+
+        // Save the range so insertFileChip can use it even if focus moves to the picker
+        element._savedMentionRange = range.cloneRange();
+
+        return afterHash;
+    },
+
+    insertFileChip: function (id, chipId, filePath, fileName) {
+        const element = document.getElementById(id);
+        if (!element) return;
+
+        // Prefer the range saved by getActiveMentionFilter (reliable even when focus moves to picker)
+        let range;
+        if (element._savedMentionRange) {
+            range = element._savedMentionRange;
+            element._savedMentionRange = null;
+        } else {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            range = sel.getRangeAt(0);
+        }
+
+        // Find and delete the #<filter> text before cursor in the current text node
+        if (range.startContainer.nodeType === 3) {
+            const textNode = range.startContainer;
+            const offset = range.startOffset;
+            const textBefore = textNode.textContent.substring(0, offset);
+            const hashIndex = textBefore.lastIndexOf('#');
+            if (hashIndex !== -1) {
+                // Delete from # to cursor
+                const deleteRange = document.createRange();
+                deleteRange.setStart(textNode, hashIndex);
+                deleteRange.setEnd(textNode, offset);
+                deleteRange.deleteContents();
+                // Update range after deletion
+                range.setStart(textNode, hashIndex);
+                range.collapse(true);
+            }
+        }
+
+        // Build chip span
+        const chip = document.createElement('span');
+        chip.className = 'file-mention-chip';
+        chip.contentEditable = 'false';
+        chip.dataset.chipId = chipId;
+        chip.dataset.filePath = filePath;
+        chip.title = filePath;
+        chip.innerHTML =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' +
+            '</svg>' +
+            '<span class="chip-name"> ' + fileName + '</span>' +
+            '<button class="chip-delete" tabindex="-1" title="Remove">&#215;</button>';
+
+        // Insert chip at cursor
+        range.insertNode(chip);
+
+        // Insert zero-width space + space after chip
+        const spacer = document.createTextNode('\u200B ');
+        chip.after(spacer);
+
+        // Move cursor after the zero-width space
+        const curSel = window.getSelection();
+        if (curSel) {
+            const newRange = document.createRange();
+            newRange.setStart(spacer, 1);
+            newRange.collapse(true);
+            curSel.removeAllRanges();
+            curSel.addRange(newRange);
+        }
+
+        // Trigger resize
+        window.cockpit.autoResizeContentEditable(id);
+    },
+
+    removeFileChip: function (id, chipId) {
+        const element = document.getElementById(id);
+        if (!element) return;
+
+        const chip = element.querySelector('[data-chip-id="' + chipId + '"]');
+        if (!chip) return;
+
+        element._suppressChipRemovalCallback = true;
+
+        // Remove any immediately adjacent zero-width space text nodes after the chip
+        let next = chip.nextSibling;
+        while (next && next.nodeType === 3 && next.textContent.startsWith('\u200B')) {
+            const toRemove = next;
+            next = next.nextSibling;
+            toRemove.remove();
+        }
+
+        chip.remove();
+
+        element._suppressChipRemovalCallback = false;
+
+        window.cockpit.autoResizeContentEditable(id);
+    },
+
+    getPlainText: function (id) {
+        const element = document.getElementById(id);
+        if (!element) return '';
+
+        function walk(node, isFirstChild) {
+            if (node.nodeType === 3) {
+                // Text node — return as-is
+                return node.textContent;
+            }
+            if (node.nodeType !== 1) return '';
+
+            if (node.classList && node.classList.contains('file-mention-chip')) {
+                return "#file:'" + node.dataset.filePath + "'";
+            }
+
+            const tag = node.tagName ? node.tagName.toUpperCase() : '';
+
+            if (tag === 'BR') return '\n';
+
+            let prefix = '';
+            if ((tag === 'DIV' || tag === 'P') && !isFirstChild) {
+                prefix = '\n';
+            }
+
+            let inner = '';
+            let childIndex = 0;
+            for (const child of node.childNodes) {
+                inner += walk(child, childIndex === 0);
+                childIndex++;
+            }
+
+            return prefix + inner;
+        }
+
+        let result = '';
+        let childIndex = 0;
+        for (const child of element.childNodes) {
+            result += walk(child, childIndex === 0);
+            childIndex++;
+        }
+
+        // Strip leading/trailing zero-width spaces
+        result = result.replace(/^\u200B+/, '').replace(/\u200B+$/, '');
+        // Trim trailing whitespace
+        result = result.replace(/\s+$/, '');
+
+        return result;
+    },
+
+    setPlainText: function (id, text) {
+        const element = document.getElementById(id);
+        if (!element) return [];
+
+        element._suppressChipRemovalCallback = true;
+        element.innerHTML = '';
+
+        const chipRegex = /#file:'([^']*)'/g;
+        const chips = [];
+        let lastIndex = 0;
+        let match;
+
+        while ((match = chipRegex.exec(text)) !== null) {
+            // Text before this token
+            if (match.index > lastIndex) {
+                element.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
+            }
+
+            const filePath = match[1];
+            const fileName = filePath.split(/[\\/]/).pop();
+            const newChipId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : Math.random().toString(36).slice(2);
+
+            const chip = document.createElement('span');
+            chip.className = 'file-mention-chip';
+            chip.contentEditable = 'false';
+            chip.dataset.chipId = newChipId;
+            chip.dataset.filePath = filePath;
+            chip.title = filePath;
+            chip.innerHTML =
+                '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' +
+                '</svg>' +
+                '<span class="chip-name"> ' + fileName + '</span>' +
+                '<button class="chip-delete" tabindex="-1" title="Remove">&#215;</button>';
+
+            element.appendChild(chip);
+
+            // Spacer after chip
+            element.appendChild(document.createTextNode('\u200B '));
+
+            chips.push({ chipId: newChipId, filePath: filePath });
+            lastIndex = match.index + match[0].length;
+        }
+
+        // Remaining text after last token
+        if (lastIndex < text.length) {
+            element.appendChild(document.createTextNode(text.substring(lastIndex)));
+        }
+
+        element._suppressChipRemovalCallback = false;
+
+        window.cockpit.autoResizeContentEditable(id);
+
+        return chips;
+    },
+
+    getChipIds: function (id) {
+        const div = document.getElementById(id);
+        if (!div) return [];
+        return [...div.querySelectorAll('.file-mention-chip')].map(s => ({
+            chipId: s.dataset.chipId,
+            filePath: s.dataset.filePath
+        }));
+    },
+
+    scrollPickerItemIntoView: function (id) {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ block: 'nearest' });
+    },
+
+    autoResizeContentEditable: function (id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.height = 'auto';
+        const maxHeight = 300;
+        el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
+    },
+
+    setupContentEditableBehavior: function (id, enterToSend) {
+        const element = document.getElementById(id);
+        if (!element) return;
+
+        element.dataset.enterToSend = enterToSend;
+
+        // Remove existing keydown handler if present
+        if (element._ceKeydownHandler) {
+            element.removeEventListener('keydown', element._ceKeydownHandler);
+            delete element._ceKeydownHandler;
+        }
+
+        element._ceKeydownHandler = function (e) {
+            // When the mention picker is active, prevent the browser from acting on navigation keys.
+            // ArrowDown/Up would move the cursor away from the #filter position;
+            // Enter would insert a newline. C# handles all of these via @onkeydown.
+            if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Escape') {
+                if (window.cockpit.getActiveMentionFilter(id) !== null) {
+                    e.preventDefault();
+                    return;
+                }
+            }
+
+            if (e.key === 'Enter') {
+                if (!e.shiftKey && element.dataset.enterToSend === 'true') {
+                    // Send mode: prevent default (C# handles send via keydown)
+                    e.preventDefault();
+                } else {
+                    // Newline mode: prevent default, insert <br> manually
+                    e.preventDefault();
+                    const sel = window.getSelection();
+                    if (!sel || sel.rangeCount === 0) return;
+                    const range = sel.getRangeAt(0);
+                    range.deleteContents();
+
+                    const br = document.createElement('br');
+                    range.insertNode(br);
+
+                    // Insert a zero-width space after <br> to keep cursor visible
+                    const spacer = document.createTextNode('\u200B');
+                    br.after(spacer);
+
+                    const newRange = document.createRange();
+                    newRange.setStartAfter(br);
+                    newRange.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+
+                    window.cockpit.autoResizeContentEditable(id);
+                }
+            }
+
+            // Single-press chip removal: Backspace/Delete adjacent to a chip
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                const sel = window.getSelection();
+                if (!sel || sel.rangeCount === 0 || !sel.getRangeAt(0).collapsed) return;
+                const range = sel.getRangeAt(0);
+                const node = range.startContainer;
+                const offset = range.startOffset;
+
+                if (e.key === 'Backspace') {
+                    // Cursor is in the ZWS spacer text node immediately following a chip
+                    if (node.nodeType === 3 &&
+                        node.previousSibling &&
+                        node.previousSibling.nodeType === 1 &&
+                        node.previousSibling.classList.contains('file-mention-chip')) {
+                        const zwsLen = (node.textContent.match(/^\u200B+/) || [''])[0].length;
+                        if (offset <= zwsLen) {
+                            e.preventDefault();
+                            const chip = node.previousSibling;
+                            node.remove();
+                            chip.remove(); // MutationObserver fires OnChipRemoved
+                            window.cockpit.autoResizeContentEditable(id);
+                            return;
+                        }
+                    }
+                    // Cursor is at offset 0 in a node whose previous sibling is a chip
+                    if (offset === 0 &&
+                        node.previousSibling &&
+                        node.previousSibling.nodeType === 1 &&
+                        node.previousSibling.classList.contains('file-mention-chip')) {
+                        e.preventDefault();
+                        node.previousSibling.remove();
+                        window.cockpit.autoResizeContentEditable(id);
+                        return;
+                    }
+                }
+
+                if (e.key === 'Delete') {
+                    // Cursor is at the end of a text node whose next sibling is a chip
+                    let nextNode = null;
+                    if (node.nodeType === 3 && offset === node.textContent.length) {
+                        nextNode = node.nextSibling;
+                    } else if (node.nodeType === 1) {
+                        nextNode = node.childNodes[offset] || null;
+                    }
+                    if (nextNode &&
+                        nextNode.nodeType === 1 &&
+                        nextNode.classList.contains('file-mention-chip')) {
+                        e.preventDefault();
+                        let spacer = nextNode.nextSibling;
+                        while (spacer && spacer.nodeType === 3 && spacer.textContent.startsWith('\u200B')) {
+                            const toRemove = spacer;
+                            spacer = spacer.nextSibling;
+                            toRemove.remove();
+                        }
+                        nextNode.remove();
+                        window.cockpit.autoResizeContentEditable(id);
+                        return;
+                    }
+                }
+            }
+        };
+
+        element.addEventListener('keydown', element._ceKeydownHandler);
+    },
+
+    cleanupContentEditable: function (id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el._ceObserver) { el._ceObserver.disconnect(); delete el._ceObserver; }
+        if (el._ceInputHandler) { el.removeEventListener('input', el._ceInputHandler); delete el._ceInputHandler; }
+        if (el._ceKeydownHandler) { el.removeEventListener('keydown', el._ceKeydownHandler); delete el._ceKeydownHandler; }
+        if (el._ceClickHandler) { el.removeEventListener('click', el._ceClickHandler); delete el._ceClickHandler; }
+        delete el._ceRef;
+        delete el._suppressChipRemovalCallback;
+        delete el._savedMentionRange;
     }
 };
 
