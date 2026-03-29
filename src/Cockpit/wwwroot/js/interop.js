@@ -757,13 +757,38 @@ window.cockpit = {
             chip.dataset.chipId = newChipId;
             chip.dataset.filePath = filePath;
             chip.title = filePath;
-            chip.innerHTML =
-                '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                '<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' +
-                '</svg>' +
-                '<span class="chip-name"> ' + fileName + '</span>' +
-                '<button class="chip-delete" tabindex="-1" title="Remove">&#215;</button>';
 
+            // Build icon SVG
+            const svgNs = 'http://www.w3.org/2000/svg';
+            const icon = document.createElementNS(svgNs, 'svg');
+            icon.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            icon.setAttribute('width', '12');
+            icon.setAttribute('height', '12');
+            icon.setAttribute('fill', 'none');
+            icon.setAttribute('stroke', 'currentColor');
+            icon.setAttribute('viewBox', '0 0 24 24');
+            icon.setAttribute('stroke-width', '2');
+            icon.setAttribute('stroke-linecap', 'round');
+            icon.setAttribute('stroke-linejoin', 'round');
+            const iconPath = document.createElementNS(svgNs, 'path');
+            iconPath.setAttribute('d', 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z');
+            icon.appendChild(iconPath);
+
+            // Build filename span safely
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'chip-name';
+            nameSpan.textContent = ' ' + fileName;
+
+            // Build delete button
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'chip-delete';
+            deleteButton.tabIndex = -1;
+            deleteButton.title = 'Remove';
+            deleteButton.textContent = '×';
+
+            chip.appendChild(icon);
+            chip.appendChild(nameSpan);
+            chip.appendChild(deleteButton);
             element.appendChild(chip);
 
             // Spacer after chip
