@@ -35,6 +35,7 @@ jobs:
           --configuration Release
           -p:ApplicationDisplayVersion=${{ steps.version.outputs.VERSION }}
           -p:ApplicationVersion=${{ github.run_number }}
+          -p:Version=${{ steps.version.outputs.VERSION }}
           --output ./publish/windows
 
       - name: Zip publish output
