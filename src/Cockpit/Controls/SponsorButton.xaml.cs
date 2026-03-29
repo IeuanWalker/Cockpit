@@ -7,7 +7,7 @@ public partial class SponsorButton : ContentView
 		InitializeComponent();
 	}
 
-	async void ContentButton_Clicked(object sender, EventArgs e)
+	async void ContentButton_Clicked(object? sender, EventArgs e)
 	{
 		try
 		{

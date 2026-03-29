@@ -70,7 +70,7 @@ public partial class Opperations
 		return "✓";
 	}
 
-	readonly Dictionary<string, bool> _expandedEventJson = new();
+	readonly Dictionary<string, bool> _expandedEventJson = [];
 
 	void ToggleEventExpandedIfNotSelecting(string key)
 	{

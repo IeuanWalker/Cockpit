@@ -56,6 +56,15 @@ public sealed partial class SessionFeature
 				throw new InvalidOperationException($"Session {CurrentSession.Id} not found in SDK sessions");
 			}
 
+			// Deduplicate attachments by file path before sending
+			if(attachments?.Count > 0)
+			{
+				attachments = attachments
+					.GroupBy(a => a.FilePath, StringComparer.OrdinalIgnoreCase)
+					.Select(g => g.First())
+					.ToList();
+			}
+
 			ChatMessageModel? optimisticMessage = null;
 			lock(CurrentSession.SessionEventLock)
 			{

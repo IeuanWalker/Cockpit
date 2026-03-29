@@ -14,9 +14,13 @@ public partial class DiagnosticsSettings
 		try
 		{
 			if(OperatingSystem.IsWindows())
+			{
 				Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{LogDirectory}\"", UseShellExecute = true });
+			}
 			else if(OperatingSystem.IsMacOS())
+			{
 				Process.Start(new ProcessStartInfo { FileName = "open", Arguments = $"\"{LogDirectory}\"", UseShellExecute = true });
+			}
 		}
 		catch { /* best-effort */ }
 	}

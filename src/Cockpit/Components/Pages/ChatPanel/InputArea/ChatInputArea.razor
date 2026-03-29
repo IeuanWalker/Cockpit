@@ -7,22 +7,36 @@
             <div class="absolute inset-0 bg-black bg-opacity-30 z-10 rounded-lg cursor-not-allowed"></div>
         }
         <AttachmentsControl Session="@_sessionFeature.CurrentSession" />
+        <FileMentionPicker Visible="@_showMentionPicker"
+                           Filter="@_mentionFilter"
+                           Files="@_mentionFiles"
+                           SelectedIndex="@_selectedMentionIndex"
+                           SelectedIndexChanged="@(i => _selectedMentionIndex = i)"
+                           OnFileSelected="@OnFileSelectedAsync"
+                           OnClose="@CloseMentionPicker" />
         <div class="bg-app-bg border border-app-border rounded-lg overflow-visible">
             <div class="flex items-stretch">
                 <div class="flex-1" style="align-content: flex-end">
-                    <textarea id="chatInput" @bind="UserInput" @bind:event="oninput" @bind:after="OnTextareaInput" @onkeydown="HandleKeyDown"
-                              class="w-full bg-transparent text-app-text px-3 py-2 resize-none focus:outline-none scrollbar-thin"
-                              style="font-size: 0.875rem;"
-                              rows="1" placeholder="Ask Copilot anything..." disabled="@(_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0 || _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0)"></textarea>
+                    <div id="chatInput"
+                         contenteditable="@(!IsInputDisabled ? "true" : "false")"
+                         data-placeholder="Ask Copilot anything... (type # to mention files)"
+                         class="w-full bg-transparent text-app-text px-3 py-2 focus:outline-none scrollbar-thin"
+                         style="font-size: 0.875rem;"
+                         @onkeydown="HandleKeyDown"
+                         aria-label="Chat input"
+                         role="textbox"
+                         aria-multiline="true"
+                         aria-disabled="@IsInputDisabled.ToString().ToLower()"></div>
                 </div>
                 <div class="flex items-end space-x-1 p-2 border-l border-app-border self-stretch">
-                    <button @onclick="AttachFiles" class="p-1.5 hover:bg-app-hover rounded" title="Attach file" disabled="@(_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0 || _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0)">
+                    <button @onclick="AttachFiles" class="p-1.5 hover:bg-app-hover rounded" title="Attach file" disabled="@IsInputDisabled">
                         <svg class="icon-xs secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                         </svg>
                     </button>
-                    <SpeechToTextControl @bind-ChatInput="UserInput"
-                                         Disabled="@(_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0 || _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0)" />
+                    <SpeechToTextControl ChatInput="@UserInput"
+                                         ChatInputChanged="@OnSpeechInputChangedAsync"
+                                         Disabled="@IsInputDisabled" />
                     <button @onclick="SendMessage"
                             class="btn-primary p-1.5 rounded transition-opacity @(!CanSend ? "opacity-40 cursor-not-allowed" : "")"
                             title="Send" disabled="@(!CanSend)">

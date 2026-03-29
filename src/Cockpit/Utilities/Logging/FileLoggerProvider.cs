@@ -2,12 +2,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Utilities.Logging;
 
-internal sealed class FileLoggerProvider : ILoggerProvider
+sealed partial class FileLoggerProvider : ILoggerProvider
 {
-	const long MaxBytes = 5 * 1024 * 1024; // 5 MB
+	const long maxBytes = 5 * 1024 * 1024; // 5 MB
 
 	readonly string _logPath;
-	readonly object _lock = new();
+	readonly Lock _lock = new();
 	StreamWriter? _writer;
 
 	public FileLoggerProvider()
@@ -36,18 +36,25 @@ internal sealed class FileLoggerProvider : ILoggerProvider
 	void RotateIfNeeded()
 	{
 		if(_writer is null)
+		{
 			return;
+		}
 
 		FileInfo info = new(_logPath);
-		if(!info.Exists || info.Length < MaxBytes)
+		if(!info.Exists || info.Length < maxBytes)
+		{
 			return;
+		}
 
 		_writer.Dispose();
 		_writer = null;
 
 		string backup = _logPath + ".old";
 		if(File.Exists(backup))
+		{
 			File.Delete(backup);
+		}
+
 		File.Move(_logPath, backup);
 
 		_writer = OpenWriter();

@@ -1,6 +1,7 @@
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Sessions;
@@ -27,7 +28,7 @@ public class SessionListFeatureTests
 		}
 	};
 
-	static SessionListFeature CreateFeature() => new();
+	static SessionListFeature CreateFeature() => new(NullLogger<SessionListFeature>.Instance);
 
 	[Fact]
 	public void AddSession_InsertsAtFront()
@@ -55,7 +56,7 @@ public class SessionListFeatureTests
 
 		feature.SetCurrentSession(session);
 
-		await Task.Delay(50);
+		await Task.Delay(50, TestContext.Current.CancellationToken);
 
 		feature.CurrentSession.ShouldBe(session);
 		eventFired.ShouldBeTrue();
@@ -140,7 +141,7 @@ public class SessionListFeatureTests
 		feature.NotifyStateChanged();
 		feature.NotifyStateChanged();
 
-		await Task.Delay(50);
+		await Task.Delay(50, TestContext.Current.CancellationToken);
 
 		// Two rapid calls are coalesced into a single notification
 		callCount.ShouldBe(1);
@@ -153,7 +154,7 @@ public class SessionListFeatureTests
 		feature.AddSession(MakeSession("a"));
 		feature.AddSession(MakeSession("b"));
 
-		ISessionStateProvider provider = feature;
+		SessionListFeature provider = feature;
 		provider.Sessions.Count.ShouldBe(2);
 	}
 

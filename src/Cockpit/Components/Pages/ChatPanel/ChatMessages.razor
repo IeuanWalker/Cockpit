@@ -27,13 +27,33 @@
                             @if(message.EventJson is null)
                             {
                                 <div class="chat-bubble rounded-lg px-4 py-2.5 @(message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")">
-                                    <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                                    @{
+                                        var userContent = RenderUserContent(message.Content);
+                                    }
+                                    @if(userContent.HasValue)
+                                    {
+                                        <div class="markdown-content text-sm">@userContent.Value</div>
+                                    }
+                                    else
+                                    {
+                                        <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                                    }
                                 </div>
                             }
                             else
                             {
                                 <div class="chat-bubble rounded-lg px-4 py-2.5 event-message @(message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")" @onclick="() => ShowEventJson(message)">
-                                    <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                                    @{
+                                        var userContent = RenderUserContent(message.Content);
+                                    }
+                                    @if(userContent.HasValue)
+                                    {
+                                        <div class="markdown-content text-sm">@userContent.Value</div>
+                                    }
+                                    else
+                                    {
+                                        <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                                    }
                                 </div>
                             }
 

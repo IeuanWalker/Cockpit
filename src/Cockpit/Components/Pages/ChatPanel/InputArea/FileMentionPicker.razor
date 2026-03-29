@@ -1,0 +1,31 @@
+@namespace Cockpit.Components.Pages.ChatPanel.InputArea
+
+@if(Visible && _filteredFiles.Count > 0)
+{
+    <div class="file-mention-picker" @onmousedown:preventDefault>
+        <div class="file-mention-picker-list">
+            @for(int i = 0; i < _filteredFiles.Count; i++)
+            {
+                var file = _filteredFiles[i];
+                int idx = i;
+                <div class="file-mention-picker-item @(i == SelectedIndex ? "active" : "")"
+                     id="picker-item-@i"
+                     @onclick="() => SelectFile(file)"
+                     @onmouseenter="@(() => SelectedIndexChanged.InvokeAsync(idx))">
+                    <svg class="icon-xs flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span class="file-mention-picker-filename">@file.FileName</span>
+                    <span class="file-mention-picker-path" title="@file.RelativePath">@GetDisplayPath(file)</span>
+                </div>
+            }
+        </div>
+    </div>
+}
+else if(Visible && _filteredFiles.Count == 0 && !string.IsNullOrEmpty(Filter))
+{
+    <div class="file-mention-picker">
+        <div class="file-mention-picker-empty">No files found</div>
+    </div>
+}

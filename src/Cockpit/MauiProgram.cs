@@ -1,3 +1,4 @@
+using System.Text;
 using Blazor.Sonner.Extensions;
 using Blazor.Sonner.Services;
 using Cockpit.Features.Agents;
@@ -9,6 +10,7 @@ using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
+using Cockpit.Features.FileSearch;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.TextToSpeech;
@@ -109,6 +111,9 @@ public static class MauiProgram
 			return new UpdateFeature(client);
 		});
 
+		// File search
+		builder.Services.AddSingleton<IFileSearchFeature, FileSearchFeature>();
+
 		// Register agent services
 		builder.Services.AddSingleton<AgentPersistence>();
 		builder.Services.AddSingleton<GlobalAgentFeature>();
@@ -135,7 +140,9 @@ public static class MauiProgram
 					&& (e.StackTrace?.Contains("GitHub.Copilot.SDK") ?? false));
 
 			if(!isSdkProcessGone)
+			{
 				LogCrash("TaskScheduler", args.Exception);
+			}
 
 			args.SetObserved();
 		};
@@ -153,15 +160,18 @@ public static class MauiProgram
 			{
 				string backup = logPath + ".old";
 				if(File.Exists(backup))
+				{
 					File.Delete(backup);
+				}
+
 				File.Move(logPath, backup);
 			}
 
-			var exceptions = ex is AggregateException agg
+			IEnumerable<Exception> exceptions = ex is AggregateException agg
 				? agg.Flatten().InnerExceptions
 				: (IEnumerable<Exception>)(ex is null ? [] : [ex]);
 
-			var sb = new System.Text.StringBuilder();
+			StringBuilder sb = new();
 			foreach(Exception inner in exceptions)
 			{
 				sb.AppendLine();

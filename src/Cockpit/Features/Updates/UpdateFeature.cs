@@ -37,7 +37,7 @@ public sealed partial class UpdateFeature : IDisposable
 		}
 
 		DateTime? installedDate = null;
-		if (Preferences.Default.ContainsKey(key))
+		if(Preferences.Default.ContainsKey(key))
 		{
 			DateTime stored = Preferences.Default.Get(key, DateTime.MinValue);
 			installedDate = stored == DateTime.MinValue ? null : stored;
@@ -136,8 +136,25 @@ public sealed partial class UpdateFeature : IDisposable
 		}
 	}
 
-	public void OpenReleaseInBrowser(GitHubReleaseModel release) => _ = Launcher.Default.OpenAsync(new Uri(release.HtmlUrl));
+	public void OpenReleaseInBrowser(GitHubReleaseModel release)
+	{
+		if(release is null)
+		{
+			return;
+		}
 
+		if(string.IsNullOrWhiteSpace(release.HtmlUrl))
+		{
+			return;
+		}
+
+		if(!Uri.TryCreate(release.HtmlUrl, UriKind.Absolute, out Uri? uri))
+		{
+			return;
+		}
+
+		_ = Launcher.Default.OpenAsync(uri);
+	}
 	public void Dispose()
 	{
 		Dispose(true);

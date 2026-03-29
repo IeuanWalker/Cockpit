@@ -626,3 +626,187 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
 .animate-spin-reverse {
     animation: spin-ccw 1s linear infinite;
 }
+
+/* ── File Mention Chips ─────────────────────────────────────────── */
+.file-mention-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background-color: var(--active-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 1px 6px 1px 4px;
+    font-size: 0.8rem;
+    color: var(--text-color);
+    user-select: none;
+    cursor: default;
+    vertical-align: middle;
+    margin: 0 1px;
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+}
+
+.file-mention-chip svg {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    opacity: 0.75;
+}
+
+.file-mention-chip .chip-delete {
+    background: none;
+    border: none;
+    padding: 0 0 0 3px;
+    margin: 0;
+    color: inherit;
+    opacity: 0.55;
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.file-mention-chip .chip-delete:hover {
+    opacity: 1;
+}
+
+.file-mention-chip-readonly {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background-color: var(--active-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 1px 6px 1px 4px;
+    font-size: 0.8rem;
+    color: var(--text-color);
+    user-select: none;
+    vertical-align: middle;
+    margin: 0 2px;
+    white-space: nowrap;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+}
+
+.file-mention-chip-readonly svg {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    opacity: 0.75;
+}
+
+/* ContentEditable input div (replaces textarea) */
+#chatInput[contenteditable] {
+    outline: none;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 1.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    line-height: 1.5;
+    cursor: text;
+}
+
+#chatInput[contenteditable]:empty::before {
+    content: attr(data-placeholder);
+    color: var(--secondary-text);
+    pointer-events: none;
+    font-style: normal;
+}
+
+/* File mention picker dropdown */
+.file-mention-picker {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    margin-bottom: 4px;
+    background-color: var(--sidebar-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
+    z-index: 100;
+    overflow: hidden;
+    max-height: 240px;
+    display: flex;
+    flex-direction: column;
+}
+
+.file-mention-picker-list {
+    overflow-y: auto;
+    max-height: 240px;
+}
+
+.file-mention-picker-list::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.file-mention-picker-list::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+.file-mention-picker-list::-webkit-scrollbar-track {
+    background: var(--sidebar-color);
+}
+
+.file-mention-picker-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 0px;
+}
+
+.file-mention-picker-list::-webkit-scrollbar-thumb:hover {
+    background: var(--hover-color);
+}
+
+.file-mention-picker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    transition: background-color 0.1s;
+}
+
+.file-mention-picker-item:hover,
+.file-mention-picker-item.active {
+    background-color: var(--hover-color);
+}
+
+.file-mention-picker-item.active {
+    background-color: var(--active-color);
+}
+
+.file-mention-picker-filename {
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+    max-width: 50%;
+}
+
+.file-mention-picker-path {
+    color: var(--secondary-text);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.file-mention-picker-empty {
+    padding: 12px 10px;
+    color: var(--secondary-text);
+    font-size: 0.8125rem;
+    text-align: center;
+}

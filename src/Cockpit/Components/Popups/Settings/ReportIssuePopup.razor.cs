@@ -7,8 +7,8 @@ namespace Cockpit.Components.Popups.Settings;
 
 public partial class ReportIssuePopup : ComponentBase
 {
-	const string IssuesUrl = "https://github.com/IeuanWalker/Cockpit/issues/new?title=&body=";
-	const int MaxUrlLength = 8202;
+	const string issuesUrl = "https://github.com/IeuanWalker/Cockpit/issues/new?title=&body=";
+	const int maxUrlLength = 8202;
 
 	public const int MaxTitleLength = 150;
 	public const int MaxDescriptionLength = 1000;
@@ -52,11 +52,11 @@ public partial class ReportIssuePopup : ComponentBase
 		}
 
 		// Calculate remaining URL chars after fixed content is accounted for
-		int usedLength = IssuesUrl.Length
+		int usedLength = issuesUrl.Length
 		+ Uri.EscapeDataString(_title).Length
 		+ Uri.EscapeDataString(header + footer).Length;
 
-		int logBudget = MaxUrlLength - usedLength;
+		int logBudget = maxUrlLength - usedLength;
 
 		string logSection = BuildLogSection(logBudget);
 		return header + logSection + footer;
