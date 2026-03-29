@@ -21,7 +21,8 @@ public class FileSearchFeature : IFileSearchFeature
 
 	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = 50)
 	{
-		return Task.Run(() => Search(workingDirectory, filter, maxResults));
+		IReadOnlyList<FileSearchResult> results = Search(workingDirectory, filter, maxResults);
+		return Task.FromResult(results);
 	}
 
 	IReadOnlyList<FileSearchResult> Search(string workingDirectory, string filter, int maxResults)
