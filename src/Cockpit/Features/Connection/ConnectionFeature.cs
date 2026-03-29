@@ -103,7 +103,7 @@ public sealed partial class ConnectionFeature : IDisposable
 		{
 			LastChecked = DateTime.UtcNow;
 			Status = ConnectionStatusEnum.Error;
-
+			_logger.LogWarning(ex, "Ping failed");
 			AddToHistory(Status, LastChecked.Value, SerializeExceptionToJson(ex));
 		}
 

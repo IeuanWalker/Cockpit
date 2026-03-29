@@ -1,5 +1,42 @@
-﻿<div class="settings-section settings-section-empty">
-    <h4 class="text-sm font-semibold text-app-title mb-3">Diagnostics</h4>
-</div>
+﻿<div class="settings-section">
+    <ReportIssuePopup @ref="_reportIssuePopup" />
 
+    <h4 class="text-sm font-semibold text-app-title mb-3">Diagnostics</h4>
+
+    <div class="diag-card">
+        <h5 class="text-sm font-semibold text-app-title mb-2">Log Files</h5>
+        <p class="text-xs secondary-text mb-3">
+            Cockpit writes diagnostic logs to <code class="diag-path">@LogDirectory</code>. Open the folder to find them.
+        </p>
+
+        <div class="flex gap-2 mb-3">
+            <button @onclick="OpenLogFolder" class="diag-open-btn">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                </svg>
+                <span class="text-sm">Open Log Folder</span>
+            </button>
+
+            <button @onclick="OpenReportIssue" class="diag-open-btn">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-sm">Report an Issue</span>
+            </button>
+        </div>
+
+        <div class="diag-file-list">
+            <div class="diag-file-row">
+                <code class="diag-filename">app.log</code>
+                <span class="text-xs secondary-text">All application logs — general output from the running app</span>
+            </div>
+            <div class="diag-file-row">
+                <code class="diag-filename">crash.log</code>
+                <span class="text-xs secondary-text">Unhandled exceptions — look here if the app crashed or behaved unexpectedly</span>
+            </div>
+        </div>
+    </div>
+</div>
 

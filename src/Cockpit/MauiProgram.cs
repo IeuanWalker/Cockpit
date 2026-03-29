@@ -17,6 +17,7 @@ using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
 using Cockpit.Features.Updates;
 using Cockpit.Features.UserInputRequests;
+using Cockpit.Utilities.Logging;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
 using MauiContentButton;
@@ -29,6 +30,8 @@ public static class MauiProgram
 {
 	public static MauiApp CreateMauiApp()
 	{
+		RegisterCrashHandlers();
+
 		MauiAppBuilder builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
@@ -57,6 +60,8 @@ public static class MauiProgram
 		builder.Services.AddBlazorWebViewDeveloperTools();
 		builder.Logging.AddDebug();
 #endif
+		builder.Logging.AddProvider(new FileLoggerProvider());
+		builder.Logging.AddFilter<FileLoggerProvider>(null, LogLevel.Information);
 
 		// Speech and Text features
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
@@ -112,6 +117,51 @@ public static class MauiProgram
 		MauiApp app = builder.Build();
 		app.Services.GetRequiredService<UpdateFeature>().Initialize();
 		return app;
+	}
+
+	static void RegisterCrashHandlers()
+	{
+		AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+			LogCrash("AppDomain", args.ExceptionObject as Exception);
+
+		TaskScheduler.UnobservedTaskException += (_, args) =>
+		{
+			LogCrash("TaskScheduler", args.Exception);
+			args.SetObserved();
+		};
+	}
+
+	static void LogCrash(string source, Exception? ex)
+	{
+		try
+		{
+			string logPath = Path.Combine(LogDirectoryHelper.LogDirectory, "crash.log");
+			const long maxBytes = 5 * 1024 * 1024;
+
+			FileInfo info = new(logPath);
+			if(info.Exists && info.Length >= maxBytes)
+			{
+				string backup = logPath + ".old";
+				if(File.Exists(backup))
+					File.Delete(backup);
+				File.Move(logPath, backup);
+			}
+
+			var exceptions = ex is AggregateException agg
+				? agg.Flatten().InnerExceptions
+				: (IEnumerable<Exception>)(ex is null ? [] : [ex]);
+
+			var sb = new System.Text.StringBuilder();
+			foreach(Exception inner in exceptions)
+			{
+				sb.AppendLine();
+				sb.AppendLine($"=== {DateTime.Now:yyyy-MM-dd HH:mm:ss} [{source}] ===");
+				sb.AppendLine(inner.ToString());
+			}
+
+			File.AppendAllText(logPath, sb.ToString());
+		}
+		catch { /* best-effort */ }
 	}
 }
 
