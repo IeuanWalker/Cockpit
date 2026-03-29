@@ -1,10 +1,10 @@
 namespace Cockpit.Utilities.Logging;
 
-internal static class LogDirectoryHelper
+static class LogDirectoryHelper
 {
-	static string? _logDirectory;
+	static string? logDirectory;
 
-	public static string LogDirectory => _logDirectory ??= ResolveAndCreate();
+	public static string LogDirectory => logDirectory ??= ResolveAndCreate();
 
 	static string ResolveAndCreate()
 	{

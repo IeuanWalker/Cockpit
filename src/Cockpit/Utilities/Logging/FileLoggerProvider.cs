@@ -2,12 +2,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Utilities.Logging;
 
-internal sealed class FileLoggerProvider : ILoggerProvider
+sealed partial class FileLoggerProvider : ILoggerProvider
 {
-	const long MaxBytes = 5 * 1024 * 1024; // 5 MB
+	const long maxBytes = 5 * 1024 * 1024; // 5 MB
 
 	readonly string _logPath;
-	readonly object _lock = new();
+	readonly Lock _lock = new();
 	StreamWriter? _writer;
 
 	public FileLoggerProvider()
@@ -41,7 +41,7 @@ internal sealed class FileLoggerProvider : ILoggerProvider
 		}
 
 		FileInfo info = new(_logPath);
-		if(!info.Exists || info.Length < MaxBytes)
+		if(!info.Exists || info.Length < maxBytes)
 		{
 			return;
 		}
