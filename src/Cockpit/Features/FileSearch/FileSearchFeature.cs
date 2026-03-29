@@ -61,6 +61,10 @@ public class FileSearchFeature : IFileSearchFeature
 
 			return results;
 		}
+		catch(OperationCanceledException)
+		{
+			throw;
+		}
 		catch(Exception ex)
 		{
 			_logger.LogDebug(ex, "File search failed in {Directory}", workingDirectory);
@@ -70,19 +74,23 @@ public class FileSearchFeature : IFileSearchFeature
 
 	void EnumerateFiles(string root, string dir, string filter, List<FileSearchResult> results, int maxResults, CancellationToken cancellationToken)
 	{
-		if(results.Count >= maxResults || cancellationToken.IsCancellationRequested)
+		if(results.Count >= maxResults)
 		{
 			return;
 		}
+
+		cancellationToken.ThrowIfCancellationRequested();
 
 		try
 		{
 			foreach(string filePath in Directory.EnumerateFiles(dir))
 			{
-				if(results.Count >= maxResults || cancellationToken.IsCancellationRequested)
+				if(results.Count >= maxResults)
 				{
 					return;
 				}
+
+				cancellationToken.ThrowIfCancellationRequested();
 
 				string fileName = Path.GetFileName(filePath);
 				if(string.IsNullOrEmpty(filter) || fileName.Contains(filter, StringComparison.OrdinalIgnoreCase))
@@ -94,10 +102,12 @@ public class FileSearchFeature : IFileSearchFeature
 
 			foreach(string subDir in Directory.EnumerateDirectories(dir))
 			{
-				if(results.Count >= maxResults || cancellationToken.IsCancellationRequested)
+				if(results.Count >= maxResults)
 				{
 					return;
 				}
+
+				cancellationToken.ThrowIfCancellationRequested();
 
 				string dirName = Path.GetFileName(subDir);
 				if(skipDirs.Contains(dirName))
@@ -107,6 +117,10 @@ public class FileSearchFeature : IFileSearchFeature
 
 				EnumerateFiles(root, subDir, filter, results, maxResults, cancellationToken);
 			}
+		}
+		catch(OperationCanceledException)
+		{
+			throw;
 		}
 		catch(UnauthorizedAccessException)
 		{

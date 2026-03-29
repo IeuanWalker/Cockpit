@@ -139,7 +139,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	/// </summary>
 	MarkupString? RenderUserContent(string content)
 	{
-		if(!content.Contains("#file:'", StringComparison.Ordinal))
+		if(!content.Contains("#file:\"", StringComparison.Ordinal))
 		{
 			return null; // use normal MarkdownRenderer
 		}
@@ -227,6 +227,6 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		GC.SuppressFinalize(this);
 	}
 
-	[GeneratedRegex(@"#file:'([^']*)'", RegexOptions.Compiled)]
+	[GeneratedRegex(@"#file:""((?:[^""\\]|\\.)*)""", RegexOptions.Compiled)]
 	private static partial Regex fileMentionRegex();
 }

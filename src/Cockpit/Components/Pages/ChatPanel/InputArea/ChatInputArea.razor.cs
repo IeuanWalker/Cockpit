@@ -269,6 +269,9 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 						? await _fileSearchFeature.SearchAsync(cwd, filter, cancellationToken: cts.Token)
 						: [];
 
+					// Discard results if this search was superseded while it ran
+					cts.Token.ThrowIfCancellationRequested();
+
 					// Merge in manually-attached files not already in search results
 					if(session is not null)
 					{

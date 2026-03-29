@@ -744,7 +744,7 @@ window.cockpit = {
         element._suppressChipRemovalCallback = true;
         element.innerHTML = '';
 
-        const chipRegex = /#file:'([^']*)'/g;
+        const chipRegex = /#file:("(?:[^"\\]|\\.)*")/g;
         const chips = [];
         let lastIndex = 0;
         let match;
@@ -755,7 +755,7 @@ window.cockpit = {
                 element.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
             }
 
-            const filePath = match[1];
+            const filePath = JSON.parse(match[1]);
             const fileName = filePath.split(/[\\/]/).pop();
             const newChipId = (typeof crypto !== 'undefined' && crypto.randomUUID)
                 ? crypto.randomUUID()

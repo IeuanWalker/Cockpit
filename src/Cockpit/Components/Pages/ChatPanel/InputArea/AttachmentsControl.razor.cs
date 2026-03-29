@@ -60,12 +60,12 @@ public partial class AttachmentsControl : ComponentBase
 		}
 	}
 
-	async Task RemoveAttachment(AttachmentModel target)
+	Task RemoveAttachment(AttachmentModel target)
 	{
 		SessionModel? session = Session;
 		if(session is null)
 		{
-			return;
+			return Task.CompletedTask;
 		}
 
 		// Mention attachments are owned by their chip in the input — remove the chip instead
@@ -73,7 +73,7 @@ public partial class AttachmentsControl : ComponentBase
 		{
 			_toastService.Error("Cannot remove", opts =>
 				opts.Description = "This file is mentioned in the input. Remove the # mention from the input to detach it.");
-			return;
+			return Task.CompletedTask;
 		}
 
 		lock(session.PendingAttachmentsLock)
@@ -105,6 +105,7 @@ public partial class AttachmentsControl : ComponentBase
 		}
 
 		// Remove chip from contenteditable — no longer needed; mention path returns early above
+		return Task.CompletedTask;
 	}
 
 	async Task OpenLightbox(string src, string alt)
