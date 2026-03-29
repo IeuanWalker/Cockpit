@@ -4,7 +4,7 @@ using Shouldly;
 
 namespace Cockpit.UnitTests.Features.FileSearch;
 
-public class FileSearchFeatureTests : IDisposable
+public sealed class FileSearchFeatureTests : IDisposable
 {
 	readonly string _root;
 	readonly FileSearchFeature _feature;
@@ -19,6 +19,7 @@ public class FileSearchFeatureTests : IDisposable
 	public void Dispose()
 	{
 		try { Directory.Delete(_root, recursive: true); } catch { /* ignore */ }
+		GC.SuppressFinalize(this);
 	}
 
 	// -----------------------------------------------------------------------
