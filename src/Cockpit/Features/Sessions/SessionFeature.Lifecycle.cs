@@ -12,20 +12,19 @@ namespace Cockpit.Features.Sessions;
 public sealed partial class SessionFeature
 {
 	Task? _loadExistingSessionsTask;
+	readonly object _loadGate = new();
 
 	public Task LoadExistingSessions()
 	{
-		if(_loadExistingSessionsTask is not null)
+		lock(_loadGate)
 		{
+			if(_loadExistingSessionsTask is null || _loadExistingSessionsTask.IsCanceled || _loadExistingSessionsTask.IsFaulted)
+			{
+				_loadExistingSessionsTask = RefreshExistingSessions();
+			}
+
 			return _loadExistingSessionsTask;
 		}
-
-		lock(this)
-		{
-			_loadExistingSessionsTask ??= RefreshExistingSessions();
-		}
-
-		return _loadExistingSessionsTask;
 	}
 
 	public async Task RefreshExistingSessions()
