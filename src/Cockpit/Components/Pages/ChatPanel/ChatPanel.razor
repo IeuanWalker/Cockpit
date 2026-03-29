@@ -8,20 +8,20 @@
 
 <!-- Chat Header -->
 <div class="h-10 bg-app-sidebar border-b border-app-border px-3 flex items-center">
-    <div class="flex items-center flex-1">
+    <div class="flex items-center flex-1 min-w-0">
         <!-- Left expand button -->
-        <button @onclick="_uiStateFeature.ToggleLeftSidebar" class="p-1 hover:bg-app-hover rounded @(_uiStateFeature.LeftSidebarCollapsed ? "" : "hidden") mr-2" title="Expand sessions">
+        <button @onclick="_uiStateFeature.ToggleLeftSidebar" class="p-1 hover:bg-app-hover rounded @(_uiStateFeature.LeftSidebarCollapsed ? "" : "hidden") mr-2 flex-shrink-0" title="Expand sessions">
             <svg class="icon-sm" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
             </svg>
         </button>
-        <h1 class="text-app-title font-semibold text-sm flex items-center">
+        <h1 class="text-app-title font-semibold text-sm flex items-center min-w-0">
             <button @onclick="OpenWorkspaceFolder"
-                    class="relative group flex items-center rounded px-1 -mx-1"
+                    class="relative group flex items-center rounded px-1 -mx-1 min-w-0 max-w-full"
                     title="Open workspace folder">
-                <span class="flex items-center group-hover:opacity-90 transition-opacity">
-                    @_sessionFeature.CurrentSession?.Title
-                    <span class="ml-2 status-badge @(_sessionFeature.CurrentSession?.Status.ToString().ToLower())">
+                <span class="flex items-center group-hover:opacity-90 transition-opacity min-w-0 max-w-full">
+                    <span class="min-w-0 truncate" style="max-width:75%">@_sessionFeature.CurrentSession?.Title</span>
+                    <span class="ml-2 flex-shrink-0 status-badge @(_sessionFeature.CurrentSession?.Status.ToString().ToLower())">
                         @_sessionFeature.CurrentSession?.Status
                     </span>
                 </span>
