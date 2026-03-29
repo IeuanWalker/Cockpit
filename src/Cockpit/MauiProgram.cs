@@ -12,6 +12,7 @@ using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.FileSearch;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Splash;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.TextToSpeech;
 using Cockpit.Features.Theme;
@@ -78,6 +79,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<TimestampFeature>();
 		builder.Services.AddSingleton<TerminalFeature>();
 		builder.Services.AddSingleton<GitFeature>();
+		builder.Services.AddSingleton<SplashFeature>();
 
 		// Copilot SDK and Permissions
 		builder.Services.AddSingleton<CopilotClientFeature>();

@@ -97,7 +97,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		_isRefreshingSessions = true;
 		try
 		{
-			Task loadTask = _sessionFeature.LoadExistingSessions();
+			Task loadTask = _sessionFeature.RefreshExistingSessions();
 			Task delayTask = Task.Delay(1000);
 			await Task.WhenAll(loadTask, delayTask);
 			RefreshPastSessions();
