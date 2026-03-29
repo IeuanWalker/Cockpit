@@ -41,7 +41,7 @@ public sealed class FileSearchFeatureTests : IDisposable
 		CreateFile("a.txt");
 		CreateFile("b.cs");
 
-		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, string.Empty);
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, string.Empty, cancellationToken: TestContext.Current.CancellationToken);
 
 		results.Count.ShouldBe(2);
 	}
@@ -53,7 +53,7 @@ public sealed class FileSearchFeatureTests : IDisposable
 		CreateFile("world.txt");
 		CreateFile("helper.cs");
 
-		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "hel");
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "hel", cancellationToken: TestContext.Current.CancellationToken);
 
 		results.Count.ShouldBe(2);
 		results.ShouldAllBe(r => r.FileName.Contains("hel", StringComparison.OrdinalIgnoreCase));
@@ -64,7 +64,7 @@ public sealed class FileSearchFeatureTests : IDisposable
 	{
 		CreateFile("Program.cs");
 
-		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "program");
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "program", cancellationToken: TestContext.Current.CancellationToken);
 
 		results.Count.ShouldBe(1);
 		results[0].FileName.ShouldBe("Program.cs");
@@ -75,7 +75,7 @@ public sealed class FileSearchFeatureTests : IDisposable
 	{
 		CreateFile("readme.md");
 
-		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "zzz");
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "zzz", cancellationToken: TestContext.Current.CancellationToken);
 
 		results.ShouldBeEmpty();
 	}
@@ -94,7 +94,7 @@ public sealed class FileSearchFeatureTests : IDisposable
 		CreateFile(Path.Combine(skipDir, "hidden.cs"));
 		CreateFile("visible.cs");
 
-		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, string.Empty);
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, string.Empty, cancellationToken: TestContext.Current.CancellationToken);
 
 		results.Count.ShouldBe(1);
 		results[0].FileName.ShouldBe("visible.cs");
@@ -111,7 +111,7 @@ public sealed class FileSearchFeatureTests : IDisposable
 			CreateFile($"file{i}.txt");
 		}
 
-		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, string.Empty, maxResults: 3);
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, string.Empty, 3, TestContext.Current.CancellationToken);
 
 		results.Count.ShouldBeLessThanOrEqualTo(3);
 	}
@@ -125,7 +125,7 @@ public sealed class FileSearchFeatureTests : IDisposable
 		CreateFile("sub/foobaz.txt");  // contains "foo"
 		CreateFile("foobar.txt");      // prefix "foo"
 
-		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "foo");
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "foo", cancellationToken: TestContext.Current.CancellationToken);
 
 		results.Count.ShouldBe(2);
 		results[0].FileName.ShouldBe("foobar.txt");  // prefix match first
@@ -137,7 +137,7 @@ public sealed class FileSearchFeatureTests : IDisposable
 		CreateFile("deep/sub/alpha.cs");
 		CreateFile("alpha.cs");
 
-		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "alpha");
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "alpha", cancellationToken: TestContext.Current.CancellationToken);
 
 		results.Count.ShouldBe(2);
 		results[0].RelativePath.ShouldBe("alpha.cs");
@@ -149,8 +149,7 @@ public sealed class FileSearchFeatureTests : IDisposable
 	[Fact]
 	public async Task SearchAsync_NonExistentDirectory_ReturnsEmpty()
 	{
-		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(
-			Path.Combine(_root, "does_not_exist"), string.Empty);
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(Path.Combine(_root, "does_not_exist"), string.Empty, cancellationToken: TestContext.Current.CancellationToken);
 
 		results.ShouldBeEmpty();
 	}
@@ -158,7 +157,7 @@ public sealed class FileSearchFeatureTests : IDisposable
 	[Fact]
 	public async Task SearchAsync_EmptyDirectory_ReturnsEmpty()
 	{
-		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, string.Empty);
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, string.Empty, cancellationToken: TestContext.Current.CancellationToken);
 
 		results.ShouldBeEmpty();
 	}
