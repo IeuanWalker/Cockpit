@@ -127,11 +127,12 @@ public partial class ReportIssuePopup : ComponentBase
 
 	static void AppendFittedLog(StringBuilder sb, string[] allLines, string name, int urlBudget)
 	{
-		// Measure the encoded overhead for the section wrapper
+		// Measure the encoded overhead for the section wrapper, using the maximum possible
+		// truncation-notice length to avoid underestimating the budget.
 		string sectionHeader = $"## {name}\n```\n";
 		string sectionFooter = "\n```\n\n";
 		int overhead = Uri.EscapeDataString(sectionHeader + sectionFooter).Length
-		+ Uri.EscapeDataString($"... (showing last 9999 of {allLines.Length} lines)\n").Length;
+		+ Uri.EscapeDataString($"... (showing last {allLines.Length} of {allLines.Length} lines)\n").Length;
 
 		int contentBudget = urlBudget - overhead;
 		if(contentBudget <= 0)
@@ -152,13 +153,15 @@ public partial class ReportIssuePopup : ComponentBase
 			}
 
 			used += encodedLen;
-			selected.Insert(0, allLines[i]);
+			selected.Add(allLines[i]);
 		}
 
 		if(selected.Count == 0)
 		{
 			return;
 		}
+
+		selected.Reverse();
 
 		sb.AppendLine($"## {name}");
 		sb.AppendLine("```");
@@ -183,7 +186,7 @@ public partial class ReportIssuePopup : ComponentBase
 
 			using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 			using StreamReader sr = new(fs);
-			return sr.ReadToEnd().Split('\n');
+			return sr.ReadToEnd().Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
 		}
 		catch { return []; }
 	}

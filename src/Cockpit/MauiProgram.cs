@@ -17,10 +17,10 @@ using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
 using Cockpit.Features.Updates;
 using Cockpit.Features.UserInputRequests;
+using Cockpit.Utilities.Logging;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
 using MauiContentButton;
-using Cockpit.Utilities.Logging;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
@@ -61,7 +61,7 @@ public static class MauiProgram
 		builder.Logging.AddDebug();
 #endif
 		builder.Logging.AddProvider(new FileLoggerProvider());
-		builder.Logging.AddFilter<FileLoggerProvider>(null, LogLevel.Debug);
+		builder.Logging.AddFilter<FileLoggerProvider>(null, LogLevel.Information);
 
 		// Speech and Text features
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();

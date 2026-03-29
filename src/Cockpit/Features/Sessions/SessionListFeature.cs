@@ -6,12 +6,12 @@ namespace Cockpit.Features.Sessions;
 public class SessionListFeature : ISessionStateProvider
 {
 	readonly ILogger<SessionListFeature> _logger;
+	readonly List<SessionModel> _sessions = [];
 
 	public SessionListFeature(ILogger<SessionListFeature> logger)
 	{
 		_logger = logger;
 	}
-	readonly List<SessionModel> _sessions = [];
 
 	public event Action? OnStateChanged;
 
