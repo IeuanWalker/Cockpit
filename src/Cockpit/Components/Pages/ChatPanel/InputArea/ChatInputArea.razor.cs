@@ -548,7 +548,6 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		await SyncUserInputFromDom();
 
 		SessionModel? session = _sessionFeature.CurrentSession;
-		bool hasAttachments = session?.PendingAttachments.Count > 0;
 
 		string message = UserInput.Trim();
 		if(string.IsNullOrWhiteSpace(message))
@@ -558,22 +557,28 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 		UserInput = string.Empty;
 
-		// Clear DOM
+		// Collect attachments BEFORE clearing the DOM.
+		// setPlainText fires MutationObserver which calls OnChipRemoved — if that runs during the await
+		// it would remove mentions from PendingAttachments before we can capture them.
+		List<AttachmentModel>? attachments = null;
+		if(session is not null)
+		{
+			lock(session.PendingAttachmentsLock)
+			{
+				if(session.PendingAttachments.Count > 0)
+				{
+					attachments = [.. session.PendingAttachments];
+					session.PendingAttachments.Clear();
+				}
+			}
+		}
+
+		// Clear DOM (may trigger OnChipRemoved for chips, which is now a safe no-op)
 		try
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.setPlainText", "chatInput", string.Empty);
 		}
 		catch { }
-
-		List<AttachmentModel>? attachments = null;
-		if(hasAttachments && session is not null)
-		{
-			lock(session.PendingAttachmentsLock)
-			{
-				attachments = [.. session.PendingAttachments];
-				session.PendingAttachments.Clear();
-			}
-		}
 
 		// Reset textarea height after clearing
 		await Task.Delay(textareaResizeYieldMs);
