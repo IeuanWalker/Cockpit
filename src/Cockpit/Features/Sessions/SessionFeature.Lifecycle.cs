@@ -11,7 +11,24 @@ namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
-	public async Task LoadExistingSessions()
+	Task? _loadExistingSessionsTask;
+
+	public Task LoadExistingSessions()
+	{
+		if(_loadExistingSessionsTask is not null)
+		{
+			return _loadExistingSessionsTask;
+		}
+
+		lock(this)
+		{
+			_loadExistingSessionsTask ??= RefreshExistingSessions();
+		}
+
+		return _loadExistingSessionsTask;
+	}
+
+	public async Task RefreshExistingSessions()
 	{
 		try
 		{

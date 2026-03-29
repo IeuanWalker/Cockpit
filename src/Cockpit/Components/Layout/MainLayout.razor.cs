@@ -1,5 +1,6 @@
 using Cockpit.Components.Popups.Settings;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Splash;
 using Cockpit.Features.Theme;
 using Cockpit.Features.UIState;
 using Microsoft.JSInterop;
@@ -12,17 +13,20 @@ public partial class MainLayout : IDisposable
 	readonly SessionListFeature _sessionListFeature;
 	readonly ThemeFeature _themeFeature;
 	readonly IJSRuntime _jsRuntime;
+	readonly SplashFeature _splashFeature;
 
 	public MainLayout(
 		UIStateFeature uiStateFeature,
 		SessionListFeature sessionListFeature,
 		ThemeFeature themeFeature,
-		IJSRuntime jsRuntime)
+		IJSRuntime jsRuntime,
+		SplashFeature splashFeature)
 	{
 		_uiStateFeature = uiStateFeature;
 		_sessionListFeature = sessionListFeature;
 		_themeFeature = themeFeature;
 		_jsRuntime = jsRuntime;
+		_splashFeature = splashFeature;
 
 		_uiStateFeature.OnStateChanged += OnStateChanged;
 		_sessionListFeature.OnStateChanged += OnStateChanged;
@@ -42,6 +46,7 @@ public partial class MainLayout : IDisposable
 		{
 			_dotNetRef = DotNetObjectReference.Create(this);
 			await _jsRuntime.InvokeVoidAsync("cockpit.setMainLayoutRef", _dotNetRef);
+			_splashFeature.NotifyBlazorReady();
 		}
 	}
 
