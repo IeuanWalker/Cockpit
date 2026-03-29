@@ -42,7 +42,7 @@ public partial class MainPage : ContentPage
 			return;
 		}
 
-		await splashOverlay.FadeTo(0, 400, Easing.CubicOut);
+		await splashOverlay.FadeToAsync(0, 400, Easing.CubicOut);
 		splashOverlay.IsVisible = false;
 		// Remove from tree so it cannot intercept input (WinUI hidden views can block scroll)
 		((Grid)Content).Children.Remove(splashOverlay);
