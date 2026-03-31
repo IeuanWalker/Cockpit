@@ -32,7 +32,7 @@
                                     }
                                     @if(userContent.HasValue)
                                     {
-                                        <div class="markdown-content text-sm">@userContent.Value</div>
+                                        <MarkdownRenderer DirectHtml="@userContent" CssClass="text-sm" />
                                     }
                                     else
                                     {
@@ -48,7 +48,7 @@
                                     }
                                     @if(userContent.HasValue)
                                     {
-                                        <div class="markdown-content text-sm">@userContent.Value</div>
+                                        <MarkdownRenderer DirectHtml="@userContent" CssClass="text-sm" />
                                     }
                                     else
                                     {

@@ -9,6 +9,11 @@ public partial class MarkdownRenderer : ComponentBase
 {
 	[Parameter] public string Content { get; set; } = string.Empty;
 	[Parameter] public string? CssClass { get; set; }
+	/// <summary>
+	/// When set, skips Markdig processing and renders this pre-processed HTML directly.
+	/// Use when content has already been converted to HTML (e.g. user messages with inline file chips).
+	/// </summary>
+	[Parameter] public MarkupString? DirectHtml { get; set; }
 
 	readonly MarkdownFeature _markdownFeature;
 	readonly IJSRuntime _jsRuntime;
@@ -32,6 +37,18 @@ public partial class MarkdownRenderer : ComponentBase
 
 	protected override void OnParametersSet()
 	{
+		if(DirectHtml.HasValue)
+		{
+			string htmlValue = DirectHtml.Value.Value;
+			if(htmlValue != _lastContent)
+			{
+				_lastContent = htmlValue;
+				_html = htmlValue;
+				_contentChanged = true;
+			}
+			return;
+		}
+
 		string content = Content ?? string.Empty;
 		if(content != _lastContent)
 		{
