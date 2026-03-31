@@ -22,7 +22,18 @@
                 <span class="flex items-center group-hover:opacity-90 transition-opacity min-w-0 max-w-full">
                     <span class="min-w-0 truncate">@_sessionFeature.CurrentSession?.Title</span>
                     <span class="ml-2 flex-shrink-0 status-badge @(_sessionFeature.CurrentSession?.Status.ToString().ToLower())">
-                        @_sessionFeature.CurrentSession?.Status
+                        @if(_sessionFeature.CurrentSession?.Status == SessionStatusEnum.NeedsPermission)
+                        {
+                            @:Permission required
+                        }
+                        else if(_sessionFeature.CurrentSession?.Status == SessionStatusEnum.NeedsUserInput)
+                        {
+                            @:Input requested
+                        }
+                        else
+                        {
+                            @_sessionFeature.CurrentSession?.Status
+                        }
                     </span>
                 </span>
                 <span class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-90 transition-opacity rounded"
