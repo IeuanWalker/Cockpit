@@ -514,6 +514,10 @@ window.cockpit = {
 
         // Input event → notify C#
         element._ceInputHandler = function () {
+            // Remove residual <br> left by browsers when content is cleared, so :empty CSS applies
+            if (element.childNodes.length === 1 && element.firstChild.nodeName === 'BR') {
+                element.innerHTML = '';
+            }
             dotnetRef.invokeMethodAsync('OnContentInput').catch(() => {});
         };
         element.addEventListener('input', element._ceInputHandler);
