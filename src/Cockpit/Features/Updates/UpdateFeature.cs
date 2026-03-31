@@ -11,7 +11,6 @@ public sealed partial class UpdateFeature : IDisposable
 
 	readonly HttpClient _httpClient;
 	readonly string _currentVersion;
-	readonly string _currentBuildNumber;
 	Timer? _timer;
 
 	UpdateCheckResult? _cachedResult;
@@ -22,7 +21,6 @@ public sealed partial class UpdateFeature : IDisposable
 	public string? DismissedVersion => _dismissedVersion;
 	public string CurrentVersion => _currentVersion;
 
-	public string BuildNumber => _currentBuildNumber;
 	public DateTime? LastChecked => _lastChecked;
 	public DateTime? InstalledDate { get; }
 
@@ -32,7 +30,6 @@ public sealed partial class UpdateFeature : IDisposable
 	{
 		_httpClient = httpClient;
 		_currentVersion = AppInfo.VersionString;
-		_currentBuildNumber = AppInfo.BuildString;
 
 		string key = $"installed_date_{_currentVersion}";
 		if(VersionTracking.Default.IsFirstLaunchForCurrentVersion)
