@@ -63,7 +63,7 @@ public sealed partial class UpdateFeature : IDisposable
 		{
 			GitHubReleaseModel? latest = await GetLatestRelease(cancellationToken);
 
-			if(latest?.TagName is null)
+			if(latest?.TagName is null || !HasRequiredAssets(latest))
 			{
 				_lastChecked = DateTime.UtcNow;
 				OnUpdateChecked?.Invoke();
@@ -136,6 +136,10 @@ public sealed partial class UpdateFeature : IDisposable
 			return string.Compare(remote, current, StringComparison.OrdinalIgnoreCase) > 0;
 		}
 	}
+
+	internal static bool HasRequiredAssets(GitHubReleaseModel release) =>
+		release.Assets?.Any(a => a.Name?.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase) is true) is true &&
+		release.Assets?.Any(a => a.Name?.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) is true) is true;
 
 	public void OpenReleaseInBrowser(GitHubReleaseModel release)
 	{
