@@ -698,8 +698,11 @@ window.cockpit = {
 
         function walk(node, isFirstChild) {
             if (node.nodeType === 3) {
-                // Text node — return as-is
-                return node.textContent;
+                // Text node — strip zero-width spaces used as cursor anchors by the Enter handler.
+                // When insertNode splits a text node (e.g. "```\u200B" → "```" + "\u200B"), the
+                // residual \u200B sibling causes fence lines like "```\u200B\u200B" which Markdig
+                // does not recognise as a closing fence (\u200B is not whitespace in .NET).
+                return node.textContent.replace(/\u200B/g, '');
             }
             if (node.nodeType !== 1) return '';
 
@@ -733,7 +736,7 @@ window.cockpit = {
             childIndex++;
         }
 
-        // Strip leading/trailing zero-width spaces
+        // Strip any remaining leading/trailing zero-width spaces (belt-and-suspenders)
         result = result.replace(/^\u200B+/, '').replace(/\u200B+$/, '');
         // Trim trailing whitespace
         result = result.replace(/\s+$/, '');
