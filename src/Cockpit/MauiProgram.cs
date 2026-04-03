@@ -24,6 +24,10 @@ using Cockpit.Utilities.Logging;
 using CommunityToolkit.Maui;
 using CommunityToolkit.Maui.Media;
 using MauiContentButton;
+#if DEBUG && (WINDOWS || MACCATALYST)
+using MauiDevFlow.Agent;
+using MauiDevFlow.Blazor;
+#endif
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
@@ -59,8 +63,10 @@ public static class MauiProgram
 		builder.Services.RemoveAll<ToastService>();
 		builder.Services.AddSingleton<ToastService>();
 
-#if DEBUG
+#if DEBUG && (WINDOWS || MACCATALYST)
 		builder.Services.AddBlazorWebViewDeveloperTools();
+		builder.AddMauiDevFlowAgent();
+		builder.AddMauiBlazorDevFlowTools();
 		builder.Logging.AddDebug();
 #endif
 		builder.Logging.AddProvider(new FileLoggerProvider());
