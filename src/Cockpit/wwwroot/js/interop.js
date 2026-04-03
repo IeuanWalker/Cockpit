@@ -405,11 +405,36 @@ window.cockpit = {
             }
 
             if (!imageItem || !imageFile) {
-                // No image found; paste as plain text to strip formatting
+                // No image found; paste as plain unformatted text
                 const text = e.clipboardData?.getData('text/plain');
-                if (text) {
-                    e.preventDefault();
-                    document.execCommand('insertText', false, text);
+                if (!text) return;
+
+                e.preventDefault();
+
+                // Try execCommand first (fires native input event automatically)
+                let inserted = false;
+                try {
+                    inserted = document.execCommand('insertText', false, text);
+                } catch (_) { /* ignore */ }
+
+                if (!inserted) {
+                    // Fallback: Selection/Range-based insertion
+                    const sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0) {
+                        const range = sel.getRangeAt(0);
+                        range.deleteContents();
+                        const textNode = document.createTextNode(text);
+                        range.insertNode(textNode);
+                        range.setStartAfter(textNode);
+                        range.collapse(true);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    } else {
+                        // Cannot determine cursor position; append to element
+                        element.appendChild(document.createTextNode(text));
+                    }
+                    // Notify Blazor since no native input event fires for Range insertion
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
                 }
                 return;
             }
