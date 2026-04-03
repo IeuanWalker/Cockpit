@@ -405,7 +405,12 @@ window.cockpit = {
             }
 
             if (!imageItem || !imageFile) {
-                // No image found; allow default paste behavior
+                // No image found; paste as plain text to strip formatting
+                const text = e.clipboardData?.getData('text/plain');
+                if (text) {
+                    e.preventDefault();
+                    document.execCommand('insertText', false, text);
+                }
                 return;
             }
 
