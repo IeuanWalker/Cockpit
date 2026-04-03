@@ -74,6 +74,14 @@ public class MarkdownFeature
 			return string.Empty;
 		}
 
+		// Strip zero-width spaces that the chat input inserts as cursor anchors.
+		// If present on a code-fence line they prevent Markdig recognising the fence
+		// (U+200B is not whitespace in .NET) — causing blocks to swallow extra content.
+		if(markdown.Contains('\u200B'))
+		{
+			markdown = markdown.Replace("\u200B", string.Empty);
+		}
+
 		// Replace lone surrogates and other invalid Unicode that Markdig rejects
 		markdown = ReplaceLoneSurrogates(markdown);
 
