@@ -118,6 +118,7 @@ public partial class MainPage : ContentPage
 	{
 		if (!args.ContextMenuTarget.IsEditable)
 		{
+			args.Handled = true; // suppress context menu outside the editable input area
 			return;
 		}
 
