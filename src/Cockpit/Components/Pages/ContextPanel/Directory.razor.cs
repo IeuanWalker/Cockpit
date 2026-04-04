@@ -1,32 +1,44 @@
+using System.Diagnostics;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.VSCode;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class Directory : ComponentBase, IDisposable
 {
 	readonly SessionListFeature _sessionListFeature;
+	readonly VsCodeFeature _vsCodeFeature;
+	readonly ILogger<Directory> _logger;
 
-	public Directory(SessionListFeature sessionListFeature)
+	public Directory(SessionListFeature sessionListFeature, VsCodeFeature vsCodeFeature, ILogger<Directory> logger)
 	{
 		_sessionListFeature = sessionListFeature;
+		_vsCodeFeature = vsCodeFeature;
+		_logger = logger;
 	}
 
 	string CurrentDirectory => _sessionListFeature.CurrentSession?.Context?.CurrentWorkingDirectory ?? string.Empty;
+	string SessionDirectory => _sessionListFeature.CurrentSession?.Context?.WorkspacePath ?? string.Empty;
+	bool IsVsCodeAvailable => _vsCodeFeature.IsAvailable;
 
 	string _renderedDirectory = string.Empty;
+	string _renderedSessionDirectory = string.Empty;
 	bool _hasRendered = false;
 
 	protected override bool ShouldRender()
 	{
 		string current = CurrentDirectory;
-		if(_hasRendered && current == _renderedDirectory)
+		string session = SessionDirectory;
+		if(_hasRendered && current == _renderedDirectory && session == _renderedSessionDirectory)
 		{
 			return false;
 		}
 
 		_hasRendered = true;
 		_renderedDirectory = current;
+		_renderedSessionDirectory = session;
 		return true;
 	}
 
@@ -51,6 +63,27 @@ public partial class Directory : ComponentBase, IDisposable
 		if(disposing)
 		{
 			_sessionListFeature.OnStateChanged -= OnStateChanged;
+		}
+	}
+
+	void OpenInExplorer(string path)
+	{
+		if(string.IsNullOrWhiteSpace(path))
+		{
+			return;
+		}
+
+		try
+		{
+			Process.Start(new ProcessStartInfo
+			{
+				FileName = path,
+				UseShellExecute = true
+			});
+		}
+		catch(Exception ex)
+		{
+			_logger.LogWarning(ex, "Failed to open explorer for path {Path}", path);
 		}
 	}
 }

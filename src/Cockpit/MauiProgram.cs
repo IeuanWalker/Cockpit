@@ -30,6 +30,7 @@ using MauiDevFlow.Blazor;
 #endif
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Cockpit.Features.VSCode;
 
 namespace Cockpit;
 
@@ -84,6 +85,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<UIStateFeature>();
 		builder.Services.AddSingleton<TimestampFeature>();
 		builder.Services.AddSingleton<TerminalFeature>();
+		builder.Services.AddSingleton<VsCodeFeature>();
 		builder.Services.AddSingleton<GitFeature>();
 		builder.Services.AddSingleton<SplashFeature>();
 

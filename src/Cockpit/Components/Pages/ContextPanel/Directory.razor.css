@@ -1,0 +1,23 @@
+.directory-vscode-overlay {
+    transition: opacity 0.15s ease-in-out;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 0.5rem;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    width: 3rem;
+}
+
+.directory-hover:hover .directory-vscode-overlay,
+.directory-hover:focus-within .directory-vscode-overlay {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+    background: linear-gradient(to right, transparent, var(--hover-color) 60%);
+}

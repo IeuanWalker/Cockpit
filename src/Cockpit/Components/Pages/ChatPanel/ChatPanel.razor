@@ -15,35 +15,24 @@
                 <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
             </svg>
         </button>
-        <h1 class="text-app-title font-semibold text-sm flex items-center min-w-0" style="flex-grow:1">
-            <button @onclick="OpenWorkspaceFolder"
-                    class="relative group flex items-center rounded px-1 -mx-1 min-w-0 max-w-full" style="max-width:75%"
-                    title="Open workspace folder">
-                <span class="flex items-center group-hover:opacity-90 transition-opacity min-w-0 max-w-full">
-                    <span class="min-w-0 truncate">@_sessionFeature.CurrentSession?.Title</span>
-                    <span class="ml-2 flex-shrink-0 status-badge @(_sessionFeature.CurrentSession?.Status.ToString().ToLower())">
-                        @if(_sessionFeature.CurrentSession?.Status == SessionStatusEnum.NeedsPermission)
-                        {
-                            @:Permission required
-                        }
-                        else if(_sessionFeature.CurrentSession?.Status == SessionStatusEnum.NeedsUserInput)
-                        {
-                            @:Input requested
-                        }
-                        else
-                        {
-                            @_sessionFeature.CurrentSession?.Status
-                        }
-                    </span>
+        <h1 class="text-app-title font-semibold text-sm flex items-center min-w-0" style="flex-grow:1; max-width:75%">
+            <span class="flex items-center group-hover:opacity-90 transition-opacity min-w-0 max-w-full">
+                <span class="min-w-0 truncate">@_sessionFeature.CurrentSession?.Title</span>
+                <span class="ml-2 flex-shrink-0 status-badge @(_sessionFeature.CurrentSession?.Status.ToString().ToLower())">
+                    @if(_sessionFeature.CurrentSession?.Status == SessionStatusEnum.NeedsPermission)
+                    {
+                        @:Permission required
+                    }
+                    else if(_sessionFeature.CurrentSession?.Status == SessionStatusEnum.NeedsUserInput)
+                    {
+                        @:Input requested
+                    }
+                    else
+                    {
+                        @_sessionFeature.CurrentSession?.Status
+                    }
                 </span>
-                <span class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-90 transition-opacity rounded"
-                      style="background: var(--sidebar-color);">
-                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-                    </svg>
-                </span>
-            </button>
-
+            </span>
         </h1>
     </div>
 
