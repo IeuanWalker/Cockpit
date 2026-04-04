@@ -1,4 +1,4 @@
-﻿using Cockpit.Features.Agents;
+using Cockpit.Features.Agents;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Splash;
 using Microsoft.JSInterop;
@@ -19,6 +19,10 @@ public partial class MainPage : ContentPage
 		_globalAgentFeature = globalAgentFeature;
 		_splashService = splashService;
 		_sessionFeature = sessionFeature;
+
+#if WINDOWS
+		ConfigureWindowsContextMenu();
+#endif
 
 		_splashService.OnBlazorReady += OnBlazorReady;
 
@@ -52,6 +56,9 @@ public partial class MainPage : ContentPage
 	protected override async void OnAppearing()
 	{
 		base.OnAppearing();
+#if WINDOWS
+		ConfigureWindowsContextMenuOnAppearing();
+#endif
 		// Fire and forget — starts loading sessions before Blazor is ready
 		_ = _sessionFeature.LoadExistingSessions();
 		await _globalAgentFeature.Load();
@@ -61,6 +68,9 @@ public partial class MainPage : ContentPage
 	{
 		base.OnDisappearing();
 		_splashService.OnBlazorReady -= OnBlazorReady;
+#if WINDOWS
+		TeardownWindowsContextMenu();
+#endif
 	}
 
 	public async Task InvokeJavaScriptAsync(string script)

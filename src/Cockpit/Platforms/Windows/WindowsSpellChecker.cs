@@ -1,0 +1,156 @@
+using System.Globalization;
+using System.Runtime.InteropServices;
+
+namespace Cockpit.Platforms.Windows;
+
+// Minimal COM interop for the Windows ISpellChecker API (spellcheck.h).
+// CoreWebView2ContextMenuItem.Label is empty for spell suggestions in the WebView2 SDK
+// version bundled with MAUI 10. We work around this by querying the OS spell checker.
+static partial class WindowsSpellChecker
+{
+	// CLSID_SpellCheckerFactory from spellcheck.h
+	static readonly Guid clsidFactory = new("7AB36653-1796-484B-BDFA-E74F1DB7C1DC");
+	// IID_ISpellCheckerFactory
+	static readonly Guid iidFactory = new("8E018A9D-2415-4677-BF08-794EA61F94BB");
+
+#pragma warning disable IDE1006 // Naming Styles
+	const uint CLSCTX_INPROC_SERVER = 1;
+	const uint CLSCTX_LOCAL_SERVER = 4;
+#pragma warning restore IDE1006 // Naming Styles
+
+	[LibraryImport("ole32.dll")]
+	private static partial int CoCreateInstance(ref Guid rclsid, IntPtr pUnkOuter, uint dwClsContext, ref Guid riid, out IntPtr ppv);
+
+	// Vtable delegates — offsets are 0-based after the 3 IUnknown slots.
+	// ISpellCheckerFactory vtable (slot 3 = index 0 after IUnknown):
+	//   [3] get_SupportedLanguages, [4] IsSupported, [5] CreateSpellChecker
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+	delegate int IsSupported_Fn(IntPtr pThis, [MarshalAs(UnmanagedType.LPWStr)] string lang, out int supported);
+
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+	delegate int CreateSpellChecker_Fn(IntPtr pThis, [MarshalAs(UnmanagedType.LPWStr)] string lang, out IntPtr checker);
+
+	// ISpellChecker vtable:
+	//   [3]=get_LanguageTag, [4]=Check, [5]=Suggest, ...
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+	delegate int Suggest_Fn(IntPtr pThis, [MarshalAs(UnmanagedType.LPWStr)] string word, out IntPtr enumStr);
+
+	// IEnumString vtable:
+	//   [3]=Next, [4]=Skip, [5]=Reset, [6]=Clone
+	[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+	delegate int EnumNext_Fn(IntPtr pThis, uint celt, IntPtr rgelt, IntPtr pceltFetched);
+
+	static T GetVtableMethod<T>(IntPtr pObj, int slotIndex) where T : Delegate
+	{
+		IntPtr vtable = Marshal.ReadIntPtr(pObj);
+		IntPtr slot = Marshal.ReadIntPtr(vtable + slotIndex * IntPtr.Size);
+		return Marshal.GetDelegateForFunctionPointer<T>(slot);
+	}
+
+	public static List<string> GetSuggestions(string word)
+	{
+		List<string> result = [];
+		IntPtr pFactory = IntPtr.Zero;
+		IntPtr pChecker = IntPtr.Zero;
+		IntPtr pEnum = IntPtr.Zero;
+		IntPtr pWord = IntPtr.Zero;
+
+		try
+		{
+			// Create the factory via CoCreateInstance with both in-proc and local server contexts
+			Guid clsid = clsidFactory, iid = iidFactory;
+			int hr = CoCreateInstance(ref clsid, IntPtr.Zero, CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER, ref iid, out pFactory);
+			if(hr != 0 || pFactory == IntPtr.Zero)
+			{
+				return result;
+			}
+
+			IsSupported_Fn isSupported = GetVtableMethod<IsSupported_Fn>(pFactory, 4);
+			CreateSpellChecker_Fn createChecker = GetVtableMethod<CreateSpellChecker_Fn>(pFactory, 5);
+
+			string[] candidates = [CultureInfo.CurrentUICulture.Name, CultureInfo.CurrentCulture.Name, "en-GB", "en-US"];
+			foreach(string lang in candidates.Distinct())
+			{
+				int hr2 = isSupported(pFactory, lang, out int supported);
+				if(hr2 == 0 && supported != 0)
+				{
+					int hr3 = createChecker(pFactory, lang, out pChecker);
+					if(hr3 == 0 && pChecker != IntPtr.Zero)
+					{
+						break;
+					}
+				}
+			}
+
+			if(pChecker == IntPtr.Zero)
+			{
+				return result;
+			}
+
+			Suggest_Fn suggest = GetVtableMethod<Suggest_Fn>(pChecker, 5);
+			int hrSuggest = suggest(pChecker, word, out pEnum);
+			if(hrSuggest != 0 || pEnum == IntPtr.Zero)
+			{
+				return result;
+			}
+
+			EnumNext_Fn enumNext = GetVtableMethod<EnumNext_Fn>(pEnum, 3);
+
+			// IEnumString.Next with celt=1: S_OK=got item (more remain), S_FALSE=end of sequence.
+			// pceltFetched is optional when celt=1 — pass NULL to avoid implementations that
+			// skip writing it, and use the return code to control the loop instead.
+			pWord = Marshal.AllocCoTaskMem(IntPtr.Size);
+
+			while(true)
+			{
+				Marshal.WriteIntPtr(pWord, IntPtr.Zero);
+
+				int hrNext = enumNext(pEnum, 1, pWord, IntPtr.Zero);
+
+				IntPtr strPtr = Marshal.ReadIntPtr(pWord);
+				if(strPtr != IntPtr.Zero)
+				{
+					string s = Marshal.PtrToStringUni(strPtr) ?? "";
+					Marshal.FreeCoTaskMem(strPtr);
+					if(!string.IsNullOrWhiteSpace(s))
+					{
+						result.Add(s);
+					}
+				}
+
+				if(hrNext != 0) // S_FALSE = no more items (or error)
+				{
+					break;
+				}
+			}
+		}
+		catch
+		{
+			// COM errors are non-fatal — return whatever we collected
+		}
+		finally
+		{
+			if(pWord != IntPtr.Zero)
+			{
+				Marshal.FreeCoTaskMem(pWord);
+			}
+
+			if(pEnum != IntPtr.Zero)
+			{
+				Marshal.Release(pEnum);
+			}
+
+			if(pChecker != IntPtr.Zero)
+			{
+				Marshal.Release(pChecker);
+			}
+
+			if(pFactory != IntPtr.Zero)
+			{
+				Marshal.Release(pFactory);
+			}
+		}
+
+		return result;
+	}
+}

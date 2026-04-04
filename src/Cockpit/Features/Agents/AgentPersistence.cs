@@ -70,7 +70,7 @@ public class AgentPersistence
 				return false;
 			}
 
-			AgentProfile? match = agentSettings.TryGetValue("AgentSource", out string? agentSourceStr) && Enum.TryParse<AgentSource>(agentSourceStr, out AgentSource agentSource)
+			AgentProfile? match = agentSettings.TryGetValue("AgentSource", out string? agentSourceStr) && Enum.TryParse(agentSourceStr, out AgentSource agentSource)
 				? allAgents.FirstOrDefault(a => string.Equals(a.Config.Name, agentName, StringComparison.OrdinalIgnoreCase) && a.Source == agentSource)
 				: allAgents.FirstOrDefault(a => string.Equals(a.Config.Name, agentName, StringComparison.OrdinalIgnoreCase));
 
