@@ -12,11 +12,6 @@ public partial class MainPage : ContentPage
 	readonly SessionFeature _sessionFeature;
 	int _splashHidden;
 
-#if WINDOWS
-	Microsoft.UI.Xaml.Window? _winUIWindow;
-	Microsoft.Web.WebView2.Core.CoreWebView2? _coreWebView2;
-#endif
-
 	public MainPage(GlobalAgentFeature globalAgentFeature, SplashFeature splashService, SessionFeature sessionFeature)
 	{
 		InitializeComponent();
@@ -62,11 +57,7 @@ public partial class MainPage : ContentPage
 	{
 		base.OnAppearing();
 #if WINDOWS
-		if(Window?.Handler?.PlatformView is Microsoft.UI.Xaml.Window nativeWindow)
-		{
-			_winUIWindow = nativeWindow;
-			nativeWindow.SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
-		}
+		ConfigureWindowsContextMenuOnAppearing();
 #endif
 		// Fire and forget — starts loading sessions before Blazor is ready
 		_ = _sessionFeature.LoadExistingSessions();

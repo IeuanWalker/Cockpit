@@ -7,6 +7,9 @@ namespace Cockpit;
 
 public partial class MainPage
 {
+	Microsoft.UI.Xaml.Window? _winUIWindow;
+	Microsoft.Web.WebView2.Core.CoreWebView2? _coreWebView2;
+
 	void ConfigureWindowsContextMenu()
 	{
 		blazorWebView.BlazorWebViewInitialized += (s, e) =>
@@ -15,6 +18,15 @@ public partial class MainPage
 			_coreWebView2 = e.WebView.CoreWebView2;
 			_coreWebView2.ContextMenuRequested += OnWebViewContextMenuRequested;
 		};
+	}
+
+	void ConfigureWindowsContextMenuOnAppearing()
+	{
+		if(Window?.Handler?.PlatformView is Microsoft.UI.Xaml.Window nativeWindow)
+		{
+			_winUIWindow = nativeWindow;
+			nativeWindow.SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
+		}
 	}
 
 	void TeardownWindowsContextMenu()
