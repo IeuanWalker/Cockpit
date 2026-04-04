@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.VSCode;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 
@@ -8,16 +9,19 @@ namespace Cockpit.Components.Pages.ContextPanel;
 public partial class Directory : ComponentBase, IDisposable
 {
 	readonly SessionListFeature _sessionListFeature;
+	readonly VsCodeFeature _vsCodeFeature;
 	readonly ILogger<Directory> _logger;
 
-	public Directory(SessionListFeature sessionListFeature, ILogger<Directory> logger)
+	public Directory(SessionListFeature sessionListFeature, VsCodeFeature vsCodeFeature, ILogger<Directory> logger)
 	{
 		_sessionListFeature = sessionListFeature;
+		_vsCodeFeature = vsCodeFeature;
 		_logger = logger;
 	}
 
 	string CurrentDirectory => _sessionListFeature.CurrentSession?.Context?.CurrentWorkingDirectory ?? string.Empty;
 	string SessionDirectory => _sessionListFeature.CurrentSession?.Context?.WorkspacePath ?? string.Empty;
+	bool IsVsCodeAvailable => _vsCodeFeature.IsAvailable;
 
 	string _renderedDirectory = string.Empty;
 	string _renderedSessionDirectory = string.Empty;
@@ -82,21 +86,4 @@ public partial class Directory : ComponentBase, IDisposable
 			_logger?.LogWarning(ex, "Failed to open explorer for path {Path}", path);
 		}
 	}
-
-    void OpenInVSCode(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-            return;
-        try
-        {
-            Process.Start(new ProcessStartInfo("code", $"\"{path}\"")
-            {
-                UseShellExecute = true
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogWarning(ex, "Failed to open VS Code for path {Path}", path);
-        }
-    }
 }

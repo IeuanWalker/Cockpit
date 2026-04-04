@@ -1,4 +1,3 @@
-using System.Reflection;
 using Cockpit.Features.VSCode;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
@@ -9,14 +8,10 @@ public class VsCodeFeatureTests
 {
 	static VsCodeFeature CreateFeature() => new(NullLogger<VsCodeFeature>.Instance);
 
-	/// <summary>Uses reflection to override the auto-property backing field set during construction.</summary>
 	static VsCodeFeature CreateFeatureWithAvailability(bool isAvailable)
 	{
-		VsCodeFeature feature = CreateFeature();
-		typeof(VsCodeFeature)
-			.GetField("<IsAvailable>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
-			.SetValue(feature, isAvailable);
-		return feature;
+		string? executablePath = isAvailable ? "code" : null;
+		return new VsCodeFeature(NullLogger<VsCodeFeature>.Instance, executablePath);
 	}
 
 	[Fact]

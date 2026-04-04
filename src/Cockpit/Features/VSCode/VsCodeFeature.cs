@@ -7,16 +7,26 @@ namespace Cockpit.Features.VSCode;
 public sealed class VsCodeFeature
 {
 	readonly ILogger<VsCodeFeature> _logger;
+	readonly string? _executablePath;
 
 	public VsCodeFeature(ILogger<VsCodeFeature> logger)
 	{
 		_logger = logger;
-		IsAvailable = DetectVsCode();
+		_executablePath = DetectVsCodePath();
+		IsAvailable = _executablePath is not null;
+	}
+
+	/// <summary>Test seam: inject a known executable path (or null to simulate unavailability).</summary>
+	internal VsCodeFeature(ILogger<VsCodeFeature> logger, string? executablePath)
+	{
+		_logger = logger;
+		_executablePath = executablePath;
+		IsAvailable = executablePath is not null;
 	}
 
 	public bool IsAvailable { get; }
 
-	bool DetectVsCode()
+	string? DetectVsCodePath()
 	{
 		try
 		{
@@ -33,7 +43,7 @@ public sealed class VsCodeFeature
 
 			if(p is null)
 			{
-				return false;
+				return null;
 			}
 
 			bool exited = p.WaitForExit(3000);
@@ -53,7 +63,8 @@ public sealed class VsCodeFeature
 
 				throw new TimeoutException("DetectVsCode: 'code --version' did not exit within the timeout.");
 			}
-			return p.ExitCode == 0;
+
+			return p.ExitCode == 0 ? "code" : null;
 		}
 		catch(Exception ex)
 		{
@@ -64,10 +75,10 @@ public sealed class VsCodeFeature
 				if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 				{
 					string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-					string path = Path.Combine(programFiles, "Microsoft VS Code", "Code.exe");
-					if(File.Exists(path))
+					string exePath = Path.Combine(programFiles, "Microsoft VS Code", "Code.exe");
+					if(File.Exists(exePath))
 					{
-						return true;
+						return exePath;
 					}
 				}
 				else if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -75,7 +86,7 @@ public sealed class VsCodeFeature
 					const string macPath = "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code";
 					if(File.Exists(macPath))
 					{
-						return true;
+						return macPath;
 					}
 				}
 			}
@@ -83,13 +94,14 @@ public sealed class VsCodeFeature
 			{
 				_logger.LogWarning(fallbackEx, "DetectVsCode: fallback path check failed");
 			}
-			return false;
+
+			return null;
 		}
 	}
 
 	public bool OpenPathInVsCode(string path)
 	{
-		if(!IsAvailable)
+		if(!IsAvailable || _executablePath is null)
 		{
 			_logger.LogWarning("OpenPathInVsCode called but VS Code is not available");
 			return false;
@@ -99,7 +111,7 @@ public sealed class VsCodeFeature
 		{
 			ProcessStartInfo psi = new()
 			{
-				FileName = "code",
+				FileName = _executablePath,
 				Arguments = $"\"{path}\"",
 				UseShellExecute = true,
 				CreateNoWindow = true
