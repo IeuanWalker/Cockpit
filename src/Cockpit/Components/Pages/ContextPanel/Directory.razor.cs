@@ -83,7 +83,7 @@ public partial class Directory : ComponentBase, IDisposable
 		}
 		catch(Exception ex)
 		{
-			_logger?.LogWarning(ex, "Failed to open explorer for path {Path}", path);
+			_logger.LogWarning(ex, "Failed to open explorer for path {Path}", path);
 		}
 	}
 }
