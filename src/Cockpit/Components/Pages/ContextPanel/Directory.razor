@@ -8,6 +8,22 @@
     </Icon>
     <Title>Directory</Title>
     <Content>
-        <div class="px-3 py-1.5 text-xs text-app-text">@CurrentDirectory</div>
+        @if(string.IsNullOrWhiteSpace(CurrentDirectory))
+        {
+            <div class="px-3 py-1.5 text-xs secondary-text">No directory set</div>
+        }
+        else
+        {
+            <div class="px-3 py-1.5 hover:bg-app-hover text-xs transition-colors group" @onclick="() => OpenInExplorer(CurrentDirectory)" style="cursor:pointer">
+                <div class="break-words whitespace-normal">@CurrentDirectory</div>
+            </div>
+
+            @if(!string.IsNullOrWhiteSpace(SessionDirectory))
+            {
+                <div class="px-3 py-1.5 hover:bg-app-hover text-xs transition-colors group mt-1" @onclick="() => OpenInExplorer(SessionDirectory)" style="cursor:pointer">
+                    <div class="break-words whitespace-normal">@SessionDirectory</div>
+                </div>
+            }
+        }
     </Content>
 </Expander>
