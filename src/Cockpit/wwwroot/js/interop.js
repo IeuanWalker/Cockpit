@@ -542,6 +542,7 @@ window.cockpit = {
         };
         element.addEventListener('click', element._ceClickHandler);
 
+
         // Input event → notify C#
         element._ceInputHandler = function () {
             // Remove residual <br> left by browsers when content is cleared, so :empty CSS applies
