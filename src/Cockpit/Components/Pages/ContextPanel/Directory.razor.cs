@@ -71,8 +71,9 @@ public partial class Directory : ComponentBase, IDisposable
 
 		try
 		{
-			Process.Start(new ProcessStartInfo("explorer.exe", path)
+			Process.Start(new ProcessStartInfo
 			{
+				FileName = path,
 				UseShellExecute = true
 			});
 		}
