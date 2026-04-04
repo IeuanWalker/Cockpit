@@ -87,10 +87,7 @@ public partial class MainPage : ContentPage
 		base.OnDisappearing();
 		_splashService.OnBlazorReady -= OnBlazorReady;
 #if WINDOWS
-		if(_coreWebView2 is not null)
-		{
-			_coreWebView2.ContextMenuRequested -= OnWebViewContextMenuRequested;
-		}
+		_coreWebView2?.ContextMenuRequested -= OnWebViewContextMenuRequested;
 #endif
 	}
 
@@ -162,7 +159,7 @@ public partial class MainPage : ContentPage
 			}
 
 			Microsoft.UI.Xaml.FrameworkElement? root = _winUIWindow?.Content as Microsoft.UI.Xaml.FrameworkElement;
-			if(root is null && Microsoft.Maui.Controls.Application.Current?.Windows.FirstOrDefault()?.Handler?.PlatformView is Microsoft.UI.Xaml.Window w)
+			if(root is null && Application.Current?.Windows.FirstOrDefault()?.Handler?.PlatformView is Microsoft.UI.Xaml.Window w)
 			{
 				root = w.Content as Microsoft.UI.Xaml.FrameworkElement;
 			}
