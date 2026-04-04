@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
@@ -127,27 +126,6 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	public void OnChatScrollPositionChanged(bool isNearBottom)
 	{
 		_isUserScrolledUpFromChat = !isNearBottom;
-	}
-
-	void OpenWorkspaceFolder()
-	{
-		if(string.IsNullOrEmpty(_sessionFeature.CurrentSession?.Context.WorkspacePath))
-		{
-			return;
-		}
-
-		try
-		{
-			Process.Start(new ProcessStartInfo
-			{
-				FileName = _sessionFeature.CurrentSession.Context.WorkspacePath,
-				UseShellExecute = true
-			});
-		}
-		catch(Exception ex)
-		{
-			_logger.LogDebug(ex, "Failed to open workspace folder");
-		}
 	}
 
 	void ToggleTerminalPanel()
