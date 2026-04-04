@@ -30,9 +30,9 @@
 
             @if(!string.IsNullOrWhiteSpace(SessionDirectory))
             {
-                <div class="px-3 py-1.5 hover:bg-app-hover text-xs transition-colors group mt-1" @onclick="() => OpenInExplorer(SessionDirectory)" style="cursor:pointer">
-                    <div class="break-words whitespace-normal">@SessionDirectory</div>
-                </div>
+                <button type="button" class="px-3 py-1.5 hover:bg-app-hover text-xs transition-colors group mt-1 w-full text-left break-words whitespace-normal" @onclick="() => OpenInExplorer(SessionDirectory)" aria-label="@($"Open {SessionDirectory} in file explorer")">
+                    @SessionDirectory
+                </button>
             }
         }
     </Content>
