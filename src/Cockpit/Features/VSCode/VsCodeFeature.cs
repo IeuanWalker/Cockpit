@@ -64,7 +64,7 @@ public sealed class VsCodeFeature
 				throw new TimeoutException("DetectVsCode: 'code --version' did not exit within the timeout.");
 			}
 
-			return p.ExitCode == 0 ? "code" : null;
+			return p.ExitCode == 0 ? ResolveCommandFromPath("code") ?? "code" : null;
 		}
 		catch(Exception ex)
 		{
@@ -104,6 +104,33 @@ public sealed class VsCodeFeature
 
 			return null;
 		}
+	}
+
+	static string? ResolveCommandFromPath(string command)
+	{
+		string? pathValue = Environment.GetEnvironmentVariable("PATH");
+		if(pathValue is null)
+		{
+			return null;
+		}
+
+		string[] extensions = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+			? [".exe", ".cmd", ".bat"]
+			: [""];
+
+		foreach(string dir in pathValue.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+		{
+			foreach(string ext in extensions)
+			{
+				string candidate = Path.Combine(dir, command + ext);
+				if(File.Exists(candidate))
+				{
+					return candidate;
+				}
+			}
+		}
+
+		return null;
 	}
 
 	public bool OpenPathInVsCode(string path)

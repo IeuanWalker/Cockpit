@@ -9,10 +9,15 @@
     justify-content: flex-end;
     padding-right: 0.5rem;
     opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
     width: 3rem;
 }
 
-.directory-hover:hover .directory-vscode-overlay {
+.directory-hover:hover .directory-vscode-overlay,
+.directory-hover:focus-within .directory-vscode-overlay {
     opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
     background: linear-gradient(to right, transparent, var(--hover-color) 60%);
 }
