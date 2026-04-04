@@ -67,7 +67,7 @@ public partial class MainPage : ContentPage
 	{
 		base.OnAppearing();
 #if WINDOWS
-		if (Window?.Handler?.PlatformView is Microsoft.UI.Xaml.Window nativeWindow)
+		if(Window?.Handler?.PlatformView is Microsoft.UI.Xaml.Window nativeWindow)
 		{
 			_winUIWindow = nativeWindow;
 			nativeWindow.SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
@@ -83,7 +83,7 @@ public partial class MainPage : ContentPage
 		base.OnDisappearing();
 		_splashService.OnBlazorReady -= OnBlazorReady;
 #if WINDOWS
-		if (_coreWebView2 is not null)
+		if(_coreWebView2 is not null)
 		{
 			_coreWebView2.ContextMenuRequested -= OnWebViewContextMenuRequested;
 		}
@@ -116,7 +116,7 @@ public partial class MainPage : ContentPage
 #if WINDOWS
 	void OnWebViewContextMenuRequested(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2ContextMenuRequestedEventArgs args)
 	{
-		if (!args.ContextMenuTarget.IsEditable)
+		if(!args.ContextMenuTarget.IsEditable)
 		{
 			args.Handled = true; // suppress context menu outside the editable input area
 			return;
@@ -128,10 +128,10 @@ public partial class MainPage : ContentPage
 		try
 		{
 			IReadOnlyList<string> spellSuggestions = [];
-			if (args.MenuItems.Any(m => m.Name == "spellcheck"))
+			if(args.MenuItems.Any(m => m.Name == "spellcheck"))
 			{
 				string word = args.ContextMenuTarget.SelectionText?.Trim() ?? "";
-				if (!string.IsNullOrWhiteSpace(word))
+				if(!string.IsNullOrWhiteSpace(word))
 					spellSuggestions = WindowsSpellChecker.GetSuggestions(word);
 			}
 
@@ -141,15 +141,15 @@ public partial class MainPage : ContentPage
 
 			void Finish()
 			{
-				if (completed) return;
+				if(completed) return;
 				completed = true;
-				if (selectedCmdId >= 0)
+				if(selectedCmdId >= 0)
 					args.SelectedCommandId = selectedCmdId;
 				deferral.Complete();
 			}
 
 			Microsoft.UI.Xaml.FrameworkElement? root = _winUIWindow?.Content as Microsoft.UI.Xaml.FrameworkElement;
-			if (root is null && Microsoft.Maui.Controls.Application.Current?.Windows.FirstOrDefault()?.Handler?.PlatformView is Microsoft.UI.Xaml.Window w)
+			if(root is null && Microsoft.Maui.Controls.Application.Current?.Windows.FirstOrDefault()?.Handler?.PlatformView is Microsoft.UI.Xaml.Window w)
 			{
 				root = w.Content as Microsoft.UI.Xaml.FrameworkElement;
 			}
@@ -158,7 +158,7 @@ public partial class MainPage : ContentPage
 			BuildFlyoutItems(flyout.Items, args.MenuItems, id => selectedCmdId = id, theme, spellSuggestions);
 			flyout.Closed += (_, _) => Finish();
 
-			if (root is not null)
+			if(root is not null)
 			{
 				flyout.ShowAt(root, new Microsoft.UI.Xaml.Controls.Primitives.FlyoutShowOptions
 				{
@@ -177,6 +177,17 @@ public partial class MainPage : ContentPage
 		}
 	}
 
+	static readonly HashSet<string> _allowedMenuItemNames =
+	[
+		"spellcheck",   // spell suggestions
+		"cut",
+		"copy",
+		"paste",
+		"emoji",
+		"insertEmoji",
+		"selectAll",
+	];
+
 	static void BuildFlyoutItems(
 		IList<Microsoft.UI.Xaml.Controls.MenuFlyoutItemBase> items,
 		IList<Microsoft.Web.WebView2.Core.CoreWebView2ContextMenuItem> menuItems,
@@ -190,14 +201,17 @@ public partial class MainPage : ContentPage
 				: Windows.UI.Color.FromArgb(255, 59, 59, 59));
 
 		int suggestionIndex = 0;
-		foreach (Microsoft.Web.WebView2.Core.CoreWebView2ContextMenuItem menuItem in menuItems)
+		foreach(Microsoft.Web.WebView2.Core.CoreWebView2ContextMenuItem menuItem in menuItems)
 		{
-			if (menuItem.Kind == Microsoft.Web.WebView2.Core.CoreWebView2ContextMenuItemKind.Separator)
+			if(menuItem.Kind == Microsoft.Web.WebView2.Core.CoreWebView2ContextMenuItemKind.Separator)
 			{
-				items.Add(new Microsoft.UI.Xaml.Controls.MenuFlyoutSeparator());
+				// Add separator only if there's a preceding non-separator item
+				if(items.Count > 0 && items[^1] is not Microsoft.UI.Xaml.Controls.MenuFlyoutSeparator)
+					items.Add(new Microsoft.UI.Xaml.Controls.MenuFlyoutSeparator());
 			}
-			else if (menuItem.Kind == Microsoft.Web.WebView2.Core.CoreWebView2ContextMenuItemKind.Submenu)
+			else if(menuItem.Kind == Microsoft.Web.WebView2.Core.CoreWebView2ContextMenuItemKind.Submenu)
 			{
+				if(!_allowedMenuItemNames.Contains(menuItem.Name)) continue;
 				var sub = new Microsoft.UI.Xaml.Controls.MenuFlyoutSubItem
 				{
 					Text = menuItem.Label.Replace("&", ""),
@@ -208,9 +222,10 @@ public partial class MainPage : ContentPage
 			}
 			else
 			{
+				if(!_allowedMenuItemNames.Contains(menuItem.Name)) continue;
 				int cmdId = menuItem.CommandId;
 				string label;
-				if (menuItem.Name == "spellcheck" && suggestionIndex < spellSuggestions.Count)
+				if(menuItem.Name == "spellcheck" && suggestionIndex < spellSuggestions.Count)
 				{
 					label = spellSuggestions[suggestionIndex++];
 				}
@@ -228,6 +243,10 @@ public partial class MainPage : ContentPage
 				items.Add(item);
 			}
 		}
+
+		// Remove trailing separator if present
+		if(items.Count > 0 && items[^1] is Microsoft.UI.Xaml.Controls.MenuFlyoutSeparator)
+			items.RemoveAt(items.Count - 1);
 	}
 #endif
 }
