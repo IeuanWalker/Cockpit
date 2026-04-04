@@ -74,11 +74,18 @@ public sealed class VsCodeFeature
 			{
 				if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 				{
-					string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-					string exePath = Path.Combine(programFiles, "Microsoft VS Code", "Code.exe");
-					if(File.Exists(exePath))
+					string[] windowsCandidates =
+					[
+						Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Microsoft VS Code", "Code.exe"),
+						Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Microsoft VS Code", "Code.exe"),
+					];
+
+					foreach(string candidate in windowsCandidates)
 					{
-						return exePath;
+						if(File.Exists(candidate))
+						{
+							return candidate;
+						}
 					}
 				}
 				else if(RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
