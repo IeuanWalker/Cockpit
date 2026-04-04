@@ -12,19 +12,12 @@ static class WindowsSpellChecker
 	static readonly Guid clsidFactory = new("7AB36653-1796-484B-BDFA-E74F1DB7C1DC");
 	// IID_ISpellCheckerFactory
 	static readonly Guid iidFactory = new("8E018A9D-2415-4677-BF08-794EA61F94BB");
-	// IID_ISpellChecker
-	static readonly Guid iidChecker = new("B6C0FD67-520C-4A34-B79E-9F0D3B47A9FD");
-	// IID_IEnumString
-	static readonly Guid iidEnumString = new("00000101-0000-0000-C000-000000000046");
 
 	const uint CLSCTX_INPROC_SERVER = 1;
 	const uint CLSCTX_LOCAL_SERVER = 4;
 
 	[DllImport("ole32.dll")]
 	static extern int CoCreateInstance(ref Guid rclsid, IntPtr pUnkOuter, uint dwClsContext, ref Guid riid, out IntPtr ppv);
-
-	[DllImport("ole32.dll")]
-	static extern int CoTaskMemFree(IntPtr pv);
 
 	// Vtable delegates — offsets are 0-based after the 3 IUnknown slots.
 	// ISpellCheckerFactory vtable (slot 3 = index 0 after IUnknown):
@@ -59,7 +52,6 @@ static class WindowsSpellChecker
 		IntPtr pChecker = IntPtr.Zero;
 		IntPtr pEnum = IntPtr.Zero;
 		IntPtr pWord = IntPtr.Zero;
-		IntPtr pFetched = IntPtr.Zero;
 
 		try
 		{
@@ -102,35 +94,29 @@ static class WindowsSpellChecker
 
 			var enumNext = GetVtableMethod<EnumNext_Fn>(pEnum, 3);
 
-			// Allocate buffers for IEnumString.Next: one LPOLESTR slot + one ULONG for fetched count
+			// IEnumString.Next with celt=1: S_OK=got item (more remain), S_FALSE=end of sequence.
+			// pceltFetched is optional when celt=1 — pass NULL to avoid implementations that
+			// skip writing it, and use the return code to control the loop instead.
 			pWord = Marshal.AllocCoTaskMem(IntPtr.Size);
-			pFetched = Marshal.AllocCoTaskMem(sizeof(uint));
 
 			while (true)
 			{
 				Marshal.WriteIntPtr(pWord, IntPtr.Zero);
-				Marshal.WriteInt32(pFetched, 0);
 
-				int hrNext = enumNext(pEnum, 1, pWord, pFetched);
-
-				uint fetched = (uint)Marshal.ReadInt32(pFetched);
-				if (fetched == 0)
-				{
-					break;
-				}
+				int hrNext = enumNext(pEnum, 1, pWord, IntPtr.Zero);
 
 				IntPtr strPtr = Marshal.ReadIntPtr(pWord);
 				if (strPtr != IntPtr.Zero)
 				{
 					string s = Marshal.PtrToStringUni(strPtr) ?? "";
-					CoTaskMemFree(strPtr);
+					Marshal.FreeCoTaskMem(strPtr);
 					if (!string.IsNullOrWhiteSpace(s))
 					{
 						result.Add(s);
 					}
 				}
 
-				if (hrNext != 0) // S_FALSE = no more items
+				if (hrNext != 0) // S_FALSE = no more items (or error)
 				{
 					break;
 				}
@@ -142,7 +128,6 @@ static class WindowsSpellChecker
 		}
 		finally
 		{
-			if (pFetched != IntPtr.Zero) Marshal.FreeCoTaskMem(pFetched);
 			if (pWord != IntPtr.Zero) Marshal.FreeCoTaskMem(pWord);
 			if (pEnum != IntPtr.Zero) Marshal.Release(pEnum);
 			if (pChecker != IntPtr.Zero) Marshal.Release(pChecker);

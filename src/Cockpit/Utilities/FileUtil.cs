@@ -30,8 +30,6 @@ public static class FileUtil
 			return;
 		}
 
-		// Test
-
 		try
 		{
 			if(OperatingSystem.IsWindows())

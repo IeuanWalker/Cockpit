@@ -225,8 +225,9 @@ public partial class MainPage : ContentPage
 				if(!_allowedMenuItemNames.Contains(menuItem.Name)) continue;
 				int cmdId = menuItem.CommandId;
 				string label;
-				if(menuItem.Name == "spellcheck" && suggestionIndex < spellSuggestions.Count)
+				if(menuItem.Name == "spellcheck")
 				{
+					if(suggestionIndex >= spellSuggestions.Count) continue; // skip empty placeholder slots
 					label = spellSuggestions[suggestionIndex++];
 				}
 				else
