@@ -36,7 +36,23 @@ public sealed class VsCodeFeature
 				return false;
 			}
 
-			p.WaitForExit(3000);
+			bool exited = p.WaitForExit(3000);
+			if(!exited)
+			{
+				_logger.LogWarning("DetectVsCode: 'code --version' did not exit within the timeout");
+
+				try
+				{
+					p.Kill(entireProcessTree: true);
+					p.WaitForExit();
+				}
+				catch(Exception killEx)
+				{
+					_logger.LogDebug(killEx, "DetectVsCode: failed to terminate timed out 'code --version' process");
+				}
+
+				throw new TimeoutException("DetectVsCode: 'code --version' did not exit within the timeout.");
+			}
 			return p.ExitCode == 0;
 		}
 		catch(Exception ex)
