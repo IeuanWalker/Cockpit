@@ -81,4 +81,21 @@ public partial class Directory : ComponentBase, IDisposable
 			_logger?.LogWarning(ex, "Failed to open explorer for path {Path}", path);
 		}
 	}
+
+    void OpenInVSCode(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+        try
+        {
+            Process.Start(new ProcessStartInfo("code", $"\"{path}\"")
+            {
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to open VS Code for path {Path}", path);
+        }
+    }
 }
