@@ -1,6 +1,10 @@
 ﻿using Cockpit.Features.Agents;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Splash;
+#if WINDOWS
+using Cockpit.Platforms.Windows;
+using Windows.Foundation;
+#endif
 using Microsoft.JSInterop;
 
 namespace Cockpit;
@@ -122,7 +126,7 @@ public partial class MainPage : ContentPage
 			return;
 		}
 
-		var deferral = args.GetDeferral();
+		Deferral deferral = args.GetDeferral();
 		args.Handled = true;
 
 		try
@@ -132,19 +136,28 @@ public partial class MainPage : ContentPage
 			{
 				string word = args.ContextMenuTarget.SelectionText?.Trim() ?? "";
 				if(!string.IsNullOrWhiteSpace(word))
+				{
 					spellSuggestions = WindowsSpellChecker.GetSuggestions(word);
+				}
 			}
 
-			var flyout = new Microsoft.UI.Xaml.Controls.MenuFlyout();
+			Microsoft.UI.Xaml.Controls.MenuFlyout flyout = new();
 			int selectedCmdId = -1;
 			bool completed = false;
 
 			void Finish()
 			{
-				if(completed) return;
+				if(completed)
+				{
+					return;
+				}
+
 				completed = true;
 				if(selectedCmdId >= 0)
+				{
 					args.SelectedCommandId = selectedCmdId;
+				}
+
 				deferral.Complete();
 			}
 
@@ -177,9 +190,9 @@ public partial class MainPage : ContentPage
 		}
 	}
 
-	static readonly HashSet<string> _allowedMenuItemNames =
+	static readonly HashSet<string> allowedMenuItemNames =
 	[
-		"spellcheck",   // spell suggestions
+		"spellcheck",
 		"cut",
 		"copy",
 		"paste",
@@ -195,7 +208,7 @@ public partial class MainPage : ContentPage
 		Microsoft.UI.Xaml.ElementTheme theme,
 		IReadOnlyList<string> spellSuggestions)
 	{
-		var foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+		Microsoft.UI.Xaml.Media.SolidColorBrush foreground = new(
 			theme == Microsoft.UI.Xaml.ElementTheme.Dark
 				? Windows.UI.Color.FromArgb(255, 204, 204, 204)
 				: Windows.UI.Color.FromArgb(255, 59, 59, 59));
@@ -207,12 +220,18 @@ public partial class MainPage : ContentPage
 			{
 				// Add separator only if there's a preceding non-separator item
 				if(items.Count > 0 && items[^1] is not Microsoft.UI.Xaml.Controls.MenuFlyoutSeparator)
+				{
 					items.Add(new Microsoft.UI.Xaml.Controls.MenuFlyoutSeparator());
+				}
 			}
 			else if(menuItem.Kind == Microsoft.Web.WebView2.Core.CoreWebView2ContextMenuItemKind.Submenu)
 			{
-				if(!_allowedMenuItemNames.Contains(menuItem.Name)) continue;
-				var sub = new Microsoft.UI.Xaml.Controls.MenuFlyoutSubItem
+				if(!allowedMenuItemNames.Contains(menuItem.Name))
+				{
+					continue;
+				}
+
+				Microsoft.UI.Xaml.Controls.MenuFlyoutSubItem sub = new()
 				{
 					Text = menuItem.Label.Replace("&", ""),
 					Foreground = foreground,
@@ -222,12 +241,20 @@ public partial class MainPage : ContentPage
 			}
 			else
 			{
-				if(!_allowedMenuItemNames.Contains(menuItem.Name)) continue;
+				if(!allowedMenuItemNames.Contains(menuItem.Name))
+				{
+					continue;
+				}
+
 				int cmdId = menuItem.CommandId;
 				string label;
 				if(menuItem.Name == "spellcheck")
 				{
-					if(suggestionIndex >= spellSuggestions.Count) continue; // skip empty placeholder slots
+					if(suggestionIndex >= spellSuggestions.Count)
+					{
+						continue; // skip empty placeholder slots
+					}
+
 					label = spellSuggestions[suggestionIndex++];
 				}
 				else
@@ -235,7 +262,7 @@ public partial class MainPage : ContentPage
 					label = menuItem.Label.Replace("&", "");
 				}
 
-				var item = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem
+				Microsoft.UI.Xaml.Controls.MenuFlyoutItem item = new()
 				{
 					Text = label,
 					Foreground = foreground,
@@ -247,7 +274,9 @@ public partial class MainPage : ContentPage
 
 		// Remove trailing separator if present
 		if(items.Count > 0 && items[^1] is Microsoft.UI.Xaml.Controls.MenuFlyoutSeparator)
+		{
 			items.RemoveAt(items.Count - 1);
+		}
 	}
 #endif
 }
