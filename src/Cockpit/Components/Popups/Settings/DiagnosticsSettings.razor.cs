@@ -31,6 +31,16 @@ public partial class DiagnosticsSettings
 	{
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
+			// If a log viewer window is already open, just focus it
+			Window? existing = Application.Current?.Windows
+				.FirstOrDefault(w => w.Page is LogViewerPage);
+
+			if(existing is not null)
+			{
+				Application.Current?.ActivateWindow(existing);
+				return;
+			}
+
 			Application.Current?.OpenWindow(new Window(new LogViewerPage())
 			{
 				Title = "Log Viewer",

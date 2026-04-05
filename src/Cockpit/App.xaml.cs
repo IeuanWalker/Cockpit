@@ -54,6 +54,40 @@ public partial class App : Application
 			}
 		};
 
+#if DEBUG
+		Dispatcher.Dispatch(() => OpenWindow(new Window(new LogViewerPage())
+		{
+			Title = "Log Viewer",
+			TitleBar = new TitleBar
+			{
+				BackgroundColor = Color.FromArgb("#181818"),
+				ForegroundColor = Color.FromArgb("#CCCCCC"),
+				HeightRequest = 48,
+				LeadingContent = new HorizontalStackLayout
+				{
+					VerticalOptions = LayoutOptions.Center,
+					Children =
+					{
+						new Image
+						{
+							HeightRequest = 28,
+							WidthRequest = 20,
+							Margin = new Thickness(12, 0, 8, 0),
+							Source = "logo.png"
+						},
+						new Label
+						{
+							Text = "Log Viewer",
+							TextColor = Color.FromArgb("#CCCCCC"),
+							FontSize = 14,
+							VerticalOptions = LayoutOptions.Center
+						}
+					}
+				}
+			}
+		}));
+#endif
+
 		return _mainWindow;
 	}
 

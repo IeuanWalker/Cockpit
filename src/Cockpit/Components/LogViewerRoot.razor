@@ -1,18 +1,36 @@
-<div class="log-root">
-    <div class="log-toolbar">
-        <div class="log-tabs">
-            <button class="log-tab @(_activeFile == "app.log" ? "log-tab--active" : "")"
-                    @onclick='() => SwitchFile("app.log")'>app.log</button>
-            <button class="log-tab @(_activeFile == "crash.log" ? "log-tab--active" : "")"
-                    @onclick='() => SwitchFile("crash.log")'>crash.log</button>
-        </div>
+﻿<div class="lv-root">
 
-        <div class="log-toolbar-right">
-            <label class="log-autoscroll-label">
+    <div class="lv-top-bar">
+        <div class="lv-tabs">
+            @foreach (LogTab tab in _tabs)
+            {
+                <button class="lv-tab @(tab.Id == _activeTab.Id ? "lv-tab--active" : "")"
+                        @onclick="() => SwitchTab(tab)">
+                    <span>@tab.Label</span>
+                    @if (!tab.IsBuiltIn)
+                    {
+                        <span class="lv-tab-close" @onclick:stopPropagation="true" @onclick="() => CloseTab(tab)" title="Close tab">
+                            <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </span>
+                    }
+                </button>
+            }
+            <button class="lv-tab-open-btn" @onclick="OpenFileAsync" title="Open a log file">
+                <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                </svg>
+                <span>Open File</span>
+            </button>
+        </div>
+        <div class="lv-top-bar-right">
+            <label class="lv-checkbox-label">
                 <input type="checkbox" @bind="_autoScroll" style="accent-color: var(--accent-color);" />
                 <span>Auto-scroll</span>
             </label>
-            <button @onclick="RefreshNow" class="log-icon-btn" title="Refresh now">
+            <button class="lv-icon-btn" @onclick="RefreshNow" title="Refresh">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -21,14 +39,130 @@
         </div>
     </div>
 
-    <div class="log-content scrollbar-thin" @ref="_logContainer">
-        @if (string.IsNullOrEmpty(_logContent))
+    <div class="lv-filter-bar">
+        <div class="lv-level-chips">
+            @foreach (string level in LevelOrder)
+            {
+                int count = GetLevelCount(level);
+                if (count == 0) continue;
+                bool hidden = _hiddenLevels.Contains(level);
+                <button class="lv-chip lv-chip-@LevelClass(level) @(hidden ? "lv-chip--off" : "")"
+                        @onclick="() => ToggleLevel(level)">
+                    <span class="lv-chip-dot"></span>
+                    <span class="lv-chip-label">@LevelShort(level)</span>
+                    <span class="lv-chip-count">@count</span>
+                </button>
+            }
+        </div>
+
+        <div class="lv-search-wrap">
+            <svg class="lv-search-icon" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+            <input class="lv-search-input" type="text" placeholder="Search..."
+                   value="@_searchText" @oninput="OnSearchInput" />
+            @if (!string.IsNullOrEmpty(_searchText))
+            {
+                <button class="lv-search-clear" @onclick="ClearSearch" title="Clear">
+                    <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="lv-table-head">
+        <div class="lv-col-lvl">Level</div>
+        <div class="lv-col-time">Timestamp</div>
+        <div class="lv-col-cat">Category</div>
+        <div class="lv-col-msg">Message</div>
+    </div>
+
+    <div class="lv-table-body-wrap">
+        <div class="lv-table-body scrollbar-thin" id="@_tableBodyId">
+            @if (_loading)
+            {
+                <div class="lv-empty">Loading&#8230;</div>
+            }
+            else if (_filtered.Count == 0)
+            {
+                <div class="lv-empty">No entries match the current filters.</div>
+            }
+            else
+            {
+                <Virtualize Items="_filtered" Context="entry" ItemSize="34" OverscanCount="10">
+                    <div class="lv-row @(_selected?.Index == entry.Index ? "lv-row--active" : "")"
+                         @onclick="() => SelectEntry(entry)">
+                        <div class="lv-col-lvl">
+                            <span class="lv-badge lv-badge-@LevelClass(entry.LevelNorm)">@LevelShort(entry.LevelNorm)</span>
+                        </div>
+                        <div class="lv-col-time">@entry.TimestampDisplay</div>
+                        <div class="lv-col-cat" title="@entry.Category">@entry.CategoryShort</div>
+                        <div class="lv-col-msg">@entry.Message</div>
+                    </div>
+                </Virtualize>
+            }
+        </div>
+
+        @if (_isScrolledUp)
         {
-            <span class="log-empty">No log entries found.</span>
-        }
-        else
-        {
-            <pre class="log-pre">@_logContent</pre>
+            <button class="scroll-to-bottom-btn" @onclick="ScrollToBottomAndResume" title="Scroll to latest">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </button>
         }
     </div>
+
+    <div class="lv-status-bar">
+        <span>@_filtered.Count of @_allEntries.Count entries</span>
+        @if (_selected != null)
+        {
+            <span class="lv-status-sep">&#183;</span>
+            <span>Row @(_selected.Index + 1) selected</span>
+        }
+    </div>
+
+    @if (_selected != null)
+    {
+        <div class="lv-detail">
+            <div class="lv-detail-header">
+                <span class="lv-detail-title">Entry Detail</span>
+                <div style="flex:1"></div>
+                <button class="lv-icon-btn" @onclick="() => _selected = null" title="Close">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="lv-detail-content scrollbar-thin">
+                <div class="lv-detail-row">
+                    <span class="lv-detail-label">Timestamp</span>
+                    <span class="lv-detail-value lv-detail-mono">@_selected.TimestampDisplay</span>
+                </div>
+                <div class="lv-detail-row">
+                    <span class="lv-detail-label">Level</span>
+                    <span class="lv-badge lv-badge-@LevelClass(_selected.LevelNorm)">@_selected.LevelNorm</span>
+                </div>
+                <div class="lv-detail-row">
+                    <span class="lv-detail-label">Category</span>
+                    <span class="lv-detail-value lv-detail-mono">@_selected.Category</span>
+                </div>
+                <div class="lv-detail-row lv-detail-row--top">
+                    <span class="lv-detail-label">Message</span>
+                    <span class="lv-detail-value lv-detail-mono lv-detail-wrap">@_selected.Message</span>
+                </div>
+                @if (!string.IsNullOrEmpty(_selected.Continuation))
+                {
+                    <div class="lv-detail-row lv-detail-row--top lv-detail-row--continuation">
+                        <span class="lv-detail-label">Stack&nbsp;Trace</span>
+                        <pre class="lv-detail-pre scrollbar-thin">@_selected.Continuation</pre>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
 </div>
