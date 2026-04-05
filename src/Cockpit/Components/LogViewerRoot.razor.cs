@@ -257,7 +257,9 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 				while(!token.IsCancellationRequested && await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
 				{
 					// Capture component state on the Blazor thread to avoid cross-thread reads
-					(string path, long knownLen) = await InvokeAsync(() => (_activeTab.FilePath, _knownFileLength)).ConfigureAwait(false);
+					string path = string.Empty;
+					long knownLen = -1;
+					await InvokeAsync(() => { path = _activeTab.FilePath; knownLen = _knownFileLength; }).ConfigureAwait(false);
 
 					long len = 0;
 					try
@@ -529,3 +531,4 @@ sealed class LogEntry
 		}
 	}
 }
+
