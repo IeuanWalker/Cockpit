@@ -1,5 +1,4 @@
-﻿using Cockpit.Components.Popups.Settings;
-using Cockpit.Controls;
+﻿using Cockpit.Controls;
 using Cockpit.Features.Agents;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Splash;
@@ -28,7 +27,7 @@ public partial class App : Application
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		_mainWindow = new Window(new MainPage(_globalAgentFeature, _splashFeature, _sessionFeature))
+		_mainWindow = new Window(new MainPage(_globalAgentFeature, _splashFeature, _sessionFeature, _themeState))
 		{
 			Title = "Cockpit",
 			TitleBar = new TitleBar
@@ -57,10 +56,6 @@ public partial class App : Application
 				}
 			}
 		};
-
-#if DEBUG
-		Dispatcher.Dispatch(() => OpenWindow(DiagnosticsSettings.BuildLogViewerWindow(_themeState.IsLightTheme)));
-#endif
 
 		return _mainWindow;
 	}
