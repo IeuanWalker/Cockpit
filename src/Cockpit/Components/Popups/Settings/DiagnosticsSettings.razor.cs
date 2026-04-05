@@ -1,12 +1,14 @@
 using Cockpit.Features.Theme;
 using Cockpit.Utilities;
 using Cockpit.Utilities.Logging;
+using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Popups.Settings;
 
 public partial class DiagnosticsSettings
 {
-	[Microsoft.AspNetCore.Components.Inject] ThemeStateService ThemeState { get; set; } = default!;
+	[Inject]
+	ThemeStateService ThemeState { get; set; } = default!;
 
 	string LogDirectory => LogDirectoryHelper.LogDirectory;
 
