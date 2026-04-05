@@ -246,39 +246,45 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 		_ = Task.Run(async () =>
 		{
 			using PeriodicTimer timer = new(TimeSpan.FromSeconds(1));
-			while(!token.IsCancellationRequested && await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
+			try
 			{
-				string path = _activeTab.FilePath;
-				long len = 0;
-				try
+				while(!token.IsCancellationRequested && await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
 				{
-					len = File.Exists(path) ? new FileInfo(path).Length : 0;
-				}
-				catch
-				{
-					continue;
-				}
-
-				if(len == _knownFileLength)
-				{
-					continue;
-				}
-
-				(string? content, long newLen) = ReadFile(path);
-				List<LogEntry> allEntries = Parse(content);
-
-				await InvokeAsync(() =>
-				{
-					_knownFileLength = newLen;
-					_allEntries = allEntries;
-					RebuildFiltered();
-					if(_autoScroll && !_isScrolledUp)
+					string path = _activeTab.FilePath;
+					long len = 0;
+					try
 					{
-						_pendingScroll = true;
+						len = File.Exists(path) ? new FileInfo(path).Length : 0;
+					}
+					catch
+					{
+						continue;
 					}
 
-					StateHasChanged();
-				}).ConfigureAwait(false);
+					if(len == _knownFileLength)
+					{
+						continue;
+					}
+
+					(string? content, long newLen) = ReadFile(path);
+					List<LogEntry> allEntries = Parse(content);
+
+					await InvokeAsync(() =>
+					{
+						_knownFileLength = newLen;
+						_allEntries = allEntries;
+						RebuildFiltered();
+						if(_autoScroll && !_isScrolledUp)
+						{
+							_pendingScroll = true;
+						}
+
+						StateHasChanged();
+					}).ConfigureAwait(false);
+				}
+			}
+			catch(OperationCanceledException) when(token.IsCancellationRequested)
+			{
 			}
 		}, token);
 	}
