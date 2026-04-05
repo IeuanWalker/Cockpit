@@ -208,7 +208,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 	async Task LoadAsync()
 	{
 		_loading = true;
-		(string? content, long len) = await Task.Run(() => ReadFile(_activeTab.FilePath));
+		(string content, long len) = await Task.Run(() => ReadFile(_activeTab.FilePath));
 		_knownFileLength = len;
 		_allEntries = Parse(content);
 		RebuildFiltered();
