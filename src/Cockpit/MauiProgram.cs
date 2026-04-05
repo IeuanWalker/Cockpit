@@ -75,7 +75,7 @@ public static class MauiProgram
 
 		// Speech and Text features
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
-		builder.Services.AddSingleton(TextToSpeech.Default);
+		builder.Services.AddSingleton<ITextToSpeech>(TextToSpeech.Default);
 		builder.Services.AddSingleton<TextToSpeechFeature>();
 
 		// UI and App features
