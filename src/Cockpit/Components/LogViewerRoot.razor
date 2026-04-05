@@ -1,5 +1,4 @@
 ﻿<div class="lv-root">
-
     <div class="lv-top-bar">
         <div class="lv-tabs">
             @foreach(LogTab tab in _tabs)
@@ -118,14 +117,14 @@
 
     <div class="lv-status-bar">
         <span>@_filtered.Count of @_allEntries.Count entries</span>
-        @if(_selected != null)
+        @if(_selected is not null)
         {
             <span class="lv-status-sep">&#183;</span>
             <span>Row @(_selected.Index + 1) selected</span>
         }
     </div>
 
-    @if(_selected != null)
+    @if(_selected is not null)
     {
         <div class="lv-detail">
             <div class="lv-detail-header">
@@ -164,5 +163,4 @@
             </div>
         </div>
     }
-
 </div>
