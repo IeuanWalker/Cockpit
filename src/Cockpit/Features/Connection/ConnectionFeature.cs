@@ -12,7 +12,7 @@ public sealed partial class ConnectionFeature : IDisposable
 {
 	static string SerializeExceptionToJson(Exception ex)
 	{
-		var test = new
+		return (new
 		{
 			type = ex.GetType().FullName,
 			message = ex.Message,
@@ -23,9 +23,7 @@ public sealed partial class ConnectionFeature : IDisposable
 				message = ex.InnerException.Message,
 				stackTrace = ex.InnerException.StackTrace
 			} : null
-		};
-
-		return test.SerializeJson() ?? string.Empty;
+		}).SerializeJson() ?? string.Empty;
 	}
 	readonly CopilotClientFeature _copilotClientFeature;
 	readonly ILogger<ConnectionFeature> _logger;
