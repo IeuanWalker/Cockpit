@@ -10,7 +10,7 @@ namespace Cockpit.Components;
 public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 {
 	readonly IJSRuntime _jsRuntime;
-	readonly ThemeStateService _themeState;
+	readonly ThemeStateFeature _themeStateFeature;
 
 	readonly string _tableBodyId = $"lv-body-{Guid.NewGuid():N}";
 
@@ -39,10 +39,10 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 	Timer? _searchDebounce;
 	DotNetObjectReference<LogViewerRoot>? _dotNetRef;
 
-	public LogViewerRoot(IJSRuntime jsRuntime, ThemeStateService themeState)
+	public LogViewerRoot(IJSRuntime jsRuntime, ThemeStateFeature themeStateFeature)
 	{
 		_jsRuntime = jsRuntime;
-		_themeState = themeState;
+		_themeStateFeature = themeStateFeature;
 		_activeTab = _tabs[0];
 	}
 
@@ -164,7 +164,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 
 	protected override void OnInitialized()
 	{
-		_themeState.OnThemeChanged += OnThemeChangedHandler;
+		_themeStateFeature.OnThemeChanged += OnThemeChangedHandler;
 		_ = LoadAsync();
 		StartPolling();
 	}
@@ -428,7 +428,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			if(_themeState.IsLightTheme)
+			if(_themeStateFeature.IsLightTheme)
 			{
 				await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
 			}
@@ -437,14 +437,14 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 				await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
 			}
 
-			await _jsRuntime.InvokeVoidAsync("cockpit.setAccentColor", _themeState.AccentColor, _themeState.AccentHoverColor);
+			await _jsRuntime.InvokeVoidAsync("cockpit.setAccentColor", _themeStateFeature.AccentColor, _themeStateFeature.AccentHoverColor);
 		}
 		catch { /* best-effort */ }
 	}
 
 	public async ValueTask DisposeAsync()
 	{
-		_themeState.OnThemeChanged -= OnThemeChangedHandler;
+		_themeStateFeature.OnThemeChanged -= OnThemeChangedHandler;
 		_cts?.Cancel();
 		_cts?.Dispose();
 		_cts = null;

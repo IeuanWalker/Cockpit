@@ -8,19 +8,19 @@ public partial class AppearanceSettings : ComponentBase, IDisposable
 {
 	string _customColor = "#0078D4";
 
-	readonly UIStateFeature _uiState;
-	readonly ThemeFeature _themeService;
-	public AppearanceSettings(UIStateFeature uiState, ThemeFeature themeService)
+	readonly UIStateFeature _uiStateFeature;
+	readonly ThemeFeature _themeFeature;
+	public AppearanceSettings(UIStateFeature uiStateFeature, ThemeFeature themeFeature)
 	{
-		_uiState = uiState;
-		_themeService = themeService;
+		_uiStateFeature = uiStateFeature;
+		_themeFeature = themeFeature;
 	}
 
 	protected override void OnInitialized()
 	{
-		_uiState.OnStateChanged += OnStateChanged;
-		_themeService.OnThemeChanged += OnStateChanged;
-		_customColor = _themeService.AccentColor;
+		_uiStateFeature.OnStateChanged += OnStateChanged;
+		_themeFeature.OnThemeChanged += OnStateChanged;
+		_customColor = _themeFeature.AccentColor;
 	}
 
 	void OnStateChanged()
@@ -39,12 +39,12 @@ public partial class AppearanceSettings : ComponentBase, IDisposable
 
 	async Task SetTheme(ThemeEnum theme)
 	{
-		await _themeService.SetTheme(theme);
+		await _themeFeature.SetTheme(theme);
 	}
 
 	async Task SetAccentColor(string color, string hoverColor)
 	{
-		await _themeService.SetAccentColor(color, hoverColor);
+		await _themeFeature.SetAccentColor(color, hoverColor);
 	}
 
 	public void Dispose()
@@ -57,8 +57,8 @@ public partial class AppearanceSettings : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_uiState.OnStateChanged -= OnStateChanged;
-			_themeService.OnThemeChanged -= OnStateChanged;
+			_uiStateFeature.OnStateChanged -= OnStateChanged;
+			_themeFeature.OnThemeChanged -= OnStateChanged;
 		}
 	}
 }

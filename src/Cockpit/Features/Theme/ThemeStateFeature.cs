@@ -6,7 +6,7 @@ namespace Cockpit.Features.Theme;
 /// Singleton that holds the current resolved theme state and notifies all subscribers
 /// (including secondary windows with their own BlazorWebView scope).
 /// </summary>
-public class ThemeStateService
+public class ThemeStateFeature
 {
 	public event Action? OnThemeChanged;
 
@@ -14,7 +14,7 @@ public class ThemeStateService
 	public string AccentColor { get; private set; }
 	public string AccentHoverColor { get; private set; }
 
-	public ThemeStateService(IAppSettingsFeature appSettings)
+	public ThemeStateFeature(IAppSettingsFeature appSettings)
 	{
 		ThemeEnum theme = appSettings.Theme;
 		IsLightTheme = theme == ThemeEnum.Light ||

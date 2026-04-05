@@ -10,7 +10,7 @@ public class ThemeFeature
 	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<ThemeFeature> _logger;
 	readonly IAppSettingsFeature _appSettings;
-	readonly ThemeStateService _themeState;
+	readonly ThemeStateFeature _themeStateFeature;
 	bool _isInitialized = false;
 
 	public event Action? OnThemeChanged;
@@ -36,12 +36,12 @@ public class ThemeFeature
 		IJSRuntime jsRuntime,
 		ILogger<ThemeFeature> logger,
 		IAppSettingsFeature appSettings,
-		ThemeStateService themeState)
+		ThemeStateFeature themeStateFeature)
 	{
 		_jsRuntime = jsRuntime;
 		_logger = logger;
 		_appSettings = appSettings;
-		_themeState = themeState;
+		_themeStateFeature = themeStateFeature;
 
 		CurrentTheme = _appSettings.Theme;
 		AccentColor = _appSettings.AccentColor;
@@ -104,7 +104,7 @@ public class ThemeFeature
 			}
 		}
 
-		_themeState.Update(isLight, AccentColor, AccentHoverColor);
+		_themeStateFeature.Update(isLight, AccentColor, AccentHoverColor);
 	}
 
 	public async Task SetAccentColor(string color, string hoverColor)
@@ -116,7 +116,7 @@ public class ThemeFeature
 		_appSettings.AccentHoverColor = hoverColor;
 
 		await ApplyAccentColor();
-		_themeState.Update(IsLightTheme, AccentColor, AccentHoverColor);
+		_themeStateFeature.Update(IsLightTheme, AccentColor, AccentHoverColor);
 		OnThemeChanged?.Invoke();
 	}
 

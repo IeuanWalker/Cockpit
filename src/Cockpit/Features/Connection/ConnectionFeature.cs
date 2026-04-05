@@ -25,7 +25,7 @@ public sealed partial class ConnectionFeature : IDisposable
 			} : null
 		}, new JsonSerializerOptions { WriteIndented = true });
 	}
-	readonly CopilotClientFeature _clientService;
+	readonly CopilotClientFeature _copilotClientFeature;
 	readonly ILogger<ConnectionFeature> _logger;
 	Timer? _timer;
 	bool _initialized = false;
@@ -47,14 +47,14 @@ public sealed partial class ConnectionFeature : IDisposable
 	}
 
 	readonly List<ConnectionCheckRecordModel> _history = [];
-	readonly object _historyLock = new();
+	readonly Lock _historyLock = new();
 
 	public const int PollIntervalSeconds = 20;
 	public const int MaxHistorySize = 100;
 
-	public ConnectionFeature(CopilotClientFeature clientService, ILogger<ConnectionFeature> logger)
+	public ConnectionFeature(CopilotClientFeature copilotClientFeature, ILogger<ConnectionFeature> logger)
 	{
-		_clientService = clientService;
+		_copilotClientFeature = copilotClientFeature;
 		_logger = logger;
 	}
 
@@ -84,7 +84,7 @@ public sealed partial class ConnectionFeature : IDisposable
 	{
 		try
 		{
-			Task<PingResponse?> pingTask = _clientService.PingAsync();
+			Task<PingResponse?> pingTask = _copilotClientFeature.PingAsync();
 			Task delayTask = Task.Delay(100); //! Important: Avoids flickering status
 			Task completedTask = await Task.WhenAny(pingTask, delayTask);
 			if(completedTask == delayTask)

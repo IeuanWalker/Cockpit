@@ -13,25 +13,25 @@ public partial class App : Application
 	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SplashFeature _splashFeature;
 	readonly SessionFeature _sessionFeature;
-	readonly ThemeStateService _themeStateService;
+	readonly ThemeStateFeature _themeStateFeature;
 
 	public App(
 		GlobalAgentFeature globalAgentFeature,
 		SplashFeature splashFeature,
 		SessionFeature sessionFeature,
-		ThemeStateService themeStateService)
+		ThemeStateFeature themeStateFeature)
 	{
 		InitializeComponent();
 
 		_globalAgentFeature = globalAgentFeature;
 		_splashFeature = splashFeature;
 		_sessionFeature = sessionFeature;
-		_themeStateService = themeStateService;
+		_themeStateFeature = themeStateFeature;
 	}
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		_mainWindow = new Window(new MainPage(_globalAgentFeature, _splashFeature, _sessionFeature, _themeStateService))
+		_mainWindow = new Window(new MainPage(_globalAgentFeature, _splashFeature, _sessionFeature, _themeStateFeature))
 		{
 			Title = "Cockpit",
 			TitleBar = new TitleBar

@@ -10,29 +10,29 @@ namespace Cockpit;
 public partial class MainPage : ContentPage
 {
 	readonly GlobalAgentFeature _globalAgentFeature;
-	readonly SplashFeature _splashService;
+	readonly SplashFeature _splashFeature;
 	readonly SessionFeature _sessionFeature;
-	readonly ThemeStateService _themeStateService;
+	readonly ThemeStateFeature _themeStateFeature;
 	int _splashHidden;
 
 	public MainPage(
 		GlobalAgentFeature globalAgentFeature,
-		SplashFeature splashService,
+		SplashFeature splashFeature,
 		SessionFeature sessionFeature,
-		ThemeStateService themeStateService)
+		ThemeStateFeature themeStateFeature)
 	{
 		InitializeComponent();
 
 		_globalAgentFeature = globalAgentFeature;
-		_splashService = splashService;
+		_splashFeature = splashFeature;
 		_sessionFeature = sessionFeature;
-		_themeStateService = themeStateService;
+		_themeStateFeature = themeStateFeature;
 
 #if WINDOWS
 		ConfigureWindowsContextMenu();
 #endif
 
-		_splashService.OnBlazorReady += OnBlazorReady;
+		_splashFeature.OnBlazorReady += OnBlazorReady;
 
 		// Safety timeout - hide splash after 15 seconds
 		Dispatcher.StartTimer(TimeSpan.FromSeconds(15), () =>
@@ -49,7 +49,7 @@ public partial class MainPage : ContentPage
 			_ = HideSplash();
 
 #if DEBUG
-			DiagnosticsSettings.OpenLogViewer(_themeStateService.IsLightTheme);
+			DiagnosticsSettings.OpenLogViewer(_themeStateFeature.IsLightTheme);
 #endif
 		});
 	}
@@ -82,7 +82,7 @@ public partial class MainPage : ContentPage
 	protected override void OnDisappearing()
 	{
 		base.OnDisappearing();
-		_splashService.OnBlazorReady -= OnBlazorReady;
+		_splashFeature.OnBlazorReady -= OnBlazorReady;
 #if WINDOWS
 		TeardownWindowsContextMenu();
 #endif

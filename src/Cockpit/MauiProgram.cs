@@ -80,7 +80,7 @@ public static class MauiProgram
 
 		// UI and App features
 		builder.Services.AddSingleton<IAppSettingsFeature, AppSettingsFeature>();
-		builder.Services.AddSingleton<ThemeStateService>();
+		builder.Services.AddSingleton<ThemeStateFeature>();
 		builder.Services.AddScoped<ThemeFeature>();
 		builder.Services.AddScoped<MarkdownFeature>();
 		builder.Services.AddSingleton<UIStateFeature>();

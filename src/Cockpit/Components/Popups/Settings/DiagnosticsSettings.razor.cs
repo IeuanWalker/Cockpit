@@ -6,11 +6,11 @@ namespace Cockpit.Components.Popups.Settings;
 
 public partial class DiagnosticsSettings
 {
-	readonly ThemeStateService _themeState;
+	readonly ThemeStateFeature _themeStateFeature;
 
-	public DiagnosticsSettings(ThemeStateService themeState)
+	public DiagnosticsSettings(ThemeStateFeature themeStateFeature)
 	{
-		_themeState = themeState;
+		_themeStateFeature = themeStateFeature;
 	}
 
 	string LogDirectory => LogDirectoryHelper.LogDirectory;
@@ -26,7 +26,7 @@ public partial class DiagnosticsSettings
 
 	void OpenLogViewer()
 	{
-		OpenLogViewer(_themeState.IsLightTheme);
+		OpenLogViewer(_themeStateFeature.IsLightTheme);
 	}
 
 	internal static void OpenLogViewer(bool isLightTheme)
