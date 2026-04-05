@@ -57,4 +57,4 @@ jobs:
           files: |
             Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}.zip
             Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Setup.exe
-          generate_release_notes: true
+          generate_release_notes: false
