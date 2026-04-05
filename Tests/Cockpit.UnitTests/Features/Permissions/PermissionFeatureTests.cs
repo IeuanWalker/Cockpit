@@ -488,6 +488,7 @@ public class PermissionFeatureTests
 			FullRequestJson = "{}"
 		};
 
+		Task<PermissionDecisionEnum> task1 = feature.CheckPermissionAsync(request1);
 		Task<PermissionDecisionEnum> task2 = feature.CheckPermissionAsync(request2);
 
 		await Task.Delay(100, TestContext.Current.CancellationToken); // Let them start
@@ -496,7 +497,9 @@ public class PermissionFeatureTests
 		feature.ResolvePermissionRequest(request1.Id, PermissionDecisionEnum.Global);
 
 		// Assert - Second request should auto-resolve
+		PermissionDecisionEnum result1 = await task1.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 		PermissionDecisionEnum result2 = await task2.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		result1.ShouldBe(PermissionDecisionEnum.Global);
 		result2.ShouldBe(PermissionDecisionEnum.Global);
 
 		globalFeature.Dispose();
@@ -572,6 +575,7 @@ public class PermissionFeatureTests
 			FullRequestJson = "{}"
 		};
 
+		Task<PermissionDecisionEnum> task1 = feature.CheckPermissionAsync(request1);
 		Task<PermissionDecisionEnum> task2 = feature.CheckPermissionAsync(request2);
 
 		await Task.Delay(100, TestContext.Current.CancellationToken);
@@ -580,6 +584,8 @@ public class PermissionFeatureTests
 		feature.ResolvePermissionRequest(request1.Id, PermissionDecisionEnum.Session);
 
 		// Assert - Second request should still be pending (different session)
+		PermissionDecisionEnum result1 = await task1.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		result1.ShouldBe(PermissionDecisionEnum.Session);
 		await Task.Delay(200, TestContext.Current.CancellationToken);
 		task2.IsCompleted.ShouldBeFalse();
 
