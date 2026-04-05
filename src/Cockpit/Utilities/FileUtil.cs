@@ -59,7 +59,7 @@ public static class FileUtil
 			}
 			else if(OperatingSystem.IsMacOS())
 			{
-				Process.Start(new ProcessStartInfo { FileName = "open", Arguments = $"\"{directory}\"", UseShellExecute = true });
+				Process.Start(new ProcessStartInfo { FileName = "open", Arguments = $"\"{directory}\"", UseShellExecute = false });
 			}
 		}
 		catch { /* best-effort */ }
