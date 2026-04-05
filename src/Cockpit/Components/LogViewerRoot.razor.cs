@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 using Cockpit.Utilities.Logging;
 using Microsoft.AspNetCore.Components;
@@ -7,445 +8,473 @@ namespace Cockpit.Components;
 
 public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 {
-    // -----------------------------------------------------------------------
-    // Injections
-    // -----------------------------------------------------------------------
-    [Inject] IJSRuntime JSRuntime { get; set; } = default!;
+	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
 
-    // -----------------------------------------------------------------------
-    // Tab model
-    // -----------------------------------------------------------------------
-    sealed record LogTab(string Id, string Label, string FilePath, bool IsBuiltIn = false);
+	readonly string _tableBodyId = $"lv-body-{Guid.NewGuid():N}";
 
-    // -----------------------------------------------------------------------
-    // Log entry model
-    // -----------------------------------------------------------------------
-    sealed class LogEntry
-    {
-        public int Index;
-        public DateTime? Timestamp;
-        public string Level = string.Empty;
-        public string Category = string.Empty;
-        public string Message = string.Empty;
-        public string Detail = string.Empty;
+	readonly List<LogTab> _tabs =
+	[
+		new("app.log",   "app.log",   Path.Combine(LogDirectoryHelper.LogDirectory, "app.log"),   IsBuiltIn: true),
+		new("crash.log", "crash.log", Path.Combine(LogDirectoryHelper.LogDirectory, "crash.log"), IsBuiltIn: true),
+	];
+	LogTab _activeTab;
 
-        public string LevelNorm => Level.Trim();
+	List<LogEntry> _allEntries = [];
+	List<LogEntry> _filtered = [];
+	LogEntry? _selected;
 
-        public string CategoryShort
-        {
-            get
-            {
-                int dot = Category.LastIndexOf('.');
-                return dot >= 0 ? Category[(dot + 1)..] : Category;
-            }
-        }
+	bool _autoScroll = true;
+	bool _loading = true;
+	bool _pendingScroll;
+	bool _isScrolledUp;
+	bool _scrollSetup;
 
-        public string TimestampDisplay =>
-            Timestamp?.ToString("yyyy-MM-dd HH:mm:ss.fff") ?? string.Empty;
+	string _searchText = string.Empty;
+	readonly HashSet<string> _hiddenLevels = [];
 
-        /// <summary>Everything after the first line of Detail (exception / stack trace).</summary>
-        public string Continuation
-        {
-            get
-            {
-                int nl = Detail.IndexOf('\n');
-                if (nl < 0 || nl >= Detail.Length - 1) return string.Empty;
-                return Detail[(nl + 1)..].Trim();
-            }
-        }
-    }
+	long _knownFileLength = -1;
+	CancellationTokenSource? _cts;
+	Timer? _searchDebounce;
+	DotNetObjectReference<LogViewerRoot>? _dotNetRef;
 
-    // -----------------------------------------------------------------------
-    // State
-    // -----------------------------------------------------------------------
-    readonly string _tableBodyId = $"lv-body-{Guid.NewGuid():N}";
+	public LogViewerRoot()
+	{
+		_activeTab = _tabs[0];
+	}
 
-    List<LogTab> _tabs =
-    [
-        new("app.log",   "app.log",   Path.Combine(LogDirectoryHelper.LogDirectory, "app.log"),   IsBuiltIn: true),
-        new("crash.log", "crash.log", Path.Combine(LogDirectoryHelper.LogDirectory, "crash.log"), IsBuiltIn: true),
-    ];
-    LogTab _activeTab;
+	static readonly string[] levelOrder = ["Trace", "Debug", "Information", "Warning", "Error", "Critical"];
 
-    List<LogEntry> _allEntries = [];
-    List<LogEntry> _filtered = [];
-    LogEntry? _selected;
+	static string LevelShort(string level) => level switch
+	{
+		"Trace" => "TRACE",
+		"Debug" => "DEBUG",
+		"Information" => "INFORMATION",
+		"Warning" => "WARNING",
+		"Error" => "ERROR",
+		"Critical" => "CRITICAL",
+		_ => level.ToUpperInvariant()
+	};
 
-    bool _autoScroll = true;
-    bool _loading = true;
-    bool _pendingScroll;
-    bool _isScrolledUp;
-    bool _scrollSetup;
+	static string LevelClass(string level) => level.ToLowerInvariant() switch
+	{
+		"information" => "information",
+		"warning" => "warning",
+		"error" => "error",
+		"critical" => "critical",
+		"debug" => "debug",
+		"trace" => "trace",
+		_ => "raw"
+	};
 
-    string _searchText = string.Empty;
-    readonly HashSet<string> _hiddenLevels = [];
+	int GetLevelCount(string level) => _allEntries.Count(e => e.LevelNorm == level);
 
-    long _knownFileLength = -1;
-    CancellationTokenSource? _cts;
-    System.Threading.Timer? _searchDebounce;
-    DotNetObjectReference<LogViewerRoot>? _dotNetRef;
+	static List<LogEntry> Parse(string raw)
+	{
+		List<LogEntry> entries = [];
+		int idx = 0;
+		LogEntry? current = null;
+		StringBuilder detailBuf = new();
 
-    public LogViewerRoot()
-    {
-        _activeTab = _tabs[0];
-    }
+		foreach(string rawLine in raw.Split('\n'))
+		{
+			string line = rawLine.TrimEnd('\r');
 
-    // -----------------------------------------------------------------------
-    // Level helpers
-    // -----------------------------------------------------------------------
-    static readonly string[] LevelOrder = ["Trace", "Debug", "Information", "Warning", "Error", "Critical"];
+			// Try structured app.log format first
+			Match m = EntryPattern().Match(line);
+			if(m.Success)
+			{
+				if(current is not null)
+				{
+					current.Detail = detailBuf.ToString().TrimEnd();
+					entries.Add(current);
+				}
+				detailBuf.Clear();
+				detailBuf.AppendLine(line);
+				current = new LogEntry
+				{
+					Index = idx++,
+					Timestamp = DateTime.TryParse(m.Groups[1].Value, out DateTime dt) ? dt : null,
+					Level = m.Groups[2].Value,
+					Category = m.Groups[3].Value.Trim(),
+					Message = m.Groups[4].Value,
+				};
+				continue;
+			}
 
-    static string LevelShort(string level) => level switch
-    {
-        "Trace"       => "TRACE",
-        "Debug"       => "DEBUG",
-        "Information" => "INFORMATION",
-        "Warning"     => "WARNING",
-        "Error"       => "ERROR",
-        "Critical"    => "CRITICAL",
-        _             => level.ToUpperInvariant()
-    };
+			// Try crash.log header format
+			Match cm = CrashHeaderPattern().Match(line);
+			if(cm.Success)
+			{
+				if(current is not null)
+				{
+					current.Detail = detailBuf.ToString().TrimEnd();
+					entries.Add(current);
+				}
+				detailBuf.Clear();
+				current = new LogEntry
+				{
+					Index = idx++,
+					Timestamp = DateTime.TryParse(cm.Groups[1].Value, out DateTime cdt) ? cdt : null,
+					Level = "Critical",
+					Category = cm.Groups[2].Value.Trim(),
+					Message = string.Empty, // filled in by first body line below
+				};
+				continue;
+			}
 
-    static string LevelClass(string level) => level.ToLowerInvariant() switch
-    {
-        "information" => "information",
-        "warning"     => "warning",
-        "error"       => "error",
-        "critical"    => "critical",
-        "debug"       => "debug",
-        "trace"       => "trace",
-        _             => "raw"
-    };
+			if(line.Length == 0)
+			{
+				continue;
+			}
 
-    int GetLevelCount(string level) => _allEntries.Count(e => e.LevelNorm == level);
+			if(current is not null)
+			{
+				// First non-empty body line after a crash header becomes the Message
+				if(current.Message.Length == 0 && detailBuf.Length == 0)
+				{
+					current.Message = line;
+				}
 
-    // -----------------------------------------------------------------------
-    // Parsing
-    // -----------------------------------------------------------------------
-    static readonly Regex EntryPattern = new(
-        @"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[([^\]]+)\] ([^:]+): (.*)",
-        RegexOptions.Compiled);
+				detailBuf.AppendLine(line);
+			}
+			else
+			{
+				entries.Add(new LogEntry
+				{
+					Index = idx++,
+					Level = "Raw",
+					Message = line,
+					Detail = line
+				});
+			}
+		}
 
-    // Matches crash.log headers:  === 2026-04-05 14:16:51 [TaskScheduler] ===
-    static readonly Regex CrashHeaderPattern = new(
-        @"^=== (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[([^\]]+)\] ===$",
-        RegexOptions.Compiled);
+		if(current is not null)
+		{
+			current.Detail = detailBuf.ToString().TrimEnd();
+			entries.Add(current);
+		}
 
-    static List<LogEntry> Parse(string raw)
-    {
-        var entries = new List<LogEntry>();
-        int idx = 0;
-        LogEntry? current = null;
-        var detailBuf = new System.Text.StringBuilder();
+		return entries;
+	}
 
-        foreach (string rawLine in raw.Split('\n'))
-        {
-            string line = rawLine.TrimEnd('\r');
+	protected override void OnInitialized()
+	{
+		_ = LoadAsync();
+		StartPolling();
+	}
 
-            // Try structured app.log format first
-            var m = EntryPattern.Match(line);
-            if (m.Success)
-            {
-                if (current != null) { current.Detail = detailBuf.ToString().TrimEnd(); entries.Add(current); }
-                detailBuf.Clear();
-                detailBuf.AppendLine(line);
-                current = new LogEntry
-                {
-                    Index = idx++,
-                    Timestamp = DateTime.TryParse(m.Groups[1].Value, out var dt) ? dt : null,
-                    Level = m.Groups[2].Value,
-                    Category = m.Groups[3].Value.Trim(),
-                    Message = m.Groups[4].Value,
-                };
-                continue;
-            }
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if(firstRender)
+		{
+			_dotNetRef = DotNetObjectReference.Create(this);
+		}
 
-            // Try crash.log header format
-            var cm = CrashHeaderPattern.Match(line);
-            if (cm.Success)
-            {
-                if (current != null) { current.Detail = detailBuf.ToString().TrimEnd(); entries.Add(current); }
-                detailBuf.Clear();
-                current = new LogEntry
-                {
-                    Index = idx++,
-                    Timestamp = DateTime.TryParse(cm.Groups[1].Value, out var cdt) ? cdt : null,
-                    Level = "Critical",
-                    Category = cm.Groups[2].Value.Trim(),
-                    Message = string.Empty, // filled in by first body line below
-                };
-                continue;
-            }
+		if(!_scrollSetup && !_loading)
+		{
+			_scrollSetup = true;
+			try
+			{
+				await JSRuntime.InvokeVoidAsync("cockpit.setupLogViewerScroll", _tableBodyId, _dotNetRef, nameof(OnScrollPositionChanged));
+			}
+			catch { /* best-effort */ }
+		}
 
-            if (line.Length == 0) continue;
+		if(_pendingScroll && _autoScroll && !_isScrolledUp)
+		{
+			_pendingScroll = false;
+			try
+			{
+				await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", _tableBodyId);
+			}
+			catch { /* best-effort */ }
+		}
+	}
 
-            if (current != null)
-            {
-                // First non-empty body line after a crash header becomes the Message
-                if (current.Message.Length == 0 && detailBuf.Length == 0)
-                    current.Message = line;
-                detailBuf.AppendLine(line);
-            }
-            else
-            {
-                entries.Add(new LogEntry { Index = idx++, Level = "Raw", Message = line, Detail = line });
-            }
-        }
+	[JSInvokable]
+	public void OnScrollPositionChanged(bool isNearBottom)
+	{
+		_isScrolledUp = !isNearBottom;
+		InvokeAsync(StateHasChanged);
+	}
 
-        if (current != null) { current.Detail = detailBuf.ToString().TrimEnd(); entries.Add(current); }
+	async Task LoadAsync()
+	{
+		_loading = true;
+		(string? content, long len) = await Task.Run(() => ReadFile(_activeTab.FilePath));
+		_knownFileLength = len;
+		_allEntries = Parse(content);
+		RebuildFiltered();
+		_loading = false;
+		_pendingScroll = _autoScroll;
+		await InvokeAsync(StateHasChanged);
+	}
 
-        return entries;
-    }
+	static (string content, long length) ReadFile(string path)
+	{
+		try
+		{
+			if(!File.Exists(path))
+			{
+				return (string.Empty, 0);
+			}
 
-    // -----------------------------------------------------------------------
-    // Lifecycle
-    // -----------------------------------------------------------------------
-    protected override void OnInitialized()
-    {
-        _ = LoadAsync();
-        StartPolling();
-    }
+			using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+			using StreamReader sr = new(fs);
+			return (sr.ReadToEnd(), fs.Length);
+		}
+		catch
+		{
+			return (string.Empty, 0);
+		}
+	}
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            _dotNetRef = DotNetObjectReference.Create(this);
-        }
+	void StartPolling()
+	{
+		_cts?.Cancel();
+		_cts?.Dispose();
+		_cts = new CancellationTokenSource();
+		CancellationToken token = _cts.Token;
 
-        if (!_scrollSetup && !_loading)
-        {
-            _scrollSetup = true;
-            try
-            {
-                await JSRuntime.InvokeVoidAsync(
-                    "cockpit.setupLogViewerScroll",
-                    _tableBodyId, _dotNetRef, nameof(OnScrollPositionChanged));
-            }
-            catch { /* best-effort */ }
-        }
+		_ = Task.Run(async () =>
+		{
+			using PeriodicTimer timer = new(TimeSpan.FromSeconds(1));
+			while(!token.IsCancellationRequested && await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
+			{
+				string path = _activeTab.FilePath;
+				long len = 0;
+				try
+				{
+					len = File.Exists(path) ? new FileInfo(path).Length : 0;
+				}
+				catch
+				{
+					continue;
+				}
 
-        if (_pendingScroll && _autoScroll && !_isScrolledUp)
-        {
-            _pendingScroll = false;
-            try
-            {
-                await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", _tableBodyId);
-            }
-            catch { /* best-effort */ }
-        }
-    }
+				if(len == _knownFileLength)
+				{
+					continue;
+				}
 
-    [JSInvokable]
-    public void OnScrollPositionChanged(bool isNearBottom)
-    {
-        _isScrolledUp = !isNearBottom;
-        InvokeAsync(StateHasChanged);
-    }
+				(string? content, long newLen) = ReadFile(path);
+				_knownFileLength = newLen;
+				_allEntries = Parse(content);
 
-    // -----------------------------------------------------------------------
-    // File I/O
-    // -----------------------------------------------------------------------
-    async Task LoadAsync()
-    {
-        _loading = true;
-        var (content, len) = await Task.Run(() => ReadFile(_activeTab.FilePath));
-        _knownFileLength = len;
-        _allEntries = Parse(content);
-        RebuildFiltered();
-        _loading = false;
-        _pendingScroll = _autoScroll;
-        await InvokeAsync(StateHasChanged);
-    }
+				await InvokeAsync(() =>
+				{
+					RebuildFiltered();
+					if(_autoScroll && !_isScrolledUp)
+					{
+						_pendingScroll = true;
+					}
 
-    static (string content, long length) ReadFile(string path)
-    {
-        try
-        {
-            if (!File.Exists(path)) return (string.Empty, 0);
-            using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            using StreamReader sr = new(fs);
-            return (sr.ReadToEnd(), fs.Length);
-        }
-        catch { return (string.Empty, 0); }
-    }
+					StateHasChanged();
+				}).ConfigureAwait(false);
+			}
+		}, token);
+	}
 
-    // -----------------------------------------------------------------------
-    // Polling
-    // -----------------------------------------------------------------------
-    void StartPolling()
-    {
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = new CancellationTokenSource();
-        CancellationToken token = _cts.Token;
+	void RebuildFiltered()
+	{
+		string search = _searchText.Trim();
+		_filtered = [.. _allEntries.Where(e =>
+		{
+			if(_hiddenLevels.Contains(e.LevelNorm))
+			{
+				return false;
+			}
 
-        _ = Task.Run(async () =>
-        {
-            using PeriodicTimer timer = new(TimeSpan.FromSeconds(1));
-            while (!token.IsCancellationRequested &&
-                   await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
-            {
-                string path = _activeTab.FilePath;
-                long len = 0;
-                try { len = File.Exists(path) ? new FileInfo(path).Length : 0; }
-                catch { continue; }
-                if (len == _knownFileLength) continue;
+			if(search.Length == 0)
+			{
+				return true;
+			}
 
-                var (content, newLen) = ReadFile(path);
-                _knownFileLength = newLen;
-                _allEntries = Parse(content);
+			return e.TimestampDisplay.Contains(search, StringComparison.OrdinalIgnoreCase)
+				|| e.LevelNorm.Contains(search, StringComparison.OrdinalIgnoreCase)
+				|| e.Category.Contains(search, StringComparison.OrdinalIgnoreCase)
+				|| e.Message.Contains(search, StringComparison.OrdinalIgnoreCase)
+				|| e.Detail.Contains(search, StringComparison.OrdinalIgnoreCase);
+		})];
+	}
 
-                await InvokeAsync(() =>
-                {
-                    RebuildFiltered();
-                    if (_autoScroll && !_isScrolledUp)
-                        _pendingScroll = true;
-                    StateHasChanged();
-                }).ConfigureAwait(false);
-            }
-        }, token);
-    }
+	void SwitchTab(LogTab tab)
+	{
+		if(tab.Id == _activeTab.Id)
+		{
+			return;
+		}
 
-    // -----------------------------------------------------------------------
-    // Filtering
-    // -----------------------------------------------------------------------
-    void RebuildFiltered()
-    {
-        string search = _searchText.Trim();
-        _filtered = _allEntries.Where(e =>
-        {
-            if (_hiddenLevels.Contains(e.LevelNorm)) return false;
-            if (search.Length == 0) return true;
-            return e.TimestampDisplay.Contains(search, StringComparison.OrdinalIgnoreCase)
-                || e.LevelNorm.Contains(search, StringComparison.OrdinalIgnoreCase)
-                || e.Category.Contains(search, StringComparison.OrdinalIgnoreCase)
-                || e.Message.Contains(search, StringComparison.OrdinalIgnoreCase)
-                || e.Detail.Contains(search, StringComparison.OrdinalIgnoreCase);
-        }).ToList();
-    }
+		_activeTab = tab;
+		_knownFileLength = -1;
+		_selected = null;
+		_isScrolledUp = false;
+		_scrollSetup = false;
+		_loading = true;
+		StateHasChanged();
+		_ = Task.Run(async () =>
+		{
+			await CleanupScrollAsync();
+			await InvokeAsync(async () =>
+			{
+				await LoadAsync();
+			});
+		});
+	}
 
-    // -----------------------------------------------------------------------
-    // User interactions
-    // -----------------------------------------------------------------------
-    void SwitchTab(LogTab tab)
-    {
-        if (tab.Id == _activeTab.Id) return;
-        _activeTab = tab;
-        _knownFileLength = -1;
-        _selected = null;
-        _isScrolledUp = false;
-        _scrollSetup = false;
-        _loading = true;
-        StateHasChanged();
-        _ = Task.Run(async () =>
-        {
-            await CleanupScrollAsync();
-            await InvokeAsync(async () =>
-            {
-                await LoadAsync();
-            });
-        });
-    }
+	void CloseTab(LogTab tab)
+	{
+		int idx = _tabs.IndexOf(tab);
+		_tabs.Remove(tab);
+		if(_activeTab.Id == tab.Id)
+		{
+			SwitchTab(_tabs[Math.Max(0, idx - 1)]);
+		}
 
-    void CloseTab(LogTab tab)
-    {
-        int idx = _tabs.IndexOf(tab);
-        _tabs.Remove(tab);
-        if (_activeTab.Id == tab.Id)
-            SwitchTab(_tabs[Math.Max(0, idx - 1)]);
-        StateHasChanged();
-    }
+		StateHasChanged();
+	}
 
-    async Task OpenFileAsync()
-    {
-        try
-        {
-            var result = await MainThread.InvokeOnMainThreadAsync(() =>
-                FilePicker.Default.PickAsync(new PickOptions
-                {
-                    PickerTitle = "Open Log File",
-                    FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
-                    {
-                        { DevicePlatform.WinUI,        new[] { ".log", ".txt", "*" } },
-                        { DevicePlatform.MacCatalyst,  new[] { "public.plain-text" } },
-                        { DevicePlatform.macOS,        new[] { "public.plain-text" } },
-                    })
-                }));
+	async Task OpenFileAsync()
+	{
+		try
+		{
+			FileResult? result = await MainThread.InvokeOnMainThreadAsync(() =>
+				FilePicker.Default.PickAsync(new PickOptions
+				{
+					PickerTitle = "Open Log File",
+					FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+					{
+						{ DevicePlatform.WinUI,        new[] { ".log", ".txt", "*" } },
+						{ DevicePlatform.MacCatalyst,  new[] { "public.plain-text" } },
+						{ DevicePlatform.macOS,        new[] { "public.plain-text" } },
+					})
+				}));
 
-            if (result is null) return;
+			if(result is null)
+			{
+				return;
+			}
 
-            string id = Guid.NewGuid().ToString("N");
-            var tab = new LogTab(id, result.FileName, result.FullPath, IsBuiltIn: false);
-            _tabs.Add(tab);
-            SwitchTab(tab);
-        }
-        catch { /* best-effort */ }
-    }
+			string id = Guid.NewGuid().ToString("N");
+			LogTab tab = new(id, result.FileName, result.FullPath, IsBuiltIn: false);
+			_tabs.Add(tab);
+			SwitchTab(tab);
+		}
+		catch { /* best-effort */ }
+	}
 
-    void RefreshNow()
-    {
-        _knownFileLength = -1;
-        _ = LoadAsync();
-    }
+	void RefreshNow()
+	{
+		_knownFileLength = -1;
+		_ = LoadAsync();
+	}
 
-    void ToggleLevel(string level)
-    {
-        if (!_hiddenLevels.Remove(level))
-            _hiddenLevels.Add(level);
-        RebuildFiltered();
-    }
+	void ToggleLevel(string level)
+	{
+		if(!_hiddenLevels.Remove(level))
+		{
+			_hiddenLevels.Add(level);
+		}
 
-    void SelectEntry(LogEntry entry) =>
-        _selected = _selected?.Index == entry.Index ? null : entry;
+		RebuildFiltered();
+	}
 
-    void OnSearchInput(ChangeEventArgs e)
-    {
-        _searchText = e.Value?.ToString() ?? string.Empty;
-        _searchDebounce?.Dispose();
-        _searchDebounce = new System.Threading.Timer(_ =>
-            InvokeAsync(() => { RebuildFiltered(); StateHasChanged(); }),
-            null, 250, System.Threading.Timeout.Infinite);
-    }
+	void SelectEntry(LogEntry entry) => _selected = _selected?.Index == entry.Index ? null : entry;
 
-    void ClearSearch()
-    {
-        _searchText = string.Empty;
-        _searchDebounce?.Dispose();
-        RebuildFiltered();
-    }
+	void OnSearchInput(ChangeEventArgs e)
+	{
+		_searchText = e.Value?.ToString() ?? string.Empty;
+		_searchDebounce?.Dispose();
+		_searchDebounce = new Timer(_ =>
+			InvokeAsync(() =>
+			{
+				RebuildFiltered();
+				StateHasChanged();
+			}),
+			null, 250, Timeout.Infinite);
+	}
 
-    async Task ScrollToBottomAndResume()
-    {
-        _isScrolledUp = false;
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", _tableBodyId);
-        }
-        catch { /* best-effort */ }
-    }
+	void ClearSearch()
+	{
+		_searchText = string.Empty;
+		_searchDebounce?.Dispose();
+		RebuildFiltered();
+	}
 
-    // -----------------------------------------------------------------------
-    // Cleanup
-    // -----------------------------------------------------------------------
-    async Task CleanupScrollAsync()
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("cockpit.cleanupLogViewerScroll", _tableBodyId);
-        }
-        catch { /* best-effort */ }
-    }
+	async Task ScrollToBottomAndResume()
+	{
+		_isScrolledUp = false;
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", _tableBodyId);
+		}
+		catch { /* best-effort */ }
+	}
 
-    public async ValueTask DisposeAsync()
-    {
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _cts = null;
-        _searchDebounce?.Dispose();
-        _searchDebounce = null;
-        await CleanupScrollAsync();
-        _dotNetRef?.Dispose();
-        _dotNetRef = null;
-    }
+	async Task CleanupScrollAsync()
+	{
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("cockpit.cleanupLogViewerScroll", _tableBodyId);
+		}
+		catch { /* best-effort */ }
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		_cts?.Cancel();
+		_cts?.Dispose();
+		_cts = null;
+		_searchDebounce?.Dispose();
+		_searchDebounce = null;
+		await CleanupScrollAsync();
+		_dotNetRef?.Dispose();
+		_dotNetRef = null;
+	}
+
+	[GeneratedRegex(@"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[([^\]]+)\] ([^:]+): (.*)", RegexOptions.Compiled)]
+	private static partial Regex EntryPattern();
+	[GeneratedRegex(@"^=== (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[([^\]]+)\] ===$", RegexOptions.Compiled)]
+	private static partial Regex CrashHeaderPattern(); // Matches crash.log headers:  === 2026-04-05 14:16:51 [TaskScheduler] ===
+}
+
+sealed record LogTab(string Id, string Label, string FilePath, bool IsBuiltIn = false);
+
+sealed class LogEntry
+{
+	public int Index;
+	public DateTime? Timestamp;
+	public string Level = string.Empty;
+	public string Category = string.Empty;
+	public string Message = string.Empty;
+	public string Detail = string.Empty;
+
+	public string LevelNorm => Level.Trim();
+
+	public string CategoryShort
+	{
+		get
+		{
+			int dot = Category.LastIndexOf('.');
+			return dot >= 0 ? Category[(dot + 1)..] : Category;
+		}
+	}
+
+	public string TimestampDisplay => Timestamp?.ToString("yyyy-MM-dd HH:mm:ss.fff") ?? string.Empty;
+
+	/// <summary>Everything after the first line of Detail (exception / stack trace).</summary>
+	public string Continuation
+	{
+		get
+		{
+			int nl = Detail.IndexOf('\n');
+			if(nl < 0 || nl >= Detail.Length - 1)
+			{
+				return string.Empty;
+			}
+
+			return Detail[(nl + 1)..].Trim();
+		}
+	}
 }
