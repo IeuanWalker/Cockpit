@@ -13,15 +13,19 @@ namespace Cockpit.UnitTests.Features.Permissions;
 /// Each test invokes <see cref="PermissionFeature.HandlePermissionRequest"/> and captures the
 /// produced <see cref="PermissionRequestModel"/> via the <see cref="PermissionFeature.OnPermissionRequested"/> event.
 /// </summary>
-public class PermissionFeatureHandleRequestsTests
+public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
 	const string sessionId = "session1";
 	const string workingDirectory = @"C:\projects\my-app";
 
+	// Disposables and temp files created by helpers; xUnit will call Dispose on the test class instance.
+	readonly List<IDisposable> _disposables = new();
+	readonly List<string> _tempFiles = new();
+
 	// ── Helpers ──────────────────────────────────────────────────────────────
 
-	static (PermissionFeature Feature, GlobalPermissionFeature GlobalPermissions) CreateFeature(
+	(PermissionFeature Feature, GlobalPermissionFeature GlobalPermissions) CreateFeature(
 		string cwd = workingDirectory,
 		Action<GlobalDenyFeature>? configureDeny = null)
 	{
@@ -31,6 +35,12 @@ public class PermissionFeatureHandleRequestsTests
 		GlobalPermissionFeature globalPermissions = new(NullLogger<GlobalPermissionFeature>.Instance, globalFile);
 		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyFile);
 		configureDeny?.Invoke(denyFeature);
+
+		// Track created disposables and temp files so xUnit can clean them up via Dispose.
+		_disposables.Add(globalPermissions);
+		_disposables.Add(denyFeature);
+		_tempFiles.Add(globalFile);
+		_tempFiles.Add(denyFile);
 
 		TestSessionStateProvider stateProvider = new();
 		stateProvider.AddSession(new SessionModel
@@ -578,6 +588,28 @@ public class PermissionFeatureHandleRequestsTests
 		});
 
 		model.RequestTitle.ShouldBe("Allow URL access?");
+	}
+
+	public void Dispose()
+	{
+		Dispose(true);
+		GC.SuppressFinalize(this);
+	}
+
+	private void Dispose(bool disposing)
+	{
+		if (!disposing) return;
+
+		// Dispose in reverse creation order to avoid depending on disposed objects.
+		for (int i = _disposables.Count - 1; i >= 0; i--)
+		{
+			try { _disposables[i].Dispose(); } catch { }
+		}
+
+		foreach (string f in _tempFiles)
+		{
+			try { if (File.Exists(f)) File.Delete(f); } catch { }
+		}
 	}
 
 	// ── Helper types ──────────────────────────────────────────────────────────
