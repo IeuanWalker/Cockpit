@@ -76,9 +76,12 @@ window.cockpit = {
         const el = document.getElementById(elementId);
         if (!el) return;
         if (el._lvScrollHandler) el.removeEventListener('scroll', el._lvScrollHandler);
+        let lastNearBottom = null;
         el._lvScrollHandler = function () {
             const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-            dotNetRef.invokeMethodAsync(methodName, nearBottom);
+            if (nearBottom === lastNearBottom) return;
+            lastNearBottom = nearBottom;
+            dotNetRef.invokeMethodAsync(methodName, nearBottom).catch(() => { /* component disposed */ });
         };
         el.addEventListener('scroll', el._lvScrollHandler, { passive: true });
     },

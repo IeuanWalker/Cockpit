@@ -9,8 +9,8 @@ namespace Cockpit.Components;
 
 public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 {
-	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
-	[Inject] ThemeStateService ThemeState { get; set; } = default!;
+	readonly IJSRuntime _jsRuntime;
+	readonly ThemeStateService _themeState;
 
 	readonly string _tableBodyId = $"lv-body-{Guid.NewGuid():N}";
 
@@ -39,8 +39,10 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 	Timer? _searchDebounce;
 	DotNetObjectReference<LogViewerRoot>? _dotNetRef;
 
-	public LogViewerRoot()
+	public LogViewerRoot(IJSRuntime jsRuntime, ThemeStateService themeState)
 	{
+		_jsRuntime = jsRuntime;
+		_themeState = themeState;
 		_activeTab = _tabs[0];
 	}
 
@@ -162,7 +164,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 
 	protected override void OnInitialized()
 	{
-		ThemeState.OnThemeChanged += OnThemeChangedHandler;
+		_themeState.OnThemeChanged += OnThemeChangedHandler;
 		_ = LoadAsync();
 		StartPolling();
 	}
@@ -180,7 +182,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 			_scrollSetup = true;
 			try
 			{
-				await JSRuntime.InvokeVoidAsync("cockpit.setupLogViewerScroll", _tableBodyId, _dotNetRef, nameof(OnScrollPositionChanged));
+				await _jsRuntime.InvokeVoidAsync("cockpit.setupLogViewerScroll", _tableBodyId, _dotNetRef, nameof(OnScrollPositionChanged));
 			}
 			catch { /* best-effort */ }
 		}
@@ -190,7 +192,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 			_pendingScroll = false;
 			try
 			{
-				await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", _tableBodyId);
+				await _jsRuntime.InvokeVoidAsync("cockpit.scrollToBottom", _tableBodyId);
 			}
 			catch { /* best-effort */ }
 		}
@@ -263,11 +265,12 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 				}
 
 				(string? content, long newLen) = ReadFile(path);
-				_knownFileLength = newLen;
-				_allEntries = Parse(content);
+				List<LogEntry> allEntries = Parse(content);
 
 				await InvokeAsync(() =>
 				{
+					_knownFileLength = newLen;
+					_allEntries = allEntries;
 					RebuildFiltered();
 					if(_autoScroll && !_isScrolledUp)
 					{
@@ -303,7 +306,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 		})];
 	}
 
-	void SwitchTab(LogTab tab)
+	async Task SwitchTab(LogTab tab)
 	{
 		if(tab.Id == _activeTab.Id)
 		{
@@ -317,14 +320,8 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 		_scrollSetup = false;
 		_loading = true;
 		StateHasChanged();
-		_ = Task.Run(async () =>
-		{
-			await CleanupScrollAsync();
-			await InvokeAsync(async () =>
-			{
-				await LoadAsync();
-			});
-		});
+		await CleanupScrollAsync();
+		await LoadAsync();
 	}
 
 	void CloseTab(LogTab tab)
@@ -333,7 +330,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 		_tabs.Remove(tab);
 		if(_activeTab.Id == tab.Id)
 		{
-			SwitchTab(_tabs[Math.Max(0, idx - 1)]);
+			_ = SwitchTab(_tabs[Math.Max(0, idx - 1)]);
 		}
 
 		StateHasChanged();
@@ -363,7 +360,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 			string id = Guid.NewGuid().ToString("N");
 			LogTab tab = new(id, result.FileName, result.FullPath, IsBuiltIn: false);
 			_tabs.Add(tab);
-			SwitchTab(tab);
+			await SwitchTab(tab);
 		}
 		catch { /* best-effort */ }
 	}
@@ -411,7 +408,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 		_isScrolledUp = false;
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("cockpit.scrollToBottom", _tableBodyId);
+			await _jsRuntime.InvokeVoidAsync("cockpit.scrollToBottom", _tableBodyId);
 		}
 		catch { /* best-effort */ }
 	}
@@ -420,7 +417,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("cockpit.cleanupLogViewerScroll", _tableBodyId);
+			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupLogViewerScroll", _tableBodyId);
 		}
 		catch { /* best-effort */ }
 	}
@@ -431,23 +428,23 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			if(ThemeState.IsLightTheme)
+			if(_themeState.IsLightTheme)
 			{
-				await JSRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
+				await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
 			}
 			else
 			{
-				await JSRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
+				await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
 			}
 
-			await JSRuntime.InvokeVoidAsync("cockpit.setAccentColor", ThemeState.AccentColor, ThemeState.AccentHoverColor);
+			await _jsRuntime.InvokeVoidAsync("cockpit.setAccentColor", _themeState.AccentColor, _themeState.AccentHoverColor);
 		}
 		catch { /* best-effort */ }
 	}
 
 	public async ValueTask DisposeAsync()
 	{
-		ThemeState.OnThemeChanged -= OnThemeChangedHandler;
+		_themeState.OnThemeChanged -= OnThemeChangedHandler;
 		_cts?.Cancel();
 		_cts?.Dispose();
 		_cts = null;

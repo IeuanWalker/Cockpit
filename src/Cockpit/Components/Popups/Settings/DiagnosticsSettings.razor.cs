@@ -1,14 +1,17 @@
 using Cockpit.Features.Theme;
 using Cockpit.Utilities;
 using Cockpit.Utilities.Logging;
-using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Popups.Settings;
 
 public partial class DiagnosticsSettings
 {
-	[Inject]
-	ThemeStateService ThemeState { get; set; } = default!;
+	readonly ThemeStateService _themeState;
+
+	public DiagnosticsSettings(ThemeStateService themeState)
+	{
+		_themeState = themeState;
+	}
 
 	string LogDirectory => LogDirectoryHelper.LogDirectory;
 
@@ -34,7 +37,7 @@ public partial class DiagnosticsSettings
 				return;
 			}
 
-			Application.Current?.OpenWindow(BuildLogViewerWindow(ThemeState.IsLightTheme));
+			Application.Current?.OpenWindow(BuildLogViewerWindow(_themeState.IsLightTheme));
 		});
 	}
 
