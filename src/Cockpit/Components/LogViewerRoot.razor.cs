@@ -368,8 +368,8 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 	}
 
 	static readonly string[] winUIFileTypes = [".log", ".txt", "*"];
-	static readonly string[] macCatalystFileTypes = [".log", ".txt", "*"];
-	static readonly string[] macOSFileTypes = [".log", ".txt", "*"];
+	static readonly string[] macCatalystFileTypes = ["public.plain-text"];
+	static readonly string[] macOSFileTypes = ["public.plain-text"];
 
 	async Task OpenFileAsync()
 	{
