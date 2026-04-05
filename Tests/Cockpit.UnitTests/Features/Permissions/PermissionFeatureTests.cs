@@ -202,6 +202,72 @@ public class PermissionFeatureTests
 	}
 
 	[Fact]
+	public async Task CheckPermissionAsync_PartiallyApprovedRequest_FiltersApprovedCommandsAndUpdatesTitle()
+	{
+		// Arrange
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		SessionModel session = new()
+		{
+			Id = "sessionId",
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
+		};
+		stateProvider.AddSession(session);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		PermissionRequestModel approvedRequest = new()
+		{
+			SessionId = session.Id,
+			FullCommand = "npm install",
+			Commands = ["npm"],
+			RequestTitle = "Allow npm",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			FullRequestJson = "{}"
+		};
+
+		_ = feature.CheckPermissionAsync(approvedRequest);
+		feature.ResolvePermissionRequest(approvedRequest.Id, PermissionDecisionEnum.Global);
+
+		PermissionRequestModel mixedRequest = new()
+		{
+			SessionId = session.Id,
+			FullCommand = "npm install && git status",
+			Commands = ["npm", "git"],
+			RequestTitle = "Allow npm, git",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			FullRequestJson = "{}"
+		};
+
+		// Act
+		_ = await feature.CheckPermissionAsync(mixedRequest);
+
+		// Assert
+		mixedRequest.Commands.ShouldBe(["git"]);
+		mixedRequest.RequestTitle.ShouldBe("Allow git");
+
+		globalFeature.Dispose();
+	}
+
+	[Fact]
 	public void ResolvePermissionRequest_GlobalScope_SavesGlobalPermission()
 	{
 		// Arrange
