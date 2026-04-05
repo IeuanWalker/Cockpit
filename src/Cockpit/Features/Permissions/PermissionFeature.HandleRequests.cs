@@ -299,9 +299,22 @@ public sealed partial class PermissionFeature
 			return FilePathCategory.External;
 		}
 
-		if(filePath.StartsWith(workingDirectory, StringComparison.OrdinalIgnoreCase))
+		try
 		{
-			return FilePathCategory.WorkingDirectory;
+			string normalizedFilePath = Path.GetFullPath(filePath);
+			string normalizedWorkingDirectory = Path.GetFullPath(workingDirectory);
+			string relativePath = Path.GetRelativePath(normalizedWorkingDirectory, normalizedFilePath);
+			if(!Path.IsPathRooted(relativePath) &&
+				!string.Equals(relativePath, "..", StringComparison.Ordinal) &&
+				!relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+				!relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
+			{
+				return FilePathCategory.WorkingDirectory;
+			}
+		}
+		catch(Exception)
+		{
+			return FilePathCategory.External;
 		}
 
 		return FilePathCategory.External;
