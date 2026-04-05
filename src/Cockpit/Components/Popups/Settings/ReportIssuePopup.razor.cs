@@ -174,7 +174,7 @@ public partial class ReportIssuePopup : ComponentBase
 
 		return includedSections.Count == 0
 			? []
-			: lines.Where((_, i) => includedSections.Contains(i)).ToArray();
+			: [.. lines.Where((_, i) => includedSections.Contains(i))];
 	}
 
 	static void AppendFittedLog(StringBuilder sb, string[] allLines, string name, int urlBudget)
