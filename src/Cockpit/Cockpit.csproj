@@ -71,7 +71,7 @@
   <ItemGroup>
     <PackageReference Include="Blazor.Sonner" Version="0.0.5" />
     <PackageReference Include="CommunityToolkit.Maui" Version="14.0.1" />
-    <PackageReference Include="GitHub.Copilot.SDK" Version="0.1.32" />
+    <PackageReference Include="GitHub.Copilot.SDK" Version="0.2.1" />
     <PackageReference Include="Humanizer" Version="3.0.10" />
     <PackageReference Include="Markdig" Version="1.1.2" />
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.4.1" />
