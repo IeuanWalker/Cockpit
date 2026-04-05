@@ -67,6 +67,30 @@ window.cockpit = {
             element.scrollTop = element.scrollHeight;
         }
     },
+    scrollElementToBottom: function (element) {
+        if (element) {
+            element.scrollTop = element.scrollHeight;
+        }
+    },
+    setupLogViewerScroll: function (elementId, dotNetRef, methodName) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        if (el._lvScrollHandler) el.removeEventListener('scroll', el._lvScrollHandler);
+        let lastNearBottom = null;
+        el._lvScrollHandler = function () {
+            const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+            if (nearBottom === lastNearBottom) return;
+            lastNearBottom = nearBottom;
+            dotNetRef.invokeMethodAsync(methodName, nearBottom).catch(() => { /* component disposed */ });
+        };
+        el.addEventListener('scroll', el._lvScrollHandler, { passive: true });
+    },
+    cleanupLogViewerScroll: function (elementId) {
+        const el = document.getElementById(elementId);
+        if (!el || !el._lvScrollHandler) return;
+        el.removeEventListener('scroll', el._lvScrollHandler);
+        delete el._lvScrollHandler;
+    },
     setupSmartScroll: function (elementId, dotnetHelper, methodName) {
         const element = document.getElementById(elementId);
         if (!element) return;

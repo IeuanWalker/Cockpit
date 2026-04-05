@@ -43,4 +43,25 @@ public static class FileUtil
 		}
 		catch { /* best-effort */ }
 	}
+
+	public static void RevealFolder(string? directory)
+	{
+		if(string.IsNullOrWhiteSpace(directory))
+		{
+			return;
+		}
+
+		try
+		{
+			if(OperatingSystem.IsWindows())
+			{
+				Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"\"{directory}\"", UseShellExecute = true });
+			}
+			else if(OperatingSystem.IsMacOS())
+			{
+				Process.Start(new ProcessStartInfo { FileName = "open", Arguments = $"\"{directory}\"", UseShellExecute = false });
+			}
+		}
+		catch { /* best-effort */ }
+	}
 }

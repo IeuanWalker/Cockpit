@@ -17,7 +17,7 @@ public partial class LicensesPopup : ComponentBase
 			await using Stream stream = await FileSystem.OpenAppPackageFileAsync("libraries.json");
 			_libraries = await JsonSerializer.DeserializeAsync(stream, LicensesJsonContext.Default.ListLibraryInfo) ?? [];
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_libraries = [];
 			Console.Error.WriteLine($"Failed to load or parse 'libraries.json' in {nameof(LicensesPopup)}: {ex}");
@@ -31,19 +31,19 @@ public partial class LicensesPopup : ComponentBase
 
 	static void OpenUrl(string? url)
 	{
-		if (string.IsNullOrWhiteSpace(url))
+		if(string.IsNullOrWhiteSpace(url))
 		{
 			return;
 		}
 
-		if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
+		if(!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
 		{
 			return;
 		}
 
 		string scheme = uri.Scheme;
-		if (!string.Equals(scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-		    !string.Equals(scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+		if(!string.Equals(scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+			!string.Equals(scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
 		{
 			return;
 		}

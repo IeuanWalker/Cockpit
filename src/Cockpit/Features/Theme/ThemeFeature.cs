@@ -10,6 +10,7 @@ public class ThemeFeature
 	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<ThemeFeature> _logger;
 	readonly IAppSettingsFeature _appSettings;
+	readonly ThemeStateFeature _themeStateFeature;
 	bool _isInitialized = false;
 
 	public event Action? OnThemeChanged;
@@ -18,14 +19,29 @@ public class ThemeFeature
 	public string AccentColor { get; private set; }
 	public string AccentHoverColor { get; private set; }
 
+	public bool IsLightTheme
+	{
+		get
+		{
+			if(CurrentTheme != ThemeEnum.System)
+			{
+				return CurrentTheme == ThemeEnum.Light;
+			}
+
+			return (Application.Current?.RequestedTheme ?? AppTheme.Dark) == AppTheme.Light;
+		}
+	}
+
 	public ThemeFeature(
 		IJSRuntime jsRuntime,
 		ILogger<ThemeFeature> logger,
-		IAppSettingsFeature appSettings)
+		IAppSettingsFeature appSettings,
+		ThemeStateFeature themeStateFeature)
 	{
 		_jsRuntime = jsRuntime;
 		_logger = logger;
 		_appSettings = appSettings;
+		_themeStateFeature = themeStateFeature;
 
 		CurrentTheme = _appSettings.Theme;
 		AccentColor = _appSettings.AccentColor;
@@ -58,11 +74,14 @@ public class ThemeFeature
 
 		OnThemeChanged?.Invoke();
 	}
+
 	async Task ApplyTheme()
 	{
+		bool isLight = IsLightTheme;
+
 		if(Application.Current?.Windows?.FirstOrDefault()?.Page is MainPage mainPage)
 		{
-			if(GetEffectiveTheme().Equals(ThemeEnum.Light))
+			if(isLight)
 			{
 				await mainPage.InvokeJavaScriptAsync("window.cockpit?.addBodyClass?.('light-theme');");
 			}
@@ -70,33 +89,22 @@ public class ThemeFeature
 			{
 				await mainPage.InvokeJavaScriptAsync("window.cockpit?.removeBodyClass?.('light-theme');");
 			}
-
-			return;
-		}
-
-		if(GetEffectiveTheme().Equals(ThemeEnum.Light))
-		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
-
-			Application.Current!.Resources = new LightTheme();
 		}
 		else
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
-
-			Application.Current!.Resources = new DarkTheme();
-		}
-
-		ThemeEnum GetEffectiveTheme()
-		{
-			if(!CurrentTheme.Equals(ThemeEnum.System))
+			if(isLight)
 			{
-				return CurrentTheme;
+				await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
+				Application.Current!.Resources = new LightTheme();
 			}
-
-			AppTheme requestedTheme = Application.Current?.RequestedTheme ?? AppTheme.Dark;
-			return requestedTheme == AppTheme.Light ? ThemeEnum.Light : ThemeEnum.Dark;
+			else
+			{
+				await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
+				Application.Current!.Resources = new DarkTheme();
+			}
 		}
+
+		_themeStateFeature.Update(isLight, AccentColor, AccentHoverColor);
 	}
 
 	public async Task SetAccentColor(string color, string hoverColor)
@@ -108,8 +116,10 @@ public class ThemeFeature
 		_appSettings.AccentHoverColor = hoverColor;
 
 		await ApplyAccentColor();
+		_themeStateFeature.Update(IsLightTheme, AccentColor, AccentHoverColor);
 		OnThemeChanged?.Invoke();
 	}
+
 	async Task ApplyAccentColor()
 	{
 		await _jsRuntime.InvokeVoidAsync("cockpit.setAccentColor", AccentColor, AccentHoverColor);
@@ -156,10 +166,29 @@ public class ThemeFeature
 			}
 		}
 
-		if(app?.Windows.FirstOrDefault()?.TitleBar is TitleBar titleBar)
+		// Update title bar on all open windows
+		if(app is not null)
 		{
-			titleBar.BackgroundColor = isLightTheme ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
-			titleBar.ForegroundColor = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
+			Color bg = isLightTheme ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
+			Color fg = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
+
+			foreach(Window window in app.Windows)
+			{
+				if(window.TitleBar is TitleBar titleBar)
+				{
+					titleBar.BackgroundColor = bg;
+					titleBar.ForegroundColor = fg;
+
+					// Also update any Label inside LeadingContent (e.g. "Log Viewer" label)
+					if(titleBar.LeadingContent is HorizontalStackLayout hsl)
+					{
+						foreach(Label label in hsl.Children.OfType<Label>())
+						{
+							label.TextColor = fg;
+						}
+					}
+				}
+			}
 		}
 	}
 }

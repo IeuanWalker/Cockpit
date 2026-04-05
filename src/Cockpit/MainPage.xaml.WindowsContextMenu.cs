@@ -8,7 +8,7 @@ namespace Cockpit;
 public partial class MainPage
 {
 	Microsoft.UI.Xaml.Window? _winUIWindow;
-	Microsoft.Web.WebView2.Core.CoreWebView2? _coreWebView2;
+	CoreWebView2? _coreWebView2;
 
 	void ConfigureWindowsContextMenu()
 	{

@@ -80,6 +80,7 @@ public static class MauiProgram
 
 		// UI and App features
 		builder.Services.AddSingleton<IAppSettingsFeature, AppSettingsFeature>();
+		builder.Services.AddSingleton<ThemeStateFeature>();
 		builder.Services.AddScoped<ThemeFeature>();
 		builder.Services.AddScoped<MarkdownFeature>();
 		builder.Services.AddSingleton<UIStateFeature>();
@@ -113,7 +114,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IUserInputHandler>(sp => sp.GetRequiredService<UserInputFeature>());
 
 		builder.Services.AddSingleton<ModelFeature>();
-		builder.Services.AddSingleton<UpdateFeature>(sp =>
+		builder.Services.AddSingleton(sp =>
 		{
 			// HttpClient is created exclusively for UpdateFeature, which takes ownership and disposes it.
 			HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
@@ -149,7 +150,13 @@ public static class MauiProgram
 					&& e.Message.Contains("No process is associated")
 					&& (e.StackTrace?.Contains("GitHub.Copilot.SDK") ?? false));
 
-			if(!isSdkProcessGone)
+			// Suppress the benign Blazor WebView exception when SendMessage is called
+			// after the WebView2 control has been torn down (e.g. window close).
+			bool isWebViewSendMessage = args.Exception
+				.Flatten().InnerExceptions
+				.All(e => e.StackTrace?.Contains("WebView2WebViewManager.SendMessage") ?? false);
+
+			if(!isSdkProcessGone && !isWebViewSendMessage)
 			{
 				LogCrash("TaskScheduler", args.Exception);
 			}
