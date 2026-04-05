@@ -77,11 +77,11 @@ public class ThemeFeature
 
 	async Task ApplyTheme()
 	{
-		bool light = IsLightTheme;
+		bool isLight = IsLightTheme;
 
 		if(Application.Current?.Windows?.FirstOrDefault()?.Page is MainPage mainPage)
 		{
-			if(light)
+			if(isLight)
 			{
 				await mainPage.InvokeJavaScriptAsync("window.cockpit?.addBodyClass?.('light-theme');");
 			}
@@ -92,7 +92,7 @@ public class ThemeFeature
 		}
 		else
 		{
-			if(light)
+			if(isLight)
 			{
 				await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
 				Application.Current!.Resources = new LightTheme();
@@ -104,7 +104,7 @@ public class ThemeFeature
 			}
 		}
 
-		_themeState.Update(light, AccentColor, AccentHoverColor);
+		_themeState.Update(isLight, AccentColor, AccentHoverColor);
 	}
 
 	public async Task SetAccentColor(string color, string hoverColor)
