@@ -26,4 +26,46 @@ public partial class DiagnosticsSettings
 	}
 
 	void OpenReportIssue() => _reportIssuePopup.Open();
+
+	void OpenLogViewer()
+	{
+		MainThread.BeginInvokeOnMainThread(() =>
+		{
+			Application.Current?.OpenWindow(new Window(new LogViewerPage())
+			{
+				Title = "Log Viewer",
+				Width = 960,
+				Height = 680,
+				TitleBar = new TitleBar
+				{
+					BackgroundColor = Color.FromArgb("#181818"),
+					ForegroundColor = Color.FromArgb("#CCCCCC"),
+					HeightRequest = 48,
+					LeadingContent = new HorizontalStackLayout
+					{
+						VerticalOptions = LayoutOptions.Center,
+						Spacing = 8,
+						Margin = new Thickness(10, 0),
+						Children =
+						{
+							new Image
+							{
+								HeightRequest = 26,
+								WidthRequest = 19,
+								Source = "logo.png",
+								VerticalOptions = LayoutOptions.Center,
+							},
+							new Label
+							{
+								Text = "Log Viewer",
+								TextColor = Color.FromArgb("#CCCCCC"),
+								FontSize = 13,
+								VerticalOptions = LayoutOptions.Center,
+							}
+						}
+					}
+				}
+			});
+		});
+	}
 }

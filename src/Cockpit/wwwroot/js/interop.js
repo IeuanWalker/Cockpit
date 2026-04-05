@@ -67,6 +67,11 @@ window.cockpit = {
             element.scrollTop = element.scrollHeight;
         }
     },
+    scrollElementToBottom: function (element) {
+        if (element) {
+            element.scrollTop = element.scrollHeight;
+        }
+    },
     setupSmartScroll: function (elementId, dotnetHelper, methodName) {
         const element = document.getElementById(elementId);
         if (!element) return;

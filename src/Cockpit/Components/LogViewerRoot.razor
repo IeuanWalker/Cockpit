@@ -1,0 +1,34 @@
+<div class="log-root">
+    <div class="log-toolbar">
+        <div class="log-tabs">
+            <button class="log-tab @(_activeFile == "app.log" ? "log-tab--active" : "")"
+                    @onclick='() => SwitchFile("app.log")'>app.log</button>
+            <button class="log-tab @(_activeFile == "crash.log" ? "log-tab--active" : "")"
+                    @onclick='() => SwitchFile("crash.log")'>crash.log</button>
+        </div>
+
+        <div class="log-toolbar-right">
+            <label class="log-autoscroll-label">
+                <input type="checkbox" @bind="_autoScroll" style="accent-color: var(--accent-color);" />
+                <span>Auto-scroll</span>
+            </label>
+            <button @onclick="RefreshNow" class="log-icon-btn" title="Refresh now">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="log-content scrollbar-thin" @ref="_logContainer">
+        @if (string.IsNullOrEmpty(_logContent))
+        {
+            <span class="log-empty">No log entries found.</span>
+        }
+        else
+        {
+            <pre class="log-pre">@_logContent</pre>
+        }
+    </div>
+</div>
