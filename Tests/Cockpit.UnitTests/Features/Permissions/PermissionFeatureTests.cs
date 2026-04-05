@@ -242,8 +242,11 @@ public class PermissionFeatureTests
 			FullRequestJson = "{}"
 		};
 
-		_ = feature.CheckPermissionAsync(approvedRequest);
+		Task<PermissionDecisionEnum> approvedTask = feature.CheckPermissionAsync(approvedRequest);
+		await WaitForPendingRequest(feature, approvedRequest.Id);
 		feature.ResolvePermissionRequest(approvedRequest.Id, PermissionDecisionEnum.Global);
+		PermissionDecisionEnum approvedResult = await approvedTask.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		approvedResult.ShouldBe(PermissionDecisionEnum.Global);
 
 		PermissionRequestModel mixedRequest = new()
 		{
@@ -258,11 +261,15 @@ public class PermissionFeatureTests
 		};
 
 		// Act
-		_ = await feature.CheckPermissionAsync(mixedRequest);
+		Task<PermissionDecisionEnum> mixedTask = feature.CheckPermissionAsync(mixedRequest);
+		await WaitForPendingRequest(feature, mixedRequest.Id);
 
 		// Assert
 		mixedRequest.Commands.ShouldBe(["git"]);
-		mixedRequest.RequestTitle.ShouldBe("Allow git");
+		mixedRequest.RequestTitle.ShouldBe("Allow running `git`");
+		feature.ResolvePermissionRequest(mixedRequest.Id, PermissionDecisionEnum.Denied);
+		PermissionDecisionEnum mixedResult = await mixedTask.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		mixedResult.ShouldBe(PermissionDecisionEnum.Denied);
 
 		globalFeature.Dispose();
 	}
@@ -807,6 +814,20 @@ public class PermissionFeatureTests
 		}
 
 		return [];
+	}
+
+	static async Task WaitForPendingRequest(PermissionFeature feature, string requestId)
+	{
+		for(int i = 0; i < 200; i++)
+		{
+			if(GetPendingRequests(feature).Any(r => r.Id == requestId))
+			{
+				return;
+			}
+			await Task.Delay(10, TestContext.Current.CancellationToken);
+		}
+
+		throw new TimeoutException($"Timed out waiting for permission request {requestId}");
 	}
 }
 
