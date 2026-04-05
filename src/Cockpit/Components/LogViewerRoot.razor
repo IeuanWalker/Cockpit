@@ -2,12 +2,12 @@
 
     <div class="lv-top-bar">
         <div class="lv-tabs">
-            @foreach (LogTab tab in _tabs)
+            @foreach(LogTab tab in _tabs)
             {
                 <button class="lv-tab @(tab.Id == _activeTab.Id ? "lv-tab--active" : "")"
                         @onclick="() => SwitchTab(tab)">
                     <span>@tab.Label</span>
-                    @if (!tab.IsBuiltIn)
+                    @if(!tab.IsBuiltIn)
                     {
                         <span class="lv-tab-close" @onclick:stopPropagation="true" @onclick="() => CloseTab(tab)" title="Close tab">
                             <svg width="9" height="9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -41,10 +41,10 @@
 
     <div class="lv-filter-bar">
         <div class="lv-level-chips">
-            @foreach (string level in LevelOrder)
+            @foreach(string level in levelOrder)
             {
                 int count = GetLevelCount(level);
-                if (count == 0) continue;
+                if(count == 0) continue;
                 bool hidden = _hiddenLevels.Contains(level);
                 <button class="lv-chip lv-chip-@LevelClass(level) @(hidden ? "lv-chip--off" : "")"
                         @onclick="() => ToggleLevel(level)">
@@ -62,7 +62,7 @@
             </svg>
             <input class="lv-search-input" type="text" placeholder="Search..."
                    value="@_searchText" @oninput="OnSearchInput" />
-            @if (!string.IsNullOrEmpty(_searchText))
+            @if(!string.IsNullOrEmpty(_searchText))
             {
                 <button class="lv-search-clear" @onclick="ClearSearch" title="Clear">
                     <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,11 +82,11 @@
 
     <div class="lv-table-body-wrap">
         <div class="lv-table-body scrollbar-thin" id="@_tableBodyId">
-            @if (_loading)
+            @if(_loading)
             {
                 <div class="lv-empty">Loading&#8230;</div>
             }
-            else if (_filtered.Count == 0)
+            else if(_filtered.Count == 0)
             {
                 <div class="lv-empty">No entries match the current filters.</div>
             }
@@ -106,7 +106,7 @@
             }
         </div>
 
-        @if (_isScrolledUp)
+        @if(_isScrolledUp)
         {
             <button class="scroll-to-bottom-btn" @onclick="ScrollToBottomAndResume" title="Scroll to latest">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,14 +118,14 @@
 
     <div class="lv-status-bar">
         <span>@_filtered.Count of @_allEntries.Count entries</span>
-        @if (_selected != null)
+        @if(_selected != null)
         {
             <span class="lv-status-sep">&#183;</span>
             <span>Row @(_selected.Index + 1) selected</span>
         }
     </div>
 
-    @if (_selected != null)
+    @if(_selected != null)
     {
         <div class="lv-detail">
             <div class="lv-detail-header">
@@ -154,7 +154,7 @@
                     <span class="lv-detail-label">Message</span>
                     <span class="lv-detail-value lv-detail-mono lv-detail-wrap">@_selected.Message</span>
                 </div>
-                @if (!string.IsNullOrEmpty(_selected.Continuation))
+                @if(!string.IsNullOrEmpty(_selected.Continuation))
                 {
                     <div class="lv-detail-row lv-detail-row--top lv-detail-row--continuation">
                         <span class="lv-detail-label">Stack&nbsp;Trace</span>
