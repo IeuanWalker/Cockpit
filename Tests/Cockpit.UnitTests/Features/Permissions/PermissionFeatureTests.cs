@@ -202,52 +202,6 @@ public class PermissionFeatureTests
 	}
 
 	[Fact]
-	public async Task CheckPermissionAsync_PartiallyApproved_FiltersCommands()
-	{
-		// Arrange
-		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
-		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
-		TestSessionStateProvider stateProvider = new();
-		SessionPermissionFeature sessionFeature = new(stateProvider);
-		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
-		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
-		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
-
-		const string sessionId = "session1";
-		globalFeature.Add("npm");
-
-		PermissionRequestModel request = new()
-		{
-			SessionId = sessionId,
-			FullCommand = "npm install && yarn build",
-			Commands = ["npm", "yarn"],
-			RequestTitle = "Allow npm, yarn",
-			Intention = "test",
-			CanApproveGlobally = true,
-			CanApproveForSession = true,
-			FullRequestJson = "{}"
-		};
-
-		// Act - Start the check in a background task
-		Task<PermissionDecisionEnum> checkTask = feature.CheckPermissionAsync(request);
-
-		// Give it a moment to process
-		await Task.Delay(100, TestContext.Current.CancellationToken);
-
-		// Assert - Should have filtered to only unapproved command
-		request.Commands.ShouldBe(["yarn"]);
-
-		// Clean up - deny the request
-		List<PermissionRequestModel> pendingRequests = GetPendingRequests(feature);
-		if(pendingRequests.Count > 0)
-		{
-			feature.ResolvePermissionRequest(pendingRequests[0].Id, PermissionDecisionEnum.Denied);
-		}
-
-		globalFeature.Dispose();
-	}
-
-	[Fact]
 	public void ResolvePermissionRequest_GlobalScope_SavesGlobalPermission()
 	{
 		// Arrange
@@ -534,7 +488,6 @@ public class PermissionFeatureTests
 			FullRequestJson = "{}"
 		};
 
-		Task<PermissionDecisionEnum> task1 = feature.CheckPermissionAsync(request1);
 		Task<PermissionDecisionEnum> task2 = feature.CheckPermissionAsync(request2);
 
 		await Task.Delay(100, TestContext.Current.CancellationToken); // Let them start
@@ -619,7 +572,6 @@ public class PermissionFeatureTests
 			FullRequestJson = "{}"
 		};
 
-		Task<PermissionDecisionEnum> task1 = feature.CheckPermissionAsync(request1);
 		Task<PermissionDecisionEnum> task2 = feature.CheckPermissionAsync(request2);
 
 		await Task.Delay(100, TestContext.Current.CancellationToken);

@@ -7,7 +7,7 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class AbortHandler
 {
-	internal static void Handle(SessionModel session, AbortEvent evt, ILogger logger)
+	internal static void Handle(SessionModel session, AbortEvent evt, ILogger _)
 	{
 		SessionIdleHandler.Handle(session, evt.Timestamp, null, GroupStatusEnum.Error);
 

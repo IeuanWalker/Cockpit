@@ -367,6 +367,10 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 		StateHasChanged();
 	}
 
+	static readonly string[] winUIFileTypes = [".log", ".txt", "*"];
+	static readonly string[] macCatalystFileTypes = [".log", ".txt", "*"];
+	static readonly string[] macOSFileTypes = [".log", ".txt", "*"];
+
 	async Task OpenFileAsync()
 	{
 		try
@@ -377,9 +381,9 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 					PickerTitle = "Open Log File",
 					FileTypes = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
 					{
-						{ DevicePlatform.WinUI,        new[] { ".log", ".txt", "*" } },
-						{ DevicePlatform.MacCatalyst,  new[] { "public.plain-text" } },
-						{ DevicePlatform.macOS,        new[] { "public.plain-text" } },
+						{ DevicePlatform.WinUI, winUIFileTypes },
+						{ DevicePlatform.MacCatalyst, macCatalystFileTypes },
+						{ DevicePlatform.macOS, macOSFileTypes},
 					})
 				}));
 

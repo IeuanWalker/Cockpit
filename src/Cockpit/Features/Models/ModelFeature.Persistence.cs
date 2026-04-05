@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Cockpit.Extensions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -29,7 +30,7 @@ public partial class ModelFeature
 				["ModelId"] = session.Model.Id,
 				["ReasoningEffort"] = session.ReasoningEffort ?? string.Empty,
 			};
-			string json = JsonSerializer.Serialize(modelSettings, new JsonSerializerOptions { WriteIndented = true });
+			string json = modelSettings.SerializeJson()!;
 			await File.WriteAllTextAsync(modelFilePath, json);
 		}
 		catch(Exception ex)

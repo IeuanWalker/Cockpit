@@ -12,7 +12,7 @@ namespace Cockpit.Features.Sessions;
 public sealed partial class SessionFeature
 {
 	Task? _loadExistingSessionsTask;
-	readonly object _loadGate = new();
+	readonly Lock _loadGate = new();
 
 	public Task LoadExistingSessions()
 	{
@@ -545,8 +545,7 @@ public sealed partial class SessionFeature
 			}
 			_sessionListFeature.NotifyStateChanged();
 
-			Func<ChatMessageModel, string, Task> streamCallback =
-				(msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged);
+			Task streamCallback(ChatMessageModel msg, string text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged);
 
 			DateTimeOffset? prevTimestamp = null;
 			foreach(SessionEvent evt in events)

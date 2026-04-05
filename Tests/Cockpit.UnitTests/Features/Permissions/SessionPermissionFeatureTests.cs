@@ -392,7 +392,9 @@ public class SessionPermissionFeatureTests
 		string permissionsDirectory = Path.Combine(workspacePath, "Cockpit");
 		string permissionsFilePath = Path.Combine(permissionsDirectory, "session-commands.json");
 		Directory.CreateDirectory(permissionsDirectory);
+#pragma warning disable CA1861 // Avoid constant arrays as arguments
 		File.WriteAllText(permissionsFilePath, JsonSerializer.Serialize(new[] { "npm", "git" }));
+#pragma warning restore CA1861 // Avoid constant arrays as arguments
 
 		SessionModel session = new()
 		{

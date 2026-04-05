@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Cockpit.Extensions;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Sessions.Models;
 
@@ -45,7 +46,7 @@ public class AgentPersistence
 				["AgentName"] = agent?.Config.Name ?? string.Empty,
 				["AgentSource"] = agent?.Source.ToString() ?? string.Empty
 			};
-			string json = JsonSerializer.Serialize(agentSettings, new JsonSerializerOptions { WriteIndented = true });
+			string json = agentSettings.SerializeJson()!;
 			await File.WriteAllTextAsync(agentFilePath, json);
 		}
 		catch { /* best-effort */ }

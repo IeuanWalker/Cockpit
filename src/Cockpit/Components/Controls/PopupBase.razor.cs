@@ -22,7 +22,7 @@ public partial class PopupBase
 	}
 
 	ElementReference _dialog;
-	string _titleId = $"popup-title-{Guid.NewGuid():N}";
+	readonly string _titleId = $"popup-title-{Guid.NewGuid():N}";
 	bool _show;
 	bool _openRequested;
 

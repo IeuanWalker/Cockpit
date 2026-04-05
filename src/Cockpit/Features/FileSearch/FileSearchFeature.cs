@@ -19,12 +19,12 @@ public class FileSearchFeature : IFileSearchFeature
 		_logger = logger;
 	}
 
-	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = 50, CancellationToken cancellationToken = default)
+	public Task<List<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = 50, CancellationToken cancellationToken = default)
 	{
 		return Task.Run(() => Search(workingDirectory, filter, maxResults, cancellationToken), cancellationToken);
 	}
 
-	IReadOnlyList<FileSearchResult> Search(string workingDirectory, string filter, int maxResults, CancellationToken cancellationToken)
+	List<FileSearchResult> Search(string workingDirectory, string filter, int maxResults, CancellationToken cancellationToken)
 	{
 		if(string.IsNullOrWhiteSpace(workingDirectory) || !Directory.Exists(workingDirectory))
 		{

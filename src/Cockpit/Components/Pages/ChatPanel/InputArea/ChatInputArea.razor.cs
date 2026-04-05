@@ -166,8 +166,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		try
 		{
 			string currentText = UserInput;
-			ChipInfo[] chips = await _jsRuntime.InvokeAsync<ChipInfo[]>("cockpit.setPlainText", "chatInput", currentText)
-				?? Array.Empty<ChipInfo>();
+			ChipInfo[] chips = await _jsRuntime.InvokeAsync<ChipInfo[]>("cockpit.setPlainText", "chatInput", currentText) ?? [];
 
 			SessionModel? session = _sessionFeature.CurrentSession;
 			if(session is not null)

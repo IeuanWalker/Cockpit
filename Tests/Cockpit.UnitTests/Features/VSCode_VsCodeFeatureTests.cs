@@ -2,7 +2,7 @@ using Cockpit.Features.VSCode;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
-namespace Cockpit.UnitTests.Features.VSCode;
+namespace Cockpit.UnitTests.Features;
 
 public class VsCodeFeatureTests
 {
