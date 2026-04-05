@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.FileSearch;
@@ -19,12 +20,13 @@ public class FileSearchFeature : IFileSearchFeature
 		_logger = logger;
 	}
 
-	public Task<List<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = 50, CancellationToken cancellationToken = default)
+	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = 50, CancellationToken cancellationToken = default)
 	{
 		return Task.Run(() => Search(workingDirectory, filter, maxResults, cancellationToken), cancellationToken);
 	}
 
-	List<FileSearchResult> Search(string workingDirectory, string filter, int maxResults, CancellationToken cancellationToken)
+	[SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
+	IReadOnlyList<FileSearchResult> Search(string workingDirectory, string filter, int maxResults, CancellationToken cancellationToken)
 	{
 		if(string.IsNullOrWhiteSpace(workingDirectory) || !Directory.Exists(workingDirectory))
 		{
