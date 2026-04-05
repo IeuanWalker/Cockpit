@@ -66,10 +66,9 @@ public class ToolExecutionModel
 	{
 		lock(_childEventsLock)
 		{
-			return _childEvents
+			return [.. _childEvents
 				.Where(e => e.Type == ThinkingEventTypeEnum.Tool && e.Tool is not null)
-				.Select(e => e.Tool!)
-				.ToList();
+				.Select(e => e.Tool!)];
 		}
 	}
 }

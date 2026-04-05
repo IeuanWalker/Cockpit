@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Cockpit.Components.Controls;
+using Cockpit.Extensions;
 using Cockpit.Features.UserInputRequests;
 using Microsoft.AspNetCore.Components;
 
@@ -17,11 +17,7 @@ public partial class UserInputRequestDetailsPopup
 	{
 		try
 		{
-			using JsonDocument doc = JsonDocument.Parse(input);
-			return JsonSerializer.Serialize(doc, new JsonSerializerOptions
-			{
-				WriteIndented = true
-			});
+			return input.SerializeJson() ?? input;
 		}
 		catch
 		{

@@ -4,7 +4,7 @@ using Markdig;
 
 namespace Cockpit.Features.Markdown;
 
-public class MarkdownFeature
+public partial class MarkdownFeature
 {
 	readonly MarkdownPipeline _pipeline;
 
@@ -52,7 +52,6 @@ public class MarkdownFeature
 		return sb.ToString();
 	}
 
-	static readonly Regex preOpenTag = new(@"<pre(?:\s[^>]*)?>", RegexOptions.Compiled);
 	const string copyButton = "<button type=\"button\" class=\"code-copy-button\">Copy</button>";
 
 	static string WrapCodeBlocks(string html)
@@ -62,7 +61,7 @@ public class MarkdownFeature
 			return html;
 		}
 
-		html = preOpenTag.Replace(html, m => $"<div class=\"code-block\">{copyButton}{m.Value}");
+		html = preOpenTagRegex().Replace(html, m => $"<div class=\"code-block\">{copyButton}{m.Value}");
 		html = html.Replace("</pre>", "</pre></div>");
 		return html;
 	}
@@ -87,4 +86,7 @@ public class MarkdownFeature
 
 		return WrapCodeBlocks(Markdig.Markdown.ToHtml(markdown, _pipeline));
 	}
+
+	[GeneratedRegex(@"<pre(?:\s[^>]*)?>", RegexOptions.Compiled)]
+	private static partial Regex preOpenTagRegex();
 }

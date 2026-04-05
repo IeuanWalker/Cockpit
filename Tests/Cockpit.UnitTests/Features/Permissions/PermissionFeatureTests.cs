@@ -202,47 +202,74 @@ public class PermissionFeatureTests
 	}
 
 	[Fact]
-	public async Task CheckPermissionAsync_PartiallyApproved_FiltersCommands()
+	public async Task CheckPermissionAsync_PartiallyApprovedRequest_FiltersApprovedCommandsAndUpdatesTitle()
 	{
 		// Arrange
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
 		SessionPermissionFeature sessionFeature = new(stateProvider);
+		SessionModel session = new()
+		{
+			Id = "sessionId",
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
+		};
+		stateProvider.AddSession(session);
 		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
 		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
 		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
-		const string sessionId = "session1";
-		globalFeature.Add("npm");
-
-		PermissionRequestModel request = new()
+		PermissionRequestModel approvedRequest = new()
 		{
-			SessionId = sessionId,
-			FullCommand = "npm install && yarn build",
-			Commands = ["npm", "yarn"],
-			RequestTitle = "Allow npm, yarn",
+			SessionId = session.Id,
+			FullCommand = "npm install",
+			Commands = ["npm"],
+			RequestTitle = "Allow npm",
 			Intention = "test",
 			CanApproveGlobally = true,
 			CanApproveForSession = true,
 			FullRequestJson = "{}"
 		};
 
-		// Act - Start the check in a background task
-		Task<PermissionDecisionEnum> checkTask = feature.CheckPermissionAsync(request);
+		Task<PermissionDecisionEnum> approvedTask = feature.CheckPermissionAsync(approvedRequest);
+		await WaitForPendingRequest(feature, approvedRequest.Id);
+		feature.ResolvePermissionRequest(approvedRequest.Id, PermissionDecisionEnum.Global);
+		PermissionDecisionEnum approvedResult = await approvedTask.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		approvedResult.ShouldBe(PermissionDecisionEnum.Global);
 
-		// Give it a moment to process
-		await Task.Delay(100, TestContext.Current.CancellationToken);
-
-		// Assert - Should have filtered to only unapproved command
-		request.Commands.ShouldBe(["yarn"]);
-
-		// Clean up - deny the request
-		List<PermissionRequestModel> pendingRequests = GetPendingRequests(feature);
-		if(pendingRequests.Count > 0)
+		PermissionRequestModel mixedRequest = new()
 		{
-			feature.ResolvePermissionRequest(pendingRequests[0].Id, PermissionDecisionEnum.Denied);
-		}
+			SessionId = session.Id,
+			FullCommand = "npm install && git status",
+			Commands = ["npm", "git"],
+			RequestTitle = "Allow npm, git",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			FullRequestJson = "{}"
+		};
+
+		// Act
+		Task<PermissionDecisionEnum> mixedTask = feature.CheckPermissionAsync(mixedRequest);
+		await WaitForPendingRequest(feature, mixedRequest.Id);
+
+		// Assert
+		mixedRequest.Commands.ShouldBe(["git"]);
+		mixedRequest.RequestTitle.ShouldBe("Allow running `git`");
+		feature.ResolvePermissionRequest(mixedRequest.Id, PermissionDecisionEnum.Denied);
+		PermissionDecisionEnum mixedResult = await mixedTask.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		mixedResult.ShouldBe(PermissionDecisionEnum.Denied);
 
 		globalFeature.Dispose();
 	}
@@ -543,7 +570,9 @@ public class PermissionFeatureTests
 		feature.ResolvePermissionRequest(request1.Id, PermissionDecisionEnum.Global);
 
 		// Assert - Second request should auto-resolve
+		PermissionDecisionEnum result1 = await task1.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 		PermissionDecisionEnum result2 = await task2.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		result1.ShouldBe(PermissionDecisionEnum.Global);
 		result2.ShouldBe(PermissionDecisionEnum.Global);
 
 		globalFeature.Dispose();
@@ -628,6 +657,8 @@ public class PermissionFeatureTests
 		feature.ResolvePermissionRequest(request1.Id, PermissionDecisionEnum.Session);
 
 		// Assert - Second request should still be pending (different session)
+		PermissionDecisionEnum result1 = await task1.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		result1.ShouldBe(PermissionDecisionEnum.Session);
 		await Task.Delay(200, TestContext.Current.CancellationToken);
 		task2.IsCompleted.ShouldBeFalse();
 
@@ -783,6 +814,20 @@ public class PermissionFeatureTests
 		}
 
 		return [];
+	}
+
+	static async Task WaitForPendingRequest(PermissionFeature feature, string requestId)
+	{
+		for(int i = 0; i < 200; i++)
+		{
+			if(GetPendingRequests(feature).Any(r => r.Id == requestId))
+			{
+				return;
+			}
+			await Task.Delay(10, TestContext.Current.CancellationToken);
+		}
+
+		throw new TimeoutException($"Timed out waiting for permission request {requestId}");
 	}
 }
 

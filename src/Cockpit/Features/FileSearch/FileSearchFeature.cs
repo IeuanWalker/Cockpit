@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.FileSearch;
@@ -24,6 +25,7 @@ public class FileSearchFeature : IFileSearchFeature
 		return Task.Run(() => Search(workingDirectory, filter, maxResults, cancellationToken), cancellationToken);
 	}
 
+	[SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
 	IReadOnlyList<FileSearchResult> Search(string workingDirectory, string filter, int maxResults, CancellationToken cancellationToken)
 	{
 		if(string.IsNullOrWhiteSpace(workingDirectory) || !Directory.Exists(workingDirectory))

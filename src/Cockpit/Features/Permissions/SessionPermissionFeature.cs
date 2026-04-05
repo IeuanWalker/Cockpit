@@ -1,4 +1,4 @@
-using System.Text.Json;
+using Cockpit.Extensions;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using Microsoft.Extensions.Logging;
@@ -48,7 +48,7 @@ public sealed class SessionPermissionFeature
 		try
 		{
 			string json = File.ReadAllText(commandsFilePath);
-			List<string>? commands = JsonSerializer.Deserialize<List<string>>(json);
+			List<string>? commands = json.DeserializeJson<List<string>>();
 
 			lock(session.Context.SessionPermissionCommandsLock)
 			{
@@ -98,12 +98,7 @@ public sealed class SessionPermissionFeature
 				commandsSnapshot = [.. session.Context.SessionPermissionCommands];
 			}
 
-			string json = JsonSerializer.Serialize(commandsSnapshot, new JsonSerializerOptions
-			{
-				WriteIndented = true
-			});
-
-			File.WriteAllText(commandsFilePath, json);
+			File.WriteAllText(commandsFilePath, commandsSnapshot.SerializeJson()!);
 		}
 		catch(Exception ex)
 		{
@@ -200,7 +195,7 @@ public sealed class SessionPermissionFeature
 			return;
 		}
 
-		bool modified = false;
+		bool modified;
 		lock(session.Context.SessionPermissionCommandsLock)
 		{
 			modified = session.Context.SessionPermissionCommands.Remove(command);

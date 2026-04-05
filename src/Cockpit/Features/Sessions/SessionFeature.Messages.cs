@@ -59,10 +59,9 @@ public sealed partial class SessionFeature
 			// Deduplicate attachments by file path before sending
 			if(attachments?.Count > 0)
 			{
-				attachments = attachments
+				attachments = [.. attachments
 					.GroupBy(a => a.FilePath, StringComparer.OrdinalIgnoreCase)
-					.Select(g => g.First())
-					.ToList();
+					.Select(g => g.First())];
 			}
 
 			ChatMessageModel? optimisticMessage = null;
@@ -90,13 +89,12 @@ public sealed partial class SessionFeature
 			List<UserMessageDataAttachmentsItem>? sdkAttachments = null;
 			if(attachments?.Count > 0)
 			{
-				sdkAttachments = attachments
+				sdkAttachments = [.. attachments
 					.Select(a => (UserMessageDataAttachmentsItem)new UserMessageDataAttachmentsItemFile
 					{
 						Path = a.FilePath,
 						DisplayName = a.FileName
-					})
-					.ToList();
+					})];
 			}
 
 			string sentMessageId = await sdkSession.SendAsync(new MessageOptions

@@ -1,4 +1,4 @@
-using System.Text.Json;
+using Cockpit.Extensions;
 using Cockpit.Features.Sdk;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -12,7 +12,7 @@ public sealed partial class ConnectionFeature : IDisposable
 {
 	static string SerializeExceptionToJson(Exception ex)
 	{
-		return JsonSerializer.Serialize(new
+		return (new
 		{
 			type = ex.GetType().FullName,
 			message = ex.Message,
@@ -23,7 +23,7 @@ public sealed partial class ConnectionFeature : IDisposable
 				message = ex.InnerException.Message,
 				stackTrace = ex.InnerException.StackTrace
 			} : null
-		}, new JsonSerializerOptions { WriteIndented = true });
+		}).SerializeJson() ?? string.Empty;
 	}
 	readonly CopilotClientFeature _copilotClientFeature;
 	readonly ILogger<ConnectionFeature> _logger;
@@ -133,14 +133,12 @@ public sealed partial class ConnectionFeature : IDisposable
 	{
 		if(LastResponse is null)
 		{
-			return JsonSerializer.Serialize(
-				new { status = "unreachable", timestamp = DateTime.UtcNow },
-				new JsonSerializerOptions { WriteIndented = true });
+			return new { status = "unreachable", timestamp = DateTime.UtcNow }.SerializeJson() ?? string.Empty;
 		}
 
 		try
 		{
-			return JsonSerializer.Serialize(LastResponse, new JsonSerializerOptions { WriteIndented = true });
+			return LastResponse.SerializeJson() ?? string.Empty;
 		}
 		catch(Exception ex)
 		{

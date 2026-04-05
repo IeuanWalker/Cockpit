@@ -71,13 +71,13 @@
   <ItemGroup>
     <PackageReference Include="Blazor.Sonner" Version="0.0.5" />
     <PackageReference Include="CommunityToolkit.Maui" Version="14.0.1" />
-    <PackageReference Include="GitHub.Copilot.SDK" Version="0.1.30" />
-    <PackageReference Include="Humanizer" Version="3.0.1" />
-    <PackageReference Include="Markdig" Version="1.1.0" />
-    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.3.0" />
-    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="10.0.41" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.3" />
+    <PackageReference Include="GitHub.Copilot.SDK" Version="0.1.32" />
+    <PackageReference Include="Humanizer" Version="3.0.10" />
+    <PackageReference Include="Markdig" Version="1.1.2" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.4.1" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.51" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="10.0.51" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.5" />
     <PackageReference Include="Plugin.Maui.ContentButton" Version="0.3.0" />
     <PackageReference Include="Porta.Pty" Version="1.0.7" />
 
@@ -91,8 +91,7 @@
 
   <!-- Run only once per OS: on Windows use the Windows TFM, on macOS use maccatalyst.
        This prevents parallel TFM builds from racing to compile the same script. -->
-  <Target Name="GenerateLibrariesJson" BeforeTargets="_MauiXamlComputeInflator" Inputs="$(MSBuildProjectFullPath);$(MSBuildProjectDirectory)\..\..\scripts\generate-libraries.cs" Outputs="$(MSBuildProjectDirectory)\Resources\Raw\libraries.json"
-          Condition="($([MSBuild]::IsOSPlatform('windows')) AND '$(TargetFramework)' == 'net10.0-windows10.0.19041.0') OR ($([MSBuild]::IsOSPlatform('osx')) AND '$(TargetFramework)' == 'net10.0-maccatalyst')">
+  <Target Name="GenerateLibrariesJson" BeforeTargets="_MauiXamlComputeInflator" Inputs="$(MSBuildProjectFullPath);$(MSBuildProjectDirectory)\..\..\scripts\generate-libraries.cs" Outputs="$(MSBuildProjectDirectory)\Resources\Raw\libraries.json" Condition="($([MSBuild]::IsOSPlatform('windows')) AND '$(TargetFramework)' == 'net10.0-windows10.0.19041.0') OR ($([MSBuild]::IsOSPlatform('osx')) AND '$(TargetFramework)' == 'net10.0-maccatalyst')">
     <Exec Command="dotnet run generate-libraries.cs &quot;$(MSBuildProjectFullPath)&quot; &quot;$(MSBuildProjectDirectory)\Resources\Raw\libraries.json&quot;" WorkingDirectory="$(MSBuildProjectDirectory)\..\..\scripts" />
     <!-- Dynamically add to MauiAsset in case the glob missed it (file didn't exist at project eval time) -->
     <ItemGroup>

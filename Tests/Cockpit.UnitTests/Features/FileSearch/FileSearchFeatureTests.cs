@@ -194,8 +194,7 @@ public sealed class FileSearchFeatureTests : IDisposable
 		// either a normal result or an OperationCanceledException.
 		try
 		{
-			IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(
-				_root, string.Empty, cancellationToken: cts.Token);
+			IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, string.Empty, cancellationToken: cts.Token);
 
 			// Completed before cancellation — acceptable
 			results.ShouldNotBeNull();
