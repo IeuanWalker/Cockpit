@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Cockpit.Extensions;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Sessions.Models;
@@ -65,7 +64,7 @@ public class AgentPersistence
 		try
 		{
 			string json = await File.ReadAllTextAsync(agentFilePath);
-			Dictionary<string, string>? agentSettings = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+			Dictionary<string, string>? agentSettings = json.DeserializeJson<Dictionary<string, string>>();
 			if(agentSettings is null || !agentSettings.TryGetValue("AgentName", out string? agentName) || string.IsNullOrWhiteSpace(agentName))
 			{
 				return false;

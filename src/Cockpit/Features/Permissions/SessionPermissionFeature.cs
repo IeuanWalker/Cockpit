@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Cockpit.Extensions;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
@@ -49,7 +48,7 @@ public sealed class SessionPermissionFeature
 		try
 		{
 			string json = File.ReadAllText(commandsFilePath);
-			List<string>? commands = JsonSerializer.Deserialize<List<string>>(json);
+			List<string>? commands = json.DeserializeJson<List<string>>();
 
 			lock(session.Context.SessionPermissionCommandsLock)
 			{

@@ -1,4 +1,4 @@
-using System.Text.Json;
+using Cockpit.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Permissions;
@@ -21,7 +21,6 @@ public sealed partial class GlobalDenyFeature : IDisposable
 
 	readonly List<string> _commands = [];
 	readonly ReaderWriterLockSlim _lock = new();
-	static readonly JsonSerializerOptions jsonOptions = new() { WriteIndented = true };
 	public event Action? OnDenyListChanged;
 
 	/// <summary>Returns true if the command is on the deny list.</summary>
@@ -124,7 +123,7 @@ public sealed partial class GlobalDenyFeature : IDisposable
 			}
 
 			string json = File.ReadAllText(_denyFilePath);
-			List<string>? file = JsonSerializer.Deserialize<List<string>>(json);
+			List<string>? file = json.DeserializeJson<List<string>>();
 
 			if(file is not null)
 			{
@@ -152,7 +151,7 @@ public sealed partial class GlobalDenyFeature : IDisposable
 	{
 		try
 		{
-			string json = JsonSerializer.Serialize(snapshot, jsonOptions);
+			string json = snapshot.SerializeJson()!;
 			File.WriteAllText(_denyFilePath, json);
 			_logger.LogDebug("Saved deny list to {Path}", _denyFilePath);
 		}

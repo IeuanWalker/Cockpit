@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Cockpit.Extensions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
@@ -56,7 +55,7 @@ public partial class ModelFeature
 		try
 		{
 			string json = await File.ReadAllTextAsync(modelSettingsFilePath);
-			Dictionary<string, string>? modelSettings = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+			Dictionary<string, string>? modelSettings = json.DeserializeJson<Dictionary<string, string>>();
 
 			if(modelSettings is null)
 			{

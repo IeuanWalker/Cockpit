@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Cockpit.Extensions;
 using Cockpit.Features.SessionEvents.Models;
 using GitHub.Copilot.SDK;
 
@@ -6,11 +7,6 @@ namespace Cockpit.Features.SessionEvents;
 
 static class SessionEventHelpers
 {
-	static readonly JsonSerializerOptions jsonOptions = new()
-	{
-		WriteIndented = true
-	};
-
 	internal static ToolExecutionModel? FindToolExecution(ActivityGroupModel group, string? toolCallId)
 	{
 		if(toolCallId is null)
@@ -62,7 +58,7 @@ static class SessionEventHelpers
 	{
 		try
 		{
-			return JsonSerializer.Serialize(evt, evt.GetType(), jsonOptions);
+			return evt.SerializeJson()!;
 		}
 		catch
 		{
@@ -107,7 +103,7 @@ static class SessionEventHelpers
 			{
 				if(je.ValueKind == JsonValueKind.Object)
 				{
-					return JsonSerializer.Deserialize<Dictionary<string, object>>(je.GetRawText());
+					return je.GetRawText().DeserializeJson<Dictionary<string, object>>();
 				}
 			}
 		}

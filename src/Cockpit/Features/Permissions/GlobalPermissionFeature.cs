@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+﻿using Cockpit.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Permissions;
@@ -20,7 +20,6 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 
 	readonly List<string> _commands = [];
 	readonly ReaderWriterLockSlim _permissionsLock = new();
-	static readonly JsonSerializerOptions jsonOptions = new() { WriteIndented = true };
 	public event Action? OnPermissionsChanged;
 
 	public bool HasPermission(string command)
@@ -186,7 +185,7 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 			}
 
 			string json = File.ReadAllText(_permissionsFilePath);
-			List<string>? file = JsonSerializer.Deserialize<List<string>>(json);
+			List<string>? file = json.DeserializeJson<List<string>>();
 
 			if(file is not null)
 			{
@@ -215,7 +214,7 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 	{
 		try
 		{
-			string json = JsonSerializer.Serialize(snapshot, jsonOptions);
+			string json = snapshot.SerializeJson()!;
 			File.WriteAllText(_permissionsFilePath, json);
 			_logger.LogDebug("Saved permissions to {Path}", _permissionsFilePath);
 		}

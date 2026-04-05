@@ -1,4 +1,4 @@
-using System.Text.Json;
+using Cockpit.Extensions;
 using Cockpit.Features.Updates;
 using Cockpit.Features.Updates.Models;
 using Shouldly;
@@ -35,12 +35,6 @@ public class UpdateFeatureTests
 		  "body": "**Full Changelog**: https://github.com/IeuanWalker/Cockpit/compare/1.7.0...1.8.0"
 		}
 		""";
-
-	static readonly JsonSerializerOptions jsonOptions = new()
-	{
-		PropertyNameCaseInsensitive = true,
-		PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-	};
 
 	#region IsNewerVersion
 
@@ -79,7 +73,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void GitHubReleaseModel_Deserializes_TagName()
 	{
-		GitHubReleaseModel? release = JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions);
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		release.TagName.ShouldBe("1.8.0");
@@ -88,7 +82,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void GitHubReleaseModel_Deserializes_Name()
 	{
-		GitHubReleaseModel? release = JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions);
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		release.Name.ShouldBe("1.8.0");
@@ -97,7 +91,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void GitHubReleaseModel_Deserializes_HtmlUrl()
 	{
-		GitHubReleaseModel? release = JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions);
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		release.HtmlUrl.ShouldBe("https://github.com/IeuanWalker/Cockpit/releases/tag/1.8.0");
@@ -106,7 +100,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void GitHubReleaseModel_Deserializes_Body()
 	{
-		GitHubReleaseModel? release = JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions);
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		release.Body.ShouldNotBeNull();
@@ -116,7 +110,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void GitHubReleaseModel_Deserializes_Draft_AsFalse()
 	{
-		GitHubReleaseModel? release = JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions);
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		release.Draft.ShouldBeFalse();
@@ -125,7 +119,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void GitHubReleaseModel_Deserializes_Prerelease_AsFalse()
 	{
-		GitHubReleaseModel? release = JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions);
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		release.Prerelease.ShouldBeFalse();
@@ -134,7 +128,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void GitHubReleaseModel_Deserializes_PublishedAt()
 	{
-		GitHubReleaseModel? release = JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions);
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		release.PublishedAt.ShouldBe(new DateTime(2026, 3, 30, 0, 21, 29, DateTimeKind.Utc));
@@ -143,7 +137,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void GitHubReleaseModel_Deserializes_TwoAssets()
 	{
-		GitHubReleaseModel? release = JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions);
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		release.Assets.ShouldNotBeNull();
@@ -153,7 +147,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void GitHubReleaseModel_Deserializes_SetupExeAsset()
 	{
-		GitHubReleaseModel? release = JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions);
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		GitHubReleaseAssetModel? setupAsset = release.Assets?.Find(a => a.Name?.EndsWith(".exe") is true);
@@ -166,7 +160,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void GitHubReleaseModel_Deserializes_ZipAsset()
 	{
-		GitHubReleaseModel? release = JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions);
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		GitHubReleaseAssetModel? zipAsset = release.Assets?.Find(a => a.Name?.EndsWith(".zip") is true);
@@ -180,7 +174,7 @@ public class UpdateFeatureTests
 	public void GitHubReleaseModel_Deserializes_ExtraFields_WithoutError()
 	{
 		// The full GitHub API response includes many fields not in the model - they should be silently ignored
-		Should.NotThrow(() => JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions));
+		Should.NotThrow(() => sampleReleaseJson.DeserializeJson<GitHubReleaseModel>());
 	}
 
 	#endregion
@@ -246,7 +240,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void HasRequiredAssets_SampleJson_ReturnsTrue()
 	{
-		GitHubReleaseModel? release = JsonSerializer.Deserialize<GitHubReleaseModel>(sampleReleaseJson, jsonOptions);
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		UpdateFeature.HasRequiredAssets(release).ShouldBeTrue();

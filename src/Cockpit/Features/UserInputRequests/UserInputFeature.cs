@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
+using Cockpit.Extensions;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
@@ -40,7 +40,7 @@ public sealed class UserInputFeature : IUserInputHandler
 			Question = request.Question,
 			AllowsTextInput = request.AllowFreeform ?? true,
 			Choices = choices,
-			FullRequestJson = JsonSerializer.Serialize(request)
+			FullRequestJson = request.SerializeJson() ?? string.Empty
 		};
 	}
 

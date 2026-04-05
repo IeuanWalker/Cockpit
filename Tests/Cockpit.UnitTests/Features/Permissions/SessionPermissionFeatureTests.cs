@@ -1,4 +1,4 @@
-using System.Text.Json;
+using Cockpit.Extensions;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
@@ -370,7 +370,8 @@ public class SessionPermissionFeatureTests
 			// Assert
 			string permissionsFilePath = Path.Combine(workspacePath, "Cockpit", "session-commands.json");
 			File.Exists(permissionsFilePath).ShouldBeTrue();
-			List<string>? storedCommands = JsonSerializer.Deserialize<List<string>>(File.ReadAllText(permissionsFilePath));
+
+			List<string>? storedCommands = File.ReadAllText(permissionsFilePath).DeserializeJson<List<string>>();
 			storedCommands.ShouldNotBeNull();
 			storedCommands.ShouldContain("npm");
 		}
@@ -393,7 +394,7 @@ public class SessionPermissionFeatureTests
 		string permissionsFilePath = Path.Combine(permissionsDirectory, "session-commands.json");
 		Directory.CreateDirectory(permissionsDirectory);
 #pragma warning disable CA1861 // Avoid constant arrays as arguments
-		File.WriteAllText(permissionsFilePath, JsonSerializer.Serialize(new[] { "npm", "git" }));
+		File.WriteAllText(permissionsFilePath, (new[] { "npm", "git" }).SerializeJson());
 #pragma warning restore CA1861 // Avoid constant arrays as arguments
 
 		SessionModel session = new()
