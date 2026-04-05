@@ -1,6 +1,8 @@
+using Cockpit.Components.Popups.Settings;
 using Cockpit.Features.Agents;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Splash;
+using Cockpit.Features.Theme;
 using Microsoft.JSInterop;
 
 namespace Cockpit;
@@ -10,18 +12,21 @@ public partial class MainPage : ContentPage
 	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SplashFeature _splashService;
 	readonly SessionFeature _sessionFeature;
+	readonly ThemeStateService _themeStateService;
 	int _splashHidden;
 
 	public MainPage(
 		GlobalAgentFeature globalAgentFeature,
 		SplashFeature splashService,
-		SessionFeature sessionFeature)
+		SessionFeature sessionFeature,
+		ThemeStateService themeStateService)
 	{
 		InitializeComponent();
 
 		_globalAgentFeature = globalAgentFeature;
 		_splashService = splashService;
 		_sessionFeature = sessionFeature;
+		_themeStateService = themeStateService;
 
 #if WINDOWS
 		ConfigureWindowsContextMenu();
@@ -42,6 +47,10 @@ public partial class MainPage : ContentPage
 		Dispatcher.Dispatch(() =>
 		{
 			_ = HideSplash();
+
+#if DEBUG
+			DiagnosticsSettings.OpenLogViewer(_themeStateService.IsLightTheme);
+#endif
 		});
 	}
 

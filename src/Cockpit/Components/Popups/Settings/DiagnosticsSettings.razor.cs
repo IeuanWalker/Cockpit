@@ -26,6 +26,11 @@ public partial class DiagnosticsSettings
 
 	void OpenLogViewer()
 	{
+		OpenLogViewer(_themeState.IsLightTheme);
+	}
+
+	internal static void OpenLogViewer(bool isLightTheme)
+	{
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
 			// If a log viewer window is already open, just focus it
@@ -37,7 +42,7 @@ public partial class DiagnosticsSettings
 				return;
 			}
 
-			Application.Current?.OpenWindow(BuildLogViewerWindow(_themeState.IsLightTheme));
+			Application.Current?.OpenWindow(BuildLogViewerWindow(isLightTheme));
 		});
 	}
 
