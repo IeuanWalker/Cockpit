@@ -1,3 +1,4 @@
+using Cockpit.Features.Theme;
 using Cockpit.Utilities;
 using Cockpit.Utilities.Logging;
 
@@ -5,6 +6,8 @@ namespace Cockpit.Components.Popups.Settings;
 
 public partial class DiagnosticsSettings
 {
+	[Microsoft.AspNetCore.Components.Inject] ThemeStateService ThemeState { get; set; } = default!;
+
 	string LogDirectory => LogDirectoryHelper.LogDirectory;
 
 	ReportIssuePopup _reportIssuePopup = default!;
@@ -29,41 +32,49 @@ public partial class DiagnosticsSettings
 				return;
 			}
 
-			Application.Current?.OpenWindow(new Window(new LogViewerPage())
+			Application.Current?.OpenWindow(BuildLogViewerWindow(ThemeState.IsLightTheme));
+		});
+	}
+
+	internal static Window BuildLogViewerWindow(bool isLightTheme)
+	{
+		Color bg = isLightTheme ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
+		Color fg = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
+
+		return new Window(new LogViewerPage())
+		{
+			Title = "Log Viewer",
+			Width = 960,
+			Height = 680,
+			TitleBar = new TitleBar
 			{
-				Title = "Log Viewer",
-				Width = 960,
-				Height = 680,
-				TitleBar = new TitleBar
+				BackgroundColor = bg,
+				ForegroundColor = fg,
+				HeightRequest = 48,
+				LeadingContent = new HorizontalStackLayout
 				{
-					BackgroundColor = Color.FromArgb("#181818"),
-					ForegroundColor = Color.FromArgb("#CCCCCC"),
-					HeightRequest = 48,
-					LeadingContent = new HorizontalStackLayout
+					VerticalOptions = LayoutOptions.Center,
+					Spacing = 8,
+					Margin = new Thickness(10, 0),
+					Children =
 					{
-						VerticalOptions = LayoutOptions.Center,
-						Spacing = 8,
-						Margin = new Thickness(10, 0),
-						Children =
+						new Image
 						{
-							new Image
-							{
-								HeightRequest = 26,
-								WidthRequest = 19,
-								Source = "logo.png",
-								VerticalOptions = LayoutOptions.Center,
-							},
-							new Label
-							{
-								Text = "Log Viewer",
-								TextColor = Color.FromArgb("#CCCCCC"),
-								FontSize = 13,
-								VerticalOptions = LayoutOptions.Center,
-							}
+							HeightRequest = 26,
+							WidthRequest = 19,
+							Source = "logo.png",
+							VerticalOptions = LayoutOptions.Center,
+						},
+						new Label
+						{
+							Text = "Log Viewer",
+							TextColor = fg,
+							FontSize = 13,
+							VerticalOptions = LayoutOptions.Center,
 						}
 					}
 				}
-			});
-		});
+			}
+		};
 	}
 }

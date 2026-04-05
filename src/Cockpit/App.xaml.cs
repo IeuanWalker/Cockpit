@@ -1,7 +1,9 @@
-﻿using Cockpit.Controls;
+﻿using Cockpit.Components.Popups.Settings;
+using Cockpit.Controls;
 using Cockpit.Features.Agents;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Splash;
+using Cockpit.Features.Theme;
 
 namespace Cockpit;
 
@@ -12,14 +14,16 @@ public partial class App : Application
 	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SplashFeature _splashFeature;
 	readonly SessionFeature _sessionFeature;
+	readonly ThemeStateService _themeState;
 
-	public App(GlobalAgentFeature globalAgentFeature, SplashFeature splashFeature, SessionFeature sessionFeature)
+	public App(GlobalAgentFeature globalAgentFeature, SplashFeature splashFeature, SessionFeature sessionFeature, ThemeStateService themeState)
 	{
 		InitializeComponent();
 
 		_globalAgentFeature = globalAgentFeature;
 		_splashFeature = splashFeature;
 		_sessionFeature = sessionFeature;
+		_themeState = themeState;
 	}
 
 	protected override Window CreateWindow(IActivationState? activationState)
@@ -55,37 +59,7 @@ public partial class App : Application
 		};
 
 #if DEBUG
-		Dispatcher.Dispatch(() => OpenWindow(new Window(new LogViewerPage())
-		{
-			Title = "Log Viewer",
-			TitleBar = new TitleBar
-			{
-				BackgroundColor = Color.FromArgb("#181818"),
-				ForegroundColor = Color.FromArgb("#CCCCCC"),
-				HeightRequest = 48,
-				LeadingContent = new HorizontalStackLayout
-				{
-					VerticalOptions = LayoutOptions.Center,
-					Children =
-					{
-						new Image
-						{
-							HeightRequest = 28,
-							WidthRequest = 20,
-							Margin = new Thickness(12, 0, 8, 0),
-							Source = "logo.png"
-						},
-						new Label
-						{
-							Text = "Log Viewer",
-							TextColor = Color.FromArgb("#CCCCCC"),
-							FontSize = 14,
-							VerticalOptions = LayoutOptions.Center
-						}
-					}
-				}
-			}
-		}));
+		Dispatcher.Dispatch(() => OpenWindow(DiagnosticsSettings.BuildLogViewerWindow(_themeState.IsLightTheme)));
 #endif
 
 		return _mainWindow;

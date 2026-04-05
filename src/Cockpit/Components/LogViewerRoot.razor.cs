@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using Cockpit.Features.Theme;
 using Cockpit.Utilities.Logging;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -9,6 +10,7 @@ namespace Cockpit.Components;
 public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 {
 	[Inject] IJSRuntime JSRuntime { get; set; } = default!;
+	[Inject] ThemeStateService ThemeState { get; set; } = default!;
 
 	readonly string _tableBodyId = $"lv-body-{Guid.NewGuid():N}";
 
@@ -160,6 +162,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 
 	protected override void OnInitialized()
 	{
+		ThemeState.OnThemeChanged += OnThemeChangedHandler;
 		_ = LoadAsync();
 		StartPolling();
 	}
@@ -169,6 +172,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 		if(firstRender)
 		{
 			_dotNetRef = DotNetObjectReference.Create(this);
+			await ApplyThemeAsync();
 		}
 
 		if(!_scrollSetup && !_loading)
@@ -421,8 +425,29 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 		catch { /* best-effort */ }
 	}
 
+	async void OnThemeChangedHandler() => await ApplyThemeAsync();
+
+	async Task ApplyThemeAsync()
+	{
+		try
+		{
+			if(ThemeState.IsLightTheme)
+			{
+				await JSRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
+			}
+			else
+			{
+				await JSRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
+			}
+
+			await JSRuntime.InvokeVoidAsync("cockpit.setAccentColor", ThemeState.AccentColor, ThemeState.AccentHoverColor);
+		}
+		catch { /* best-effort */ }
+	}
+
 	public async ValueTask DisposeAsync()
 	{
+		ThemeState.OnThemeChanged -= OnThemeChangedHandler;
 		_cts?.Cancel();
 		_cts?.Dispose();
 		_cts = null;
