@@ -217,7 +217,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 		await InvokeAsync(StateHasChanged);
 	}
 
-	static (string content, long length) ReadFile(string path)
+	static (string content, long length) ReadFile(string path, long fromOffset = 0)
 	{
 		try
 		{
@@ -227,8 +227,14 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 			}
 
 			using FileStream fs = new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+			long len = fs.Length;
+			if(fromOffset > 0 && fromOffset < len)
+			{
+				fs.Seek(fromOffset, SeekOrigin.Begin);
+			}
+
 			using StreamReader sr = new(fs);
-			return (sr.ReadToEnd(), fs.Length);
+			return (sr.ReadToEnd(), len);
 		}
 		catch
 		{
@@ -250,7 +256,9 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 			{
 				while(!token.IsCancellationRequested && await timer.WaitForNextTickAsync(token).ConfigureAwait(false))
 				{
-					string path = _activeTab.FilePath;
+					// Capture component state on the Blazor thread to avoid cross-thread reads
+					(string path, long knownLen) = await InvokeAsync(() => (_activeTab.FilePath, _knownFileLength)).ConfigureAwait(false);
+
 					long len = 0;
 					try
 					{
@@ -261,18 +269,33 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 						continue;
 					}
 
-					if(len == _knownFileLength)
+					if(len == knownLen)
 					{
 						continue;
 					}
 
-					(string? content, long newLen) = ReadFile(path);
-					List<LogEntry> allEntries = Parse(content);
+					// Incremental tail read when the file grew; full re-read on rotation/shrink
+					bool isIncremental = len > knownLen && knownLen >= 0;
+					(string content, long newLen) = ReadFile(path, isIncremental ? knownLen : 0);
+					List<LogEntry> newEntries = Parse(content);
 
 					await InvokeAsync(() =>
 					{
 						_knownFileLength = newLen;
-						_allEntries = allEntries;
+						if(isIncremental)
+						{
+							int nextIndex = _allEntries.Count > 0 ? _allEntries[^1].Index + 1 : 0;
+							foreach(LogEntry e in newEntries)
+							{
+								e.Index = nextIndex++;
+								_allEntries.Add(e);
+							}
+						}
+						else
+						{
+							_allEntries = newEntries;
+						}
+
 						RebuildFiltered();
 						if(_autoScroll && !_isScrolledUp)
 						{
@@ -428,7 +451,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 		catch { /* best-effort */ }
 	}
 
-	async void OnThemeChangedHandler() => await ApplyThemeAsync();
+	void OnThemeChangedHandler() => _ = ApplyThemeAsync();
 
 	async Task ApplyThemeAsync()
 	{
