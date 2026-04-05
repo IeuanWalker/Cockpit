@@ -1,4 +1,4 @@
-using System.Text.Json;
+using Cockpit.Extensions;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
@@ -76,7 +76,7 @@ public sealed partial class PermissionFeature
 			Intention = intention,
 			CanApproveGlobally = canApproveGlobally,
 			CanApproveForSession = true,
-			FullRequestJson = JsonSerializer.Serialize(request),
+			FullRequestJson = request.SerializeJson() ?? string.Empty,
 			IsDestructive = isDestructive,
 			FilesToDelete = [.. filesToDelete]
 		};
@@ -104,7 +104,7 @@ public sealed partial class PermissionFeature
 			Intention = intention,
 			CanApproveGlobally = canApproveGlobally,
 			CanApproveForSession = canApproveForSession,
-			FullRequestJson = JsonSerializer.Serialize(request)
+			FullRequestJson = request.SerializeJson() ?? string.Empty
 		};
 	}
 
@@ -130,7 +130,7 @@ public sealed partial class PermissionFeature
 			Intention = intention,
 			CanApproveGlobally = canApproveGlobally,
 			CanApproveForSession = canApproveForSession,
-			FullRequestJson = JsonSerializer.Serialize(request)
+			FullRequestJson = request.SerializeJson() ?? string.Empty
 		};
 	}
 
@@ -150,7 +150,7 @@ public sealed partial class PermissionFeature
 			Intention = string.Empty,
 			CanApproveGlobally = request.ReadOnly,
 			CanApproveForSession = true,
-			FullRequestJson = JsonSerializer.Serialize(request)
+			FullRequestJson = request.SerializeJson() ?? string.Empty
 		};
 	}
 
@@ -169,7 +169,7 @@ public sealed partial class PermissionFeature
 			Intention = string.Empty,
 			CanApproveGlobally = true,
 			CanApproveForSession = true,
-			FullRequestJson = JsonSerializer.Serialize(request)
+			FullRequestJson = request.SerializeJson() ?? string.Empty
 		};
 	}
 
@@ -186,7 +186,7 @@ public sealed partial class PermissionFeature
 			Intention = string.Empty,
 			CanApproveGlobally = true,
 			CanApproveForSession = true,
-			FullRequestJson = JsonSerializer.Serialize(request)
+			FullRequestJson = request.SerializeJson() ?? string.Empty
 		};
 	}
 
@@ -206,7 +206,7 @@ public sealed partial class PermissionFeature
 			Intention = string.Empty,
 			CanApproveGlobally = true,
 			CanApproveForSession = true,
-			FullRequestJson = JsonSerializer.Serialize(request)
+			FullRequestJson = request.SerializeJson() ?? string.Empty
 		};
 	}
 
@@ -226,7 +226,7 @@ public sealed partial class PermissionFeature
 			Intention = intention,
 			CanApproveGlobally = true,
 			CanApproveForSession = true,
-			FullRequestJson = JsonSerializer.Serialize(request)
+			FullRequestJson = request.SerializeJson() ?? string.Empty
 		};
 	}
 
@@ -251,7 +251,7 @@ public sealed partial class PermissionFeature
 			Intention = intention,
 			CanApproveGlobally = true,
 			CanApproveForSession = true,
-			FullRequestJson = JsonSerializer.Serialize(request)
+			FullRequestJson = request.SerializeJson() ?? string.Empty
 		};
 
 	static (string Title, bool CanApproveForSession, bool CanApproveGlobally) FilePathPermissionInfo(string verb, FilePathCategory category) =>
