@@ -109,20 +109,72 @@ public partial class ReportIssuePopup : ComponentBase
 		}
 
 		int fileCount = (appLines.Length > 0 ? 1 : 0) + (crashLines.Length > 0 ? 1 : 0);
-		int budgetPerFile = urlBudget / fileCount;
+		int budgetPerFile = urlBudget / Math.Max(fileCount, 1);
 
 		StringBuilder sb = new();
-		if(appLines.Length > 0)
-		{
-			AppendFittedLog(sb, appLines, "app.log", budgetPerFile);
-		}
+		int remainingBudget = urlBudget;
 
+		// Add crash log first, filtered to last 3 hours, up to budgetPerFile
 		if(crashLines.Length > 0)
 		{
-			AppendFittedLog(sb, crashLines, "crash.log", budgetPerFile);
+			string[] recentCrashLines = FilterCrashLogLastHours(crashLines, 3);
+			if(recentCrashLines.Length > 0)
+			{
+				int beforeLength = sb.Length;
+				AppendFittedLog(sb, recentCrashLines, "crash.log", budgetPerFile);
+				int crashUsed = Uri.EscapeDataString(sb.ToString(beforeLength, sb.Length - beforeLength)).Length;
+				remainingBudget -= crashUsed;
+			}
+			else
+			{
+				// No recent crash lines; full budget available for app.log
+				remainingBudget = urlBudget;
+			}
+		}
+
+		// app.log gets whatever budget is left (at least budgetPerFile)
+		if(appLines.Length > 0)
+		{
+			int appBudget = Math.Max(remainingBudget, budgetPerFile);
+			AppendFittedLog(sb, appLines, "app.log", appBudget);
 		}
 
 		return sb.ToString();
+	}
+
+	static string[] FilterCrashLogLastHours(string[] lines, int hours)
+	{
+		DateTime cutoff = DateTime.Now.AddHours(-hours);
+
+		// Crash log sections start with === yyyy-MM-dd HH:mm:ss [Source] ===
+		// Collect indices of section headers that are within the time window
+		HashSet<int> includedSections = [];
+		int? currentSection = null;
+
+		for(int i = 0; i < lines.Length; i++)
+		{
+			string line = lines[i].Trim();
+			if(line.StartsWith("===") && line.EndsWith("===") && line.Length > 6)
+			{
+				currentSection = i;
+				// Parse timestamp: === yyyy-MM-dd HH:mm:ss [Source] ===
+				string inner = line[3..^3].Trim(); // strip leading/trailing ===
+				int bracketPos = inner.IndexOf('[');
+				string tsPart = bracketPos > 0 ? inner[..bracketPos].Trim() : inner;
+				if(DateTime.TryParse(tsPart, out DateTime ts) && ts >= cutoff)
+				{
+					includedSections.Add(i);
+				}
+			}
+			else if(currentSection.HasValue && includedSections.Contains(currentSection.Value))
+			{
+				includedSections.Add(i);
+			}
+		}
+
+		return includedSections.Count == 0
+			? []
+			: lines.Where((_, i) => includedSections.Contains(i)).ToArray();
 	}
 
 	static void AppendFittedLog(StringBuilder sb, string[] allLines, string name, int urlBudget)
