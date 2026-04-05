@@ -658,6 +658,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 		_dotNetRef?.Dispose();
 		_mentionSearchCts?.Dispose();
+		GC.SuppressFinalize(this);
 	}
 }
 

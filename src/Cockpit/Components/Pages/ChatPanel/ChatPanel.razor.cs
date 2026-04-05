@@ -153,6 +153,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		}
 
 		_dotNetRef?.Dispose();
+		GC.SuppressFinalize(this);
 	}
 
 }
