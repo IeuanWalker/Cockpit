@@ -511,7 +511,7 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 	/// </summary>
 	public static TheoryData<string> AllSdkPermissionRequestTypes_Typed()
 	{
-		TheoryData<string> data = new TheoryData<string>();
+		TheoryData<string> data = [];
 		IEnumerable<Type> sdkTypes = typeof(PermissionRequest)
 			.GetCustomAttributes(typeof(System.Text.Json.Serialization.JsonDerivedTypeAttribute), inherit: false)
 			.Cast<System.Text.Json.Serialization.JsonDerivedTypeAttribute>()

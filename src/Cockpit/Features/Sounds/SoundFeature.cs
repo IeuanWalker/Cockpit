@@ -10,7 +10,7 @@ using Plugin.Maui.Audio;
 
 namespace Cockpit.Features.Sounds;
 
-public sealed class SoundFeature : IDisposable
+public sealed partial class SoundFeature : IDisposable
 {
 	readonly IAudioManager _audioManager;
 	readonly PermissionFeature _permissionFeature;
@@ -23,7 +23,7 @@ public sealed class SoundFeature : IDisposable
 	readonly Dictionary<string, byte[]> _soundBytes = [];
 
 	// Default raw asset per sound name. Both "permission" and "userInput" fall back to request.mp3.
-	static readonly Dictionary<string, string> DefaultSoundAssets = new()
+	static readonly Dictionary<string, string> defaultSoundAssets = new()
 	{
 		["permission"] = "Sounds/request.mp3",
 		["userInput"] = "Sounds/request.mp3",
@@ -67,7 +67,7 @@ public sealed class SoundFeature : IDisposable
 
 	async Task LoadAllSoundsAsync()
 	{
-		await Task.WhenAll(DefaultSoundAssets.Keys.Select(LoadSingleSoundAsync));
+		await Task.WhenAll(defaultSoundAssets.Keys.Select(LoadSingleSoundAsync));
 	}
 
 	async Task LoadSingleSoundAsync(string soundName)
@@ -82,7 +82,7 @@ public sealed class SoundFeature : IDisposable
 			}
 			else
 			{
-				using Stream stream = await FileSystem.OpenAppPackageFileAsync(DefaultSoundAssets[soundName]);
+				using Stream stream = await FileSystem.OpenAppPackageFileAsync(defaultSoundAssets[soundName]);
 				using MemoryStream ms = new();
 				await stream.CopyToAsync(ms);
 				_soundBytes[soundName] = ms.ToArray();
