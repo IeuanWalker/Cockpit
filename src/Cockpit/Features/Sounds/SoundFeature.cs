@@ -188,7 +188,7 @@ public sealed partial class SoundFeature : IDisposable
 			IAudioPlayer player = _audioManager.CreatePlayer(new MemoryStream(bytes));
 			player.Volume = volume;
 			player.PlaybackEnded += OnEnded;
-			await Task.Run(player.Play);
+			player.Play();
 
 			void OnEnded(object? s, EventArgs e)
 			{
