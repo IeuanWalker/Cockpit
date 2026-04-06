@@ -452,11 +452,6 @@ code {
     text-align: start;
 }
 
-/*
- * Source: https://stackoverflow.com/a/38163892 (CC BY-SA 3.0)
- * Fills the track using overflow:hidden + a large box-shadow on the thumb —
- * no JS or CSS custom properties required.
- */
 input[type="range"] {
     overflow: hidden;
     -webkit-appearance: none;
@@ -479,15 +474,6 @@ input[type="range"] {
         background-color: var(--active-color);
         box-shadow: -1000px 0 0 990px var(--accent-color);
         cursor: pointer;
-    }
-
-    /* Firefox */
-    input[type="range"]::-moz-range-track {
-        background-color: var(--sidebar-color);
-    }
-
-    input[type="range"]::-moz-range-progress {
-        background-color: var(--accent-color);
     }
 
 input[type="color"] {
