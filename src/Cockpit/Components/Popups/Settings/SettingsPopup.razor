@@ -35,12 +35,12 @@
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Sounds ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.Sounds)">
                     <span class="text-sm font-medium text-app-title">Sounds</span>
-                    <span class="text-xs secondary-text">Alerts, feedback</span>
+                    <span class="text-xs secondary-text">Alerts, requests, finished</span>
                 </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Diagnostics ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.Diagnostics)">
                     <span class="text-sm font-medium text-app-title">Diagnostics</span>
-                    <span class="text-xs secondary-text">Logs, telemetry</span>
+                    <span class="text-xs secondary-text">Logs, telemetry, report an issue</span>
                 </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.About ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.About)">
