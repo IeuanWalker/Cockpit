@@ -12,6 +12,7 @@ using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.FileSearch;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sounds;
 using Cockpit.Features.Splash;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.TextToSpeech;
@@ -122,6 +123,8 @@ public static class MauiProgram
 			return new UpdateFeature(client);
 		});
 
+		builder.Services.AddSingleton<SoundFeature>();
+
 		// File search
 		builder.Services.AddSingleton<IFileSearchFeature, FileSearchFeature>();
 
@@ -132,6 +135,7 @@ public static class MauiProgram
 
 		MauiApp app = builder.Build();
 		app.Services.GetRequiredService<UpdateFeature>().Initialize();
+		app.Services.GetRequiredService<SoundFeature>(); // Activate subscriptions
 		return app;
 	}
 

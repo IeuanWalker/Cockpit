@@ -46,6 +46,60 @@ public class AppSettingsFeature : IAppSettingsFeature
 		set => UserAppSettings.DiffSplitView = value;
 	}
 
+	public bool SoundPermissionEnabled
+	{
+		get => UserAppSettings.SoundPermissionEnabled;
+		set => UserAppSettings.SoundPermissionEnabled = value;
+	}
+
+	public float SoundPermissionVolume
+	{
+		get => UserAppSettings.SoundPermissionVolume;
+		set => UserAppSettings.SoundPermissionVolume = value;
+	}
+
+	public bool SoundUserInputEnabled
+	{
+		get => UserAppSettings.SoundUserInputEnabled;
+		set => UserAppSettings.SoundUserInputEnabled = value;
+	}
+
+	public float SoundUserInputVolume
+	{
+		get => UserAppSettings.SoundUserInputVolume;
+		set => UserAppSettings.SoundUserInputVolume = value;
+	}
+
+	public bool SoundFinishedEnabled
+	{
+		get => UserAppSettings.SoundFinishedEnabled;
+		set => UserAppSettings.SoundFinishedEnabled = value;
+	}
+
+	public float SoundFinishedVolume
+	{
+		get => UserAppSettings.SoundFinishedVolume;
+		set => UserAppSettings.SoundFinishedVolume = value;
+	}
+
+	public string SoundPermissionCustomFileName
+	{
+		get => UserAppSettings.SoundPermissionCustomFileName;
+		set => UserAppSettings.SoundPermissionCustomFileName = value;
+	}
+
+	public string SoundUserInputCustomFileName
+	{
+		get => UserAppSettings.SoundUserInputCustomFileName;
+		set => UserAppSettings.SoundUserInputCustomFileName = value;
+	}
+
+	public string SoundFinishedCustomFileName
+	{
+		get => UserAppSettings.SoundFinishedCustomFileName;
+		set => UserAppSettings.SoundFinishedCustomFileName = value;
+	}
+
 	public bool TextToSpeechEnabled
 	{
 		get => UserAppSettings.TextToSpeechEnabled;
