@@ -1,9 +1,7 @@
-using System.Collections.Concurrent;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
-using Cockpit.Features.Sessions;
-using Cockpit.Features.Sessions.Models;
+using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.UserInputRequests;
 using Microsoft.Extensions.Logging;
 using Plugin.Maui.Audio;
@@ -15,11 +13,8 @@ public sealed partial class SoundFeature : IDisposable
 	readonly IAudioManager _audioManager;
 	readonly PermissionFeature _permissionFeature;
 	readonly UserInputFeature _userInputFeature;
-	readonly ISessionStateProvider _sessionStateProvider;
 	readonly IAppSettingsFeature _appSettings;
 	readonly ILogger<SoundFeature> _logger;
-
-	readonly ConcurrentDictionary<string, SessionStatusEnum> _lastKnownStatuses = new();
 	readonly Dictionary<string, byte[]> _soundBytes = [];
 
 	// Default raw asset per sound name. Both "permission" and "userInput" fall back to request.mp3.
@@ -45,20 +40,18 @@ public sealed partial class SoundFeature : IDisposable
 		IAudioManager audioManager,
 		PermissionFeature permissionFeature,
 		UserInputFeature userInputFeature,
-		ISessionStateProvider sessionStateProvider,
 		IAppSettingsFeature appSettings,
 		ILogger<SoundFeature> logger)
 	{
 		_audioManager = audioManager;
 		_permissionFeature = permissionFeature;
 		_userInputFeature = userInputFeature;
-		_sessionStateProvider = sessionStateProvider;
 		_appSettings = appSettings;
 		_logger = logger;
 
 		_permissionFeature.OnPermissionRequested += OnPermissionRequested;
 		_userInputFeature.OnUserInputRequested += OnUserInputRequested;
-		_sessionStateProvider.OnStateChanged += OnSessionStateChanged;
+		SessionIdleHandler.OnSessionFinished += OnSessionFinished;
 
 		_ = LoadAllSoundsAsync();
 	}
@@ -154,33 +147,7 @@ public sealed partial class SoundFeature : IDisposable
 	void OnUserInputRequested(string sessionId, UserInputRequestModel request) =>
 		_ = PlaySoundAsync(SoundEffectTypeEnum.UserInput);
 
-	void OnSessionStateChanged()
-	{
-		foreach(SessionModel session in _sessionStateProvider.Sessions)
-		{
-			_lastKnownStatuses.TryGetValue(session.Id, out SessionStatusEnum lastStatus);
-
-			// Sessions finish by transitioning to Idle after Running (not a Finished enum value).
-			bool wasActive = lastStatus == SessionStatusEnum.Running
-				|| lastStatus == SessionStatusEnum.NeedsPermission
-				|| lastStatus == SessionStatusEnum.NeedsUserInput;
-
-			if(session.Status == SessionStatusEnum.Idle && wasActive)
-			{
-				_ = PlaySoundAsync(SoundEffectTypeEnum.Finished);
-			}
-
-			_lastKnownStatuses[session.Id] = session.Status;
-		}
-
-		foreach(string id in _lastKnownStatuses.Keys)
-		{
-			if(!_sessionStateProvider.Sessions.Any(s => s.Id == id))
-			{
-				_lastKnownStatuses.TryRemove(id, out _);
-			}
-		}
-	}
+	void OnSessionFinished() => _ = PlaySoundAsync(SoundEffectTypeEnum.Finished);
 
 	/// <summary>
 	/// Plays a sound. Pass <paramref name="forPreview"/> = <c>true</c> from the settings
@@ -239,6 +206,6 @@ public sealed partial class SoundFeature : IDisposable
 	{
 		_permissionFeature.OnPermissionRequested -= OnPermissionRequested;
 		_userInputFeature.OnUserInputRequested -= OnUserInputRequested;
-		_sessionStateProvider.OnStateChanged -= OnSessionStateChanged;
+		SessionIdleHandler.OnSessionFinished -= OnSessionFinished;
 	}
 }

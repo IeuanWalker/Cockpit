@@ -8,11 +8,6 @@ namespace Cockpit.Features.Sessions;
 public interface ISessionStateProvider
 {
 	/// <summary>
-	/// Fired when session state changes
-	/// </summary>
-	event Action? OnStateChanged;
-
-	/// <summary>
 	/// Get all chat sessions
 	/// </summary>
 	IReadOnlyList<SessionModel> Sessions { get; }

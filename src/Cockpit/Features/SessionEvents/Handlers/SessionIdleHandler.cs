@@ -6,6 +6,11 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class SessionIdleHandler
 {
+	/// <summary>
+	/// Raised when a session completes successfully (transitions to Idle after active work).
+	/// Not raised on error/abort.
+	/// </summary>
+	internal static event Action? OnSessionFinished;
 	internal static void Handle(SessionModel session, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
 	{
 		if(session.ActiveWorkingGroup is not null)
@@ -224,6 +229,11 @@ static class SessionIdleHandler
 		}
 
 		session.Status = SessionStatusEnum.Idle;
+
+		if(groupStatus == GroupStatusEnum.Complete)
+		{
+			OnSessionFinished?.Invoke();
+		}
 	}
 
 	static string GenerateActivitySummary(ActivityGroupModel group)
