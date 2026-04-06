@@ -38,39 +38,39 @@ public partial class SoundSettings : ComponentBase, IDisposable
 	{
 		_permissionEnabled = _appSettingsFeature.SoundPermissionEnabled;
 		_permissionVolume = _appSettingsFeature.SoundPermissionVolume;
-		_permissionCustomFile = _soundFeature.GetCustomFileName(SoundEffectType.Permission);
+		_permissionCustomFile = _soundFeature.GetCustomFileName(SoundEffectTypeEnum.Permission);
 
 		_userInputEnabled = _appSettingsFeature.SoundUserInputEnabled;
 		_userInputVolume = _appSettingsFeature.SoundUserInputVolume;
-		_userInputCustomFile = _soundFeature.GetCustomFileName(SoundEffectType.UserInput);
+		_userInputCustomFile = _soundFeature.GetCustomFileName(SoundEffectTypeEnum.UserInput);
 
 		_finishedEnabled = _appSettingsFeature.SoundFinishedEnabled;
 		_finishedVolume = _appSettingsFeature.SoundFinishedVolume;
-		_finishedCustomFile = _soundFeature.GetCustomFileName(SoundEffectType.Finished);
+		_finishedCustomFile = _soundFeature.GetCustomFileName(SoundEffectTypeEnum.Finished);
 
 		_uiStateFeature.OnStateChanged += OnStateChanged;
 	}
 
-	void SetEnabled(SoundEffectType soundType, bool enabled)
+	void SetEnabled(SoundEffectTypeEnum soundType, bool enabled)
 	{
 		switch(soundType)
 		{
-			case SoundEffectType.Permission:
+			case SoundEffectTypeEnum.Permission:
 				_permissionEnabled = enabled;
 				_appSettingsFeature.SoundPermissionEnabled = enabled;
 				break;
-			case SoundEffectType.UserInput:
+			case SoundEffectTypeEnum.UserInput:
 				_userInputEnabled = enabled;
 				_appSettingsFeature.SoundUserInputEnabled = enabled;
 				break;
-			case SoundEffectType.Finished:
+			case SoundEffectTypeEnum.Finished:
 				_finishedEnabled = enabled;
 				_appSettingsFeature.SoundFinishedEnabled = enabled;
 				break;
 		}
 	}
 
-	void OnVolumeChanged(ChangeEventArgs e, SoundEffectType soundType)
+	void OnVolumeChanged(ChangeEventArgs e, SoundEffectTypeEnum soundType)
 	{
 		if(!float.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
 		{
@@ -79,22 +79,22 @@ public partial class SoundSettings : ComponentBase, IDisposable
 
 		switch(soundType)
 		{
-			case SoundEffectType.Permission:
+			case SoundEffectTypeEnum.Permission:
 				_permissionVolume = value;
 				_appSettingsFeature.SoundPermissionVolume = value;
 				break;
-			case SoundEffectType.UserInput:
+			case SoundEffectTypeEnum.UserInput:
 				_userInputVolume = value;
 				_appSettingsFeature.SoundUserInputVolume = value;
 				break;
-			case SoundEffectType.Finished:
+			case SoundEffectTypeEnum.Finished:
 				_finishedVolume = value;
 				_appSettingsFeature.SoundFinishedVolume = value;
 				break;
 		}
 	}
 
-	async Task UploadSound(SoundEffectType soundType)
+	async Task UploadSound(SoundEffectTypeEnum soundType)
 	{
 		FilePickerFileType mp3Type = new(new Dictionary<DevicePlatform, IEnumerable<string>>
 		{
@@ -119,29 +119,29 @@ public partial class SoundSettings : ComponentBase, IDisposable
 
 		switch(soundType)
 		{
-			case SoundEffectType.Permission: _permissionCustomFile = result.FileName; break;
-			case SoundEffectType.UserInput: _userInputCustomFile = result.FileName; break;
-			case SoundEffectType.Finished: _finishedCustomFile = result.FileName; break;
+			case SoundEffectTypeEnum.Permission: _permissionCustomFile = result.FileName; break;
+			case SoundEffectTypeEnum.UserInput: _userInputCustomFile = result.FileName; break;
+			case SoundEffectTypeEnum.Finished: _finishedCustomFile = result.FileName; break;
 		}
 
 		await InvokeAsync(StateHasChanged);
 	}
 
-	async Task ResetSound(SoundEffectType soundType)
+	async Task ResetSound(SoundEffectTypeEnum soundType)
 	{
 		await _soundFeature.ResetToDefaultAsync(soundType);
 
 		switch(soundType)
 		{
-			case SoundEffectType.Permission: _permissionCustomFile = string.Empty; break;
-			case SoundEffectType.UserInput: _userInputCustomFile = string.Empty; break;
-			case SoundEffectType.Finished: _finishedCustomFile = string.Empty; break;
+			case SoundEffectTypeEnum.Permission: _permissionCustomFile = string.Empty; break;
+			case SoundEffectTypeEnum.UserInput: _userInputCustomFile = string.Empty; break;
+			case SoundEffectTypeEnum.Finished: _finishedCustomFile = string.Empty; break;
 		}
 
 		await InvokeAsync(StateHasChanged);
 	}
 
-	async Task Preview(SoundEffectType soundType)
+	async Task Preview(SoundEffectTypeEnum soundType)
 	{
 		await _soundFeature.PlaySoundAsync(soundType, forPreview: true);
 	}

@@ -1,6 +1,6 @@
 namespace Cockpit.Features.Sounds;
 
-public enum SoundEffectType
+public enum SoundEffectTypeEnum
 {
 	Permission,
 	UserInput,

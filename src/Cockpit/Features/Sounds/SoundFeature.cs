@@ -33,11 +33,11 @@ public sealed partial class SoundFeature : IDisposable
 	static string CustomSoundPath(string soundName) =>
 		Path.Combine(FileSystem.AppDataDirectory, "Sounds", $"{soundName}.mp3");
 
-	static string GetSoundName(SoundEffectType soundType) => soundType switch
+	static string GetSoundName(SoundEffectTypeEnum soundType) => soundType switch
 	{
-		SoundEffectType.Permission => "permission",
-		SoundEffectType.UserInput => "userInput",
-		SoundEffectType.Finished => "finished",
+		SoundEffectTypeEnum.Permission => "permission",
+		SoundEffectTypeEnum.UserInput => "userInput",
+		SoundEffectTypeEnum.Finished => "finished",
 		_ => "finished"
 	};
 
@@ -62,8 +62,6 @@ public sealed partial class SoundFeature : IDisposable
 
 		_ = LoadAllSoundsAsync();
 	}
-
-	// ── Loading ────────────────────────────────────────────────────────────────
 
 	async Task LoadAllSoundsAsync()
 	{
@@ -94,12 +92,10 @@ public sealed partial class SoundFeature : IDisposable
 		}
 	}
 
-	// ── Custom sound management ────────────────────────────────────────────────
-
 	/// <summary>
 	/// Saves <paramref name="stream"/> as the custom sound for <paramref name="soundType"/>.
 	/// </summary>
-	public async Task SetCustomSoundAsync(SoundEffectType soundType, Stream stream, string displayFileName)
+	public async Task SetCustomSoundAsync(SoundEffectTypeEnum soundType, Stream stream, string displayFileName)
 	{
 		string soundName = GetSoundName(soundType);
 		string customDir = Path.Combine(FileSystem.AppDataDirectory, "Sounds");
@@ -117,7 +113,7 @@ public sealed partial class SoundFeature : IDisposable
 	/// <summary>
 	/// Removes any custom sound for <paramref name="soundType"/> and reverts to the bundled default.
 	/// </summary>
-	public async Task ResetToDefaultAsync(SoundEffectType soundType)
+	public async Task ResetToDefaultAsync(SoundEffectTypeEnum soundType)
 	{
 		string soundName = GetSoundName(soundType);
 		string customPath = CustomSoundPath(soundName);
@@ -131,32 +127,32 @@ public sealed partial class SoundFeature : IDisposable
 		await LoadSingleSoundAsync(soundName);
 	}
 
-	/// <summary>Returns the user-supplied file name, or an empty string when using the default.</summary>
-	public string GetCustomFileName(SoundEffectType soundType) => soundType switch
+	/// <summary>
+	/// Returns the user-supplied file name, or an empty string when using the default.
+	/// </summary>
+	public string GetCustomFileName(SoundEffectTypeEnum soundType) => soundType switch
 	{
-		SoundEffectType.Permission => _appSettings.SoundPermissionCustomFileName,
-		SoundEffectType.UserInput => _appSettings.SoundUserInputCustomFileName,
-		SoundEffectType.Finished => _appSettings.SoundFinishedCustomFileName,
+		SoundEffectTypeEnum.Permission => _appSettings.SoundPermissionCustomFileName,
+		SoundEffectTypeEnum.UserInput => _appSettings.SoundUserInputCustomFileName,
+		SoundEffectTypeEnum.Finished => _appSettings.SoundFinishedCustomFileName,
 		_ => string.Empty
 	};
 
-	void StoreCustomFileName(SoundEffectType soundType, string fileName)
+	void StoreCustomFileName(SoundEffectTypeEnum soundType, string fileName)
 	{
 		switch(soundType)
 		{
-			case SoundEffectType.Permission: _appSettings.SoundPermissionCustomFileName = fileName; break;
-			case SoundEffectType.UserInput: _appSettings.SoundUserInputCustomFileName = fileName; break;
-			case SoundEffectType.Finished: _appSettings.SoundFinishedCustomFileName = fileName; break;
+			case SoundEffectTypeEnum.Permission: _appSettings.SoundPermissionCustomFileName = fileName; break;
+			case SoundEffectTypeEnum.UserInput: _appSettings.SoundUserInputCustomFileName = fileName; break;
+			case SoundEffectTypeEnum.Finished: _appSettings.SoundFinishedCustomFileName = fileName; break;
 		}
 	}
 
-	// ── Playback ───────────────────────────────────────────────────────────────
-
 	void OnPermissionRequested(string sessionId, PermissionRequestModel request) =>
-		_ = PlaySoundAsync(SoundEffectType.Permission);
+		_ = PlaySoundAsync(SoundEffectTypeEnum.Permission);
 
 	void OnUserInputRequested(string sessionId, UserInputRequestModel request) =>
-		_ = PlaySoundAsync(SoundEffectType.UserInput);
+		_ = PlaySoundAsync(SoundEffectTypeEnum.UserInput);
 
 	void OnSessionStateChanged()
 	{
@@ -171,7 +167,7 @@ public sealed partial class SoundFeature : IDisposable
 
 			if(session.Status == SessionStatusEnum.Idle && wasActive)
 			{
-				_ = PlaySoundAsync(SoundEffectType.Finished);
+				_ = PlaySoundAsync(SoundEffectTypeEnum.Finished);
 			}
 
 			_lastKnownStatuses[session.Id] = session.Status;
@@ -190,13 +186,13 @@ public sealed partial class SoundFeature : IDisposable
 	/// Plays a sound. Pass <paramref name="forPreview"/> = <c>true</c> from the settings
 	/// page to bypass the per-sound enabled toggle.
 	/// </summary>
-	public async Task PlaySoundAsync(SoundEffectType soundType, bool forPreview = false)
+	public async Task PlaySoundAsync(SoundEffectTypeEnum soundType, bool forPreview = false)
 	{
 		bool enabled = soundType switch
 		{
-			SoundEffectType.Permission => _appSettings.SoundPermissionEnabled,
-			SoundEffectType.UserInput => _appSettings.SoundUserInputEnabled,
-			SoundEffectType.Finished => _appSettings.SoundFinishedEnabled,
+			SoundEffectTypeEnum.Permission => _appSettings.SoundPermissionEnabled,
+			SoundEffectTypeEnum.UserInput => _appSettings.SoundUserInputEnabled,
+			SoundEffectTypeEnum.Finished => _appSettings.SoundFinishedEnabled,
 			_ => false
 		};
 
@@ -214,9 +210,9 @@ public sealed partial class SoundFeature : IDisposable
 
 		double volume = soundType switch
 		{
-			SoundEffectType.Permission => _appSettings.SoundPermissionVolume,
-			SoundEffectType.UserInput => _appSettings.SoundUserInputVolume,
-			SoundEffectType.Finished => _appSettings.SoundFinishedVolume,
+			SoundEffectTypeEnum.Permission => _appSettings.SoundPermissionVolume,
+			SoundEffectTypeEnum.UserInput => _appSettings.SoundUserInputVolume,
+			SoundEffectTypeEnum.Finished => _appSettings.SoundFinishedVolume,
 			_ => 0.5
 		};
 
