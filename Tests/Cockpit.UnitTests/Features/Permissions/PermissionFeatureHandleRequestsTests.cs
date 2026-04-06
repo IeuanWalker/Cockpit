@@ -509,8 +509,9 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 	/// Yields <c>null</c> for any type not present in <see cref="minimalFixtures"/> so the theory
 	/// body can fail with a descriptive message.
 	/// </summary>
-	public static IEnumerable<object[]> AllSdkPermissionRequestTypes()
+	public static TheoryData<string> AllSdkPermissionRequestTypes_Typed()
 	{
+		TheoryData<string> data = new TheoryData<string>();
 		IEnumerable<Type> sdkTypes = typeof(PermissionRequest)
 			.GetCustomAttributes(typeof(System.Text.Json.Serialization.JsonDerivedTypeAttribute), inherit: false)
 			.Cast<System.Text.Json.Serialization.JsonDerivedTypeAttribute>()
@@ -518,15 +519,27 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 
 		foreach(Type type in sdkTypes)
 		{
-			minimalFixtures.TryGetValue(type, out PermissionRequest? fixture);
-			yield return [type.Name, fixture!];
+			data.Add(type.Name);
 		}
+
+		return data;
 	}
 
 	[Theory]
-	[MemberData(nameof(AllSdkPermissionRequestTypes))]
-	public async Task ToRequestModel_AllSdkRegisteredTypes_ProducesValidModel(string typeName, PermissionRequest? request)
+	[MemberData(nameof(AllSdkPermissionRequestTypes_Typed))]
+	public async Task ToRequestModel_AllSdkRegisteredTypes_ProducesValidModel(string typeName)
 	{
+		IEnumerable<Type> sdkTypes = typeof(PermissionRequest)
+			.GetCustomAttributes(typeof(System.Text.Json.Serialization.JsonDerivedTypeAttribute), inherit: false)
+			.Cast<System.Text.Json.Serialization.JsonDerivedTypeAttribute>()
+			.Select(a => a.DerivedType);
+
+		Type? targetType = sdkTypes.FirstOrDefault(t => t.Name == typeName);
+		PermissionRequest? request = null;
+		if(targetType is not null)
+		{
+			minimalFixtures.TryGetValue(targetType, out request);
+		}
 		request.ShouldNotBeNull(
 			$"SDK type '{typeName}' is registered via [JsonDerivedType] but has no entry in {nameof(minimalFixtures)}. " +
 			$"Add a minimal valid instance to keep handler coverage up to date.");
