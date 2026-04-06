@@ -37,7 +37,6 @@ public class CopilotClientFeature : IAsyncDisposable
 			_client = new CopilotClient(new CopilotClientOptions
 			{
 				AutoStart = true,
-				AutoRestart = true,
 				LogLevel = "info",
 				UseStdio = true,
 				Logger = _logger

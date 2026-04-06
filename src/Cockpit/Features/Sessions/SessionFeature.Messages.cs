@@ -16,20 +16,20 @@ public sealed partial class SessionFeature
 
 		try
 		{
+			if(!_sdkRegistry.TryGet(CurrentSession.Id, out CopilotSession? existingSession))
+			{
+				throw new InvalidOperationException($"Session {CurrentSession.Id} not found");
+			}
+
 			if(CurrentSession.ModelChanged)
 			{
-				await RestartSessionWithPendingConfig(CurrentSession);
+				await existingSession.SetModelAsync(CurrentSession.Model.Id, CurrentSession.ReasoningEffort);
 
 				CurrentSession.ModelChanged = false;
 			}
 
 			if(CurrentSession.AgentChanged)
 			{
-				if(!_sdkRegistry.TryGet(CurrentSession.Id, out CopilotSession? existingSession))
-				{
-					throw new InvalidOperationException($"Session {CurrentSession.Id} not found");
-				}
-
 				if(CurrentSession.Context.SelectedAgent is null)
 				{
 					await existingSession.Rpc.Agent.DeselectAsync();
@@ -49,11 +49,6 @@ public sealed partial class SessionFeature
 				{
 					return;
 				}
-			}
-
-			if(!_sdkRegistry.TryGet(CurrentSession.Id, out CopilotSession? sdkSession))
-			{
-				throw new InvalidOperationException($"Session {CurrentSession.Id} not found in SDK sessions");
 			}
 
 			// Deduplicate attachments by file path before sending
@@ -97,7 +92,7 @@ public sealed partial class SessionFeature
 					})];
 			}
 
-			string sentMessageId = await sdkSession.SendAsync(new MessageOptions
+			string sentMessageId = await existingSession.SendAsync(new MessageOptions
 			{
 				Prompt = content,
 				Attachments = sdkAttachments
