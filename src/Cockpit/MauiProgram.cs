@@ -136,8 +136,11 @@ public static class MauiProgram
 		builder.Services.AddSingleton<SessionAgentFeature>();
 
 		MauiApp app = builder.Build();
+
+		// Inistialize features
 		app.Services.GetRequiredService<UpdateFeature>().Initialize();
-		app.Services.GetRequiredService<SoundFeature>(); // Activate subscriptions
+		app.Services.GetRequiredService<SoundFeature>();
+
 		return app;
 	}
 
