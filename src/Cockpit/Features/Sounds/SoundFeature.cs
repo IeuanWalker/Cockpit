@@ -194,23 +194,29 @@ public sealed partial class SoundFeature : IDisposable
 
 		try
 		{
-			IAudioPlayer? player = null;
+			IAudioPlayer player = _audioManager.CreatePlayer(new MemoryStream(bytes));
+			bool playbackStarted = false;
+
+			void OnEnded(object? s, EventArgs e)
+			{
+				player.PlaybackEnded -= OnEnded;
+				player.Dispose();
+			}
+
 			try
 			{
-				player = _audioManager.CreatePlayer(new MemoryStream(bytes));
 				player.Volume = volume;
 				player.PlaybackEnded += OnEnded;
 				player.Play();
-
-				void OnEnded(object? s, EventArgs e)
+				playbackStarted = true;
+			}
+			catch
+			{
+				if(!playbackStarted)
 				{
 					player.PlaybackEnded -= OnEnded;
 					player.Dispose();
 				}
-			}
-			catch
-			{
-				player?.Dispose();
 				throw;
 			}
 		}
