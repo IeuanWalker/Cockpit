@@ -10,11 +10,15 @@
                     <button @onclick='() => SetEnabled(SoundEffectType.Permission, true)'
                             class="theme-btn px-2 py-1 rounded text-xs @(_permissionEnabled ? "active" : "")"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Enable permission request sound">On</button>
+                            aria-label="Enable permission request sound">
+                        On
+                    </button>
                     <button @onclick='() => SetEnabled(SoundEffectType.Permission, false)'
                             class="theme-btn px-2 py-1 rounded text-xs @(!_permissionEnabled ? "active" : "")"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Disable permission request sound">Off</button>
+                            aria-label="Disable permission request sound">
+                        Off
+                    </button>
                 </div>
             </div>
             @if(_permissionEnabled)
@@ -28,7 +32,9 @@
                     <button @onclick='() => Preview(SoundEffectType.Permission)'
                             class="theme-btn px-2 py-1 rounded text-xs"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Preview permission request sound">▶</button>
+                            aria-label="Preview permission request sound">
+                        ▶
+                    </button>
                 </div>
             }
             <div class="flex items-center gap-2 flex-wrap">
@@ -44,7 +50,9 @@
                     <button @onclick='() => ResetSound(SoundEffectType.Permission)'
                             class="theme-btn px-2 py-1 rounded text-xs"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Reset permission sound to default">Reset</button>
+                            aria-label="Reset permission sound to default">
+                        Reset
+                    </button>
                 }
             </div>
         </div>
@@ -59,11 +67,15 @@
                     <button @onclick='() => SetEnabled(SoundEffectType.UserInput, true)'
                             class="theme-btn px-2 py-1 rounded text-xs @(_userInputEnabled ? "active" : "")"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Enable user input request sound">On</button>
+                            aria-label="Enable user input request sound">
+                        On
+                    </button>
                     <button @onclick='() => SetEnabled(SoundEffectType.UserInput, false)'
                             class="theme-btn px-2 py-1 rounded text-xs @(!_userInputEnabled ? "active" : "")"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Disable user input request sound">Off</button>
+                            aria-label="Disable user input request sound">
+                        Off
+                    </button>
                 </div>
             </div>
             @if(_userInputEnabled)
@@ -77,7 +89,9 @@
                     <button @onclick='() => Preview(SoundEffectType.UserInput)'
                             class="theme-btn px-2 py-1 rounded text-xs"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Preview user input request sound">▶</button>
+                            aria-label="Preview user input request sound">
+                        ▶
+                    </button>
                 </div>
             }
             <div class="flex items-center gap-2 flex-wrap">
@@ -93,7 +107,9 @@
                     <button @onclick='() => ResetSound(SoundEffectType.UserInput)'
                             class="theme-btn px-2 py-1 rounded text-xs"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Reset user input sound to default">Reset</button>
+                            aria-label="Reset user input sound to default">
+                        Reset
+                    </button>
                 }
             </div>
         </div>
@@ -108,11 +124,15 @@
                     <button @onclick='() => SetEnabled(SoundEffectType.Finished, true)'
                             class="theme-btn px-2 py-1 rounded text-xs @(_finishedEnabled ? "active" : "")"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Enable finished sound">On</button>
+                            aria-label="Enable finished sound">
+                        On
+                    </button>
                     <button @onclick='() => SetEnabled(SoundEffectType.Finished, false)'
                             class="theme-btn px-2 py-1 rounded text-xs @(!_finishedEnabled ? "active" : "")"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Disable finished sound">Off</button>
+                            aria-label="Disable finished sound">
+                        Off
+                    </button>
                 </div>
             </div>
             @if(_finishedEnabled)
@@ -126,7 +146,9 @@
                     <button @onclick='() => Preview(SoundEffectType.Finished)'
                             class="theme-btn px-2 py-1 rounded text-xs"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Preview finished sound">▶</button>
+                            aria-label="Preview finished sound">
+                        ▶
+                    </button>
                 </div>
             }
             <div class="flex items-center gap-2 flex-wrap">
@@ -142,11 +164,11 @@
                     <button @onclick='() => ResetSound(SoundEffectType.Finished)'
                             class="theme-btn px-2 py-1 rounded text-xs"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
-                            aria-label="Reset finished sound to default">Reset</button>
+                            aria-label="Reset finished sound to default">
+                        Reset
+                    </button>
                 }
             </div>
         </div>
-
     </div>
 </div>
-
