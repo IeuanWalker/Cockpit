@@ -137,7 +137,7 @@ public static class MauiProgram
 
 		MauiApp app = builder.Build();
 
-		// Inistialize features
+		// Initialize features
 		app.Services.GetRequiredService<UpdateFeature>().Initialize();
 		app.Services.GetRequiredService<SoundFeature>();
 
