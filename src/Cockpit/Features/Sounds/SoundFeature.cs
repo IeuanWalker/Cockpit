@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
@@ -15,7 +16,9 @@ public sealed partial class SoundFeature : IDisposable
 	readonly UserInputFeature _userInputFeature;
 	readonly IAppSettingsFeature _appSettings;
 	readonly ILogger<SoundFeature> _logger;
-	readonly Dictionary<string, byte[]> _soundBytes = [];
+	const long maxSoundFileSizeBytes = 10 * 1024 * 1024; // 10 MB
+
+	readonly ConcurrentDictionary<string, byte[]> _soundBytes = new();
 
 	// Default raw asset per sound name. Both "permission" and "userInput" fall back to request.mp3.
 	static readonly Dictionary<string, string> defaultSoundAssets = new()
@@ -87,9 +90,15 @@ public sealed partial class SoundFeature : IDisposable
 
 	/// <summary>
 	/// Saves <paramref name="stream"/> as the custom sound for <paramref name="soundType"/>.
+	/// Throws <see cref="InvalidOperationException"/> if the stream exceeds the 10 MB size limit.
 	/// </summary>
 	public async Task SetCustomSoundAsync(SoundEffectTypeEnum soundType, Stream stream, string displayFileName)
 	{
+		if(stream.CanSeek && stream.Length > maxSoundFileSizeBytes)
+		{
+			throw new InvalidOperationException("The selected audio file exceeds the 10 MB size limit.");
+		}
+
 		string soundName = GetSoundName(soundType);
 		string customDir = Path.Combine(FileSystem.AppDataDirectory, "Sounds");
 		Directory.CreateDirectory(customDir);
@@ -185,15 +194,23 @@ public sealed partial class SoundFeature : IDisposable
 
 		try
 		{
-			IAudioPlayer player = _audioManager.CreatePlayer(new MemoryStream(bytes));
-			player.Volume = volume;
-			player.PlaybackEnded += OnEnded;
-			player.Play();
-
-			void OnEnded(object? s, EventArgs e)
+			IAudioPlayer? player = null;
+			try
 			{
-				player.PlaybackEnded -= OnEnded;
-				player.Dispose();
+				player = _audioManager.CreatePlayer(new MemoryStream(bytes));
+				player.Volume = volume;
+				player.PlaybackEnded += OnEnded;
+				player.Play();
+
+				void OnEnded(object? s, EventArgs e)
+				{
+					player.PlaybackEnded -= OnEnded;
+					player.Dispose();
+				}
+			}
+			finally
+			{
+				player?.Dispose();
 			}
 		}
 		catch(Exception ex)

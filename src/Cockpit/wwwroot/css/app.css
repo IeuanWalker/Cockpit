@@ -452,6 +452,44 @@ code {
     text-align: start;
 }
 
+/*
+ * Source: https://stackoverflow.com/a/38163892 (CC BY-SA 3.0)
+ * Fills the track using overflow:hidden + a large box-shadow on the thumb —
+ * no JS or CSS custom properties required.
+ */
+input[type="range"] {
+    overflow: hidden;
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--bg-color);
+    border-radius: 9999px;
+    cursor: pointer;
+}
+
+    input[type="range"]::-webkit-slider-runnable-track {
+        -webkit-appearance: none;
+        background-color: transparent;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+        width: 16px;
+        height: 16px;
+        -webkit-appearance: none;
+        border-radius: 50%;
+        background-color: var(--active-color);
+        box-shadow: -1000px 0 0 990px var(--accent-color);
+        cursor: pointer;
+    }
+
+    /* Firefox */
+    input[type="range"]::-moz-range-track {
+        background-color: var(--sidebar-color);
+    }
+
+    input[type="range"]::-moz-range-progress {
+        background-color: var(--accent-color);
+    }
+
 input[type="color"] {
     -webkit-appearance: none;
     appearance: none;
@@ -649,31 +687,31 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     line-height: 1.4;
 }
 
-.file-mention-chip svg {
-    flex-shrink: 0;
-    width: 12px;
-    height: 12px;
-    opacity: 0.75;
-}
+    .file-mention-chip svg {
+        flex-shrink: 0;
+        width: 12px;
+        height: 12px;
+        opacity: 0.75;
+    }
 
-.file-mention-chip .chip-delete {
-    background: none;
-    border: none;
-    padding: 0 0 0 3px;
-    margin: 0;
-    color: inherit;
-    opacity: 0.55;
-    cursor: pointer;
-    font-size: 0.85rem;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-}
+    .file-mention-chip .chip-delete {
+        background: none;
+        border: none;
+        padding: 0 0 0 3px;
+        margin: 0;
+        color: inherit;
+        opacity: 0.55;
+        cursor: pointer;
+        font-size: 0.85rem;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
 
-.file-mention-chip .chip-delete:hover {
-    opacity: 1;
-}
+        .file-mention-chip .chip-delete:hover {
+            opacity: 1;
+        }
 
 .file-mention-chip-readonly {
     display: inline-flex;
@@ -695,12 +733,12 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     line-height: 1.4;
 }
 
-.file-mention-chip-readonly svg {
-    flex-shrink: 0;
-    width: 12px;
-    height: 12px;
-    opacity: 0.75;
-}
+    .file-mention-chip-readonly svg {
+        flex-shrink: 0;
+        width: 12px;
+        height: 12px;
+        opacity: 0.75;
+    }
 
 /* ContentEditable input div (replaces textarea) */
 #chatInput[contenteditable] {
@@ -714,12 +752,12 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     cursor: text;
 }
 
-#chatInput[contenteditable]:empty::before {
-    content: attr(data-placeholder);
-    color: var(--secondary-text);
-    pointer-events: none;
-    font-style: normal;
-}
+    #chatInput[contenteditable]:empty::before {
+        content: attr(data-placeholder);
+        color: var(--secondary-text);
+        pointer-events: none;
+        font-style: normal;
+    }
 
 /* File mention picker dropdown */
 .file-mention-picker {
@@ -744,27 +782,27 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     max-height: 240px;
 }
 
-.file-mention-picker-list::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
+    .file-mention-picker-list::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
 
-.file-mention-picker-list::-webkit-scrollbar-corner {
-    background: transparent;
-}
+    .file-mention-picker-list::-webkit-scrollbar-corner {
+        background: transparent;
+    }
 
-.file-mention-picker-list::-webkit-scrollbar-track {
-    background: var(--sidebar-color);
-}
+    .file-mention-picker-list::-webkit-scrollbar-track {
+        background: var(--sidebar-color);
+    }
 
-.file-mention-picker-list::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 0px;
-}
+    .file-mention-picker-list::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 0px;
+    }
 
-.file-mention-picker-list::-webkit-scrollbar-thumb:hover {
-    background: var(--hover-color);
-}
+        .file-mention-picker-list::-webkit-scrollbar-thumb:hover {
+            background: var(--hover-color);
+        }
 
 .file-mention-picker-item {
     display: flex;
@@ -776,14 +814,14 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     transition: background-color 0.1s;
 }
 
-.file-mention-picker-item:hover,
-.file-mention-picker-item.active {
-    background-color: var(--hover-color);
-}
+    .file-mention-picker-item:hover,
+    .file-mention-picker-item.active {
+        background-color: var(--hover-color);
+    }
 
-.file-mention-picker-item.active {
-    background-color: var(--active-color);
-}
+    .file-mention-picker-item.active {
+        background-color: var(--active-color);
+    }
 
 .file-mention-picker-filename {
     color: var(--text-color);

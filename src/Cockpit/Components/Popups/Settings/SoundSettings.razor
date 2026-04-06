@@ -29,7 +29,7 @@
                            value="@_permissionVolume"
                            @oninput="e => OnVolumeChanged(e, SoundEffectTypeEnum.Permission)"
                            class="flex-1" aria-label="Permission request volume" />
-                    <span class="secondary-text text-xs w-8">@_permissionVolume.ToString("0.00")</span>
+                    <span class="secondary-text text-xs w-8">@_permissionVolume.ToString("P0")</span>
                     <button @onclick='() => Preview(SoundEffectTypeEnum.Permission)'
                             class="theme-btn px-2 py-1 rounded text-xs"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
@@ -86,7 +86,7 @@
                            value="@_userInputVolume"
                            @oninput="e => OnVolumeChanged(e, SoundEffectTypeEnum.UserInput)"
                            class="flex-1" aria-label="User input request volume" />
-                    <span class="secondary-text text-xs w-8">@_userInputVolume.ToString("0.00")</span>
+                    <span class="secondary-text text-xs w-8">@_userInputVolume.ToString("P0")</span>
                     <button @onclick='() => Preview(SoundEffectTypeEnum.UserInput)'
                             class="theme-btn px-2 py-1 rounded text-xs"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
@@ -143,7 +143,7 @@
                            value="@_finishedVolume"
                            @oninput="e => OnVolumeChanged(e, SoundEffectTypeEnum.Finished)"
                            class="flex-1" aria-label="Finished volume" />
-                    <span class="secondary-text text-xs w-8">@_finishedVolume.ToString("0.00")</span>
+                    <span class="secondary-text text-xs w-8">@_finishedVolume.ToString("P0")</span>
                     <button @onclick='() => Preview(SoundEffectTypeEnum.Finished)'
                             class="theme-btn px-2 py-1 rounded text-xs"
                             style="border: 1px solid var(--border-color); color: var(--text-color);"
