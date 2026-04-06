@@ -1,18 +1,18 @@
 using System.Collections.Concurrent;
-using System.Globalization;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using Cockpit.Features.Splash;
 using Cockpit.Features.UserInputRequests;
 using Microsoft.Extensions.Logging;
+using Plugin.Maui.Audio;
 
 namespace Cockpit.Features.Sounds;
 
 public sealed class SoundFeature : IDisposable
 {
+	readonly IAudioManager _audioManager;
 	readonly PermissionFeature _permissionFeature;
 	readonly UserInputFeature _userInputFeature;
 	readonly ISessionStateProvider _sessionStateProvider;
@@ -20,8 +20,7 @@ public sealed class SoundFeature : IDisposable
 	readonly ILogger<SoundFeature> _logger;
 
 	readonly ConcurrentDictionary<string, SessionStatusEnum> _lastKnownStatuses = new();
-	readonly Dictionary<string, string> _soundDataUrls = [];
-	bool _soundsRegistered = false;
+	readonly Dictionary<string, byte[]> _soundBytes = [];
 
 	// Default raw asset per sound name. Both "permission" and "userInput" fall back to request.mp3.
 	static readonly Dictionary<string, string> DefaultSoundAssets = new()
@@ -43,13 +42,14 @@ public sealed class SoundFeature : IDisposable
 	};
 
 	public SoundFeature(
+		IAudioManager audioManager,
 		PermissionFeature permissionFeature,
 		UserInputFeature userInputFeature,
 		ISessionStateProvider sessionStateProvider,
 		IAppSettingsFeature appSettings,
-		SplashFeature splashFeature,
 		ILogger<SoundFeature> logger)
 	{
+		_audioManager = audioManager;
 		_permissionFeature = permissionFeature;
 		_userInputFeature = userInputFeature;
 		_sessionStateProvider = sessionStateProvider;
@@ -61,7 +61,6 @@ public sealed class SoundFeature : IDisposable
 		_sessionStateProvider.OnStateChanged += OnSessionStateChanged;
 
 		_ = LoadAllSoundsAsync();
-		splashFeature.OnBlazorReady += OnBlazorReady;
 	}
 
 	// ── Loading ────────────────────────────────────────────────────────────────
@@ -76,21 +75,18 @@ public sealed class SoundFeature : IDisposable
 		try
 		{
 			string customPath = CustomSoundPath(soundName);
-			byte[] bytes;
 
 			if(File.Exists(customPath))
 			{
-				bytes = await File.ReadAllBytesAsync(customPath);
+				_soundBytes[soundName] = await File.ReadAllBytesAsync(customPath);
 			}
 			else
 			{
 				using Stream stream = await FileSystem.OpenAppPackageFileAsync(DefaultSoundAssets[soundName]);
 				using MemoryStream ms = new();
 				await stream.CopyToAsync(ms);
-				bytes = ms.ToArray();
+				_soundBytes[soundName] = ms.ToArray();
 			}
-
-			_soundDataUrls[soundName] = $"data:audio/mpeg;base64,{Convert.ToBase64String(bytes)}";
 		}
 		catch(Exception ex)
 		{
@@ -98,49 +94,10 @@ public sealed class SoundFeature : IDisposable
 		}
 	}
 
-	// ── JS Registration ────────────────────────────────────────────────────────
-
-	void OnBlazorReady() => _ = RegisterAllSoundsWithJsAsync();
-
-	async Task RegisterAllSoundsWithJsAsync()
-	{
-		if(_soundsRegistered)
-		{
-			return;
-		}
-
-		// Wait for async file loading to complete
-		while(_soundDataUrls.Count < DefaultSoundAssets.Count)
-		{
-			await Task.Delay(50);
-		}
-
-		foreach(string name in _soundDataUrls.Keys)
-		{
-			await RegisterSingleSoundWithJsAsync(name);
-		}
-
-		_soundsRegistered = true;
-	}
-
-	async Task RegisterSingleSoundWithJsAsync(string soundName)
-	{
-		if(!_soundDataUrls.TryGetValue(soundName, out string? dataUrl))
-		{
-			return;
-		}
-
-		if(Application.Current?.Windows?.FirstOrDefault()?.Page is MainPage mainPage)
-		{
-			await mainPage.InvokeJavaScriptAsync($"window.cockpit?.registerSound?.('{soundName}', '{dataUrl}');");
-		}
-	}
-
 	// ── Custom sound management ────────────────────────────────────────────────
 
 	/// <summary>
-	/// Saves <paramref name="stream"/> as the custom sound for <paramref name="soundType"/>,
-	/// then reloads and re-registers it with the JS audio cache.
+	/// Saves <paramref name="stream"/> as the custom sound for <paramref name="soundType"/>.
 	/// </summary>
 	public async Task SetCustomSoundAsync(SoundEffectType soundType, Stream stream, string displayFileName)
 	{
@@ -148,16 +105,13 @@ public sealed class SoundFeature : IDisposable
 		string customDir = Path.Combine(FileSystem.AppDataDirectory, "Sounds");
 		Directory.CreateDirectory(customDir);
 
-		string customPath = CustomSoundPath(soundName);
-		using(FileStream fs = File.Create(customPath))
+		using(FileStream fs = File.Create(CustomSoundPath(soundName)))
 		{
 			await stream.CopyToAsync(fs);
 		}
 
 		StoreCustomFileName(soundType, displayFileName);
-
 		await LoadSingleSoundAsync(soundName);
-		await RegisterSingleSoundWithJsAsync(soundName);
 	}
 
 	/// <summary>
@@ -174,9 +128,7 @@ public sealed class SoundFeature : IDisposable
 		}
 
 		StoreCustomFileName(soundType, string.Empty);
-
 		await LoadSingleSoundAsync(soundName);
-		await RegisterSingleSoundWithJsAsync(soundName);
 	}
 
 	/// <summary>Returns the user-supplied file name, or an empty string when using the default.</summary>
@@ -212,7 +164,12 @@ public sealed class SoundFeature : IDisposable
 		{
 			_lastKnownStatuses.TryGetValue(session.Id, out SessionStatusEnum lastStatus);
 
-			if(session.Status == SessionStatusEnum.Finished && lastStatus != SessionStatusEnum.Finished)
+			// Sessions finish by transitioning to Idle after Running (not a Finished enum value).
+			bool wasActive = lastStatus == SessionStatusEnum.Running
+				|| lastStatus == SessionStatusEnum.NeedsPermission
+				|| lastStatus == SessionStatusEnum.NeedsUserInput;
+
+			if(session.Status == SessionStatusEnum.Idle && wasActive)
 			{
 				_ = PlaySoundAsync(SoundEffectType.Finished);
 			}
@@ -249,21 +206,31 @@ public sealed class SoundFeature : IDisposable
 		}
 
 		string soundName = GetSoundName(soundType);
-		float volume = soundType switch
+
+		if(!_soundBytes.TryGetValue(soundName, out byte[]? bytes))
+		{
+			return;
+		}
+
+		double volume = soundType switch
 		{
 			SoundEffectType.Permission => _appSettings.SoundPermissionVolume,
 			SoundEffectType.UserInput => _appSettings.SoundUserInputVolume,
 			SoundEffectType.Finished => _appSettings.SoundFinishedVolume,
-			_ => 0.5f
+			_ => 0.5
 		};
-
-		string volumeStr = volume.ToString("0.00", CultureInfo.InvariantCulture);
 
 		try
 		{
-			if(Application.Current?.Windows?.FirstOrDefault()?.Page is MainPage mainPage)
+			IAudioPlayer player = _audioManager.CreatePlayer(new MemoryStream(bytes));
+			player.Volume = volume;
+			player.PlaybackEnded += OnEnded;
+			await Task.Run(player.Play);
+
+			void OnEnded(object? s, EventArgs e)
 			{
-				await mainPage.InvokeJavaScriptAsync($"window.cockpit?.playSound?.('{soundName}', {volumeStr});");
+				player.PlaybackEnded -= OnEnded;
+				player.Dispose();
 			}
 		}
 		catch(Exception ex)

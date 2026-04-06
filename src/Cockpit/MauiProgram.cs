@@ -8,6 +8,7 @@ using Cockpit.Features.Git;
 using Cockpit.Features.Markdown;
 using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
+using Plugin.Maui.Audio;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.FileSearch;
@@ -47,6 +48,7 @@ public static class MauiProgram
 #if WINDOWS || MACCATALYST
 			.UseMauiCommunityToolkit()
 #endif
+			.AddAudio()
 			.AddMauiContentButtonHandler()
 			.ConfigureFonts(fonts =>
 			{

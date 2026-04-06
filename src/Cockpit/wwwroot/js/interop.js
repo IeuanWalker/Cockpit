@@ -14,21 +14,6 @@ window.cockpit = {
     setMainLayoutRef: function (dotNetRef) {
         window._mainLayoutRef = dotNetRef;
     },
-    registerSound: function (name, dataUrl) {
-        if (!window._cockpitSounds) window._cockpitSounds = {};
-        window._cockpitSounds[name] = dataUrl;
-    },
-    playSound: function (name, volume) {
-        try {
-            const sounds = window._cockpitSounds;
-            if (!sounds || !sounds[name]) return;
-            const audio = new Audio(sounds[name]);
-            audio.volume = Math.max(0, Math.min(1, volume || 0.5));
-            audio.play().catch(() => {});
-        } catch (e) {
-            // Audio not available or autoplay policy blocked
-        }
-    },
     setRootProperty: function (property, value) {
         document.documentElement.style.setProperty(property, value);
     },
