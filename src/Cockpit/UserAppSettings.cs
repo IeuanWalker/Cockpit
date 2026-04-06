@@ -90,4 +90,58 @@ public static class UserAppSettings
 		get => Preferences.Default.Get("DiffSplitView", false);
 		set => Preferences.Default.Set("DiffSplitView", value);
 	}
+
+	public static bool SoundPermissionEnabled
+	{
+		get => Preferences.Default.Get("SoundPermissionEnabled", true);
+		set => Preferences.Default.Set("SoundPermissionEnabled", value);
+	}
+
+	public static float SoundPermissionVolume
+	{
+		get => Preferences.Default.Get("SoundPermissionVolume", 0.5f);
+		set => Preferences.Default.Set("SoundPermissionVolume", value);
+	}
+
+	public static bool SoundUserInputEnabled
+	{
+		get => Preferences.Default.Get("SoundUserInputEnabled", true);
+		set => Preferences.Default.Set("SoundUserInputEnabled", value);
+	}
+
+	public static float SoundUserInputVolume
+	{
+		get => Preferences.Default.Get("SoundUserInputVolume", 0.5f);
+		set => Preferences.Default.Set("SoundUserInputVolume", value);
+	}
+
+	public static bool SoundFinishedEnabled
+	{
+		get => Preferences.Default.Get("SoundFinishedEnabled", true);
+		set => Preferences.Default.Set("SoundFinishedEnabled", value);
+	}
+
+	public static float SoundFinishedVolume
+	{
+		get => Preferences.Default.Get("SoundFinishedVolume", 0.5f);
+		set => Preferences.Default.Set("SoundFinishedVolume", value);
+	}
+
+	public static string SoundPermissionCustomFileName
+	{
+		get => Preferences.Default.Get("SoundPermissionCustomFileName", string.Empty);
+		set => Preferences.Default.Set("SoundPermissionCustomFileName", value);
+	}
+
+	public static string SoundUserInputCustomFileName
+	{
+		get => Preferences.Default.Get("SoundUserInputCustomFileName", string.Empty);
+		set => Preferences.Default.Set("SoundUserInputCustomFileName", value);
+	}
+
+	public static string SoundFinishedCustomFileName
+	{
+		get => Preferences.Default.Get("SoundFinishedCustomFileName", string.Empty);
+		set => Preferences.Default.Set("SoundFinishedCustomFileName", value);
+	}
 }

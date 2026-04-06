@@ -11,6 +11,15 @@ public interface IAppSettingsFeature
 	int LeftSidebarWidth { get; set; }
 	int RightSidebarWidth { get; set; }
 	bool DiffSplitView { get; set; }
+	bool SoundPermissionEnabled { get; set; }
+	float SoundPermissionVolume { get; set; }
+	bool SoundUserInputEnabled { get; set; }
+	float SoundUserInputVolume { get; set; }
+	bool SoundFinishedEnabled { get; set; }
+	float SoundFinishedVolume { get; set; }
+	string SoundPermissionCustomFileName { get; set; }
+	string SoundUserInputCustomFileName { get; set; }
+	string SoundFinishedCustomFileName { get; set; }
 	bool TextToSpeechEnabled { get; set; }
 	float VoiceVolume { get; set; }
 	float VoicePitch { get; set; }

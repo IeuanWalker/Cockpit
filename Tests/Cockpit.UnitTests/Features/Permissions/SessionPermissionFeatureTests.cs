@@ -42,6 +42,7 @@ public class SessionPermissionFeatureTests
 		}
 
 		public IReadOnlyList<SessionModel> Sessions => _sessions;
+		public event Action? OnStateChanged;
 		public void NotifyStateChanged() { }
 	}
 
