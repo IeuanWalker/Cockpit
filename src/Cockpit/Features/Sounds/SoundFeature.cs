@@ -208,9 +208,10 @@ public sealed partial class SoundFeature : IDisposable
 					player.Dispose();
 				}
 			}
-			finally
+			catch
 			{
 				player?.Dispose();
+				throw;
 			}
 		}
 		catch(Exception ex)
