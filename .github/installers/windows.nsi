@@ -29,6 +29,8 @@ BrandingText  "${APP_NAME} ${APP_VERSION}"
 
 ; MUI settings
 !define MUI_ABORTWARNING
+!define MUI_ICON "logo.ico"
+!define MUI_UNICON "logo.ico"
 !define MUI_FINISHPAGE_RUN         "$INSTDIR\${APP_EXE}"
 !define MUI_FINISHPAGE_RUN_TEXT    "Launch ${APP_NAME}"
 
