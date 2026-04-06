@@ -20,8 +20,8 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 	const string workingDirectory = @"C:\projects\my-app";
 
 	// Disposables and temp files created by helpers; xUnit will call Dispose on the test class instance.
-	readonly List<IDisposable> _disposables = new();
-	readonly List<string> _tempFiles = new();
+	readonly List<IDisposable> _disposables = [];
+	readonly List<string> _tempFiles = [];
 
 	// ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -596,19 +596,33 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 		GC.SuppressFinalize(this);
 	}
 
-	private void Dispose(bool disposing)
+	void Dispose(bool disposing)
 	{
-		if (!disposing) return;
-
-		// Dispose in reverse creation order to avoid depending on disposed objects.
-		for (int i = _disposables.Count - 1; i >= 0; i--)
+		if(!disposing)
 		{
-			try { _disposables[i].Dispose(); } catch { }
+			return;
 		}
 
-		foreach (string f in _tempFiles)
+		// Dispose in reverse creation order to avoid depending on disposed objects.
+		for(int i = _disposables.Count - 1; i >= 0; i--)
 		{
-			try { if (File.Exists(f)) File.Delete(f); } catch { }
+			try
+			{
+				_disposables[i].Dispose();
+			}
+			catch { }
+		}
+
+		foreach(string f in _tempFiles)
+		{
+			try
+			{
+				if(File.Exists(f))
+				{
+					File.Delete(f);
+				}
+			}
+			catch { }
 		}
 	}
 
