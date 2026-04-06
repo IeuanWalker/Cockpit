@@ -101,15 +101,42 @@ public sealed partial class SoundFeature : IDisposable
 
 		string soundName = GetSoundName(soundType);
 		string customDir = Path.Combine(FileSystem.AppDataDirectory, "Sounds");
+		string customPath = CustomSoundPath(soundName);
 		Directory.CreateDirectory(customDir);
-
-		using(FileStream fs = File.Create(CustomSoundPath(soundName)))
+		try
 		{
-			await stream.CopyToAsync(fs);
+			await using FileStream fs = File.Create(customPath);
+			await CopyToAsyncWithSizeLimit(stream, fs, maxSoundFileSizeBytes);
 		}
-
+		catch
+		{
+			if(File.Exists(customPath))
+			{
+				File.Delete(customPath);
+			}
+			throw;
+		}
 		StoreCustomFileName(soundType, displayFileName);
 		await LoadSingleSoundAsync(soundName);
+	}
+	static async Task CopyToAsyncWithSizeLimit(Stream source, Stream destination, long sizeLimitBytes, CancellationToken cancellationToken = default)
+	{
+		byte[] buffer = new byte[81920];
+		long totalBytesRead = 0;
+		while(true)
+		{
+			int bytesRead = await source.ReadAsync(buffer, cancellationToken);
+			if(bytesRead == 0)
+			{
+				break;
+			}
+			totalBytesRead += bytesRead;
+			if(totalBytesRead > sizeLimitBytes)
+			{
+				throw new InvalidOperationException("The selected audio file exceeds the 10 MB size limit.");
+			}
+			await destination.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+		}
 	}
 
 	/// <summary>
