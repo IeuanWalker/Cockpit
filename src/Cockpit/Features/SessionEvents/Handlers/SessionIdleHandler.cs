@@ -247,7 +247,7 @@ static class SessionIdleHandler
 
 		session.Status = SessionStatusEnum.Idle;
 
-		if(groupStatus == GroupStatusEnum.Complete && suppressCount == 0)
+		if(groupStatus == GroupStatusEnum.Complete && Interlocked.CompareExchange(ref suppressCount, 0, 0) == 0)
 		{
 			OnSessionFinished?.Invoke();
 		}
