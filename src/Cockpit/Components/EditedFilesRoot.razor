@@ -1,0 +1,69 @@
+@using Cockpit.Features.Git.Models
+@using Cockpit.Components.Controls.GitDiff
+@using Cockpit.Components.Controls
+
+<div class="ef-root">
+
+    <div class="ef-header">
+        <span class="ef-title">Edited Files (@Files.Count)</span>
+        <div class="ef-header-right">
+            @if(_selectedFile?.Status.Equals(GitFileStatusEnum.Modified) ?? false)
+            {
+                <div class="view-toggle">
+                    <button class="toggle-btn @(!_splitView ? "active" : "")" @onclick='() => SetSplitView(false)'>Inline</button>
+                    <button class="toggle-btn @(_splitView ? "active" : "")" @onclick='() => SetSplitView(true)'>Split</button>
+                </div>
+            }
+
+            <button class="ef-action-btn"
+                    @onclick="RevealFile"
+                    disabled="@(_selectedFile is null || _selectedFile.Status == GitFileStatusEnum.Deleted)"
+                    title="Reveal in file explorer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                <span>Reveal</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="ef-body">
+
+        <div class="ef-file-tree scrollbar-thin">
+            @if(!Files.Any())
+            {
+                <div class="px-3 py-4 text-center secondary-text text-xs">No edited files</div>
+            }
+            @foreach(var file in Files)
+            {
+                var treeBorder = file.Status switch
+                {
+                    GitFileStatusEnum.Modified => "border-yellow-500",
+                    GitFileStatusEnum.Added => "border-green-500",
+                    GitFileStatusEnum.Deleted => "border-red-500",
+                    GitFileStatusEnum.Renamed => "border-blue-500",
+                    _ => "border-gray-600"
+                };
+                var (treeBadge, treeBadgeClass) = file.Status switch
+                {
+                    GitFileStatusEnum.Modified => ("M", "bg-yellow-600"),
+                    GitFileStatusEnum.Added => ("A", "bg-green-600"),
+                    GitFileStatusEnum.Deleted => ("D", "bg-red-600"),
+                    GitFileStatusEnum.Renamed => ("R", "bg-blue-600"),
+                    _ => ("U", "bg-gray-600")
+                };
+                <div class="ef-file-item border-l-2 @treeBorder @(_selectedFile == file ? "selected" : "")"
+                     @onclick="() => SelectFile(file)">
+                    <span class="text-xs truncate flex-1 min-w-0 @(file.Status == GitFileStatusEnum.Deleted ? "line-through secondary-text" : "text-app-text")">@file.Name</span>
+                    <span class="ml-2 text-xs @treeBadgeClass text-white px-1 rounded flex-shrink-0">@treeBadge</span>
+                </div>
+            }
+        </div>
+
+        <GitDiffViewer Diff="@_selectedFile?.Diff"
+                       FilePath="@_selectedFilePath"
+                       SplitView="@_splitView"
+                       GitFileStatus="@_selectedFile?.Status" />
+    </div>
+
+</div>

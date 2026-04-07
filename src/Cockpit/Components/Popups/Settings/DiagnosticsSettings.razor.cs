@@ -1,3 +1,4 @@
+using Cockpit.Features.Splash;
 using Cockpit.Features.Theme;
 using Cockpit.Utilities;
 using Cockpit.Utilities.Logging;
@@ -33,7 +34,6 @@ public partial class DiagnosticsSettings
 	{
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
-			// If a log viewer window is already open, just focus it
 			Window? existing = Application.Current?.Windows.FirstOrDefault(w => w.Page is LogViewerPage);
 
 			if(existing is not null)
@@ -42,16 +42,17 @@ public partial class DiagnosticsSettings
 				return;
 			}
 
-			Application.Current?.OpenWindow(BuildLogViewerWindow(isLightTheme));
+			LogViewerSplashFeature splashFeature = IPlatformApplication.Current!.Services.GetRequiredService<LogViewerSplashFeature>();
+			Application.Current?.OpenWindow(BuildLogViewerWindow(isLightTheme, splashFeature));
 		});
 	}
 
-	internal static Window BuildLogViewerWindow(bool isLightTheme)
+	internal static Window BuildLogViewerWindow(bool isLightTheme, LogViewerSplashFeature splashFeature)
 	{
 		Color bg = isLightTheme ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
 		Color fg = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
 
-		return new Window(new LogViewerPage())
+		return new Window(new LogViewerPage(splashFeature))
 		{
 			Title = "Log Viewer",
 			Width = 960,

@@ -61,6 +61,7 @@ public partial class App : Application
 			}
 		};
 
+		_mainWindow.Destroying += OnMainWindowDestroying;
 		return _mainWindow;
 	}
 
@@ -69,6 +70,18 @@ public partial class App : Application
 		if(Current?.Windows?.FirstOrDefault()?.Page is MainPage mainPage)
 		{
 			await mainPage.InvokeJavaScriptAsync("window.toggleSettings?.()");
+		}
+	}
+
+	void OnMainWindowDestroying(object? sender, EventArgs e)
+	{
+		List<Window> secondary = Application.Current?.Windows
+			.Where(w => w != _mainWindow)
+			.ToList() ?? [];
+
+		foreach(Window win in secondary)
+		{
+			Application.Current?.CloseWindow(win);
 		}
 	}
 }

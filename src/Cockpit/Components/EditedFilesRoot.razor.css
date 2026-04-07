@@ -1,0 +1,128 @@
+/* ── Root layout ────────────────────────────────────────── */
+
+.ef-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--app-bg);
+    color: var(--text-color);
+    overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+
+.ef-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--sidebar-color);
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.ef-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--title-color);
+}
+
+.ef-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── Body layout ────────────────────────────────────────── */
+
+.ef-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* ── File tree ──────────────────────────────────────────── */
+
+.ef-file-tree {
+    width: 224px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    background-color: var(--sidebar-color);
+    padding: 4px 0;
+}
+
+.ef-file-item {
+    padding: 6px 10px 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.1s;
+}
+
+    .ef-file-item:hover {
+        background-color: var(--hover-color);
+    }
+
+    .ef-file-item.selected {
+        background-color: var(--active-color);
+    }
+
+/* ── View toggle ────────────────────────────────────────── */
+
+.view-toggle {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+    .view-toggle .toggle-btn {
+        padding: 3px 10px;
+        font-size: 11px;
+        cursor: pointer;
+        background: transparent;
+        color: var(--secondary-text);
+        border: none;
+        transition: background-color 0.15s, color 0.15s;
+    }
+
+        .view-toggle .toggle-btn + .toggle-btn {
+            border-left: 1px solid var(--border-color);
+        }
+
+        .view-toggle .toggle-btn:hover {
+            background-color: var(--hover-color);
+            color: var(--text-color);
+        }
+
+        .view-toggle .toggle-btn.active {
+            background-color: var(--active-color);
+            color: var(--title-color);
+        }
+
+/* ── Action button ──────────────────────────────────────── */
+
+.ef-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+    .ef-action-btn:hover:not(:disabled) {
+        background-color: var(--hover-color);
+    }
+
+    .ef-action-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }

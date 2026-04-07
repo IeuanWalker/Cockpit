@@ -2,9 +2,9 @@ using Cockpit.Features.Splash;
 
 namespace Cockpit;
 
-public partial class LogViewerPage : SecondaryWindowPage
+public partial class EditedFilesPage : SecondaryWindowPage
 {
-	public LogViewerPage(LogViewerSplashFeature splashFeature)
+	public EditedFilesPage(EditedFilesSplashFeature splashFeature)
 	{
 		InitializeComponent();
 		InitializeSplash(splashOverlay, splashFeature);
