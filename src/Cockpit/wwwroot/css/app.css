@@ -297,7 +297,8 @@ input[type="checkbox"]:checked + .toggle-switch {
 
 .light-theme .hljs-keyword,
 .light-theme .hljs-selector-tag,
-.light-theme .hljs-literal {
+.light-theme .hljs-literal,
+.light-theme .hljs-link {
     color: #0000FF;
 }
 
