@@ -102,6 +102,42 @@
             color: var(--title-color);
         }
 
+/* ── Directory item ─────────────────────────────────────── */
+
+.ef-dir-item {
+    padding: 5px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+    transition: background-color 0.1s;
+}
+
+    .ef-dir-item:hover {
+        background-color: var(--hover-color);
+    }
+
+.ef-chevron {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+    color: var(--secondary-text);
+    transition: transform 0.15s ease;
+    transform: rotate(0deg);
+}
+
+    .ef-chevron.expanded {
+        transform: rotate(90deg);
+    }
+
+.ef-folder-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    color: #78a9e8;
+}
+
 /* ── Action button ──────────────────────────────────────── */
 
 .ef-action-btn {

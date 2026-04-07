@@ -46,6 +46,12 @@ public class AppSettingsFeature : IAppSettingsFeature
 		set => UserAppSettings.DiffSplitView = value;
 	}
 
+	public bool DiffTreeView
+	{
+		get => UserAppSettings.DiffTreeView;
+		set => UserAppSettings.DiffTreeView = value;
+	}
+
 	public bool SoundPermissionEnabled
 	{
 		get => UserAppSettings.SoundPermissionEnabled;

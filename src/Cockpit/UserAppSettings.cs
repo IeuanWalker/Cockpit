@@ -91,6 +91,12 @@ public static class UserAppSettings
 		set => Preferences.Default.Set("DiffSplitView", value);
 	}
 
+	public static bool DiffTreeView
+	{
+		get => Preferences.Default.Get("DiffTreeView", true);
+		set => Preferences.Default.Set("DiffTreeView", value);
+	}
+
 	public static bool SoundPermissionEnabled
 	{
 		get => Preferences.Default.Get("SoundPermissionEnabled", true);

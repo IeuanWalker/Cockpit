@@ -7,6 +7,12 @@
     <div class="ef-header">
         <span class="ef-title">Edited Files (@Files.Count)</span>
         <div class="ef-header-right">
+
+            <div class="view-toggle">
+                <button class="toggle-btn @(!_treeView ? "active" : "")" @onclick='() => SetTreeView(false)'>Flat</button>
+                <button class="toggle-btn @(_treeView ? "active" : "")" @onclick='() => SetTreeView(true)'>Tree</button>
+            </div>
+
             @if(_selectedFile?.Status.Equals(GitFileStatusEnum.Modified) ?? false)
             {
                 <div class="view-toggle">
@@ -34,29 +40,47 @@
             {
                 <div class="px-3 py-4 text-center secondary-text text-xs">No edited files</div>
             }
-            @foreach(var file in Files)
+            @foreach(var node in DisplayNodes)
             {
-                var treeBorder = file.Status switch
+                @if(node.IsDirectory)
                 {
-                    GitFileStatusEnum.Modified => "border-yellow-500",
-                    GitFileStatusEnum.Added => "border-green-500",
-                    GitFileStatusEnum.Deleted => "border-red-500",
-                    GitFileStatusEnum.Renamed => "border-blue-500",
-                    _ => "border-gray-600"
-                };
-                var (treeBadge, treeBadgeClass) = file.Status switch
+                    <div class="ef-dir-item" style="padding-left: @(8 + node.Depth * 12)px"
+                         @onclick="() => ToggleDir(node.DirKey!)">
+                        <svg class="ef-chevron @(_expandedDirs.GetValueOrDefault(node.DirKey!, true) ? "expanded" : "")"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <svg class="ef-folder-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                        </svg>
+                        <span class="text-xs truncate">@node.Name</span>
+                    </div>
+                }
+                else
                 {
-                    GitFileStatusEnum.Modified => ("M", "bg-yellow-600"),
-                    GitFileStatusEnum.Added => ("A", "bg-green-600"),
-                    GitFileStatusEnum.Deleted => ("D", "bg-red-600"),
-                    GitFileStatusEnum.Renamed => ("R", "bg-blue-600"),
-                    _ => ("U", "bg-gray-600")
-                };
-                <div class="ef-file-item border-l-2 @treeBorder @(_selectedFile == file ? "selected" : "")"
-                     @onclick="() => SelectFile(file)">
-                    <span class="text-xs truncate flex-1 min-w-0 @(file.Status == GitFileStatusEnum.Deleted ? "line-through secondary-text" : "text-app-text")">@file.Name</span>
-                    <span class="ml-2 text-xs @treeBadgeClass text-white px-1 rounded flex-shrink-0">@treeBadge</span>
-                </div>
+                    var fileBorder = node.File!.Status switch
+                    {
+                        GitFileStatusEnum.Modified => "border-yellow-500",
+                        GitFileStatusEnum.Added    => "border-green-500",
+                        GitFileStatusEnum.Deleted  => "border-red-500",
+                        GitFileStatusEnum.Renamed  => "border-blue-500",
+                        _                          => "border-gray-600"
+                    };
+                    var (badge, badgeClass) = node.File.Status switch
+                    {
+                        GitFileStatusEnum.Modified => ("M", "bg-yellow-600"),
+                        GitFileStatusEnum.Added    => ("A", "bg-green-600"),
+                        GitFileStatusEnum.Deleted  => ("D", "bg-red-600"),
+                        GitFileStatusEnum.Renamed  => ("R", "bg-blue-600"),
+                        _                          => ("U", "bg-gray-600")
+                    };
+                    <div class="ef-file-item border-l-2 @fileBorder @(_selectedFile == node.File ? "selected" : "")"
+                         style="padding-left: @(12 + node.Depth * 12)px"
+                         @onclick="() => SelectFile(node.File!)">
+                        <span class="text-xs truncate flex-1 min-w-0 @(node.File.Status == GitFileStatusEnum.Deleted ? "line-through secondary-text" : "text-app-text")">@node.Name</span>
+                        <span class="ml-2 text-xs @badgeClass text-white px-1 rounded flex-shrink-0">@badge</span>
+                    </div>
+                }
             }
         </div>
 
