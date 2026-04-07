@@ -8,9 +8,26 @@ static class SessionIdleHandler
 {
 	/// <summary>
 	/// Raised when a session completes successfully (transitions to Idle after active work).
-	/// Not raised on error/abort.
+	/// Not raised on error/abort, or while a suppression scope is active.
 	/// </summary>
 	internal static event Action? OnSessionFinished;
+
+	static int suppressCount;
+
+	/// <summary>
+	/// Returns a scope that suppresses <see cref="OnSessionFinished"/> until disposed.
+	/// Safe to nest; the event is only re-enabled once all scopes are disposed.
+	/// </summary>
+	internal static IDisposable SuppressFinishedNotification()
+	{
+		Interlocked.Increment(ref suppressCount);
+		return new SuppressScope();
+	}
+
+	sealed class SuppressScope : IDisposable
+	{
+		public void Dispose() => Interlocked.Decrement(ref suppressCount);
+	}
 	internal static void Handle(SessionModel session, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
 	{
 		if(session.ActiveWorkingGroup is not null)
@@ -230,7 +247,7 @@ static class SessionIdleHandler
 
 		session.Status = SessionStatusEnum.Idle;
 
-		if(groupStatus == GroupStatusEnum.Complete)
+		if(groupStatus == GroupStatusEnum.Complete && suppressCount == 0)
 		{
 			OnSessionFinished?.Invoke();
 		}
