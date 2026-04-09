@@ -56,6 +56,7 @@ public sealed partial class EditedFilesRoot : ComponentBase, IAsyncDisposable
 		_splitView = _appSettingsFeature.DiffSplitView;
 		_treeView = _appSettingsFeature.DiffTreeView;
 		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_windowService.OnNavigateToFile += OnNavigateToFile;
 
 		GitChangedFileModel? initial = _windowService.PendingInitialFile ?? Files.FirstOrDefault();
 		_windowService.ConsumePendingInitialFile();
@@ -63,6 +64,15 @@ public sealed partial class EditedFilesRoot : ComponentBase, IAsyncDisposable
 		{
 			SelectFile(initial);
 		}
+	}
+
+	void OnNavigateToFile(GitChangedFileModel file)
+	{
+		InvokeAsync(() =>
+		{
+			SelectFile(file);
+			StateHasChanged();
+		});
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -192,6 +202,7 @@ public sealed partial class EditedFilesRoot : ComponentBase, IAsyncDisposable
 	{
 		_sessionListFeature.OnStateChanged -= OnStateChanged;
 		_themeStateFeature.OnThemeChanged -= OnThemeChangedHandler;
+		_windowService.OnNavigateToFile -= OnNavigateToFile;
 	}
 
 	sealed record DisplayNode(string Name, int Depth, bool IsDirectory, string? DirKey, GitChangedFileModel? File);

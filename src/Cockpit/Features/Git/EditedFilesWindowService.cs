@@ -17,6 +17,8 @@ public class EditedFilesWindowService
 
 	public GitChangedFileModel? PendingInitialFile { get; private set; }
 
+	public event Action<GitChangedFileModel>? OnNavigateToFile;
+
 	public void OpenWindow(GitChangedFileModel? initialFile = null)
 	{
 		PendingInitialFile = initialFile;
@@ -28,6 +30,11 @@ public class EditedFilesWindowService
 			if(existing is not null)
 			{
 				Application.Current?.ActivateWindow(existing);
+				if(initialFile is not null)
+				{
+					PendingInitialFile = null;
+					OnNavigateToFile?.Invoke(initialFile);
+				}
 				return;
 			}
 
