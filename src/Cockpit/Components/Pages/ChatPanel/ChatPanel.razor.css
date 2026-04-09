@@ -19,9 +19,20 @@
         color: #CCCCCC;
     }
 
-    .status-badge.idle {
-        background-color: #37373D;
-        color: #CCCCCC;
+    .status-badge.idle,
+    .status-badge.active,
+    .status-badge.error,
+    .status-badge.archived {
+        background-color: var(--active-color);
+        color: var(--secondary-text);
+    }
+
+    .light-theme .status-badge.idle,
+    .light-theme .status-badge.active,
+    .light-theme .status-badge.error,
+    .light-theme .status-badge.archived {
+        background-color: var(--active-color);
+        color: var(--secondary-text);
     }
 
     .status-badge.running {

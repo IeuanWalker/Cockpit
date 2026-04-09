@@ -18,13 +18,19 @@
     }
 
 .group-header {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
     user-select: none;
     font-size: 0.875rem;
     color: var(--secondary-text);
+    width: auto;
+    max-width: 100%;
+}
+
+.activity-group {
+    width: 100%;
 }
 
     .group-header:hover {

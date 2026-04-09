@@ -38,6 +38,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	protected override async Task OnInitializedAsync()
 	{
 		_sessionFeature.OnStateChanged += OnStateChanged;
+		_uiStateFeature.OnStateChanged += OnStateChanged;
 		_timestampFeature.OnTick += OnTimestampTick;
 
 		// Load existing sessions from SDK
@@ -140,6 +141,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	public async ValueTask DisposeAsync()
 	{
 		_sessionFeature.OnStateChanged -= OnStateChanged;
+		_uiStateFeature.OnStateChanged -= OnStateChanged;
 		_timestampFeature.OnTick -= OnTimestampTick;
 
 		// Cleanup smart scroll
