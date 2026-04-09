@@ -1,4 +1,4 @@
-using Cockpit.Components.Popups;
+using Cockpit.Features.Git;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
@@ -8,9 +8,12 @@ namespace Cockpit.Components.Pages.ContextPanel;
 public partial class EditedFiles : ComponentBase, IDisposable
 {
 	readonly SessionListFeature _sessionListFeature;
-	public EditedFiles(SessionListFeature sessionListFeature)
+	readonly EditedFilesWindowService _windowService;
+
+	public EditedFiles(SessionListFeature sessionListFeature, EditedFilesWindowService windowService)
 	{
 		_sessionListFeature = sessionListFeature;
+		_windowService = windowService;
 	}
 
 	List<GitChangedFileModel> Files => _sessionListFeature.CurrentSession?.Context?.EditedFiles ?? [];
@@ -32,8 +35,6 @@ public partial class EditedFiles : ComponentBase, IDisposable
 		return true;
 	}
 
-	EditedFilesPopup _diffPopup = default!;
-
 	protected override void OnInitialized()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;
@@ -44,9 +45,9 @@ public partial class EditedFiles : ComponentBase, IDisposable
 		InvokeAsync(StateHasChanged);
 	}
 
-	void OpenDiffPopup(GitChangedFileModel? initialFile)
+	void OpenDiffWindow(GitChangedFileModel? initialFile)
 	{
-		_diffPopup.Open(initialFile);
+		_windowService.OpenWindow(initialFile);
 	}
 
 	public void Dispose()

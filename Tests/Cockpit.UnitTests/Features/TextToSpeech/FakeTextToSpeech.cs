@@ -65,6 +65,7 @@ sealed class MockAppSettingsFeature : IAppSettingsFeature
 	public float VoiceRate { get; set; }
 	public string VoiceLocale { get; set; } = "";
 	public bool DiffSplitView { get; set; }
+	public bool DiffTreeView { get; set; }
 	public bool SoundPermissionEnabled { get; set; }
 	public float SoundPermissionVolume { get; set; } = 0.5f;
 	public bool SoundUserInputEnabled { get; set; }

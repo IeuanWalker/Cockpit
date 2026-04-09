@@ -1,6 +1,5 @@
 @using Cockpit.Components.Controls
 @using Cockpit.Features.Git.Models
-@using Cockpit.Components.Popups
 
 @if (!string.IsNullOrEmpty(_sessionListFeature.CurrentSession?.Context?.GitRoot))
 {
@@ -32,7 +31,7 @@
                 };
 
                 <div class="px-3 py-1.5 hover:bg-app-hover cursor-pointer border-l-2 @borderColor"
-                     @onclick="() => OpenDiffPopup(file)">
+                     @onclick="() => OpenDiffWindow(file)">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
                             <div class="text-xs truncate @(file.Status == GitFileStatusEnum.Deleted ? "line-through secondary-text" : "")">@file.Name</div>
@@ -46,6 +45,4 @@
             }
         </Content>
     </Expander>
-
-    <EditedFilesPopup @ref="_diffPopup" />
 }

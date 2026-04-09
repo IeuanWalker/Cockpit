@@ -1,14 +1,50 @@
+/* ── Root layout ────────────────────────────────────────── */
+
+.ef-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--app-bg);
+    color: var(--text-color);
+    overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+
+.ef-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--sidebar-color);
+    flex-shrink: 0;
+    gap: 8px;
+}
+
+.ef-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--title-color);
+}
+
+.ef-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 /* ── Body layout ────────────────────────────────────────── */
 
-.popup-body {
+.ef-body {
     display: flex;
-    height: 100%;
+    flex: 1;
     overflow: hidden;
 }
 
 /* ── File tree ──────────────────────────────────────────── */
 
-.popup-file-tree {
+.ef-file-tree {
     width: 224px;
     flex-shrink: 0;
     border-right: 1px solid var(--border-color);
@@ -17,7 +53,7 @@
     padding: 4px 0;
 }
 
-.popup-file-item {
+.ef-file-item {
     padding: 6px 10px 6px 12px;
     cursor: pointer;
     display: flex;
@@ -25,11 +61,11 @@
     transition: background-color 0.1s;
 }
 
-    .popup-file-item:hover {
+    .ef-file-item:hover {
         background-color: var(--hover-color);
     }
 
-    .popup-file-item.selected {
+    .ef-file-item.selected {
         background-color: var(--active-color);
     }
 
@@ -66,9 +102,45 @@
             color: var(--title-color);
         }
 
-/* ── Action buttons ─────────────────────────────────────── */
+/* ── Directory item ─────────────────────────────────────── */
 
-.popup-action-btn {
+.ef-dir-item {
+    padding: 5px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+    transition: background-color 0.1s;
+}
+
+    .ef-dir-item:hover {
+        background-color: var(--hover-color);
+    }
+
+.ef-chevron {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+    color: var(--secondary-text);
+    transition: transform 0.15s ease;
+    transform: rotate(0deg);
+}
+
+    .ef-chevron.expanded {
+        transform: rotate(90deg);
+    }
+
+.ef-folder-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    color: #78a9e8;
+}
+
+/* ── Action button ──────────────────────────────────────── */
+
+.ef-action-btn {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -82,11 +154,11 @@
     transition: background-color 0.15s;
 }
 
-    .popup-action-btn:hover:not(:disabled) {
+    .ef-action-btn:hover:not(:disabled) {
         background-color: var(--hover-color);
     }
 
-    .popup-action-btn:disabled {
+    .ef-action-btn:disabled {
         opacity: 0.4;
         cursor: not-allowed;
     }

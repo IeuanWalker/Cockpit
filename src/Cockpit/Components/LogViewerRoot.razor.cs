@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using Cockpit.Features.Splash;
 using Cockpit.Features.Theme;
 using Cockpit.Utilities.Logging;
 using Microsoft.AspNetCore.Components;
@@ -11,6 +12,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 {
 	readonly IJSRuntime _jsRuntime;
 	readonly ThemeStateFeature _themeStateFeature;
+	readonly LogViewerSplashFeature _splashFeature;
 
 	readonly string _tableBodyId = $"lv-body-{Guid.NewGuid():N}";
 
@@ -39,10 +41,11 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 	Timer? _searchDebounce;
 	DotNetObjectReference<LogViewerRoot>? _dotNetRef;
 
-	public LogViewerRoot(IJSRuntime jsRuntime, ThemeStateFeature themeStateFeature)
+	public LogViewerRoot(IJSRuntime jsRuntime, ThemeStateFeature themeStateFeature, LogViewerSplashFeature splashFeature)
 	{
 		_jsRuntime = jsRuntime;
 		_themeStateFeature = themeStateFeature;
+		_splashFeature = splashFeature;
 		_activeTab = _tabs[0];
 	}
 
@@ -175,6 +178,7 @@ public sealed partial class LogViewerRoot : ComponentBase, IAsyncDisposable
 		{
 			_dotNetRef = DotNetObjectReference.Create(this);
 			await ApplyThemeAsync();
+			_splashFeature.NotifyBlazorReady();
 		}
 
 		if(!_scrollSetup && !_loading)

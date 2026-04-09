@@ -11,6 +11,7 @@ public interface IAppSettingsFeature
 	int LeftSidebarWidth { get; set; }
 	int RightSidebarWidth { get; set; }
 	bool DiffSplitView { get; set; }
+	bool DiffTreeView { get; set; }
 	bool SoundPermissionEnabled { get; set; }
 	float SoundPermissionVolume { get; set; }
 	bool SoundUserInputEnabled { get; set; }

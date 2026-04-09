@@ -92,6 +92,9 @@ public static class MauiProgram
 		builder.Services.AddSingleton<VsCodeFeature>();
 		builder.Services.AddSingleton<GitFeature>();
 		builder.Services.AddSingleton<SplashFeature>();
+		builder.Services.AddSingleton<LogViewerSplashFeature>();
+		builder.Services.AddSingleton<EditedFilesSplashFeature>();
+		builder.Services.AddSingleton<EditedFilesWindowService>();
 
 		// Copilot SDK and Permissions
 		builder.Services.AddSingleton<CopilotClientFeature>();
