@@ -2,6 +2,7 @@ using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
+using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
@@ -232,18 +233,21 @@ public sealed partial class SessionFeature
 					CreatedAt = session.CreatedAt
 				};
 
-				await Task.Run(() =>
+				using(SessionIdleHandler.SuppressFinishedNotification())
 				{
-					foreach(SessionEvent evt in events)
+					await Task.Run(() =>
 					{
-						_processor.Process(tempSession, evt);
-					}
+						foreach(SessionEvent evt in events)
+						{
+							_processor.Process(tempSession, evt);
+						}
 
-					if(tempSession.ActiveWorkingGroup is not null)
-					{
-						_processor.FinalizeOpenGroup(tempSession);
-					}
-				});
+						if(tempSession.ActiveWorkingGroup is not null)
+						{
+							_processor.FinalizeOpenGroup(tempSession);
+						}
+					});
+				}
 
 				// Any message still IsPending after replay was sent while the session was
 				// mid-turn and never picked up by a subsequent assistant.turn_start (the session

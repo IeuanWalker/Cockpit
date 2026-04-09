@@ -18,6 +18,7 @@
 !define APP_URL       "https://github.com/ieuanwalker/Cockpit"
 
 !include "MUI2.nsh"
+SetCompressor /SOLID lzma
 
 Unicode True
 Name          "${APP_NAME} ${APP_VERSION}"
@@ -25,10 +26,18 @@ OutFile       "${OUTPUT_PATH}"
 InstallDir    "$PROGRAMFILES64\${APP_NAME}"
 InstallDirRegKey HKLM "Software\${APP_NAME}" "Install_Dir"
 RequestExecutionLevel admin
+ManifestDPIAware true
+VIProductVersion "${APP_VERSION}.0"
+VIAddVersionKey "ProductName" "${APP_NAME}"
+VIAddVersionKey "FileDescription" "${APP_NAME} Installer"
+VIAddVersionKey "CompanyName" "${APP_PUBLISHER}"
+VIAddVersionKey "LegalCopyright" "Copyright © ${APP_PUBLISHER}"
 BrandingText  "${APP_NAME} ${APP_VERSION}"
 
 ; MUI settings
 !define MUI_ABORTWARNING
+!define MUI_ICON "logo.ico"
+!define MUI_UNICON "logo.ico"
 !define MUI_FINISHPAGE_RUN         "$INSTDIR\${APP_EXE}"
 !define MUI_FINISHPAGE_RUN_TEXT    "Launch ${APP_NAME}"
 
