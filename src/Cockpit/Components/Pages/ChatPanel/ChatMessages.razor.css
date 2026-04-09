@@ -1,5 +1,5 @@
 #chatMessages {
-    overflow-x: visible;
+    overflow-x: hidden;
     min-width: 0;
 }
 
