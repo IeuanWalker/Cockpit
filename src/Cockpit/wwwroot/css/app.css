@@ -668,9 +668,6 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     vertical-align: middle;
     margin: 0 1px;
     white-space: nowrap;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     line-height: 1.4;
 }
 
@@ -714,9 +711,6 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     vertical-align: middle;
     margin: 0 2px;
     white-space: nowrap;
-    max-width: 220px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     line-height: 1.4;
 }
 
