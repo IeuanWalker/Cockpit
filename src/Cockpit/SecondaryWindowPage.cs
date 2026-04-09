@@ -5,16 +5,31 @@ namespace Cockpit;
 public abstract class SecondaryWindowPage : ContentPage
 {
 	int _splashHidden;
+	Action? _blazorReadyHandler;
+	WindowSplashFeature? _splashFeature;
 
 	protected void InitializeSplash(Grid splashOverlay, WindowSplashFeature splashFeature)
 	{
-		splashFeature.OnBlazorReady += () => Dispatcher.Dispatch(() => _ = HideSplashAsync(splashOverlay));
+		_splashFeature = splashFeature;
+		_blazorReadyHandler = () => Dispatcher.Dispatch(() => _ = HideSplashAsync(splashOverlay));
+		splashFeature.OnBlazorReady += _blazorReadyHandler;
 
 		Dispatcher.StartTimer(TimeSpan.FromSeconds(15), () =>
 		{
 			_ = HideSplashAsync(splashOverlay);
 			return false;
 		});
+	}
+
+	protected override void OnDisappearing()
+	{
+		base.OnDisappearing();
+		if(_splashFeature is not null && _blazorReadyHandler is not null)
+		{
+			_splashFeature.OnBlazorReady -= _blazorReadyHandler;
+			_blazorReadyHandler = null;
+			_splashFeature = null;
+		}
 	}
 
 	async Task HideSplashAsync(Grid splashOverlay)
