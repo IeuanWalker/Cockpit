@@ -110,7 +110,7 @@ public sealed partial class SessionFeature
 				}
 			}
 		}
-		catch(IOException ex) when(ex.Message.Contains("Session not found", StringComparison.InvariantCultureIgnoreCase))
+		catch(IOException ex) when(ex.Message.Contains("Session not found", StringComparison.OrdinalIgnoreCase))
 		{
 			if(isInternalRetry)
 			{
