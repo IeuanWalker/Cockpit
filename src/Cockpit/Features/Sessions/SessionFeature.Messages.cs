@@ -132,6 +132,12 @@ public sealed partial class SessionFeature
 				_sessionListFeature.NotifyStateChanged();
 			}
 
+			// Remove and dispose any previously registered SDK session before forcing a full re-resume
+			if(_sdkRegistry.TryRemove(CurrentSession.Id, out CopilotSession? existingSession))
+			{
+				await existingSession.DisposeAsync();
+			}
+
 			// Reset state to NotLoaded so LoadSession performs a full re-resume via the SDK
 			CurrentSession.SdkState = SdkSessionStateEnum.NotLoaded;
 			bool resumed = await ResumeSession(CurrentSession.Id);
