@@ -15,38 +15,40 @@ public sealed partial class SessionFeature
 			return;
 		}
 
+		SessionModel session = CurrentSession;
+		string sessionId = session.Id;
 		ChatMessageModel? optimisticMessage = null;
 		try
 		{
-			if(!_sdkRegistry.TryGet(CurrentSession.Id, out CopilotSession? existingSession))
+			if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? existingSession))
 			{
-				throw new InvalidOperationException($"Session {CurrentSession.Id} not found");
+				throw new InvalidOperationException($"Session {sessionId} not found");
 			}
 
-			if(CurrentSession.ModelChanged)
+			if(session.ModelChanged)
 			{
-				await existingSession.SetModelAsync(CurrentSession.Model.Id, CurrentSession.ReasoningEffort);
+				await existingSession.SetModelAsync(session.Model.Id, session.ReasoningEffort);
 
-				CurrentSession.ModelChanged = false;
+				session.ModelChanged = false;
 			}
 
-			if(CurrentSession.AgentChanged)
+			if(session.AgentChanged)
 			{
-				if(CurrentSession.Context.SelectedAgent is null)
+				if(session.Context.SelectedAgent is null)
 				{
 					await existingSession.Rpc.Agent.DeselectAsync();
 				}
 				else
 				{
-					await existingSession.Rpc.Agent.SelectAsync(CurrentSession.Context.SelectedAgent.Config.Name);
+					await existingSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Config.Name);
 				}
 
-				CurrentSession.AgentChanged = false;
+				session.AgentChanged = false;
 			}
 
-			if(CurrentSession.SdkState == SdkSessionStateEnum.Loaded)
+			if(session.SdkState == SdkSessionStateEnum.Loaded)
 			{
-				bool resumed = await ResumeSession(CurrentSession.Id);
+				bool resumed = await ResumeSession(sessionId);
 				if(!resumed)
 				{
 					return;
@@ -103,16 +105,16 @@ public sealed partial class SessionFeature
 
 			if(!string.IsNullOrWhiteSpace(sentMessageId) && optimisticMessage is not null)
 			{
-				lock(CurrentSession.SessionEventLock)
+				lock(session.SessionEventLock)
 				{
-					if(CurrentSession.Messages.Contains(optimisticMessage) && !optimisticMessage.IsComplete)
+					if(session.Messages.Contains(optimisticMessage) && !optimisticMessage.IsComplete)
 					{
 						optimisticMessage.Id = sentMessageId;
 					}
 				}
 			}
 		}
-		catch(IOException ex) when(ex.Message.Contains("Session not found", StringComparison.InvariantCultureIgnoreCase))
+		catch(IOException ex) when(ex.Message.Contains("Session not found", StringComparison.OrdinalIgnoreCase))
 		{
 			if(isInternalRetry)
 			{
@@ -121,22 +123,28 @@ public sealed partial class SessionFeature
 				return;
 			}
 
-			_logger.LogWarning(ex, "Session {SessionId} disconnected; attempting to re-resume before retrying", CurrentSession.Id);
+			_logger.LogWarning(ex, "Session {SessionId} disconnected; attempting to re-resume before retrying", sessionId);
 
 			// Remove the optimistic message so it is not duplicated on retry
 			if(optimisticMessage is not null)
 			{
-				lock(CurrentSession.SessionEventLock)
+				lock(session.SessionEventLock)
 				{
-					CurrentSession.Messages.Remove(optimisticMessage);
-					CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
+					session.Messages.Remove(optimisticMessage);
+					session.MessagesSnapshot = [.. session.Messages];
 				}
 				_sessionListFeature.NotifyStateChanged();
 			}
 
+			// Remove and dispose any previously registered SDK session before forcing a full re-resume
+			if(_sdkRegistry.TryRemove(CurrentSession.Id, out CopilotSession? existingSession))
+			{
+				await existingSession.DisposeAsync();
+			}
+
 			// Reset state to NotLoaded so LoadSession performs a full re-resume via the SDK
-			CurrentSession.SdkState = SdkSessionStateEnum.NotLoaded;
-			bool resumed = await ResumeSession(CurrentSession.Id);
+			session.SdkState = SdkSessionStateEnum.NotLoaded;
+			bool resumed = await ResumeSession(sessionId);
 			if(!resumed)
 			{
 				HandleError(ex);
@@ -153,7 +161,7 @@ public sealed partial class SessionFeature
 		void HandleError(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to send message");
-			lock(CurrentSession.SessionEventLock)
+			lock(session.SessionEventLock)
 			{
 				if(optimisticMessage is not null)
 				{
@@ -161,9 +169,9 @@ public sealed partial class SessionFeature
 					optimisticMessage.IsComplete = true;
 					optimisticMessage.IsPending = false;
 				}
-				CurrentSession.Status = SessionStatusEnum.Error;
-				SessionErrorHandler.HandleException(CurrentSession, ex);
-				CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
+				session.Status = SessionStatusEnum.Error;
+				SessionErrorHandler.HandleException(session, ex);
+				session.MessagesSnapshot = [.. session.Messages];
 			}
 			_sessionListFeature.NotifyStateChanged();
 		}
