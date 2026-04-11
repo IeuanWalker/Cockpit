@@ -38,10 +38,32 @@ static class SessionErrorHandler
 			IsUser = false,
 			Timestamp = DateTime.Now,
 			Type = MessageTypeEnum.Error,
-			EventJson = [new Lazy<string>(() => (session, ex).SerializeJson() ?? ex.StackTrace ?? string.Empty)]
+			EventJson = [new Lazy<string>(() => SerializeExceptionEventJson(session, ex))]
 		};
 
 		session.Messages.Add(message);
 		session.Status = SessionStatusEnum.Error;
+	}
+
+	static string SerializeExceptionEventJson(SessionModel session, Exception ex)
+	{
+		try
+		{
+			return new
+			{
+				SessionId = session.Id,
+				Exception = new
+				{
+					Type = ex.GetType().FullName,
+					ex.Message,
+					ex.StackTrace,
+					InnerException = ex.InnerException?.ToString()
+				}
+			}.SerializeJson() ?? ex.ToString();
+		}
+		catch
+		{
+			return ex.ToString();
+		}
 	}
 }
