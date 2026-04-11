@@ -14,6 +14,7 @@ namespace Cockpit.Components.Pages.ChatPanel;
 public partial class ChatMessages : ComponentBase, IAsyncDisposable
 {
 	readonly SessionListFeature _sessionListFeature;
+	readonly SessionFeature _sessionFeature;
 	readonly IJSRuntime _jsRuntime;
 	readonly TextToSpeechFeature _textToSpeechFeature;
 	readonly UIStateFeature _uiStateFeature;
@@ -21,6 +22,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	readonly MarkdownFeature _markdownFeature;
 	public ChatMessages(
 		SessionListFeature sessionListFeature,
+		SessionFeature sessionFeature,
 		IJSRuntime jsRuntime,
 		TextToSpeechFeature textToSpeechFeature,
 		UIStateFeature uiStateFeature,
@@ -28,6 +30,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		MarkdownFeature markdownFeature)
 	{
 		_sessionListFeature = sessionListFeature;
+		_sessionFeature = sessionFeature;
 		_jsRuntime = jsRuntime;
 		_textToSpeechFeature = textToSpeechFeature;
 		_uiStateFeature = uiStateFeature;
@@ -207,6 +210,11 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	{
 		string selection = await _jsRuntime.InvokeAsync<string>("eval", "window.getSelection().toString()");
 		return !string.IsNullOrEmpty(selection);
+	}
+
+	async Task RetryMessage(ChatMessageModel message)
+	{
+		await _sessionFeature.RetryMessageAsync(message);
 	}
 
 	public async ValueTask DisposeAsync()

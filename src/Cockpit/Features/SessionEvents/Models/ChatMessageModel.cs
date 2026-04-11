@@ -23,6 +23,11 @@ public class ChatMessageModel
 	public bool IsPending { get; set; }
 
 	/// <summary>
+	/// True when this user message failed to send. Displays an error state with a retry button.
+	/// </summary>
+	public bool IsError { get; set; }
+
+	/// <summary>
 	/// Attachments included with this user message, for display in the message bubble.
 	/// </summary>
 	public List<AttachmentModel>? Attachments { get; set; }

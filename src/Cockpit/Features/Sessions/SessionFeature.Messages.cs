@@ -1,3 +1,4 @@
+using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
@@ -14,6 +15,7 @@ public sealed partial class SessionFeature
 			return;
 		}
 
+		ChatMessageModel? optimisticMessage = null;
 		try
 		{
 			if(!_sdkRegistry.TryGet(CurrentSession.Id, out CopilotSession? existingSession))
@@ -59,7 +61,6 @@ public sealed partial class SessionFeature
 					.Select(g => g.First())];
 			}
 
-			ChatMessageModel? optimisticMessage = null;
 			lock(CurrentSession.SessionEventLock)
 			{
 				bool agentWasBusy = CurrentSession.ActiveWorkingGroup is not null;
@@ -109,11 +110,63 @@ public sealed partial class SessionFeature
 				}
 			}
 		}
+		catch(IOException ex) when(ex.Message.Contains("Session not found", StringComparison.InvariantCultureIgnoreCase))
+		{
+
+		}
 		catch(Exception ex)
 		{
+			HandleError(ex);
+		}
+
+		void HandleError(Exception ex)
+		{
 			_logger.LogError(ex, "Failed to send message");
-			CurrentSession.Status = SessionStatusEnum.Error;
+			lock(CurrentSession.SessionEventLock)
+			{
+				if(optimisticMessage is not null)
+				{
+					optimisticMessage.IsError = true;
+					optimisticMessage.IsComplete = true;
+					optimisticMessage.IsPending = false;
+				}
+				CurrentSession.Status = SessionStatusEnum.Error;
+				SessionErrorHandler.HandleException(CurrentSession, ex);
+				CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
+			}
 			_sessionListFeature.NotifyStateChanged();
 		}
+	}
+
+	public async Task RetryMessageAsync(ChatMessageModel message)
+	{
+		if(CurrentSession is null)
+		{
+			return;
+		}
+
+		string content = message.Content;
+		List<AttachmentModel>? attachments = message.Attachments;
+
+		lock(CurrentSession.SessionEventLock)
+		{
+			int index = CurrentSession.Messages.IndexOf(message);
+			CurrentSession.Messages.Remove(message);
+
+			// Remove the companion error message that was added immediately after the failed send
+			if(index >= 0 && index < CurrentSession.Messages.Count)
+			{
+				ChatMessageModel next = CurrentSession.Messages[index];
+				if(next.Type == MessageTypeEnum.Error && !next.IsUser)
+				{
+					CurrentSession.Messages.RemoveAt(index);
+				}
+			}
+
+			CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
+		}
+		_sessionListFeature.NotifyStateChanged();
+
+		await SendMessageAsync(content, attachments);
 	}
 }
