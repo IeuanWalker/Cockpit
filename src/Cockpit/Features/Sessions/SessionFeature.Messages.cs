@@ -8,7 +8,7 @@ namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
-	public async Task SendMessageAsync(string content, List<AttachmentModel>? attachments = null)
+	public async Task SendMessageAsync(string content, List<AttachmentModel>? attachments = null, bool isInternalRetry = false)
 	{
 		if(CurrentSession is null)
 		{
@@ -112,7 +112,36 @@ public sealed partial class SessionFeature
 		}
 		catch(IOException ex) when(ex.Message.Contains("Session not found", StringComparison.InvariantCultureIgnoreCase))
 		{
+			if(isInternalRetry)
+			{
+				// Already retried once after re-resuming — surface the error to the user
+				HandleError(ex);
+				return;
+			}
 
+			_logger.LogWarning(ex, "Session {SessionId} disconnected; attempting to re-resume before retrying", CurrentSession.Id);
+
+			// Remove the optimistic message so it is not duplicated on retry
+			if(optimisticMessage is not null)
+			{
+				lock(CurrentSession.SessionEventLock)
+				{
+					CurrentSession.Messages.Remove(optimisticMessage);
+					CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
+				}
+				_sessionListFeature.NotifyStateChanged();
+			}
+
+			// Reset state to NotLoaded so LoadSession performs a full re-resume via the SDK
+			CurrentSession.SdkState = SdkSessionStateEnum.NotLoaded;
+			bool resumed = await ResumeSession(CurrentSession.Id);
+			if(!resumed)
+			{
+				HandleError(ex);
+				return;
+			}
+
+			await SendMessageAsync(content, attachments, true);
 		}
 		catch(Exception ex)
 		{
