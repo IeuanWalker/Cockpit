@@ -31,6 +31,10 @@
     min-width: 0;
 }
 
+    .chat-bubble ::deep code {
+        color: var(--text-color);
+    }
+
     .chat-bubble.sending {
         opacity: 0.6;
         animation: bubble-pulse 1.2s ease-in-out infinite;
@@ -39,6 +43,12 @@
     .chat-bubble.pending {
         opacity: 0.75;
         animation: bubble-pulse 2s ease-in-out infinite;
+    }
+
+    .chat-bubble.error {
+        background-color: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.5);
+        color: var(--text-color);
     }
 
 @keyframes bubble-pulse {
@@ -72,3 +82,22 @@
     align-items: center;
     gap: 0.25rem;
 }
+
+.retry-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    color: #ef4444;
+    background: none;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+    .retry-btn:hover {
+        background-color: rgba(239, 68, 68, 0.1);
+    }
