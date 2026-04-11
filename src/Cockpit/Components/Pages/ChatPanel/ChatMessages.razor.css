@@ -31,6 +31,10 @@
     min-width: 0;
 }
 
+    .chat-bubble ::deep code {
+        color: var(--text-color);
+    }
+
     .chat-bubble.sending {
         opacity: 0.6;
         animation: bubble-pulse 1.2s ease-in-out infinite;
@@ -44,6 +48,7 @@
     .chat-bubble.error {
         background-color: rgba(239, 68, 68, 0.15);
         border: 1px solid rgba(239, 68, 68, 0.5);
+        color: var(--text-color);
     }
 
 @keyframes bubble-pulse {

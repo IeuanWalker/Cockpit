@@ -93,6 +93,8 @@ public sealed partial class SessionFeature
 					})];
 			}
 
+			throw new Exception("This is a test");
+
 			string sentMessageId = await existingSession.SendAsync(new MessageOptions
 			{
 				Prompt = content,
