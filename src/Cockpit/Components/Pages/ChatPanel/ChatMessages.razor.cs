@@ -62,6 +62,13 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 			_dotNetRef = DotNetObjectReference.Create(this);
 			await _jsRuntime.InvokeVoidAsync("cockpit.setupScrollAnchor", "chatMessages");
 			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged");
+
+			// If the app loaded an existing session before this component initialized,
+			// ensure the initial view is pinned to the bottom so history shows latest messages.
+			if(!_pendingScrollToBottom && _sessionListFeature.CurrentSession?.Messages is not null && _sessionListFeature.CurrentSession.Messages.Count > 0)
+			{
+				await ScrollToBottom();
+			}
 		}
 
 		if(_pendingScrollToBottom)
