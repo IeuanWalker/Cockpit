@@ -2,6 +2,7 @@ using Cockpit.Components.Controls;
 using Cockpit.Features.Sessions;
 using CommunityToolkit.Maui.Storage;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 
 
 namespace Cockpit.Components.Popups;
@@ -9,10 +10,11 @@ namespace Cockpit.Components.Popups;
 public partial class CreateSessionPopup : ComponentBase
 {
 	readonly SessionFeature _sessionFeature;
-
-	public CreateSessionPopup(SessionFeature sessionFeature)
+	readonly ILogger<CreateSessionPopup> _logger;
+	public CreateSessionPopup(SessionFeature sessionFeature, ILogger<CreateSessionPopup> logger)
 	{
 		_sessionFeature = sessionFeature;
+		_logger = logger;
 	}
 
 	public string SelectedPath { get; set; } = string.Empty;
@@ -67,6 +69,7 @@ public partial class CreateSessionPopup : ComponentBase
 		catch(Exception ex)
 		{
 			ErrorMessage = $"Failed to open directory picker: {ex.Message}";
+			_logger.LogError(ex, "Failed to open directory picker");
 			StateHasChanged();
 		}
 #endif
@@ -101,11 +104,11 @@ public partial class CreateSessionPopup : ComponentBase
 		{
 			await _sessionFeature.CreateSession(SelectedPath);
 			_popup.Close();
-
 		}
 		catch(Exception ex)
 		{
 			ErrorMessage = $"Error creating session: {ex.Message}";
+			_logger.LogError(ex, "Error creating session for directory {Directory}", SelectedPath);
 		}
 	}
 

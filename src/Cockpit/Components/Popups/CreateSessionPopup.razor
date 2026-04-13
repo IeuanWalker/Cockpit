@@ -36,12 +36,13 @@
                             @foreach(var recent in RecentDirectories)
                             {
                                 <button @onclick="() => SelectPath(recent)"
+                                        title="@recent"
                                         class="w-full text-left px-3 py-2 rounded hover:bg-app-hover text-sm flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                                     </svg>
-                                    <span class="truncate">@Path.GetFileName(recent)</span>
-                                    <span class="ml-auto text-app-secondary text-xs truncate max-w-xs">@recent</span>
+                                    <span class="truncate flex-shrink-0" style="max-width: 65%;">@Path.GetFileName(recent)</span>
+                                    <span class="text-app-secondary text-xs truncate flex-1 text-right" style="min-width: 35%;">@recent</span>
                                 </button>
                             }
                         </div>
