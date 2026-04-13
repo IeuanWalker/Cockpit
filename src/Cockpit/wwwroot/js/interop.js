@@ -902,6 +902,15 @@ window.cockpit = {
         el.style.height = 'auto';
         const maxHeight = 300;
         el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
+        // If content overflows after resize, ensure the caret / last line is visible
+        // by scrolling to the bottom on the next frame after layout updates.
+        requestAnimationFrame(() => {
+            try {
+                if (el.scrollHeight > el.clientHeight) {
+                    el.scrollTop = el.scrollHeight;
+                }
+            } catch (e) { /* ignore */ }
+        });
     },
 
     setupContentEditableBehavior: function (id, enterToSend) {
