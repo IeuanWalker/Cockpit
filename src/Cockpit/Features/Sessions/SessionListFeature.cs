@@ -43,7 +43,7 @@ public class SessionListFeature : ISessionStateProvider
 
 		if(CurrentSession?.Id == sessionId)
 		{
-			CurrentSession = _sessions.FirstOrDefault();
+			CurrentSession = null;
 		}
 	}
 
