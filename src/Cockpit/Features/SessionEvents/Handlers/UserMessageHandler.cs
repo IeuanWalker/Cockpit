@@ -54,7 +54,7 @@ static class UserMessageHandler
 		session.Status = SessionStatusEnum.Running;
 	}
 
-	static List<AttachmentModel>? ConvertAttachments(UserMessageDataAttachmentsItem[]? items)
+	static List<AttachmentModel>? ConvertAttachments(UserMessageAttachment[]? items)
 	{
 		if(items is null || items.Length == 0)
 		{
@@ -62,9 +62,9 @@ static class UserMessageHandler
 		}
 
 		List<AttachmentModel> result = [];
-		foreach(UserMessageDataAttachmentsItem item in items)
+		foreach(UserMessageAttachment item in items)
 		{
-			if(item is UserMessageDataAttachmentsItemFile file)
+			if(item is UserMessageAttachmentFile file)
 			{
 				string filePath = file.Path ?? string.Empty;
 				string fileName = file.DisplayName ?? Path.GetFileName(filePath);

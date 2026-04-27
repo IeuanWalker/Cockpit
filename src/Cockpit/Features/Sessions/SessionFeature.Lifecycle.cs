@@ -35,7 +35,7 @@ public sealed partial class SessionFeature
 			_logger.LogInformation("Loading existing sessions from SDK...");
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
-			List<SessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
+			IList<SessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
 
 			if(sessionMetadataList.Count == 0)
 			{

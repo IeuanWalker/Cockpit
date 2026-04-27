@@ -15,7 +15,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		_sessionListFeature = sessionListFeature;
 	}
 
-	List<ModelInfo> _availableModels = [];
+	IList<ModelInfo> _availableModels = [];
 	PickerControl _modelPicker = default!;
 	PickerControl? _reasoningPicker;
 

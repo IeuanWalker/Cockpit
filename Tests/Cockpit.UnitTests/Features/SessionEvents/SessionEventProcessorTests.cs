@@ -121,7 +121,7 @@ public class SessionEventProcessorTests
 		// Act
 		processor.Process(session, new SystemMessageEvent
 		{
-			Data = new SystemMessageData { Role = SystemMessageDataRole.System, Content = "init" },
+			Data = new SystemMessageData { Role = SystemMessageRole.System, Content = "init" },
 			Timestamp = DateTimeOffset.UtcNow
 		});
 
