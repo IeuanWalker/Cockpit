@@ -7,7 +7,7 @@
                MinWidth="150px"
                DropdownMinWidth="250px">
     <SelectedContent>
-        @GetDisplayModelName() (<span style="color: @GetMultiplierColor(GetDisplayModelMultiplier())">@(GetDisplayModelMultiplier().ToString("0.0"))x</span>)
+        @(_sessionListFeature.CurrentSession?.Model.Name ?? "No Model") (<span style="color: @GetMultiplierColor(_sessionListFeature.CurrentSession?.Model)">@(GetDisplayModelMultiplier(_sessionListFeature.CurrentSession?.Model))</span>)
     </SelectedContent>
     <DropdownContent>
         @foreach(var model in _availableModels)
@@ -16,7 +16,7 @@
                     class="w-full px-3 py-1.5 text-xs hover:bg-app-hover flex items-center justify-between"
                     style="color: var(--text-color);">
                 <span class="text-left">@model.Name</span>
-                <span class="text-right ml-4" style="color: @GetMultiplierColor(model.Billing?.Multiplier ?? 1)">@(model.Billing?.Multiplier.ToString("0.0") ?? "Unknown")x</span>
+                <span class="text-right ml-4" style="color: @GetMultiplierColor(model)">@GetDisplayModelMultiplier(model)</span>
             </button>
         }
     </DropdownContent>
