@@ -106,6 +106,7 @@ public sealed partial class SessionFeature
 
 			SessionConfig config = new()
 			{
+				ClientName = "Cockpit",
 				Model = defaultModel.Id,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				Streaming = true,
@@ -116,7 +117,8 @@ public sealed partial class SessionFeature
 				WorkingDirectory = workingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null
+				CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null,
+				EnableConfigDiscovery = true
 			};
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -200,6 +202,8 @@ public sealed partial class SessionFeature
 
 			ResumeSessionConfig config = new()
 			{
+				ClientName = "Cockpit",
+				EnableConfigDiscovery = true,
 				Model = session.Model.Id,
 				ReasoningEffort = session.ReasoningEffort,
 				Streaming = true,
