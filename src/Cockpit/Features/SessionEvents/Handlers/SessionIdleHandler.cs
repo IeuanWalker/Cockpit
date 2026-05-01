@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.SessionEvents.Handlers;
 
@@ -8,41 +9,25 @@ static class SessionIdleHandler
 {
 	/// <summary>
 	/// Raised when a session completes successfully (transitions to Idle after active work).
-	/// Not raised on error/abort, or while a suppression scope is active.
+	/// Not raised on error/abort, or when <see cref="SessionModel.SuppressFinishedNotification"/> is set.
 	/// </summary>
 	internal static event Action? OnSessionFinished;
 
-	static int suppressCount;
-
-	/// <summary>
-	/// Returns a scope that suppresses <see cref="OnSessionFinished"/> until disposed.
-	/// Safe to nest; the event is only re-enabled once all scopes are disposed.
-	/// </summary>
-	internal static IDisposable SuppressFinishedNotification()
-	{
-		Interlocked.Increment(ref suppressCount);
-		return new SuppressScope();
-	}
-
-	sealed class SuppressScope : IDisposable
-	{
-		public void Dispose() => Interlocked.Decrement(ref suppressCount);
-	}
-	internal static void Handle(SessionModel session, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
+	internal static void Handle(SessionModel session, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete, ILogger? logger = null)
 	{
 		if(session.ActiveWorkingGroup is not null)
 		{
 			ThinkingEventModel? lastEvent = session.ActiveWorkingGroup.Events.LastOrDefault();
 			DateTimeOffset timestamp = lastEvent is not null ? lastEvent.Timestamp : DateTimeOffset.UtcNow;
-			Handle(session, timestamp, onStreamSummary, groupStatus);
+			Handle(session, timestamp, onStreamSummary, groupStatus, logger);
 		}
 		else
 		{
 			DateTimeOffset timestamp = session.Messages.LastOrDefault()?.Timestamp ?? DateTimeOffset.UtcNow;
-			Handle(session, timestamp, onStreamSummary, groupStatus);
+			Handle(session, timestamp, onStreamSummary, groupStatus, logger);
 		}
 	}
-	internal static void Handle(SessionModel session, DateTimeOffset eventTimestamp, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
+	internal static void Handle(SessionModel session, DateTimeOffset eventTimestamp, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete, ILogger? logger = null)
 	{
 		ActivityGroupModel? activeGroup = session.ActiveWorkingGroup;
 
@@ -71,7 +56,7 @@ static class SessionIdleHandler
 				if(tool.Status == ToolStatusEnum.Running)
 				{
 					tool.Status = ToolStatusEnum.Error;
-					tool.EndTime = tool.EndTime;
+					tool.EndTime = eventTimestamp.LocalDateTime;
 					tool.IsSuccess = false;
 					hasStoppedTools = true;
 				}
@@ -81,7 +66,7 @@ static class SessionIdleHandler
 					if(child.Status == ToolStatusEnum.Running)
 					{
 						child.Status = ToolStatusEnum.Error;
-						child.EndTime = child.EndTime;
+						child.EndTime = eventTimestamp.LocalDateTime;
 						child.IsSuccess = false;
 					}
 				}
@@ -91,12 +76,32 @@ static class SessionIdleHandler
 			group.EndTime = eventTimestamp.LocalDateTime;
 			group.IsExpanded = false;
 
+			// Check for a task-complete summary override before falling back to last message extraction
+			string? pendingTaskSummary = session.PendingTaskSummary;
+			session.PendingTaskSummary = null;
+
 			// Extract the last message event as the summary (but not "Session stopped")
 			List<ThinkingEventModel> events = group.GetEventsSnapshot();
-			ThinkingEventModel? lastMessage = events.LastOrDefault(e => e.Type == ThinkingEventTypeEnum.Message);
+			ThinkingEventModel? lastMessage = pendingTaskSummary is null
+				? events.LastOrDefault(e => e.Type == ThinkingEventTypeEnum.Message)
+				: null;
 
 			ChatMessageModel? summaryMsg = null;
-			if(lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
+			if(pendingTaskSummary is not null)
+			{
+				summaryMsg = new ChatMessageModel
+				{
+					Id = Guid.NewGuid().ToString(),
+					Content = string.Empty,
+					IsUser = false,
+					Timestamp = eventTimestamp.LocalDateTime,
+					Type = MessageTypeEnum.Text,
+					IsStreaming = true,
+					IsComplete = false,
+					EventJson = null
+				};
+			}
+			else if(lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
 			{
 				// Remove the summary from thinking events
 				group.RemoveEvent(lastMessage);
@@ -183,7 +188,9 @@ static class SessionIdleHandler
 				else if(session.Messages.Count > 0)
 				{
 					activityIndex = session.Messages.Count;
-					Debug.WriteLine($"WARNING: No anchor found, appending activity group");
+					logger?.LogWarning(
+						"Session {SessionId}: no anchor found for activity group (InitialMessageId={InitialMessageId}, TriggeredByUserMessageId={TriggeredByUserMessageId}), appending at end",
+						session.Id, group.InitialMessageId, group.TriggeredByUserMessageId);
 				}
 				else
 				{
@@ -221,12 +228,12 @@ static class SessionIdleHandler
 				if(onStreamSummary is not null)
 				{
 					// Stream progressively for the current (visible) session
-					_ = onStreamSummary(summaryMsg, lastMessage?.Message ?? string.Empty);
+					_ = onStreamSummary(summaryMsg, pendingTaskSummary ?? lastMessage?.Message ?? string.Empty);
 				}
 				else
 				{
 					// For background sessions, set the content immediately
-					summaryMsg.Content = lastMessage?.Message ?? string.Empty;
+					summaryMsg.Content = pendingTaskSummary ?? lastMessage?.Message ?? string.Empty;
 					summaryMsg.IsStreaming = false;
 					summaryMsg.IsComplete = true;
 				}
@@ -247,7 +254,7 @@ static class SessionIdleHandler
 
 		session.Status = SessionStatusEnum.Idle;
 
-		if(groupStatus == GroupStatusEnum.Complete && Interlocked.CompareExchange(ref suppressCount, 0, 0) == 0)
+		if(groupStatus == GroupStatusEnum.Complete && !session.SuppressFinishedNotification)
 		{
 			OnSessionFinished?.Invoke();
 		}

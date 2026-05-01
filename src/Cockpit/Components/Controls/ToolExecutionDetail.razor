@@ -91,6 +91,12 @@
                     {
                         <ToolExecutionDetail Tool="childEvt.Tool" />
                     }
+                    else if(childEvt.Type == ThinkingEventTypeEnum.Reasoning && !string.IsNullOrEmpty(childEvt.Message))
+                    {
+                        <div class="thinking-message thinking-reasoning">
+                            <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
+                        </div>
+                    }
                 }
             </div>
         }

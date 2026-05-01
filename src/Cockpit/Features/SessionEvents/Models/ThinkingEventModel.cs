@@ -13,5 +13,6 @@ public class ThinkingEventModel
 public enum ThinkingEventTypeEnum
 {
 	Message,
-	Tool
+	Tool,
+	Reasoning
 }

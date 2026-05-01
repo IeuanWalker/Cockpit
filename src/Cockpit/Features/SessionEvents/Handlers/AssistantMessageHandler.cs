@@ -44,30 +44,41 @@ static class AssistantMessageHandler
 			// All messages during thinking go to the thinking panel
 			if(!string.IsNullOrWhiteSpace(content))
 			{
-				ThinkingEventModel thinkingEvent = new()
+				// If the delta handler already created a live-streaming thinking event, update it
+				// in-place rather than creating a duplicate entry.
+				if(session.StreamingThinkingEvents.TryGetValue(messageId, out ThinkingEventModel? streamingThinkingEvent))
 				{
-					Id = messageId,
-					Type = ThinkingEventTypeEnum.Message,
-					Message = content,
-					Timestamp = evt.Timestamp.LocalDateTime,
-					EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
-				};
-
-				// If this message belongs to a subagent, nest it under the parent tool call
-				string? parentCallId = evt.Data.ParentToolCallId;
-				ToolExecutionModel? parentTool = parentCallId is not null
-					? SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, parentCallId)
-					: null;
-
-				if(parentTool is not null)
-				{
-					parentTool.AddChildEvent(thinkingEvent);
-					Debug.WriteLine("Added intermediate message as child of parent tool");
+					streamingThinkingEvent.Message = content;
+					streamingThinkingEvent.EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))];
+					session.StreamingThinkingEvents.Remove(messageId);
 				}
 				else
 				{
-					session.ActiveWorkingGroup.AddEvent(thinkingEvent);
-					Debug.WriteLine("Added intermediate message to thinking group");
+					ThinkingEventModel thinkingEvent = new()
+					{
+						Id = messageId,
+						Type = ThinkingEventTypeEnum.Message,
+						Message = content,
+						Timestamp = evt.Timestamp.LocalDateTime,
+						EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
+					};
+
+					// If this message belongs to a subagent, nest it under the parent tool call
+					string? parentCallId = evt.AgentId;
+					ToolExecutionModel? parentTool = parentCallId is not null
+						? SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, parentCallId)
+						: null;
+
+					if(parentTool is not null)
+					{
+						parentTool.AddChildEvent(thinkingEvent);
+						Debug.WriteLine("Added intermediate message as child of parent tool");
+					}
+					else
+					{
+						session.ActiveWorkingGroup.AddEvent(thinkingEvent);
+						Debug.WriteLine("Added intermediate message to thinking group");
+					}
 				}
 			}
 
@@ -75,6 +86,7 @@ static class AssistantMessageHandler
 			{
 				session.StreamingMessages.Remove(messageId);
 			}
+			session.StreamingThinkingEvents.Remove(messageId);
 			return;
 		}
 

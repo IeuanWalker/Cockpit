@@ -40,7 +40,7 @@ public class CopilotClientFeature : IAsyncDisposable
 				LogLevel = "info",
 				UseStdio = true,
 				Logger = _logger,
-				SessionIdleTimeoutSeconds = (int)new TimeSpan(0, 30, 0).TotalSeconds,
+				SessionIdleTimeoutSeconds = (int)new TimeSpan(0, 30, 0).TotalSeconds
 			});
 
 			await _client.StartAsync(cancellationToken);

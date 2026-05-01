@@ -208,6 +208,7 @@ public sealed partial class SessionFeature
 				ReasoningEffort = session.ReasoningEffort,
 				Streaming = true,
 				DisableResume = true,
+				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
 				CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null
@@ -237,21 +238,20 @@ public sealed partial class SessionFeature
 					CreatedAt = session.CreatedAt
 				};
 
-				using(SessionIdleHandler.SuppressFinishedNotification())
+				tempSession.SuppressFinishedNotification = true;
+				await Task.Run(() =>
 				{
-					await Task.Run(() =>
+					foreach(SessionEvent evt in events)
 					{
-						foreach(SessionEvent evt in events)
-						{
-							_processor.Process(tempSession, evt);
-						}
+						_processor.Process(tempSession, evt);
+					}
 
-						if(tempSession.ActiveWorkingGroup is not null)
-						{
-							_processor.FinalizeOpenGroup(tempSession);
-						}
-					});
-				}
+					if(tempSession.ActiveWorkingGroup is not null)
+					{
+						_processor.FinalizeOpenGroup(tempSession);
+					}
+				});
+				tempSession.SuppressFinishedNotification = false;
 
 				// Any message still IsPending after replay was sent while the session was
 				// mid-turn and never picked up by a subsequent assistant.turn_start (the session

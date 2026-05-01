@@ -1,4 +1,4 @@
-using Cockpit.Features.SessionEvents.Handlers;
+﻿using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
@@ -36,7 +36,7 @@ public sealed class SessionEventProcessor
 					// Safety net: finalize any prior group not yet closed by SessionIdleEvent
 					if(wasAgentBusy)
 					{
-						SessionIdleHandler.Handle(session);
+						SessionIdleHandler.Handle(session, logger: _logger);
 					}
 					string content = userMsg.Data?.Content ?? string.Empty;
 					_logger.LogDebug("Session {SessionId} user message: {Content}", session.Id, content[..Math.Min(50, content.Length)]);
@@ -60,6 +60,7 @@ public sealed class SessionEventProcessor
 
 				case AssistantReasoningDeltaEvent reasoningDelta:
 					_logger.LogDebug("Session {SessionId} assistant reasoning delta", session.Id);
+					AssistantReasoningDeltaHandler.Handle(session, reasoningDelta);
 					break;
 
 				case AssistantReasoningEvent reasoning:
@@ -102,9 +103,14 @@ public sealed class SessionEventProcessor
 					SubagentFailedHandler.Handle(session, subagentFailed);
 					break;
 
+				case SessionTaskCompleteEvent taskComplete:
+					_logger.LogDebug("Session {SessionId} task complete — success: {Success}", session.Id, taskComplete.Data?.Success);
+					SessionTaskCompleteHandler.Handle(session, taskComplete);
+					break;
+
 				case SessionIdleEvent idleEvt:
 					_logger.LogDebug("Session {SessionId} idle", session.Id);
-					SessionIdleHandler.Handle(session, idleEvt.Timestamp, onStreamSummary);
+					SessionIdleHandler.Handle(session, idleEvt.Timestamp, onStreamSummary, logger: _logger);
 					break;
 
 				case SessionErrorEvent error:
@@ -231,6 +237,10 @@ public sealed class SessionEventProcessor
 					_logger.LogInformation("Session {SessionId} subagent selected: {AgentName}", session.Id, subagentSelected.Data?.AgentName);
 					break;
 
+				case SubagentDeselectedEvent:
+					_logger.LogInformation("Session {SessionId} subagent deselected, returning to default agent", session.Id);
+					break;
+
 				case SystemMessageEvent systemMsg:
 					_logger.LogDebug("Session {SessionId} system message [{Role}]", session.Id, systemMsg.Data?.Role);
 					break;
@@ -266,5 +276,5 @@ public sealed class SessionEventProcessor
 	/// <summary>
 	/// Finalizes any open <see cref="ActivityGroup"/> on the session (e.g. after abrupt termination during replay).
 	/// </summary>
-	public void FinalizeOpenGroup(SessionModel session) => SessionIdleHandler.Handle(session);
+	public void FinalizeOpenGroup(SessionModel session) => SessionIdleHandler.Handle(session, logger: _logger);
 }
