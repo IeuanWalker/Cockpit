@@ -829,3 +829,14 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     font-size: 0.8125rem;
     text-align: center;
 }
+
+/* Character-level diff highlights (applied by JS, must be global) */
+.diff-char-added {
+    background-color: rgba(46, 160, 67, 0.45);
+    border-radius: 2px;
+}
+
+.diff-char-removed {
+    background-color: rgba(248, 81, 73, 0.45);
+    border-radius: 2px;
+}

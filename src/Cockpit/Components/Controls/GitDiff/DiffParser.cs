@@ -153,10 +153,22 @@ public static partial class DiffParser
 				{
 					DiffLineModel? left = j < removed.Count ? removed[j] : null;
 					DiffLineModel? right = j < added.Count ? added[j] : null;
+
+					List<(int Start, int Length)>? leftSpans = null;
+					List<(int Start, int Length)>? rightSpans = null;
+					if(left is not null && right is not null)
+					{
+						var (ls, rs) = InlineDiffComputer.Compute(left.Content, right.Content);
+						if(ls.Count > 0) leftSpans = ls;
+						if(rs.Count > 0) rightSpans = rs;
+					}
+
 					rows.Add(new SplitRowModel
 					{
 						Left = left,
-						Right = right
+						Right = right,
+						LeftSpans = leftSpans,
+						RightSpans = rightSpans
 					});
 				}
 			}

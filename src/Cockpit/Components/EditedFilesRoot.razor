@@ -16,7 +16,7 @@
             @if(_selectedFile?.Status.Equals(GitFileStatusEnum.Modified) ?? false)
             {
                 <div class="view-toggle">
-                    <button class="toggle-btn @(!_splitView ? "active" : "")" @onclick='() => SetSplitView(false)'>Inline</button>
+                    <button class="toggle-btn @(!_splitView ? "active" : "")" @onclick='() => SetSplitView(false)'>Unified</button>
                     <button class="toggle-btn @(_splitView ? "active" : "")" @onclick='() => SetSplitView(true)'>Split</button>
                 </div>
             }
@@ -61,18 +61,18 @@
                     var fileBorder = node.File!.Status switch
                     {
                         GitFileStatusEnum.Modified => "border-yellow-500",
-                        GitFileStatusEnum.Added    => "border-green-500",
-                        GitFileStatusEnum.Deleted  => "border-red-500",
-                        GitFileStatusEnum.Renamed  => "border-blue-500",
-                        _                          => "border-gray-600"
+                        GitFileStatusEnum.Added => "border-green-500",
+                        GitFileStatusEnum.Deleted => "border-red-500",
+                        GitFileStatusEnum.Renamed => "border-blue-500",
+                        _ => "border-gray-600"
                     };
                     var (badge, badgeClass) = node.File.Status switch
                     {
                         GitFileStatusEnum.Modified => ("M", "bg-yellow-600"),
-                        GitFileStatusEnum.Added    => ("A", "bg-green-600"),
-                        GitFileStatusEnum.Deleted  => ("D", "bg-red-600"),
-                        GitFileStatusEnum.Renamed  => ("R", "bg-blue-600"),
-                        _                          => ("U", "bg-gray-600")
+                        GitFileStatusEnum.Added => ("A", "bg-green-600"),
+                        GitFileStatusEnum.Deleted => ("D", "bg-red-600"),
+                        GitFileStatusEnum.Renamed => ("R", "bg-blue-600"),
+                        _ => ("U", "bg-gray-600")
                     };
                     <div class="ef-file-item border-l-2 @fileBorder @(_selectedFile == node.File ? "selected" : "")"
                          style="padding-left: @(12 + node.Depth * 12)px"

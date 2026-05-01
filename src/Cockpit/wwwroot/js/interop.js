@@ -348,11 +348,46 @@ window.cockpit = {
                 ? cell.textContent.substring(prefix.textContent.length)
                 : cell.textContent;
 
+            const diffSpansAttr = cell.getAttribute('data-diff-spans');
+            let markedText = rawText;
+            if (diffSpansAttr) {
+                try {
+                    markedText = cockpit._insertDiffMarkers(rawText, JSON.parse(diffSpansAttr));
+                } catch (_) { }
+            }
+
             try {
-                const result = hljs.highlight(rawText, { language: lang, ignoreIllegals: true });
-                cell.innerHTML = prefixHtml + result.value;
+                const result = hljs.highlight(markedText, { language: lang, ignoreIllegals: true });
+                const highlightClass = cell.classList.contains('added')
+                    ? 'diff-char-added'
+                    : cell.classList.contains('removed')
+                        ? 'diff-char-removed'
+                        : '';
+                let highlighted = result.value;
+                if (highlightClass) {
+                    highlighted = highlighted
+                        .replace(/\uE000/g, `<span class="${highlightClass}">`)
+                        .replace(/\uE001/g, '</span>');
+                } else {
+                    highlighted = highlighted.replace(/[\uE000\uE001]/g, '');
+                }
+                cell.innerHTML = prefixHtml + highlighted;
             } catch (_) { /* ignore */ }
         });
+    },
+
+    _insertDiffMarkers: function (text, spans) {
+        if (!spans || !spans.length) return text;
+        const sorted = [...spans].sort((a, b) => a[0] - b[0]);
+        let result = '';
+        let lastEnd = 0;
+        for (const [start, len] of sorted) {
+            if (start >= text.length) break;
+            const end = Math.min(start + len, text.length);
+            result += text.slice(lastEnd, start) + '\uE000' + text.slice(start, end) + '\uE001';
+            lastEnd = end;
+        }
+        return result + text.slice(lastEnd);
     },
 
     setupSplitDiffScroll: function (leftId, rightId) {

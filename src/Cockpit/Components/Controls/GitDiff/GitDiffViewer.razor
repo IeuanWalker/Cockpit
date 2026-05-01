@@ -33,7 +33,8 @@
                             {
                                 <tr>
                                     <td class="line-num">@row.Left?.OldLineNumber</td>
-                                    <td class="diff-cell @(row.Left is null ? "split-empty" : row.Left.Type == DiffLineTypeEnum.Removed ? "removed" : "context")">@(row.Left?.Content ?? string.Empty)</td>
+                                    <td class="diff-cell @(row.Left is null ? "split-empty" : row.Left.Type == DiffLineTypeEnum.Removed ? "removed" : "context")"
+                                        data-diff-spans="@(row.LeftSpans is { Count: > 0 } ? SerializeSpans(row.LeftSpans) : "")">@(row.Left?.Content ?? string.Empty)</td>
                                 </tr>
                             }
                         }
@@ -50,7 +51,8 @@
                             {
                                 <tr>
                                     <td class="line-num">@row.Right?.NewLineNumber</td>
-                                    <td class="diff-cell @(row.Right is null ? "split-empty" : row.Right.Type == DiffLineTypeEnum.Added ? "added" : "context")">@(row.Right?.Content ?? string.Empty)</td>
+                                    <td class="diff-cell @(row.Right is null ? "split-empty" : row.Right.Type == DiffLineTypeEnum.Added ? "added" : "context")"
+                                        data-diff-spans="@(row.RightSpans is { Count: > 0 } ? SerializeSpans(row.RightSpans) : "")">@(row.Right?.Content ?? string.Empty)</td>
                                 </tr>
                             }
                         }
@@ -70,7 +72,8 @@
                         {
                             <tr class="@(line.Type == DiffLineTypeEnum.Removed ? "diff-row-removed" : line.Type == DiffLineTypeEnum.Added ? "diff-row-added" : "")">
                                 <td class="line-num">@(line.NewLineNumber ?? line.OldLineNumber)</td>
-                                <td class="diff-cell @(line.Type == DiffLineTypeEnum.Removed ? "removed" : line.Type == DiffLineTypeEnum.Added ? "added" : "context")"><span class="diff-prefix">@(line.Type == DiffLineTypeEnum.Removed ? "-" : line.Type == DiffLineTypeEnum.Added ? "+" : " ")</span>@line.Content</td>
+                                <td class="diff-cell @(line.Type == DiffLineTypeEnum.Removed ? "removed" : line.Type == DiffLineTypeEnum.Added ? "added" : "context")"
+                                    data-diff-spans="@(_inlineSpans.TryGetValue(line, out var lineSpans) && lineSpans.Count > 0 ? SerializeSpans(lineSpans) : "")"><span class="diff-prefix">@(line.Type == DiffLineTypeEnum.Removed ? "-" : line.Type == DiffLineTypeEnum.Added ? "+" : " ")</span>@line.Content</td>
                             </tr>
                         }
                     }
