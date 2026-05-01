@@ -899,18 +899,30 @@ window.cockpit = {
     autoResizeContentEditable: function (id) {
         const el = document.getElementById(id);
         if (!el) return;
+        const savedScrollTop = el.scrollTop;
         el.style.height = 'auto';
         const maxHeight = 300;
         el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
-        // If content overflows after resize, ensure the caret / last line is visible
-        // by scrolling to the bottom on the next frame after layout updates.
-        requestAnimationFrame(() => {
-            try {
-                if (el.scrollHeight > el.clientHeight) {
-                    el.scrollTop = el.scrollHeight;
+        // Scroll just enough to keep the caret visible — no more, no less.
+        // This handles all cases: new line anywhere, paste anywhere, edit at top.
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+            const caretRect = sel.getRangeAt(0).getBoundingClientRect();
+            if (caretRect.height > 0) {
+                const elRect = el.getBoundingClientRect();
+                const caretTop = caretRect.top - elRect.top + el.scrollTop;
+                const caretBottom = caretRect.bottom - elRect.top + el.scrollTop;
+                if (caretBottom > el.scrollTop + el.clientHeight) {
+                    el.scrollTop = caretBottom - el.clientHeight;
+                } else if (caretTop < el.scrollTop) {
+                    el.scrollTop = caretTop;
+                } else {
+                    el.scrollTop = savedScrollTop;
                 }
-            } catch (e) { /* ignore */ }
-        });
+                return;
+            }
+        }
+        el.scrollTop = savedScrollTop;
     },
 
     setupContentEditableBehavior: function (id, enterToSend) {
@@ -956,7 +968,7 @@ window.cockpit = {
                     br.after(spacer);
 
                     const newRange = document.createRange();
-                    newRange.setStartAfter(br);
+                    newRange.setStart(spacer, 0);
                     newRange.collapse(true);
                     sel.removeAllRanges();
                     sel.addRange(newRange);
