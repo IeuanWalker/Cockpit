@@ -264,10 +264,8 @@ public sealed class SessionEventProcessor
 			_logger.LogError(ex, "Error handling session event {EventType} for session {SessionId}", evt.Type, session.Id);
 		}
 
-		// Update LastActivity only for meaningful events (user/assistant messages, tool executions)
-		if(evt is UserMessageEvent or AssistantMessageEvent or AssistantTurnEndEvent
-			or ToolExecutionStartEvent or ToolExecutionCompleteEvent or SessionIdleEvent
-			or SubagentStartedEvent or SubagentCompletedEvent or SessionErrorEvent)
+		// Update LastActivity only when the user sends a message or the working panel finishes
+		if(evt is UserMessageEvent or SessionIdleEvent)
 		{
 			session.LastActivity = evt.Timestamp.LocalDateTime;
 		}
