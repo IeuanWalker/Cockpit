@@ -32,19 +32,14 @@ public sealed partial class ToolExecutionDetail : IDisposable
 	public void Dispose()
 	{
 		_timestampFeature.OnTick -= OnTick;
+		_clickCts?.Cancel();
 	}
 
-	bool _isSelecting = false;
 	bool _isSelectingThinking = false;
 
-	void OnToolSummaryMouseDown(MouseEventArgs e) => _isSelecting = false;
-	void OnToolSummaryMouseMove(MouseEventArgs e)
-	{
-		if(e.Buttons == 1)
-		{
-			_isSelecting = true;
-		}
-	}
+	long _lastClickTick = 0;
+	CancellationTokenSource? _clickCts;
+
 	void OnThinkingMouseDown(MouseEventArgs e) => _isSelectingThinking = false;
 	void OnThinkingMouseMove(MouseEventArgs e)
 	{
@@ -54,15 +49,33 @@ public sealed partial class ToolExecutionDetail : IDisposable
 		}
 	}
 
-	void ToggleExpanded()
+	async Task ToggleExpanded()
 	{
-		if(_isSelecting)
-		{
-			_isSelecting = false;
+		const int ThresholdMs = 350;
+
+		long now = Environment.TickCount64;
+		long elapsed = now - _lastClickTick;
+		_lastClickTick = now;
+
+		_clickCts?.Cancel();
+		CancellationTokenSource cts = new();
+		_clickCts = cts;
+
+		if (elapsed < ThresholdMs)
 			return;
+
+		try
+		{
+			await Task.Delay(ThresholdMs, cts.Token);
+			Tool.IsExpanded = !Tool.IsExpanded;
+			StateHasChanged();
 		}
-		Tool.IsExpanded = !Tool.IsExpanded;
-		StateHasChanged();
+		catch (OperationCanceledException) { }
+		finally
+		{
+			if (ReferenceEquals(_clickCts, cts))
+				_clickCts = null;
+		}
 	}
 
 	void ToggleEventExpandedIfNotSelecting(string key)
@@ -72,6 +85,7 @@ public sealed partial class ToolExecutionDetail : IDisposable
 			_isSelectingThinking = false;
 			return;
 		}
+
 		ToggleEventExpanded(key);
 	}
 

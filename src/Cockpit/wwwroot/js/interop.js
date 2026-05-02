@@ -1132,6 +1132,47 @@ window.cockpit = {
     }
 })();
 
+// Global double-click guard: suppress click events that are part of a double-click sequence.
+// Uses mousedown timing (not event.detail, which is unreliable in MAUI WebView) and stores
+// state in a plain object keyed by data-cockpit-id so it survives Blazor re-renders.
+(function () {
+    var THRESHOLD_MS = 500;
+    var SEL = '.event-message, .error-message';
+    var mdTimes = {};
+    var suppress = {};
+
+    function getKey(el) {
+        return (el.dataset && el.dataset.cockpitId) || el.className || 'unknown';
+    }
+
+    window.addEventListener('mousedown', function (e) {
+        try {
+            var t = e.target && e.target.closest ? e.target.closest(SEL) : null;
+            if (!t) return;
+            var k = getKey(t);
+            var now = Date.now();
+            if (now - (mdTimes[k] || 0) < THRESHOLD_MS) {
+                suppress[k] = now + THRESHOLD_MS;
+            }
+            mdTimes[k] = now;
+        } catch (_) {}
+    }, { capture: true });
+
+    window.addEventListener('click', function (e) {
+        try {
+            var t = e.target && e.target.closest ? e.target.closest(SEL) : null;
+            if (!t) return;
+            var k = getKey(t);
+            var now = Date.now();
+            if (e.detail >= 2 || (suppress[k] && now < suppress[k])) {
+                delete suppress[k];
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            }
+        } catch (_) {}
+    }, { capture: true });
+})();
+
 // Global function to toggle settings from MAUI title bar
 window.toggleSettings = function () {
     if (window._mainLayoutRef) {

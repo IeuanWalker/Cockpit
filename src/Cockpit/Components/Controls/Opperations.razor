@@ -3,7 +3,7 @@
 
 <div class="activity-group @GetStatusClass()">
     <div style="display:inline-block">
-        <div class="group-header" style="display:inline-flex" @onmousedown="OnGroupHeaderMouseDown" @onmousemove="OnGroupHeaderMouseMove" @onclick="ToggleExpanded">
+        <div class="group-header" data-cockpit-id="@Group.Id" style="display:inline-flex" @onclick="ToggleExpanded">
             <span class="expand-arrow">@(Group.IsExpanded ? "▾" : "▸")</span>
             <span class="status-icon">@GetStatusIcon()</span>
             <span class="group-summary">@GenerateSummary()</span>
