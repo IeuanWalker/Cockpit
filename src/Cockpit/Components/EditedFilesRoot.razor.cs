@@ -1,3 +1,4 @@
+using Cockpit.Components.Controls.GitDiff;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Git;
 using Cockpit.Features.Git.Models;
@@ -38,6 +39,7 @@ public sealed partial class EditedFilesRoot : ComponentBase, IAsyncDisposable
 	List<GitChangedFileModel> Files => _sessionListFeature.CurrentSession?.Context?.EditedFiles ?? [];
 
 	GitChangedFileModel? _selectedFile;
+	GitDiffViewer? _diffViewer;
 	bool _splitView;
 	bool _treeView;
 	readonly Dictionary<string, bool> _expandedDirs = new(StringComparer.OrdinalIgnoreCase);
@@ -122,6 +124,12 @@ public sealed partial class EditedFilesRoot : ComponentBase, IAsyncDisposable
 	void RevealFile()
 	{
 		FileUtil.RevealFile(_selectedFilePath);
+	}
+
+	async Task ExpandAllLines()
+	{
+		if(_diffViewer is not null)
+			await _diffViewer.ExpandAllAsync();
 	}
 
 	List<DisplayNode> BuildDisplayNodes()
