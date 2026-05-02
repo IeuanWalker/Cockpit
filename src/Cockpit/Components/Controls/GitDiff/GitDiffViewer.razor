@@ -6,8 +6,8 @@
     @if(_parsedDiff is not null && _parsedDiff.Hunks.Count > 0)
     {
         <div class="gitdiff-panel-header border-b border-app-border">
-            <div class="flex items-center gap-2 min-w-0 flex-1">
-                <span class="font-semibold text-sm text-app-title">@_fileName</span>
+            <div class="flex items-center gap-2 min-w-0 flex-shrink-0">
+                <span class="font-semibold text-sm text-app-title truncate">@_fileName</span>
                 @if(_parsedDiff.LinesAdded > 0)
                 {
                     <span class="text-xs font-medium diff-added-count flex-shrink-0">+@_parsedDiff.LinesAdded</span>
@@ -17,7 +17,7 @@
                     <span class="text-xs font-medium diff-removed-count flex-shrink-0">-@_parsedDiff.LinesRemoved</span>
                 }
             </div>
-            <span class="text-xs secondary-text truncate ml-4 max-w-xs" title="@FilePath">@FilePath</span>
+            <span class="text-xs secondary-text truncate ml-4 min-w-0 flex-1" title="@FilePath" style="direction: rtl;">@FilePath</span>
         </div>
 
         @if(SplitView && (GitFileStatus?.Equals(GitFileStatusEnum.Modified) ?? false))
@@ -42,8 +42,15 @@
                             }
                             <tr @key="@($"Lh{hi}")" class="hunk-header-row">
                                 <td class="expand-gutter">
-                                    @if(prevHunk is not null && CanExpandBelow(prevHunk)) { var ph = prevHunk; <button class="expand-btn expand-btn-down" @onclick="() => ExpandBelow(ph)" title="Expand below">&#8595;</button> }
-                                    @if(CanExpandAbove(hunk)) { <button class="expand-btn expand-btn-up" @onclick="() => ExpandAbove(hunk)" title="Expand above">&#8593;</button> }
+                                    @if(prevHunk is not null && CanExpandBelow(prevHunk))
+                                    {
+                                        var ph = prevHunk;
+                                        <button class="expand-btn expand-btn-down" @onclick="() => ExpandBelow(ph)" title="Expand below">&#8595;</button>
+                                    }
+                                    @if(CanExpandAbove(hunk))
+                                    {
+                                        <button class="expand-btn expand-btn-up" @onclick="() => ExpandAbove(hunk)" title="Expand above">&#8593;</button>
+                                    }
                                 </td>
                                 <td class="hunk-header-cell">@hunk.Header</td>
                             </tr>
@@ -52,7 +59,9 @@
                                 <tr @key="row">
                                     <td class="line-num">@row.Left?.OldLineNumber</td>
                                     <td class="diff-cell @(row.Left is null ? "split-empty" : row.Left.Type == DiffLineTypeEnum.Removed ? "removed" : "context")"
-                                        data-diff-spans="@(row.LeftSpans is { Count: > 0 } ? SerializeSpans(row.LeftSpans) : "")">@(row.Left?.Content ?? string.Empty)</td>
+                                        data-diff-spans="@(row.LeftSpans is { Count: > 0 } ? SerializeSpans(row.LeftSpans) : "")">
+                                        @(row.Left?.Content ?? string.Empty)
+                                    </td>
                                 </tr>
                             }
                             @foreach(var exp in GetExpandedBelow(hunk))
@@ -92,8 +101,15 @@
                             }
                             <tr @key="@($"Rh{hi}")" class="hunk-header-row">
                                 <td class="expand-gutter">
-                                    @if(prevHunk is not null && CanExpandBelow(prevHunk)) { var ph2 = prevHunk; <button class="expand-btn expand-btn-down" @onclick="() => ExpandBelow(ph2)" title="Expand below">&#8595;</button> }
-                                    @if(CanExpandAbove(hunk)) { <button class="expand-btn expand-btn-up" @onclick="() => ExpandAbove(hunk)" title="Expand above">&#8593;</button> }
+                                    @if(prevHunk is not null && CanExpandBelow(prevHunk))
+                                    {
+                                        var ph2 = prevHunk;
+                                        <button class="expand-btn expand-btn-down" @onclick="() => ExpandBelow(ph2)" title="Expand below">&#8595;</button>
+                                    }
+                                    @if(CanExpandAbove(hunk))
+                                    {
+                                        <button class="expand-btn expand-btn-up" @onclick="() => ExpandAbove(hunk)" title="Expand above">&#8593;</button>
+                                    }
                                 </td>
                                 <td class="hunk-header-cell">@hunk.Header</td>
                             </tr>
@@ -102,7 +118,9 @@
                                 <tr @key="row">
                                     <td class="line-num">@row.Right?.NewLineNumber</td>
                                     <td class="diff-cell @(row.Right is null ? "split-empty" : row.Right.Type == DiffLineTypeEnum.Added ? "added" : "context")"
-                                        data-diff-spans="@(row.RightSpans is { Count: > 0 } ? SerializeSpans(row.RightSpans) : "")">@(row.Right?.Content ?? string.Empty)</td>
+                                        data-diff-spans="@(row.RightSpans is { Count: > 0 } ? SerializeSpans(row.RightSpans) : "")">
+                                        @(row.Right?.Content ?? string.Empty)
+                                    </td>
                                 </tr>
                             }
                             @foreach(var exp in GetExpandedBelow(hunk))
@@ -143,8 +161,15 @@
                         }
                         <tr @key="@($"Ih{hi}")" class="hunk-header-row">
                             <td class="expand-gutter" colspan="2">
-                                @if(prevHunk is not null && CanExpandBelow(prevHunk)) { var ph = prevHunk; <button class="expand-btn expand-btn-down" @onclick="() => ExpandBelow(ph)" title="Expand below">&#8595;</button> }
-                                @if(CanExpandAbove(hunk)) { <button class="expand-btn expand-btn-up" @onclick="() => ExpandAbove(hunk)" title="Expand above">&#8593;</button> }
+                                @if(prevHunk is not null && CanExpandBelow(prevHunk))
+                                {
+                                    var ph = prevHunk;
+                                    <button class="expand-btn expand-btn-down" @onclick="() => ExpandBelow(ph)" title="Expand below">&#8595;</button>
+                                }
+                                @if(CanExpandAbove(hunk))
+                                {
+                                    <button class="expand-btn expand-btn-up" @onclick="() => ExpandAbove(hunk)" title="Expand above">&#8593;</button>
+                                }
                             </td>
                             <td class="hunk-header-cell">@hunk.Header</td>
                         </tr>
@@ -154,7 +179,9 @@
                                 <td class="line-num">@(line.Type == DiffLineTypeEnum.Added ? null : line.OldLineNumber)</td>
                                 <td class="line-num">@(line.Type == DiffLineTypeEnum.Removed ? null : line.NewLineNumber)</td>
                                 <td class="diff-cell @(line.Type == DiffLineTypeEnum.Removed ? "removed" : line.Type == DiffLineTypeEnum.Added ? "added" : "context")"
-                                    data-diff-spans="@(_inlineSpans.TryGetValue(line, out var lineSpans) && lineSpans.Count > 0 ? SerializeSpans(lineSpans) : "")"><span class="diff-prefix">@(line.Type == DiffLineTypeEnum.Removed ? "-" : line.Type == DiffLineTypeEnum.Added ? "+" : " ")</span>@line.Content</td>
+                                    data-diff-spans="@(_inlineSpans.TryGetValue(line, out var lineSpans) && lineSpans.Count > 0 ? SerializeSpans(lineSpans) : "")">
+                                    <span class="diff-prefix">@(line.Type == DiffLineTypeEnum.Removed ? "-" : line.Type == DiffLineTypeEnum.Added ? "+" : " ")</span>@line.Content
+                                </td>
                             </tr>
                         }
                         @foreach(var exp in GetExpandedBelow(hunk))
