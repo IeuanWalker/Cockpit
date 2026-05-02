@@ -318,4 +318,126 @@ public class UserMessageHandlerTests
 		int secondMsgIndex = session.Messages.IndexOf(secondMsg);
 		activityGroupIndex.ShouldBeLessThan(secondMsgIndex);
 	}
+
+	[Fact]
+	public void Handle_AgentGeneratedContinuation_NotMarkedPending_EvenWhenAgentWasBusy()
+	{
+		// Arrange: agent is mid-turn (active working group)
+		SessionModel session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+		session.ActiveWorkingGroup = new ActivityGroupModel { Status = GroupStatusEnum.Running };
+
+		UserMessageEvent evt = new()
+		{
+			Data = new UserMessageData
+			{
+				Content = "Please continue from where you left off.",
+				Source = "thinking-exhausted-continuation"
+			},
+			Timestamp = DateTimeOffset.UtcNow
+		};
+
+		// Act
+		processor.Process(session, evt);
+
+		// Assert: agent-generated continuation messages must NEVER be pending
+		ChatMessageModel? msg = session.Messages.FirstOrDefault(m => m.IsUser);
+		msg.ShouldNotBeNull();
+		msg.IsPending.ShouldBeFalse();
+	}
+
+	/// <summary>
+	/// Regression test for the full thinking-exhausted-continuation event sequence as observed in production.
+	/// Verifies that:
+	///   1. The continuation message is never stuck in "Pending" state.
+	///   2. After <c>session.idle</c>, the activity group for the continuation turn is inserted
+	///      AFTER the continuation message (not before it, as it would be if the message were
+	///      incorrectly treated as pending and excluded from the anchor search).
+	/// </summary>
+	[Fact]
+	public void ThinkingExhaustedContinuation_FullSequence_ActivityGroupPositionedAfterContinuationMessage()
+	{
+		SessionModel session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+
+		// Original user message + agent starts working
+		processor.Process(session, new UserMessageEvent
+		{
+			Data = new UserMessageData { Content = "Do a big task" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new AssistantTurnStartEvent
+		{
+			Data = new AssistantTurnStartData { TurnId = "0" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new ToolExecutionStartEvent
+		{
+			Data = new ToolExecutionStartData { ToolCallId = "tc1", ToolName = "read_file" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new ToolExecutionCompleteEvent
+		{
+			Data = new ToolExecutionCompleteData { ToolCallId = "tc1", Success = true },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// SDK auto-generates the thinking-exhausted-continuation message mid-turn
+		// (assistant.turn_start with a non-zero turnId follows, simulating the observed pattern)
+		processor.Process(session, new UserMessageEvent
+		{
+			Data = new UserMessageData
+			{
+				Content = "Please continue from where you left off.",
+				Source = "thinking-exhausted-continuation"
+			},
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		ChatMessageModel? continuationMsg = session.Messages.FirstOrDefault(m => m.IsUser && m.Content == "Please continue from where you left off.");
+		continuationMsg.ShouldNotBeNull();
+		continuationMsg.IsPending.ShouldBeFalse();
+
+		// Continuation turn starts (non-zero TurnId, as seen in production logs)
+		processor.Process(session, new AssistantTurnStartEvent
+		{
+			Data = new AssistantTurnStartData { TurnId = "5" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new ToolExecutionStartEvent
+		{
+			Data = new ToolExecutionStartData { ToolCallId = "tc2", ToolName = "write_file" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new ToolExecutionCompleteEvent
+		{
+			Data = new ToolExecutionCompleteData { ToolCallId = "tc2", Success = true },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// Continuation turn ends
+		processor.Process(session, new SessionIdleEvent
+		{
+			Data = new SessionIdleData(),
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// The activity group for the continuation turn must be inserted AFTER the continuation
+		// message, not before it (which would happen if it were incorrectly marked pending and
+		// therefore excluded from the SessionIdleHandler anchor fallback search).
+		int continuationMsgIndex = session.Messages.IndexOf(continuationMsg);
+		// There are two activity groups: one for the pre-continuation work and one for the continuation turn
+		List<int> activityGroupIndices = session.Messages
+			.Select((m, i) => (m, i))
+			.Where(x => x.m.Type == MessageTypeEnum.ActivityGroup)
+			.Select(x => x.i)
+			.ToList();
+
+		activityGroupIndices.Count.ShouldBe(2, "expected one activity group per agent turn");
+
+		// The second activity group (continuation turn) must come after the continuation message
+		int secondActivityGroupIndex = activityGroupIndices[1];
+		secondActivityGroupIndex.ShouldBeGreaterThan(continuationMsgIndex,
+			"continuation turn's activity group must be positioned after the continuation user message");
+	}
 }
