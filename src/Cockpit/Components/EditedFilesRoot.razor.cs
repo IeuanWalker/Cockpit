@@ -47,11 +47,23 @@ public sealed partial class EditedFilesRoot : ComponentBase, IAsyncDisposable
 
 	List<DisplayNode> DisplayNodes => _cachedNodes ??= BuildDisplayNodes();
 
-	string? _selectedFilePath =>
-		_selectedFile is null ? null :
-		_sessionListFeature.CurrentSession?.Context?.GitRoot is string root
-			? Path.Combine(root, _selectedFile.Path.Replace('/', Path.DirectorySeparatorChar))
-			: _selectedFile.Path;
+	string? _selectedFilePath
+	{
+		get
+		{
+			if(_selectedFile is null)
+			{
+				return null;
+			}
+
+			if(_sessionListFeature.CurrentSession?.Context?.GitRoot is string root)
+			{
+				return Path.Combine(root, _selectedFile.Path.Replace('/', Path.DirectorySeparatorChar));
+			}
+
+			return _selectedFile.Path;
+		}
+	}
 
 	protected override void OnInitialized()
 	{

@@ -22,6 +22,10 @@ public sealed partial class GitFeature
 		try
 		{
 			string? gitRoot = await RunCommand(workingDirectory, "rev-parse", "--show-toplevel");
+			if(!string.IsNullOrEmpty(gitRoot))
+			{
+				gitRoot = Path.GetFullPath(gitRoot);
+			}
 			string? branch = await RunCommand(workingDirectory, "rev-parse", "--abbrev-ref", "HEAD");
 			string? remoteUrl = await RunCommand(workingDirectory, "remote", "get-url", "origin");
 
