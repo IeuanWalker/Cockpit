@@ -4,10 +4,13 @@
                Title="Model"
                IsDisabled="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running || _sessionListFeature.CurrentSession?.PendingPermissionRequests?.Count > 0)"
                TooltipText="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running ? "You can't change model while the agent is working" : null)"
-               MinWidth="150px"
                DropdownMinWidth="250px">
     <SelectedContent>
-        @(_sessionListFeature.CurrentSession?.Model.Name ?? "No Model") (<span style="color: @GetMultiplierColor(_sessionListFeature.CurrentSession?.Model)">@(GetDisplayModelMultiplier(_sessionListFeature.CurrentSession?.Model))</span>)
+        @(_sessionListFeature.CurrentSession?.Model.Name ?? "No Model")
+        @if(!string.IsNullOrEmpty(GetDisplayModelMultiplier(_sessionListFeature.CurrentSession?.Model)))
+        {
+            <text> (</text><span style="color: @GetMultiplierColor(_sessionListFeature.CurrentSession?.Model)">@(GetDisplayModelMultiplier(_sessionListFeature.CurrentSession?.Model))</span><text>)</text>
+        }
     </SelectedContent>
     <DropdownContent>
         @foreach(var model in _availableModels)
@@ -28,7 +31,6 @@
                    Title="Reasoning"
                    IsDisabled="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running)"
                    TooltipText="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running ? "You can't change reasoning while the agent is working" : null)"
-                   MinWidth="100px"
                    DropdownMinWidth="150px"
                    DropdownMaxHeight="200px">
         <SelectedContent>
