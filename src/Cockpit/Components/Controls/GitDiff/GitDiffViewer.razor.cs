@@ -270,7 +270,7 @@ public partial class GitDiffViewer : ComponentBase
 		return next.NewStartLine;
 	}
 
-	List<(int OldLine, int NewLine, string Content)> GetExpandedAbove(DiffHunkModel hunk)
+	List<(int? OldLine, int NewLine, string Content)> GetExpandedAbove(DiffHunkModel hunk)
 	{
 		if(_fileLines is null)
 		{
@@ -294,20 +294,22 @@ public partial class GitDiffViewer : ComponentBase
 		}
 
 		int oldOffset = hunk.OldStartLine - hunk.NewStartLine;
-		List<(int, int, string)> result = new(count);
+		bool hasOldSide = hunk.OldStartLine > 0;
+		List<(int?, int, string)> result = new(count);
 		for(int i = 0; i < count; i++)
 		{
 			int newLine = newStart + i;
 			int idx = newLine - 1;
 			if(idx >= 0 && idx < _fileLines.Length)
 			{
-				result.Add((newLine + oldOffset, newLine, _fileLines[idx]));
+				int? oldLine = hasOldSide ? newLine + oldOffset : null;
+				result.Add((oldLine, newLine, _fileLines[idx]));
 			}
 		}
 		return result;
 	}
 
-	List<(int OldLine, int NewLine, string Content)> GetExpandedBelow(DiffHunkModel hunk)
+	List<(int? OldLine, int NewLine, string Content)> GetExpandedBelow(DiffHunkModel hunk)
 	{
 		if(_fileLines is null)
 		{
@@ -322,12 +324,12 @@ public partial class GitDiffViewer : ComponentBase
 
 		int lastNew = LastNewLine(hunk);
 		int lastOld = LastOldLine(hunk);
+		bool hasOldSide = lastOld > 0;
 		int ceiling = CeilingBelow(hunk);
-		List<(int, int, string)> result = [];
+		List<(int?, int, string)> result = [];
 		for(int i = 0; i < cur.Below; i++)
 		{
 			int newLine = lastNew + 1 + i;
-			int oldLine = lastOld + 1 + i;
 			if(newLine >= ceiling)
 			{
 				break;
@@ -339,6 +341,7 @@ public partial class GitDiffViewer : ComponentBase
 				break;
 			}
 
+			int? oldLine = hasOldSide ? lastOld + 1 + i : null;
 			result.Add((oldLine, newLine, _fileLines[idx]));
 		}
 		return result;

@@ -64,13 +64,13 @@ public sealed partial class ToolExecutionDetail : IDisposable
 		oldCts?.Cancel();
 		oldCts?.Dispose();
 
-		CancellationTokenSource cts = new();
-		_clickCts = cts;
-
 		if (elapsed < ThresholdMs)
 		{
 			return;
 		}
+
+		CancellationTokenSource cts = new();
+		_clickCts = cts;
 
 		try
 		{

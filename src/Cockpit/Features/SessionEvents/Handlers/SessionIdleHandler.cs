@@ -31,7 +31,7 @@ static class SessionIdleHandler
 	{
 		ActivityGroupModel? activeGroup = session.ActiveWorkingGroup;
 
-		bool hasThinkingMessages = activeGroup?.GetEventsSnapshot().Any(e => e.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrWhiteSpace(e.Message)) ?? false;
+		bool hasThinkingMessages = activeGroup?.GetEventsSnapshot().Any(e => (e.Type == ThinkingEventTypeEnum.Message || e.Type == ThinkingEventTypeEnum.Reasoning) && !string.IsNullOrWhiteSpace(e.Message)) ?? false;
 		if(activeGroup is not null && (activeGroup.Tools.Any() || hasThinkingMessages || groupStatus == GroupStatusEnum.Error))
 		{
 			ActivityGroupModel group = activeGroup;

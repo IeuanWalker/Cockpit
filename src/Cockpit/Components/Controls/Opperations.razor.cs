@@ -36,13 +36,13 @@ public sealed partial class Opperations : IDisposable
 		oldCts?.Cancel();
 		oldCts?.Dispose();
 
-		CancellationTokenSource cts = new();
-		_clickCts = cts;
-
 		if (elapsed < ThresholdMs)
 		{
 			return;
 		}
+
+		CancellationTokenSource cts = new();
+		_clickCts = cts;
 
 		try
 		{
