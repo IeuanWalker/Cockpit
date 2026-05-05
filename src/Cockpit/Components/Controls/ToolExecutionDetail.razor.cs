@@ -33,6 +33,8 @@ public sealed partial class ToolExecutionDetail : IDisposable
 	{
 		_timestampFeature.OnTick -= OnTick;
 		_clickCts?.Cancel();
+		_clickCts?.Dispose();
+		_clickCts = null;
 	}
 
 	bool _isSelectingThinking = false;
@@ -57,7 +59,11 @@ public sealed partial class ToolExecutionDetail : IDisposable
 		long elapsed = now - _lastClickTick;
 		_lastClickTick = now;
 
-		_clickCts?.Cancel();
+		CancellationTokenSource? oldCts = _clickCts;
+		_clickCts = null;
+		oldCts?.Cancel();
+		oldCts?.Dispose();
+
 		CancellationTokenSource cts = new();
 		_clickCts = cts;
 
@@ -79,6 +85,8 @@ public sealed partial class ToolExecutionDetail : IDisposable
 			{
 				_clickCts = null;
 			}
+
+			cts.Dispose();
 		}
 	}
 

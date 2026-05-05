@@ -3,6 +3,7 @@ namespace Cockpit.Components.Controls.GitDiff;
 static class InlineDiffComputer
 {
 	const double similarityThreshold = 0.3;
+	const int maxTokenCount = 200;
 
 	static List<(string Token, int Start)> Tokenize(string text)
 	{
@@ -49,6 +50,12 @@ static class InlineDiffComputer
 
 		List<(string Token, int Start)> tokL = Tokenize(left);
 		List<(string Token, int Start)> tokR = Tokenize(right);
+
+		if(tokL.Count > maxTokenCount || tokR.Count > maxTokenCount)
+		{
+			return ([], []);
+		}
+
 		int[,] dp = BuildLcsTable(tokL, tokR);
 
 		HashSet<int> matchedL = [];

@@ -344,23 +344,46 @@ public partial class GitDiffViewer : ComponentBase
 		return result;
 	}
 
+	string? _pendingFilePath;
+
 	protected override void OnParametersSet()
 	{
 		if(Diff != _prevDiff || FilePath != _prevFilePath || SplitView != _prevSplitView)
 		{
 			_parsedDiff = DiffParser.Parse(Diff);
 			_splitRows = _parsedDiff?.Hunks.ToDictionary(h => h, DiffParser.BuildSplitRows) ?? [];
-			_inlineSpans = ComputeInlineSpans(_parsedDiff);
+			_inlineSpans = SplitView ? [] : ComputeInlineSpans(_parsedDiff);
 			_hunkExpansion.Clear();
-
-			try { _fileLines = FilePath is not null && File.Exists(FilePath) ? File.ReadAllLines(FilePath) : null; }
-			catch { _fileLines = null; }
 
 			_needsHighlight = true;
 
 			_prevDiff = Diff;
 			_prevFilePath = FilePath;
 			_prevSplitView = SplitView;
+
+			_fileLines = null;
+			_pendingFilePath = FilePath;
+			_ = LoadFileLinesAsync(FilePath);
+		}
+	}
+
+	async Task LoadFileLinesAsync(string? filePath)
+	{
+		string[]? lines = null;
+		if(filePath is not null)
+		{
+			try
+			{
+				lines = await Task.Run(() => File.Exists(filePath) ? File.ReadAllLines(filePath) : null);
+			}
+			catch { }
+		}
+
+		if(filePath == _pendingFilePath)
+		{
+			_fileLines = lines;
+			_needsHighlight = true;
+			await InvokeAsync(StateHasChanged);
 		}
 	}
 

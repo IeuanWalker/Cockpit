@@ -31,7 +31,11 @@ public sealed partial class Opperations : IDisposable
 		long elapsed = now - _lastClickTick;
 		_lastClickTick = now;
 
-		_clickCts?.Cancel();
+		CancellationTokenSource? oldCts = _clickCts;
+		_clickCts = null;
+		oldCts?.Cancel();
+		oldCts?.Dispose();
+
 		CancellationTokenSource cts = new();
 		_clickCts = cts;
 
@@ -53,12 +57,16 @@ public sealed partial class Opperations : IDisposable
 			{
 				_clickCts = null;
 			}
+
+			cts.Dispose();
 		}
 	}
 
 	public void Dispose()
 	{
 		_clickCts?.Cancel();
+		_clickCts?.Dispose();
+		_clickCts = null;
 	}
 
 	string GetStatusClass()
