@@ -114,7 +114,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 	{
 		if(model is null)
 		{
-			return "Unkown";
+			return "Unknown";
 		}
 
 		if(model.Id.Equals("Auto", StringComparison.InvariantCultureIgnoreCase))
