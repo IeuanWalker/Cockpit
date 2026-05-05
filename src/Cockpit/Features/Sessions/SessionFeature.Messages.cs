@@ -84,11 +84,11 @@ public sealed partial class SessionFeature
 			}
 			_sessionListFeature.NotifyStateChanged();
 
-			List<UserMessageDataAttachmentsItem>? sdkAttachments = null;
+			List<UserMessageAttachment>? sdkAttachments = null;
 			if(attachments?.Count > 0)
 			{
 				sdkAttachments = [.. attachments
-					.Select(a => (UserMessageDataAttachmentsItem)new UserMessageDataAttachmentsItemFile
+					.Select(a => (UserMessageAttachmentFile)new UserMessageAttachmentFile
 					{
 						Path = a.FilePath,
 						DisplayName = a.FileName

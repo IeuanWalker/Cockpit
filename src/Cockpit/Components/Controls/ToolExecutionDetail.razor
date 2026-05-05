@@ -1,7 +1,7 @@
 @using Cockpit.Features.SessionEvents.Models
 
 <div class="tool-execution @GetStatusClass()">
-    <div class="tool-summary" @onmousedown="OnToolSummaryMouseDown" @onmousemove="OnToolSummaryMouseMove" @onclick="ToggleExpanded">
+    <div class="tool-summary" data-cockpit-id="@Tool.Id" @onclick="ToggleExpanded">
         <span class="tool-dot @GetStatusClass()"></span>
         <span class="tool-label" style="color: @GetLabelColor()">@GetToolLabel()</span>
         @{
@@ -90,6 +90,12 @@
                     else if(childEvt.Type == ThinkingEventTypeEnum.Tool && childEvt.Tool is not null)
                     {
                         <ToolExecutionDetail Tool="childEvt.Tool" />
+                    }
+                    else if(childEvt.Type == ThinkingEventTypeEnum.Reasoning && !string.IsNullOrEmpty(childEvt.Message))
+                    {
+                        <div class="thinking-message thinking-reasoning">
+                            <MarkdownRenderer Content="@childEvt.Message" CssClass="text-sm" />
+                        </div>
                     }
                 }
             </div>

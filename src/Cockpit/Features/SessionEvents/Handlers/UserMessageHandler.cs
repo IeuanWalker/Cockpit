@@ -7,6 +7,12 @@ namespace Cockpit.Features.SessionEvents.Handlers;
 
 static class UserMessageHandler
 {
+	/// <summary>
+	/// Source values that indicate the message was synthesised by the agent rather than typed by the user.
+	/// These messages are immediately acted upon and must never be marked pending.
+	/// </summary>
+	static readonly HashSet<string> agentGeneratedSources = ["thinking-exhausted-continuation"];
+
 	internal static void Handle(SessionModel session, UserMessageEvent evt, bool wasAgentBusy = false)
 	{
 		if(evt.Data is null)
@@ -16,9 +22,19 @@ static class UserMessageHandler
 
 		List<AttachmentModel>? attachments = ConvertAttachments(evt.Data.Attachments);
 
+		// Agent-synthesised messages (e.g. thinking-exhausted-continuation) are immediately
+		// acted upon by the next assistant turn and must never be shown as "Pending…".
+		bool isAgentGenerated = evt.Data.Source is not null && agentGeneratedSources.Contains(evt.Data.Source);
+
 		string eventMessageId = evt.Id.ToString();
+		// For agent-generated messages there is no UI-side optimistic placeholder, so skip the
+		// content-based fallback match to avoid accidentally stealing a queued user message that
+		// happens to share the same text.
 		ChatMessageModel? optimistic = session.Messages.FirstOrDefault(m => m.IsUser && !m.IsComplete && m.Id == eventMessageId);
-		optimistic ??= session.Messages.FirstOrDefault(m => m.IsUser && !m.IsComplete && m.Content == (evt.Data.Content ?? string.Empty));
+		if(!isAgentGenerated)
+		{
+			optimistic ??= session.Messages.FirstOrDefault(m => m.IsUser && !m.IsComplete && m.Content == (evt.Data.Content ?? string.Empty));
+		}
 
 		if(optimistic is not null)
 		{
@@ -27,8 +43,9 @@ static class UserMessageHandler
 			optimistic.EventType = evt.Type;
 			optimistic.IsComplete = true;
 			// Keep IsPending=true if already set (optimistic was created while agent was busy),
-			// or set it now if the agent is still busy when the SDK echo arrives
-			optimistic.IsPending = optimistic.IsPending || wasAgentBusy;
+			// or set it now if the agent is still busy when the SDK echo arrives.
+			// Never set IsPending for agent-generated messages.
+			optimistic.IsPending = !isAgentGenerated && (optimistic.IsPending || wasAgentBusy);
 			// Fill in attachments from event if the optimistic message didn't already have them
 			optimistic.Attachments ??= attachments;
 			optimistic.EventJson ??= [];
@@ -44,7 +61,7 @@ static class UserMessageHandler
 				Timestamp = evt.Timestamp,
 				Type = MessageTypeEnum.Text,
 				EventType = evt.Type,
-				IsPending = wasAgentBusy,
+				IsPending = !isAgentGenerated && wasAgentBusy,
 				Attachments = attachments,
 				EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 			};
@@ -54,7 +71,7 @@ static class UserMessageHandler
 		session.Status = SessionStatusEnum.Running;
 	}
 
-	static List<AttachmentModel>? ConvertAttachments(UserMessageDataAttachmentsItem[]? items)
+	static List<AttachmentModel>? ConvertAttachments(UserMessageAttachment[]? items)
 	{
 		if(items is null || items.Length == 0)
 		{
@@ -62,9 +79,9 @@ static class UserMessageHandler
 		}
 
 		List<AttachmentModel> result = [];
-		foreach(UserMessageDataAttachmentsItem item in items)
+		foreach(UserMessageAttachment item in items)
 		{
-			if(item is UserMessageDataAttachmentsItemFile file)
+			if(item is UserMessageAttachmentFile file)
 			{
 				string filePath = file.Path ?? string.Empty;
 				string fileName = file.DisplayName ?? Path.GetFileName(filePath);

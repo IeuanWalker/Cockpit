@@ -36,6 +36,12 @@ public static partial class DiffParser
 		{
 			string line = raw.TrimEnd('\r');
 
+			// Git "no newline at end of file" annotation — not a content line; skip without touching counters
+			if(line.StartsWith("\\ ", StringComparison.Ordinal))
+			{
+				continue;
+			}
+
 			if(line.StartsWith("--- ", StringComparison.Ordinal))
 			{
 				oldPath = TrimGitPathPrefix(line[4..]);
@@ -59,6 +65,8 @@ public static partial class DiffParser
 				{
 					Header = line,
 					Lines = [],
+					OldStartLine = match.Success ? int.Parse(match.Groups[1].Value) : 0,
+					NewStartLine = match.Success ? int.Parse(match.Groups[2].Value) : 0,
 				};
 				hunks.Add(currentHunk);
 				continue;
@@ -153,10 +161,29 @@ public static partial class DiffParser
 				{
 					DiffLineModel? left = j < removed.Count ? removed[j] : null;
 					DiffLineModel? right = j < added.Count ? added[j] : null;
+
+					List<(int Start, int Length)>? leftSpans = null;
+					List<(int Start, int Length)>? rightSpans = null;
+					if(left is not null && right is not null)
+					{
+						(List<(int Start, int Length)>? ls, List<(int Start, int Length)>? rs) = InlineDiffComputer.Compute(left.Content, right.Content);
+						if(ls.Count > 0)
+						{
+							leftSpans = ls;
+						}
+
+						if(rs.Count > 0)
+						{
+							rightSpans = rs;
+						}
+					}
+
 					rows.Add(new SplitRowModel
 					{
 						Left = left,
-						Right = right
+						Right = right,
+						LeftSpans = leftSpans,
+						RightSpans = rightSpans
 					});
 				}
 			}

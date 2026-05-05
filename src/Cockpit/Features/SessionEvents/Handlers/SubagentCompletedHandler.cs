@@ -13,11 +13,7 @@ static class SubagentCompletedHandler
 			return;
 		}
 
-		List<ThinkingEventModel> events = session.ActiveWorkingGroup.GetEventsSnapshot();
-		ToolExecutionModel? subagentExec = events
-			.Where(e => e.Type == ThinkingEventTypeEnum.Tool && e.Tool is not null)
-			.Select(e => e.Tool!)
-			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
+		ToolExecutionModel? subagentExec = SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, evt.Data.ToolCallId);
 
 		if(subagentExec is not null)
 		{

@@ -348,11 +348,46 @@ window.cockpit = {
                 ? cell.textContent.substring(prefix.textContent.length)
                 : cell.textContent;
 
+            const diffSpansAttr = cell.getAttribute('data-diff-spans');
+            let markedText = rawText;
+            if (diffSpansAttr) {
+                try {
+                    markedText = cockpit._insertDiffMarkers(rawText, JSON.parse(diffSpansAttr));
+                } catch (_) { }
+            }
+
             try {
-                const result = hljs.highlight(rawText, { language: lang, ignoreIllegals: true });
-                cell.innerHTML = prefixHtml + result.value;
+                const result = hljs.highlight(markedText, { language: lang, ignoreIllegals: true });
+                const highlightClass = cell.classList.contains('added')
+                    ? 'diff-char-added'
+                    : cell.classList.contains('removed')
+                        ? 'diff-char-removed'
+                        : '';
+                let highlighted = result.value;
+                if (highlightClass) {
+                    highlighted = highlighted
+                        .replace(/\uE000/g, `<span class="${highlightClass}">`)
+                        .replace(/\uE001/g, '</span>');
+                } else {
+                    highlighted = highlighted.replace(/[\uE000\uE001]/g, '');
+                }
+                cell.innerHTML = prefixHtml + highlighted;
             } catch (_) { /* ignore */ }
         });
+    },
+
+    _insertDiffMarkers: function (text, spans) {
+        if (!spans || !spans.length) return text;
+        const sorted = [...spans].sort((a, b) => a[0] - b[0]);
+        let result = '';
+        let lastEnd = 0;
+        for (const [start, len] of sorted) {
+            if (start >= text.length) break;
+            const end = Math.min(start + len, text.length);
+            result += text.slice(lastEnd, start) + '\uE000' + text.slice(start, end) + '\uE001';
+            lastEnd = end;
+        }
+        return result + text.slice(lastEnd);
     },
 
     setupSplitDiffScroll: function (leftId, rightId) {
@@ -899,18 +934,30 @@ window.cockpit = {
     autoResizeContentEditable: function (id) {
         const el = document.getElementById(id);
         if (!el) return;
+        const savedScrollTop = el.scrollTop;
         el.style.height = 'auto';
         const maxHeight = 300;
         el.style.height = Math.min(el.scrollHeight, maxHeight) + 'px';
-        // If content overflows after resize, ensure the caret / last line is visible
-        // by scrolling to the bottom on the next frame after layout updates.
-        requestAnimationFrame(() => {
-            try {
-                if (el.scrollHeight > el.clientHeight) {
-                    el.scrollTop = el.scrollHeight;
+        // Scroll just enough to keep the caret visible — no more, no less.
+        // This handles all cases: new line anywhere, paste anywhere, edit at top.
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+            const caretRect = sel.getRangeAt(0).getBoundingClientRect();
+            if (caretRect.height > 0) {
+                const elRect = el.getBoundingClientRect();
+                const caretTop = caretRect.top - elRect.top + el.scrollTop;
+                const caretBottom = caretRect.bottom - elRect.top + el.scrollTop;
+                if (caretBottom > el.scrollTop + el.clientHeight) {
+                    el.scrollTop = caretBottom - el.clientHeight;
+                } else if (caretTop < el.scrollTop) {
+                    el.scrollTop = caretTop;
+                } else {
+                    el.scrollTop = savedScrollTop;
                 }
-            } catch (e) { /* ignore */ }
-        });
+                return;
+            }
+        }
+        el.scrollTop = savedScrollTop;
     },
 
     setupContentEditableBehavior: function (id, enterToSend) {
@@ -956,7 +1003,7 @@ window.cockpit = {
                     br.after(spacer);
 
                     const newRange = document.createRange();
-                    newRange.setStartAfter(br);
+                    newRange.setStart(spacer, 0);
                     newRange.collapse(true);
                     sel.removeAllRanges();
                     sel.addRange(newRange);
@@ -1083,6 +1130,47 @@ window.cockpit = {
     } else {
         document.addEventListener('DOMContentLoaded', start);
     }
+})();
+
+// Global double-click guard: suppress click events that are part of a double-click sequence.
+// Uses mousedown timing (not event.detail, which is unreliable in MAUI WebView) and stores
+// state in a plain object keyed by data-cockpit-id so it survives Blazor re-renders.
+(function () {
+    var THRESHOLD_MS = 500;
+    var SEL = '.event-message, .error-message';
+    var mdTimes = {};
+    var suppress = {};
+
+    function getKey(el) {
+        return (el.dataset && el.dataset.cockpitId) || el.className || 'unknown';
+    }
+
+    window.addEventListener('mousedown', function (e) {
+        try {
+            var t = e.target && e.target.closest ? e.target.closest(SEL) : null;
+            if (!t) return;
+            var k = getKey(t);
+            var now = Date.now();
+            if (now - (mdTimes[k] || 0) < THRESHOLD_MS) {
+                suppress[k] = now + THRESHOLD_MS;
+            }
+            mdTimes[k] = now;
+        } catch (_) {}
+    }, { capture: true });
+
+    window.addEventListener('click', function (e) {
+        try {
+            var t = e.target && e.target.closest ? e.target.closest(SEL) : null;
+            if (!t) return;
+            var k = getKey(t);
+            var now = Date.now();
+            if (e.detail >= 2 || (suppress[k] && now < suppress[k])) {
+                delete suppress[k];
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            }
+        } catch (_) {}
+    }, { capture: true });
 })();
 
 // Global function to toggle settings from MAUI title bar

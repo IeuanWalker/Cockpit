@@ -13,6 +13,12 @@ public class ToolExecutionModel
 	public ToolStatusEnum Status { get; set; } = ToolStatusEnum.Running;
 	public bool IsExpanded { get; set; } = false;
 	public bool IsSuccess { get; set; } = true;
+
+	/// <summary>
+	/// True when this tool execution represents a background sub-agent (set by <c>SubagentStartedHandler</c>).
+	/// <c>ToolCompleteHandler</c> skips marking it Success so it stays Running until <c>subagent.completed</c>.
+	/// </summary>
+	public bool IsBackgroundAgent { get; set; } = false;
 	readonly Lock _rawEventsLock = new();
 	readonly List<Lazy<string>> _rawEvents = [];
 

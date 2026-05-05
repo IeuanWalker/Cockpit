@@ -9,7 +9,7 @@ public partial class PickerControl : ComponentBase
 	[Parameter] public bool IsDisabled { get; set; }
 	[Parameter] public string? TooltipText { get; set; }
 	[Parameter] public RenderFragment? DropdownContent { get; set; }
-	[Parameter] public string MinWidth { get; set; } = "120px";
+	[Parameter] public string MinWidth { get; set; } = "0px";
 	[Parameter] public string DropdownMinWidth { get; set; } = "200px";
 	[Parameter] public string DropdownMaxHeight { get; set; } = "300px";
 

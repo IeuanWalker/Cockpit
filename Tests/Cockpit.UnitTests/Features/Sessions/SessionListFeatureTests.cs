@@ -85,7 +85,7 @@ public class SessionListFeatureTests
 	}
 
 	[Fact]
-	public void RemoveSession_AdvancesCurrentSession_WhenCurrentDeleted()
+	public void RemoveSession_SetsCurrentSessionNull_WhenCurrentDeleted()
 	{
 		SessionListFeature feature = CreateFeature();
 		SessionModel first = MakeSession("first");
@@ -97,7 +97,7 @@ public class SessionListFeatureTests
 
 		feature.RemoveSession("second");
 
-		feature.CurrentSession.ShouldBe(first);
+		feature.CurrentSession.ShouldBeNull();
 	}
 
 	[Fact]

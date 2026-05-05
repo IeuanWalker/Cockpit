@@ -60,6 +60,11 @@ Step "Restore MAUI workloads" {
 
 # ── Publish ───────────────────────────────────────────────────────────────────
 Step "Publish Windows app (version: $Version)" {
+    # Always remove the publish directory first. The SDK targets use SkipUnchangedFiles when copying
+    # the bundled CLI binary, and npm normalises all tarball timestamps to 1985-10-26, so a stale
+    # CLI from a previous build is never overwritten even when the CLI version changes.
+    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $PublishDir
+
     dotnet publish "$RepoRoot\src\Cockpit\Cockpit.csproj" `
         --framework net10.0-windows10.0.19041.0 `
         --configuration Release `
