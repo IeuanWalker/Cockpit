@@ -129,7 +129,9 @@ public sealed partial class EditedFilesRoot : ComponentBase, IAsyncDisposable
 	async Task ExpandAllLines()
 	{
 		if(_diffViewer is not null)
+		{
 			await _diffViewer.ExpandAllAsync();
+		}
 	}
 
 	List<DisplayNode> BuildDisplayNodes()

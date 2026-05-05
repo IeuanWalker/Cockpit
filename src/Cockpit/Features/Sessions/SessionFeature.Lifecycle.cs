@@ -2,7 +2,6 @@ using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
-using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
@@ -235,10 +234,10 @@ public sealed partial class SessionFeature
 					ReasoningEffort = session.ReasoningEffort,
 					Context = session.Context,
 					LastActivity = session.LastActivity,
-					CreatedAt = session.CreatedAt
+					CreatedAt = session.CreatedAt,
+					SuppressFinishedNotification = true
 				};
 
-				tempSession.SuppressFinishedNotification = true;
 				await Task.Run(() =>
 				{
 					foreach(SessionEvent evt in events)

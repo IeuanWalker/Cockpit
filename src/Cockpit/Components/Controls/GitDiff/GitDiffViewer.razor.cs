@@ -76,9 +76,11 @@ public partial class GitDiffViewer : ComponentBase
 
 	static Dictionary<DiffLineModel, List<(int Start, int Length)>> ComputeInlineSpans(ParsedDiffModel? diff)
 	{
-		var result = new Dictionary<DiffLineModel, List<(int Start, int Length)>>();
+		Dictionary<DiffLineModel, List<(int Start, int Length)>> result = [];
 		if(diff is null)
+		{
 			return result;
+		}
 
 		foreach(DiffHunkModel hunk in diff.Hunks)
 		{
@@ -88,20 +90,31 @@ public partial class GitDiffViewer : ComponentBase
 			{
 				if(lines[i].Type == DiffLineTypeEnum.Context) { i++; continue; }
 
-				var removed = new List<DiffLineModel>();
+				List<DiffLineModel> removed = [];
 				while(i < lines.Count && lines[i].Type == DiffLineTypeEnum.Removed)
+				{
 					removed.Add(lines[i++]);
+				}
 
-				var added = new List<DiffLineModel>();
+				List<DiffLineModel> added = [];
 				while(i < lines.Count && lines[i].Type == DiffLineTypeEnum.Added)
+				{
 					added.Add(lines[i++]);
+				}
 
 				int pairCount = Math.Min(removed.Count, added.Count);
 				for(int j = 0; j < pairCount; j++)
 				{
-					var (leftSpans, rightSpans) = InlineDiffComputer.Compute(removed[j].Content, added[j].Content);
-					if(leftSpans.Count > 0) result[removed[j]] = leftSpans;
-					if(rightSpans.Count > 0) result[added[j]] = rightSpans;
+					(List<(int Start, int Length)>? leftSpans, List<(int Start, int Length)>? rightSpans) = InlineDiffComputer.Compute(removed[j].Content, added[j].Content);
+					if(leftSpans.Count > 0)
+					{
+						result[removed[j]] = leftSpans;
+					}
+
+					if(rightSpans.Count > 0)
+					{
+						result[added[j]] = rightSpans;
+					}
 				}
 			}
 		}
@@ -112,43 +125,58 @@ public partial class GitDiffViewer : ComponentBase
 	static string SerializeSpans(List<(int Start, int Length)> spans) =>
 		"[" + string.Join(",", spans.Select(s => $"[{s.Start},{s.Length}]")) + "]";
 
-	const int ExpandStep = 10;
+	const int expandStep = 10;
 
 	void ExpandAbove(DiffHunkModel hunk)
 	{
-		_hunkExpansion.TryGetValue(hunk, out var cur);
-		_hunkExpansion[hunk] = (cur.Above + ExpandStep, cur.Below);
+		_hunkExpansion.TryGetValue(hunk, out (int Above, int Below) cur);
+		_hunkExpansion[hunk] = (cur.Above + expandStep, cur.Below);
 		_needsHighlight = true;
 	}
 
 	void ExpandBelow(DiffHunkModel hunk)
 	{
-		_hunkExpansion.TryGetValue(hunk, out var cur);
-		_hunkExpansion[hunk] = (cur.Above, cur.Below + ExpandStep);
+		_hunkExpansion.TryGetValue(hunk, out (int Above, int Below) cur);
+		_hunkExpansion[hunk] = (cur.Above, cur.Below + expandStep);
 		_needsHighlight = true;
 	}
 
 	public async Task ExpandAllAsync()
 	{
-		if(_parsedDiff is null || _fileLines is null) return;
+		if(_parsedDiff is null || _fileLines is null)
+		{
+			return;
+		}
+
 		int maxLines = _fileLines.Length;
 		foreach(DiffHunkModel hunk in _parsedDiff.Hunks)
+		{
 			_hunkExpansion[hunk] = (maxLines, maxLines);
+		}
+
 		_needsHighlight = true;
 		await InvokeAsync(StateHasChanged);
 	}
 
 	bool CanExpandAbove(DiffHunkModel hunk)
 	{
-		if(_fileLines is null) return false;
-		_hunkExpansion.TryGetValue(hunk, out var cur);
+		if(_fileLines is null)
+		{
+			return false;
+		}
+
+		_hunkExpansion.TryGetValue(hunk, out (int Above, int Below) cur);
 		return hunk.NewStartLine - cur.Above > FloorAbove(hunk);
 	}
 
 	bool CanExpandBelow(DiffHunkModel hunk)
 	{
-		if(_fileLines is null) return false;
-		_hunkExpansion.TryGetValue(hunk, out var cur);
+		if(_fileLines is null)
+		{
+			return false;
+		}
+
+		_hunkExpansion.TryGetValue(hunk, out (int Above, int Below) cur);
 		int lastNew = LastNewLine(hunk);
 		return lastNew + cur.Below < CeilingBelow(hunk) - 1;
 	}
@@ -156,29 +184,47 @@ public partial class GitDiffViewer : ComponentBase
 	static int LastNewLine(DiffHunkModel hunk)
 	{
 		for(int i = hunk.Lines.Count - 1; i >= 0; i--)
+		{
 			if(hunk.Lines[i].NewLineNumber.HasValue)
+			{
 				return hunk.Lines[i].NewLineNumber!.Value;
+			}
+		}
+
 		return hunk.NewStartLine;
 	}
 
 	static int LastOldLine(DiffHunkModel hunk)
 	{
 		for(int i = hunk.Lines.Count - 1; i >= 0; i--)
+		{
 			if(hunk.Lines[i].OldLineNumber.HasValue)
+			{
 				return hunk.Lines[i].OldLineNumber!.Value;
+			}
+		}
+
 		return hunk.OldStartLine;
 	}
 
 	int? NextHunkNewStart(DiffHunkModel hunk)
 	{
-		if(_parsedDiff is null) return null;
+		if(_parsedDiff is null)
+		{
+			return null;
+		}
+
 		int idx = _parsedDiff.Hunks.IndexOf(hunk);
 		return idx >= 0 && idx < _parsedDiff.Hunks.Count - 1 ? _parsedDiff.Hunks[idx + 1].NewStartLine : null;
 	}
 
 	int? NextHunkOldStart(DiffHunkModel hunk)
 	{
-		if(_parsedDiff is null) return null;
+		if(_parsedDiff is null)
+		{
+			return null;
+		}
+
 		int idx = _parsedDiff.Hunks.IndexOf(hunk);
 		return idx >= 0 && idx < _parsedDiff.Hunks.Count - 1 ? _parsedDiff.Hunks[idx + 1].OldStartLine : null;
 	}
@@ -187,11 +233,19 @@ public partial class GitDiffViewer : ComponentBase
 	// Prevents overlap with the previous hunk's own content + its expand-below lines.
 	int FloorAbove(DiffHunkModel hunk)
 	{
-		if(_parsedDiff is null) return 1;
+		if(_parsedDiff is null)
+		{
+			return 1;
+		}
+
 		int idx = _parsedDiff.Hunks.IndexOf(hunk);
-		if(idx <= 0) return 1;
+		if(idx <= 0)
+		{
+			return 1;
+		}
+
 		DiffHunkModel prev = _parsedDiff.Hunks[idx - 1];
-		_hunkExpansion.TryGetValue(prev, out var prevExp);
+		_hunkExpansion.TryGetValue(prev, out (int Above, int Below) prevExp);
 		return LastNewLine(prev) + prevExp.Below + 1;
 	}
 
@@ -201,53 +255,90 @@ public partial class GitDiffViewer : ComponentBase
 	// for this side's expansion, so the two never overlap.
 	int CeilingBelow(DiffHunkModel hunk)
 	{
-		if(_parsedDiff is null) return _fileLines?.Length + 1 ?? int.MaxValue;
+		if(_parsedDiff is null)
+		{
+			return _fileLines?.Length + 1 ?? int.MaxValue;
+		}
+
 		int idx = _parsedDiff.Hunks.IndexOf(hunk);
 		if(idx < 0 || idx >= _parsedDiff.Hunks.Count - 1)
+		{
 			return (_fileLines?.Length ?? 0) + 1;
+		}
+
 		DiffHunkModel next = _parsedDiff.Hunks[idx + 1];
 		return next.NewStartLine;
 	}
 
 	List<(int OldLine, int NewLine, string Content)> GetExpandedAbove(DiffHunkModel hunk)
 	{
-		if(_fileLines is null) return [];
-		_hunkExpansion.TryGetValue(hunk, out var cur);
-		if(cur.Above <= 0) return [];
+		if(_fileLines is null)
+		{
+			return [];
+		}
+
+		_hunkExpansion.TryGetValue(hunk, out (int Above, int Below) cur);
+		if(cur.Above <= 0)
+		{
+			return [];
+		}
+
 		int floor = FloorAbove(hunk);
 		int newStart = Math.Max(floor, hunk.NewStartLine - cur.Above);
 		int count = hunk.NewStartLine - newStart;
 		// count can be zero or negative when a neighbouring hunk's expand-below has
 		// already consumed the entire inter-hunk gap — return empty rather than throwing.
-		if(count <= 0) return [];
+		if(count <= 0)
+		{
+			return [];
+		}
+
 		int oldOffset = hunk.OldStartLine - hunk.NewStartLine;
-		var result = new List<(int, int, string)>(count);
+		List<(int, int, string)> result = new(count);
 		for(int i = 0; i < count; i++)
 		{
 			int newLine = newStart + i;
 			int idx = newLine - 1;
 			if(idx >= 0 && idx < _fileLines.Length)
+			{
 				result.Add((newLine + oldOffset, newLine, _fileLines[idx]));
+			}
 		}
 		return result;
 	}
 
 	List<(int OldLine, int NewLine, string Content)> GetExpandedBelow(DiffHunkModel hunk)
 	{
-		if(_fileLines is null) return [];
-		_hunkExpansion.TryGetValue(hunk, out var cur);
-		if(cur.Below <= 0) return [];
+		if(_fileLines is null)
+		{
+			return [];
+		}
+
+		_hunkExpansion.TryGetValue(hunk, out (int Above, int Below) cur);
+		if(cur.Below <= 0)
+		{
+			return [];
+		}
+
 		int lastNew = LastNewLine(hunk);
 		int lastOld = LastOldLine(hunk);
 		int ceiling = CeilingBelow(hunk);
-		var result = new List<(int, int, string)>();
+		List<(int, int, string)> result = [];
 		for(int i = 0; i < cur.Below; i++)
 		{
 			int newLine = lastNew + 1 + i;
 			int oldLine = lastOld + 1 + i;
-			if(newLine >= ceiling) break;
+			if(newLine >= ceiling)
+			{
+				break;
+			}
+
 			int idx = newLine - 1;
-			if(idx < 0 || idx >= _fileLines.Length) break;
+			if(idx < 0 || idx >= _fileLines.Length)
+			{
+				break;
+			}
+
 			result.Add((oldLine, newLine, _fileLines[idx]));
 		}
 		return result;

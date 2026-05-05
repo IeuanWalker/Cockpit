@@ -36,7 +36,9 @@ public sealed partial class Opperations : IDisposable
 		_clickCts = cts;
 
 		if (elapsed < ThresholdMs)
+		{
 			return;
+		}
 
 		try
 		{
@@ -48,7 +50,9 @@ public sealed partial class Opperations : IDisposable
 		finally
 		{
 			if (ReferenceEquals(_clickCts, cts))
+			{
 				_clickCts = null;
+			}
 		}
 	}
 

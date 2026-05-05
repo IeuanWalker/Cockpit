@@ -166,9 +166,16 @@ public static partial class DiffParser
 					List<(int Start, int Length)>? rightSpans = null;
 					if(left is not null && right is not null)
 					{
-						var (ls, rs) = InlineDiffComputer.Compute(left.Content, right.Content);
-						if(ls.Count > 0) leftSpans = ls;
-						if(rs.Count > 0) rightSpans = rs;
+						(List<(int Start, int Length)>? ls, List<(int Start, int Length)>? rs) = InlineDiffComputer.Compute(left.Content, right.Content);
+						if(ls.Count > 0)
+						{
+							leftSpans = ls;
+						}
+
+						if(rs.Count > 0)
+						{
+							rightSpans = rs;
+						}
 					}
 
 					rows.Add(new SplitRowModel

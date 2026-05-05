@@ -6,7 +6,6 @@
     <File Path="LICENCE.md" />
     <File Path="scripts/generate-libraries.cs" />
   </Folder>
-  <Project Path="../../Github-Clones/copilot-sdk/dotnet/src/GitHub.Copilot.SDK.csproj" />
   <Project Path="src/Cockpit/Cockpit.csproj">
     <Deploy />
   </Project>

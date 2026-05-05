@@ -427,11 +427,10 @@ public class UserMessageHandlerTests
 		// therefore excluded from the SessionIdleHandler anchor fallback search).
 		int continuationMsgIndex = session.Messages.IndexOf(continuationMsg);
 		// There are two activity groups: one for the pre-continuation work and one for the continuation turn
-		List<int> activityGroupIndices = session.Messages
+		List<int> activityGroupIndices = [.. session.Messages
 			.Select((m, i) => (m, i))
 			.Where(x => x.m.Type == MessageTypeEnum.ActivityGroup)
-			.Select(x => x.i)
-			.ToList();
+			.Select(x => x.i)];
 
 		activityGroupIndices.Count.ShouldBe(2, "expected one activity group per agent turn");
 

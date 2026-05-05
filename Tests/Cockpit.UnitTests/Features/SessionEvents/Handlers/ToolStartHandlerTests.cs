@@ -75,7 +75,7 @@ public class ToolStartHandlerTests
 	}
 
 	[Fact]
-	public void Handle_WithParentCallId_NestsUnderParent()
+	public void Handle_WithAgentId_NestsUnderParent()
 	{
 		// Arrange
 		SessionModel session = CreateSession();
@@ -91,11 +91,11 @@ public class ToolStartHandlerTests
 		// Act: start a child tool
 		processor.Process(session, new ToolExecutionStartEvent
 		{
+			AgentId = "parent1",
 			Data = new ToolExecutionStartData
 			{
 				ToolCallId = "child1",
 				ToolName = "read_file",
-				ParentToolCallId = "parent1"
 			},
 			Timestamp = DateTimeOffset.UtcNow
 		});

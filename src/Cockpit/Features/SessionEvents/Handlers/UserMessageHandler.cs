@@ -11,7 +11,7 @@ static class UserMessageHandler
 	/// Source values that indicate the message was synthesised by the agent rather than typed by the user.
 	/// These messages are immediately acted upon and must never be marked pending.
 	/// </summary>
-	static readonly HashSet<string> AgentGeneratedSources = ["thinking-exhausted-continuation"];
+	static readonly HashSet<string> agentGeneratedSources = ["thinking-exhausted-continuation"];
 
 	internal static void Handle(SessionModel session, UserMessageEvent evt, bool wasAgentBusy = false)
 	{
@@ -24,7 +24,7 @@ static class UserMessageHandler
 
 		// Agent-synthesised messages (e.g. thinking-exhausted-continuation) are immediately
 		// acted upon by the next assistant turn and must never be shown as "Pending…".
-		bool isAgentGenerated = evt.Data.Source is not null && AgentGeneratedSources.Contains(evt.Data.Source);
+		bool isAgentGenerated = evt.Data.Source is not null && agentGeneratedSources.Contains(evt.Data.Source);
 
 		string eventMessageId = evt.Id.ToString();
 		// For agent-generated messages there is no UI-side optimistic placeholder, so skip the
