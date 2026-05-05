@@ -63,7 +63,7 @@ static class ToolStartHandler
 		toolExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 
 		// If this is a child call (belongs to a subagent), nest it under the parent
-		string? parentCallId = evt.Data.ParentToolCallId;
+		string? parentCallId = evt.AgentId;
 		if(parentCallId is not null)
 		{
 			ToolExecutionModel? parent = SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, parentCallId);

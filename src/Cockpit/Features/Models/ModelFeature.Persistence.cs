@@ -62,7 +62,7 @@ public partial class ModelFeature
 				return false;
 			}
 
-			List<ModelInfo> models = await GetModels();
+			IList<ModelInfo> models = await GetModels();
 
 			if(modelSettings.TryGetValue("ModelId", out string? modelId) && !string.IsNullOrWhiteSpace(modelId))
 			{

@@ -90,12 +90,12 @@ public class SessionEventProcessorTests
 	}
 
 	[Fact]
-	public void Process_AssistantTurnEnd_UpdatesLastActivity()
+	public void Process_AssistantTurnEnd_DoesNotUpdateLastActivity()
 	{
-		// Arrange
+		// Arrange — AssistantTurnEnd is informational; only UserMessage and SessionIdle update LastActivity
 		SessionModel session = CreateSession();
-		DateTime beforeTest = DateTime.Now.AddSeconds(-1);
-		session.LastActivity = beforeTest;
+		DateTime fixedTime = new(2020, 1, 1);
+		session.LastActivity = fixedTime;
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act
@@ -106,7 +106,7 @@ public class SessionEventProcessorTests
 		});
 
 		// Assert
-		session.LastActivity.ShouldBeGreaterThan(beforeTest);
+		session.LastActivity.ShouldBe(fixedTime);
 	}
 
 	[Fact]
@@ -121,7 +121,7 @@ public class SessionEventProcessorTests
 		// Act
 		processor.Process(session, new SystemMessageEvent
 		{
-			Data = new SystemMessageData { Role = SystemMessageDataRole.System, Content = "init" },
+			Data = new SystemMessageData { Role = SystemMessageRole.System, Content = "init" },
 			Timestamp = DateTimeOffset.UtcNow
 		});
 

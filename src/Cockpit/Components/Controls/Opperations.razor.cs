@@ -5,21 +5,15 @@ using Microsoft.AspNetCore.Components.Web;
 
 namespace Cockpit.Components.Controls;
 
-public partial class Opperations
+public sealed partial class Opperations : IDisposable
 {
 	[Parameter] public ActivityGroupModel Group { get; set; } = default!;
 
-	bool _isSelecting = false;
 	bool _isSelectingThinking = false;
 
-	void OnGroupHeaderMouseDown(MouseEventArgs e) => _isSelecting = false;
-	void OnGroupHeaderMouseMove(MouseEventArgs e)
-	{
-		if(e.Buttons == 1)
-		{
-			_isSelecting = true;
-		}
-	}
+	long _lastClickTick = 0;
+	CancellationTokenSource? _clickCts;
+
 	void OnThinkingMouseDown(MouseEventArgs e) => _isSelectingThinking = false;
 	void OnThinkingMouseMove(MouseEventArgs e)
 	{
@@ -29,15 +23,50 @@ public partial class Opperations
 		}
 	}
 
-	void ToggleExpanded()
+	async Task ToggleExpanded()
 	{
-		if(_isSelecting)
+		const int ThresholdMs = 350;
+
+		long now = Environment.TickCount64;
+		long elapsed = now - _lastClickTick;
+		_lastClickTick = now;
+
+		CancellationTokenSource? oldCts = _clickCts;
+		_clickCts = null;
+		oldCts?.Cancel();
+		oldCts?.Dispose();
+
+		if (elapsed < ThresholdMs)
 		{
-			_isSelecting = false;
 			return;
 		}
-		Group.IsExpanded = !Group.IsExpanded;
-		StateHasChanged();
+
+		CancellationTokenSource cts = new();
+		_clickCts = cts;
+
+		try
+		{
+			await Task.Delay(ThresholdMs, cts.Token);
+			Group.IsExpanded = !Group.IsExpanded;
+			StateHasChanged();
+		}
+		catch (OperationCanceledException) { }
+		finally
+		{
+			if (ReferenceEquals(_clickCts, cts))
+			{
+				_clickCts = null;
+			}
+
+			cts.Dispose();
+		}
+	}
+
+	public void Dispose()
+	{
+		_clickCts?.Cancel();
+		_clickCts?.Dispose();
+		_clickCts = null;
 	}
 
 	string GetStatusClass()
@@ -79,6 +108,7 @@ public partial class Opperations
 			_isSelectingThinking = false;
 			return;
 		}
+
 		ToggleEventExpanded(key);
 	}
 

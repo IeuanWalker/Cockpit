@@ -50,7 +50,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 				_logger.LogWarning("SessionModel not found for SDK session {SessionId}", invocation.SessionId);
 				return new PermissionRequestResult
 				{
-					Kind = PermissionRequestResultKind.DeniedCouldNotRequestFromUser
+					Kind = PermissionRequestResultKind.UserNotAvailable
 				};
 			}
 
@@ -62,7 +62,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			PermissionDecisionEnum decision = await CheckPermissionAsync(permissionRequest, session.IsYolo);
 
 			// Convert our decision to SDK format
-			PermissionRequestResultKind resultKind = decision.Equals(PermissionDecisionEnum.Denied) ? PermissionRequestResultKind.DeniedInteractivelyByUser : PermissionRequestResultKind.Approved;
+			PermissionRequestResultKind resultKind = decision.Equals(PermissionDecisionEnum.Denied) ? PermissionRequestResultKind.Rejected : PermissionRequestResultKind.Approved;
 
 			_logger.LogInformation("Permission decision: {Decision} for {Commands}", resultKind, string.Join(", ", permissionRequest.Commands));
 
@@ -71,7 +71,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Error in permission handler");
-			return new PermissionRequestResult { Kind = PermissionRequestResultKind.DeniedCouldNotRequestFromUser };
+			return new PermissionRequestResult { Kind = PermissionRequestResultKind.UserNotAvailable };
 		}
 	}
 

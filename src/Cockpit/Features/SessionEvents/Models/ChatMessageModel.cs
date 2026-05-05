@@ -38,12 +38,6 @@ public class ChatMessageModel
 public enum MessageTypeEnum
 {
 	Text,
-	Code,
-	Typing,
-	ToolExecution,
-	ToolResult,
-	SystemMessage,
 	Error,
-	Reasoning,
 	ActivityGroup
 }

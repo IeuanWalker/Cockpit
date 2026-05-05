@@ -11,13 +11,13 @@ public sealed partial class ModelFeature : IDisposable
 		_logger = logger;
 	}
 
-	List<ModelInfo>? _models;
+	IList<ModelInfo>? _models;
 	readonly SemaphoreSlim _fetchLock = new(1, 1);
 
 	/// <summary>
 	/// Get all models
 	/// </summary>
-	public async ValueTask<List<ModelInfo>> GetModels()
+	public async ValueTask<IList<ModelInfo>> GetModels()
 	{
 		if(_models is not null)
 		{
@@ -52,7 +52,7 @@ public sealed partial class ModelFeature : IDisposable
 	/// </remarks>
 	public async ValueTask<ModelInfo> GetDefaultModel()
 	{
-		List<ModelInfo> models = _models ?? await GetModels();
+		IList<ModelInfo> models = _models ?? await GetModels();
 
 		// Prefer the second free-tier model (index 1) if it exists, then the first free-tier, then the first model overall
 		List<ModelInfo> freeModels = [.. models.Where(x => x.Billing?.Multiplier == 0)];

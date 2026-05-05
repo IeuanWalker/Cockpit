@@ -15,7 +15,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		_sessionListFeature = sessionListFeature;
 	}
 
-	List<ModelInfo> _availableModels = [];
+	IList<ModelInfo> _availableModels = [];
 	PickerControl _modelPicker = default!;
 	PickerControl? _reasoningPicker;
 
@@ -110,48 +110,52 @@ public partial class ModelControl : ComponentBase, IDisposable
 		return char.ToUpper(_sessionListFeature.CurrentSession.ReasoningEffort[0]) + _sessionListFeature.CurrentSession.ReasoningEffort[1..];
 	}
 
-	string GetDisplayModelName()
+	string GetDisplayModelMultiplier(ModelInfo? model)
 	{
-		if(_sessionListFeature.CurrentSession is null)
+		if(model is null)
 		{
-			return "No Model";
+			return "Unknown";
 		}
 
-		return _sessionListFeature.CurrentSession.Model.Name;
-	}
-
-	double GetDisplayModelMultiplier()
-	{
-		if(_sessionListFeature.CurrentSession is null)
+		if(model.Id.Equals("Auto", StringComparison.InvariantCultureIgnoreCase))
 		{
-			return 1.0;
+			return string.Empty;
 		}
 
-		return _sessionListFeature.CurrentSession.Model.Billing?.Multiplier ?? 1.0;
+		if(model.Billing is null)
+		{
+			return "Unknown";
+		}
+
+		return $"{model.Billing.Multiplier:0.0}x";
 	}
 
-	string GetMultiplierColor(double multiplier)
+	string GetMultiplierColor(ModelInfo? model)
 	{
-		if(_availableModels.Count == 0)
+		if(_availableModels.Count == 0 || model?.Billing?.Multiplier is null)
 		{
 			return "#999999";
 		}
 
 		double maxMultiplier = _availableModels.Max(m => m.Billing?.Multiplier ?? 0);
 
-		if(multiplier == 0)
+		if(model.Billing.Multiplier == 0)
 		{
 			return "#00ff00";
 		}
-		else if(multiplier < 1)
+		else if(model.Billing.Multiplier < 1)
 		{
 			return "#00d000";
 		}
-		else if(multiplier >= maxMultiplier)
+		else if(model.Billing.Multiplier == 1)
+		{
+			return "#999999";
+		}
+		else if(model.Billing.Multiplier >= maxMultiplier)
 		{
 			return "#FF0000";
 		}
-		else if(multiplier > 1)
+		else if(model.Billing.Multiplier > 1)
 		{
 			return "#ff8c00";
 		}

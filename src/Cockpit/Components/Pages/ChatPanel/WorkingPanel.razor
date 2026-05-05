@@ -48,6 +48,12 @@
                         {
                             <ToolExecutionDetail Tool="evt.Tool" IsLive="true" />
                         }
+                        else if(evt.Type == ThinkingEventTypeEnum.Reasoning && !string.IsNullOrEmpty(evt.Message))
+                        {
+                            <div class="working-message working-reasoning">
+                                <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
+                            </div>
+                        }
                     }
                 </div>
 

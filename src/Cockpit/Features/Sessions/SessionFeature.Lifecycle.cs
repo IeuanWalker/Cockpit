@@ -2,7 +2,6 @@ using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
-using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
@@ -35,7 +34,7 @@ public sealed partial class SessionFeature
 			_logger.LogInformation("Loading existing sessions from SDK...");
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
-			List<SessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
+			IList<SessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
 
 			if(sessionMetadataList.Count == 0)
 			{
@@ -106,6 +105,7 @@ public sealed partial class SessionFeature
 
 			SessionConfig config = new()
 			{
+				ClientName = "Cockpit",
 				Model = defaultModel.Id,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				Streaming = true,
@@ -116,7 +116,8 @@ public sealed partial class SessionFeature
 				WorkingDirectory = workingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null
+				CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null,
+				EnableConfigDiscovery = true
 			};
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -200,10 +201,13 @@ public sealed partial class SessionFeature
 
 			ResumeSessionConfig config = new()
 			{
+				ClientName = "Cockpit",
+				EnableConfigDiscovery = true,
 				Model = session.Model.Id,
 				ReasoningEffort = session.ReasoningEffort,
 				Streaming = true,
 				DisableResume = true,
+				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
 				CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null
@@ -230,24 +234,23 @@ public sealed partial class SessionFeature
 					ReasoningEffort = session.ReasoningEffort,
 					Context = session.Context,
 					LastActivity = session.LastActivity,
-					CreatedAt = session.CreatedAt
+					CreatedAt = session.CreatedAt,
+					SuppressFinishedNotification = true
 				};
 
-				using(SessionIdleHandler.SuppressFinishedNotification())
+				await Task.Run(() =>
 				{
-					await Task.Run(() =>
+					foreach(SessionEvent evt in events)
 					{
-						foreach(SessionEvent evt in events)
-						{
-							_processor.Process(tempSession, evt);
-						}
+						_processor.Process(tempSession, evt);
+					}
 
-						if(tempSession.ActiveWorkingGroup is not null)
-						{
-							_processor.FinalizeOpenGroup(tempSession);
-						}
-					});
-				}
+					if(tempSession.ActiveWorkingGroup is not null)
+					{
+						_processor.FinalizeOpenGroup(tempSession);
+					}
+				});
+				tempSession.SuppressFinishedNotification = false;
 
 				// Any message still IsPending after replay was sent while the session was
 				// mid-turn and never picked up by a subsequent assistant.turn_start (the session

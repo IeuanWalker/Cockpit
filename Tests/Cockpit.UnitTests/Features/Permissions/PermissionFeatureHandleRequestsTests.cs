@@ -176,7 +176,8 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 		{
 			FileName = workingDirectory + @"\src\index.ts",
 			Intention = "Update source",
-			Diff = string.Empty
+			Diff = string.Empty,
+			CanOfferSessionApproval = true
 		});
 
 		model.CanApproveGlobally.ShouldBeTrue();
@@ -193,7 +194,8 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 		{
 			FileName = @"C:\other-project\secrets.json",
 			Intention = string.Empty,
-			Diff = string.Empty
+			Diff = string.Empty,
+			CanOfferSessionApproval = true
 		});
 
 		model.CanApproveGlobally.ShouldBeFalse();
@@ -209,7 +211,8 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 		{
 			FileName = @"C:\anywhere\.copilot\session.json",
 			Intention = string.Empty,
-			Diff = string.Empty
+			Diff = string.Empty,
+			CanOfferSessionApproval = true
 		});
 
 		model.CanApproveGlobally.ShouldBeTrue();
@@ -466,7 +469,8 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 		{
 			FileName = workingDirectory + @"\src\index.ts",
 			Intention = "Write file",
-			Diff = string.Empty
+			Diff = string.Empty,
+			CanOfferSessionApproval = true
 		},
 		[typeof(PermissionRequestRead)] = new PermissionRequestRead
 		{
@@ -559,7 +563,7 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 		// If ToRequestModel hits the default case with ThrowOnUnhandledPermissionType=true, the exception is
 		// caught inside HandlePermissionRequest and returns DeniedCouldNotRequestFromUser instead of firing
 		// OnPermissionRequested.
-		result.Kind.ShouldNotBe(PermissionRequestResultKind.DeniedCouldNotRequestFromUser,
+		result.Kind.ShouldNotBe(PermissionRequestResultKind.UserNotAvailable,
 			$"SDK type '{typeName}' hit the unhandled default case in ToRequestModel. " +
 			$"Add a switch case for it in PermissionFeature.HandleRequests.cs.");
 

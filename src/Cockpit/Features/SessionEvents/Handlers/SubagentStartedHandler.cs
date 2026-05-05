@@ -15,18 +15,21 @@ static class SubagentStartedHandler
 			IsExpanded = true
 		};
 
-		// Check if a ToolExecution already exists for this ToolCallId (created by tool.execution_start)
-		// If so, update it in-place rather than creating a duplicate entry
-		List<ThinkingEventModel> existingEvents = session.ActiveWorkingGroup.GetEventsSnapshot();
-		ToolExecutionModel? existingExec = existingEvents
-			.Where(e => e.Type == ThinkingEventTypeEnum.Tool && e.Tool is not null)
-			.Select(e => e.Tool!)
-			.FirstOrDefault(t => t.ToolCallId == evt.Data.ToolCallId);
+		// Check if a ToolExecution already exists for this ToolCallId (created by tool.execution_start).
+		// Use the recursive helper so nested subagents are found correctly.
+		ToolExecutionModel? existingExec = SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, evt.Data.ToolCallId);
 
 		if(existingExec is not null)
 		{
 			existingExec.ToolName = evt.Data.AgentDisplayName ?? existingExec.ToolName;
+			existingExec.IsBackgroundAgent = true;
 			existingExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
+
+			// Always reset to Running — the background tool.execution_complete may arrive
+			// after this event (or already has), but the sub-agent is still doing real work.
+			existingExec.Status = ToolStatusEnum.Running;
+			existingExec.EndTime = null;
+			existingExec.Output = null;
 		}
 		else
 		{
@@ -35,18 +38,31 @@ static class SubagentStartedHandler
 				ToolName = evt.Data.AgentDisplayName ?? string.Empty,
 				ToolCallId = evt.Data.ToolCallId,
 				StartTime = evt.Timestamp.LocalDateTime,
-				Status = ToolStatusEnum.Running
+				Status = ToolStatusEnum.Running,
+				IsBackgroundAgent = true
 			};
 
 			subagentExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 
-			session.ActiveWorkingGroup.AddEvent(new ThinkingEventModel
+			// Nest under the parent agent's tool if we're inside a nested sub-agent turn
+			ToolExecutionModel? parentTool = evt.AgentId is not null
+				? SessionEventHelpers.FindToolExecution(session.ActiveWorkingGroup, evt.AgentId)
+				: null;
+
+			if(parentTool is not null)
 			{
-				Type = ThinkingEventTypeEnum.Tool,
-				Tool = subagentExec,
-				Timestamp = evt.Timestamp.LocalDateTime,
-				EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
-			});
+				parentTool.AddChild(subagentExec);
+			}
+			else
+			{
+				session.ActiveWorkingGroup.AddEvent(new ThinkingEventModel
+				{
+					Type = ThinkingEventTypeEnum.Tool,
+					Tool = subagentExec,
+					Timestamp = evt.Timestamp.LocalDateTime,
+					EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
+				});
+			}
 		}
 	}
 }

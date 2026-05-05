@@ -112,7 +112,19 @@
         .gitdiff-table td.split-empty {
             background-color: var(--hover-color);
             opacity: 0.5;
+            height: 20px;
         }
+
+        .gitdiff-table td.split-divider-col {
+            width: 2px;
+            min-width: 2px;
+            padding: 0;
+            background-color: var(--border-color);
+        }
+
+    .gitdiff-table col.col-split-center {
+        width: 2px;
+    }
 
     .gitdiff-table tr.diff-row-removed td.line-num {
         background-color: rgba(248, 81, 73, 0.08);
@@ -127,6 +139,34 @@
         color: #6eb3e0;
         padding: 2px 8px;
         font-style: italic;
+    }
+
+    .gitdiff-table tr.hunk-header-row td.expand-gutter {
+        background-color: rgba(33, 110, 209, 0.1);
+        width: 48px;
+        min-width: 48px;
+        padding: 0 2px;
+        text-align: center;
+        vertical-align: middle;
+        border-right: 1px solid var(--border-color);
+    }
+
+.expand-btn {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6eb3e0;
+    font-size: 13px;
+    line-height: 1;
+    padding: 1px 0;
+    opacity: 0.7;
+}
+
+    .expand-btn:hover {
+        opacity: 1;
+        background-color: rgba(110, 179, 224, 0.15);
     }
 
 /* Inline ± prefix character */

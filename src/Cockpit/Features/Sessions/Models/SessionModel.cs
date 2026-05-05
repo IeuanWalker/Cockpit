@@ -37,6 +37,14 @@ public class SessionModel
 	public Dictionary<string, ChatMessageModel> StreamingMessages { get; } = [];
 
 	/// <summary>
+	/// Live-streaming <see cref="ThinkingEventModel"/> instances keyed by message ID.
+	/// Created by <c>AssistantMessageDeltaHandler</c> so subsequent deltas update the same
+	/// thinking-panel entry rather than creating duplicates, and cleaned up by
+	/// <c>AssistantMessageHandler</c> when the complete message arrives.
+	/// </summary>
+	public Dictionary<string, ThinkingEventModel> StreamingThinkingEvents { get; } = [];
+
+	/// <summary>
 	/// Pending permission requests for this session (supports multiple concurrent requests)
 	/// Key: request.Id, Value: PermissionRequest
 	/// </summary>
@@ -61,6 +69,20 @@ public class SessionModel
 	public SdkSessionStateEnum SdkState { get; set; } = SdkSessionStateEnum.NotLoaded;
 	public bool ModelChanged { get; set; }
 	public bool AgentChanged { get; set; }
+
+	/// <summary>
+	/// When <see langword="true"/> the <c>session.idle</c> handler will not raise
+	/// <see cref="SessionEvents.Handlers.SessionIdleHandler.OnSessionFinished"/>.
+	/// Set during session-history replay to avoid spurious completion notifications.
+	/// </summary>
+	public bool SuppressFinishedNotification { get; set; }
+
+	/// <summary>
+	/// Set by <c>SessionTaskCompleteHandler</c> when the SDK emits a <c>session.task_complete</c>
+	/// event. Consumed and cleared by <c>SessionIdleHandler</c> as the preferred summary source,
+	/// with the heuristic last-message extraction kept as a fallback.
+	/// </summary>
+	public string? PendingTaskSummary { get; set; }
 	public bool IsYolo { get; set; }
 	public bool IsTerminalOpen { get; set; }
 
