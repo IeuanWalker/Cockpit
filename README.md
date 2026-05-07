@@ -10,6 +10,7 @@
 - Integrated terminal
 - Git diff viewer
 - Image and attachment support
+- Built-in slash commands in chat (for example `/help` and `/session`)
 - Clean chat history, without hiding anything
 - Fine-grained permission handling
     - Global

@@ -1,6 +1,7 @@
 using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
+using Cockpit.Features.SlashCommands;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
@@ -20,6 +21,13 @@ public sealed partial class SessionFeature
 		ChatMessageModel? optimisticMessage = null;
 		try
 		{
+			if(_slashCommandFeature.TryHandle(session, content, out SlashCommandResult? commandResult))
+			{
+				AddCommandMessages(session, content, attachments, commandResult);
+				_sessionListFeature.NotifyStateChanged();
+				return;
+			}
+
 			if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? existingSession))
 			{
 				throw new InvalidOperationException($"Session {sessionId} not found");
@@ -172,6 +180,50 @@ public sealed partial class SessionFeature
 				session.MessagesSnapshot = [.. session.Messages];
 			}
 			_sessionListFeature.NotifyStateChanged();
+		}
+	}
+
+	static void AddCommandMessages(SessionModel session, string content, List<AttachmentModel>? attachments, SlashCommandResult? commandResult)
+	{
+		if(commandResult is null)
+		{
+			return;
+		}
+
+		// Deduplicate attachments by file path before rendering the user command message.
+		if(attachments?.Count > 0)
+		{
+			attachments = [.. attachments
+				.GroupBy(a => a.FilePath, StringComparer.OrdinalIgnoreCase)
+				.Select(g => g.First())];
+		}
+
+		lock(session.SessionEventLock)
+		{
+			session.Messages.Add(new ChatMessageModel
+			{
+				Content = content,
+				IsUser = true,
+				Timestamp = DateTime.UtcNow,
+				Type = MessageTypeEnum.Text,
+				IsComplete = true,
+				IsPending = false,
+				Attachments = attachments?.Count > 0 ? attachments : null,
+				EventJson = null
+			});
+
+			session.Messages.Add(new ChatMessageModel
+			{
+				Content = commandResult.Message,
+				IsUser = false,
+				Timestamp = DateTime.UtcNow,
+				Type = commandResult.Success ? MessageTypeEnum.Text : MessageTypeEnum.Error,
+				IsComplete = true,
+				IsPending = false,
+				EventJson = null
+			});
+
+			session.MessagesSnapshot = [.. session.Messages];
 		}
 	}
 

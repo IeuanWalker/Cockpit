@@ -7,6 +7,7 @@ using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
+using Cockpit.Features.SlashCommands;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.UserInputRequests;
 using GitHub.Copilot.SDK;
@@ -30,6 +31,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly AgentPersistence _agentPersistence;
 	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SessionAgentFeature _sessionAgentFeature;
+	readonly SlashCommandFeature _slashCommandFeature;
 
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
@@ -45,7 +47,8 @@ public sealed partial class SessionFeature : IDisposable
 		SdkSessionRegistry sdkRegistry,
 		AgentPersistence agentPersistence,
 		GlobalAgentFeature globalAgentFeature,
-		SessionAgentFeature sessionAgentFeature)
+		SessionAgentFeature sessionAgentFeature,
+		SlashCommandFeature slashCommandFeature)
 	{
 		_clientFeature = clientFeature;
 		_logger = logger;
@@ -61,6 +64,7 @@ public sealed partial class SessionFeature : IDisposable
 		_agentPersistence = agentPersistence;
 		_globalAgentFeature = globalAgentFeature;
 		_sessionAgentFeature = sessionAgentFeature;
+		_slashCommandFeature = slashCommandFeature;
 	}
 
 	IDisposable? _currentWatcher;
