@@ -13,6 +13,7 @@ using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.FileSearch;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.SlashCommands;
 using Cockpit.Features.Sounds;
 using Cockpit.Features.Splash;
 using Cockpit.Features.Terminal;
@@ -108,6 +109,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<SdkSessionRegistry>();
 		builder.Services.AddSingleton<SessionListFeature>();
 		builder.Services.AddSingleton<ISessionStateProvider>(sp => sp.GetRequiredService<SessionListFeature>());
+		builder.Services.AddSingleton<SlashCommandFeature>();
 		builder.Services.AddSingleton<SessionFeature>();
 
 		// Permission features
