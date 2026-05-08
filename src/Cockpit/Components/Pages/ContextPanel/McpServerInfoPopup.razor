@@ -1,0 +1,88 @@
+@using Cockpit.Components.Controls
+@using Cockpit.Features.Mcp
+@using GitHub.Copilot.SDK.Rpc
+
+<PopupBase @ref="_popup"
+           Title="@($"MCP Servers ({_servers.Count})")"
+           PopupStyle="width: 1100px; height: 700px;"
+           ContentClass="flex-1 min-h-0 overflow-hidden">
+	<HeaderRight>
+		<button class="ef-action-btn" @onclick="ReloadServers" disabled="@_isBusy" title="Reload MCP servers">
+			<svg class="w-3.5 h-3.5 @(_isBusy ? "animate-spin" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+			</svg>
+			<span>Reload</span>
+		</button>
+	</HeaderRight>
+	<Content>
+		<div class="flex overflow-hidden" style="height: 100%;">
+
+			@* Left: server list *@
+			<div class="ai-file-tree scrollbar-thin">
+				@if(_servers.Count == 0)
+				{
+					<div class="px-3 py-4 text-center secondary-text text-xs">No MCP servers configured</div>
+				}
+				@foreach(McpServer server in _servers)
+				{
+					bool isSelected = _selectedServer?.Name == server.Name;
+					<div class="ai-file-item @(isSelected ? "selected" : "")" @onclick="() => SelectServer(server)">
+						<input type="checkbox"
+						       class="mr-2 flex-shrink-0"
+						       checked="@(server.Status != McpServerStatus.Disabled)"
+						       disabled="@_isBusy"
+						       @onclick:stopPropagation="true"
+						       @onchange="() => ToggleServer(server)" />
+						<span class="@GetStatusColor(server.Status) text-xs flex-shrink-0 mr-1">&#x25CF;</span>
+						<span class="text-xs truncate flex-1 min-w-0">@server.Name</span>
+					</div>
+				}
+			</div>
+
+			@* Right: server detail *@
+			<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+				@if(_selectedServer is not null)
+				{
+					<div class="flex items-center justify-between px-4 py-2 flex-shrink-0 border-b text-xs"
+					     style="border-color: var(--input-border);">
+						<span class="font-mono font-medium" style="color: var(--text-color);">@_selectedServer.Name</span>
+						<span class="@GetStatusColor(_selectedServer.Status) px-2 py-0.5 rounded text-xs"
+						      style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
+							@McpFeature.GetStatusDisplayString(_selectedServer.Status)
+						</span>
+					</div>
+					<div class="flex-1 overflow-y-auto scrollbar-thin p-4 flex flex-col gap-4">
+						<div class="rounded p-3 text-xs flex flex-col gap-1"
+						     style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
+							<div class="font-semibold secondary-text uppercase tracking-widest mb-1" style="font-size: 10px;">Details</div>
+							@if(_selectedServer.Source.HasValue)
+							{
+								<div class="flex gap-4">
+									<span class="secondary-text flex-shrink-0" style="min-width: 100px;">Source</span>
+									<span style="color: var(--text-color);">@_selectedServer.Source</span>
+								</div>
+							}
+							<div class="flex gap-4">
+								<span class="secondary-text flex-shrink-0" style="min-width: 100px;">Status</span>
+								<span style="color: var(--text-color);">@McpFeature.GetStatusDisplayString(_selectedServer.Status)</span>
+							</div>
+						</div>
+						@if(!string.IsNullOrWhiteSpace(_selectedServer.Error))
+						{
+							<div class="rounded p-3 text-xs" style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--error-color, #ef4444);">
+								<div class="font-semibold uppercase tracking-widest mb-1" style="font-size: 10px; color: var(--error-color, #ef4444);">Error</div>
+								<pre class="whitespace-pre-wrap font-mono" style="color: var(--text-color);">@_selectedServer.Error</pre>
+							</div>
+						}
+					</div>
+				}
+				else
+				{
+					<div class="flex-1 flex items-center justify-center secondary-text text-xs">
+						Select a server to view details
+					</div>
+				}
+			</div>
+		</div>
+	</Content>
+</PopupBase>

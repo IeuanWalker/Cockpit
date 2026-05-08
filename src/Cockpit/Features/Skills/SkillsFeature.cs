@@ -105,6 +105,6 @@ public sealed class SkillsFeature
 	/// <summary>Groups skills by their source for display purposes.</summary>
 	public static IReadOnlyDictionary<string, List<Skill>> GroupBySource(IEnumerable<Skill> skills)
 		=> skills
-			.GroupBy(s => s.Source, StringComparer.OrdinalIgnoreCase)
+			.GroupBy(s => string.IsNullOrWhiteSpace(s.Source) ? "Unknown" : s.Source, StringComparer.OrdinalIgnoreCase)
 			.ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 }

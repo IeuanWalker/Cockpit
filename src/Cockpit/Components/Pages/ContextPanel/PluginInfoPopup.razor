@@ -1,0 +1,72 @@
+@using Cockpit.Components.Controls
+@using Cockpit.Features.Plugins
+
+<PopupBase @ref="_popup"
+           Title="@($"Plugins ({_plugins.Count})")"
+           PopupStyle="width: 900px; height: 600px;"
+           ContentClass="flex-1 min-h-0 overflow-hidden">
+	<Content>
+		<div class="flex overflow-hidden" style="height: 100%;">
+
+			@* Left: plugin list *@
+			<div class="ai-file-tree scrollbar-thin">
+				@if(_plugins.Count == 0)
+				{
+					<div class="px-3 py-4 text-center secondary-text text-xs">No plugins installed</div>
+				}
+				@foreach(var plugin in _plugins)
+				{
+					bool isSelected = _selectedPlugin?.Name == plugin.Name;
+					<div class="ai-file-item @(isSelected ? "selected" : "")" @onclick="() => SelectPlugin(plugin)">
+						<span class="@(!plugin.Enabled ? "opacity-50" : "") text-xs truncate flex-1 min-w-0">@plugin.Name</span>
+						@if(!plugin.Enabled)
+						{
+							<span class="flex-shrink-0 text-xs px-1.5 py-0.5 rounded ml-2"
+							      style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
+								off
+							</span>
+						}
+					</div>
+				}
+			</div>
+
+			@* Right: plugin detail *@
+			<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+				@if(_selectedPlugin is not null)
+				{
+					<div class="flex items-center justify-between px-4 py-2 flex-shrink-0 border-b text-xs"
+					     style="border-color: var(--input-border);">
+						<span class="font-mono font-medium" style="color: var(--text-color);">@_selectedPlugin.Name</span>
+						<span class="text-xs px-1.5 py-0.5 rounded" style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
+							v@(PluginsFeature.FormatVersion(_selectedPlugin.Version))
+						</span>
+					</div>
+					<div class="flex-1 overflow-y-auto scrollbar-thin p-4">
+						<div class="rounded p-3 text-xs flex flex-col gap-1"
+						     style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
+							<div class="font-semibold secondary-text uppercase tracking-widest mb-1" style="font-size: 10px;">Details</div>
+							<div class="flex gap-4">
+								<span class="secondary-text flex-shrink-0" style="min-width: 100px;">Marketplace</span>
+								<span style="color: var(--text-color);">@_selectedPlugin.Marketplace</span>
+							</div>
+							<div class="flex gap-4">
+								<span class="secondary-text flex-shrink-0" style="min-width: 100px;">Version</span>
+								<span style="color: var(--text-color);">@PluginsFeature.FormatVersion(_selectedPlugin.Version)</span>
+							</div>
+							<div class="flex gap-4">
+								<span class="secondary-text flex-shrink-0" style="min-width: 100px;">Enabled</span>
+								<span style="color: var(--text-color);">@(_selectedPlugin.Enabled ? "Yes" : "No")</span>
+							</div>
+						</div>
+					</div>
+				}
+				else
+				{
+					<div class="flex-1 flex items-center justify-center secondary-text text-xs">
+						Select a plugin to view details
+					</div>
+				}
+			</div>
+		</div>
+	</Content>
+</PopupBase>

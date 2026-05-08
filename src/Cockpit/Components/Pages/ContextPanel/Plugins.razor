@@ -1,0 +1,40 @@
+@using Cockpit.Components.Controls
+
+<Expander>
+	<Icon>
+		<svg class="icon-xs mr-2 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+			<path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+		</svg>
+	</Icon>
+	<Title>Plugins (@TotalCount)</Title>
+	<Content>
+		@if(_allPlugins.Count == 0)
+		{
+			<div class="px-3 py-2 text-xs secondary-text">No plugins installed</div>
+		}
+		else
+		{
+			@foreach(var plugin in _allPlugins)
+			{
+				bool isSelected = _selectedPlugin?.Name == plugin.Name;
+				<button type="button"
+				        class="w-full px-3 py-1.5 text-xs transition-colors flex items-center justify-between @(isSelected ? "" : "hover:bg-app-hover")"
+				        style="@(isSelected ? "background-color: var(--accent-color); color: white;" : string.Empty)"
+				        @onclick="() => ShowPluginInfo(plugin)">
+					<div class="flex items-center gap-2 min-w-0">
+						<span class="@(!plugin.Enabled ? "opacity-50" : "") truncate">@plugin.Name</span>
+					</div>
+					@if(!plugin.Enabled)
+					{
+						<span class="flex-shrink-0 text-xs px-1.5 py-0.5 rounded ml-2"
+						      style="@(isSelected ? "background-color: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white;" : "background-color: var(--input-bg); border: 1px solid var(--input-border);")">
+							off
+						</span>
+					}
+				</button>
+			}
+		}
+	</Content>
+</Expander>
+
+<PluginInfoPopup @ref="_pluginInfoPopup" />

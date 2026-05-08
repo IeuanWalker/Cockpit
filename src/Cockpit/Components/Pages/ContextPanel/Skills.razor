@@ -1,19 +1,41 @@
-﻿@using Cockpit.Components.Controls
+@using Cockpit.Components.Controls
+@using GitHub.Copilot.SDK.Rpc
 
 <Expander>
-    <Icon>
-        <svg class="icon-xs mr-2 text-pink-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
-        </svg>
-    </Icon>
-    <Title>Agent Skills</Title>
-    <Content>
-        @*   @foreach(var skill in new[] { "Code Generation", "File Operations", "Git Operations", "Terminal Access", "Web Search" })
-        {
-            <div class="px-3 py-1 flex items-center text-xs">
-                <input type="checkbox" checked="@IsSkillEnabled(skill)" @onchange="() => ToggleSkill(skill)" class="mr-2" />
-                <span>@skill</span>
-            </div>
-        } *@
-    </Content>
+<Icon>
+<svg class="icon-xs mr-2 text-pink-400" fill="currentColor" viewBox="0 0 20 20">
+<path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+</svg>
+</Icon>
+<Title>Skills (@TotalCount)</Title>
+<Content>
+@if(_allSkills.Count == 0)
+{
+<div class="px-3 py-2 text-xs secondary-text">No skills available</div>
+}
+else
+{
+@foreach(Skill skill in _allSkills)
+{
+bool isSelected = _selectedSkill?.Name == skill.Name;
+<button type="button"
+        class="w-full px-3 py-1.5 text-xs transition-colors flex items-center justify-between @(isSelected ? "" : "hover:bg-app-hover")"
+        style="@(isSelected ? "background-color: var(--accent-color); color: white;" : string.Empty)"
+        @onclick="() => ShowSkillInfo(skill)">
+<div class="flex items-center gap-2 min-w-0">
+<span class="@(skill.Enabled ? "" : "opacity-50") truncate">@skill.Name</span>
+</div>
+@if(!skill.Enabled)
+{
+<span class="flex-shrink-0 text-xs px-1.5 py-0.5 rounded ml-2"
+      style="@(isSelected ? "background-color: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white;" : "background-color: var(--input-bg); border: 1px solid var(--input-border);")">
+off
+</span>
+}
+</button>
+}
+}
+</Content>
 </Expander>
+
+<SkillInfoPopup @ref="_skillInfoPopup" />
