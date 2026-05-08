@@ -1,5 +1,4 @@
 ﻿using Cockpit.Controls;
-using Cockpit.Features.Agents;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Splash;
 using Cockpit.Features.Theme;
@@ -10,20 +9,17 @@ public partial class App : Application
 {
 	Window? _mainWindow;
 
-	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SplashFeature _splashFeature;
 	readonly SessionFeature _sessionFeature;
 	readonly ThemeStateFeature _themeStateFeature;
 
 	public App(
-		GlobalAgentFeature globalAgentFeature,
 		SplashFeature splashFeature,
 		SessionFeature sessionFeature,
 		ThemeStateFeature themeStateFeature)
 	{
 		InitializeComponent();
 
-		_globalAgentFeature = globalAgentFeature;
 		_splashFeature = splashFeature;
 		_sessionFeature = sessionFeature;
 		_themeStateFeature = themeStateFeature;
@@ -31,7 +27,7 @@ public partial class App : Application
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		_mainWindow = new Window(new MainPage(_globalAgentFeature, _splashFeature, _sessionFeature, _themeStateFeature))
+		_mainWindow = new Window(new MainPage(_splashFeature, _sessionFeature, _themeStateFeature))
 		{
 			Title = "Cockpit",
 			TitleBar = new TitleBar

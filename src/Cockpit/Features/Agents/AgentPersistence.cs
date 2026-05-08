@@ -6,19 +6,12 @@ namespace Cockpit.Features.Agents;
 
 public class AgentPersistence
 {
-	readonly GlobalAgentFeature _globalAgentFeature;
-
-	public AgentPersistence(GlobalAgentFeature globalAgentFeature)
-	{
-		_globalAgentFeature = globalAgentFeature;
-	}
 	public string? GetAgentFilePath(SessionModel session)
 	{
 		if(string.IsNullOrWhiteSpace(session.Context.WorkspacePath))
 		{
 			return null;
 		}
-
 		return Path.Combine(session.Context.WorkspacePath, "Cockpit", "session-agent.json");
 	}
 
@@ -42,7 +35,7 @@ public class AgentPersistence
 			AgentProfile? agent = session.Context.SelectedAgent;
 			Dictionary<string, string> agentSettings = new()
 			{
-				["AgentName"] = agent?.Config.Name ?? string.Empty,
+				["AgentName"] = agent?.Name ?? string.Empty,
 				["AgentSource"] = agent?.Source.ToString() ?? string.Empty
 			};
 			string json = agentSettings.SerializeJson()!;
@@ -59,7 +52,7 @@ public class AgentPersistence
 			return false;
 		}
 
-		IEnumerable<AgentProfile> allAgents = [.. _globalAgentFeature.Agents, .. session.Context.RepoAgents];
+		IReadOnlyList<AgentProfile> allAgents = session.Context.Agents;
 
 		try
 		{
@@ -70,12 +63,14 @@ public class AgentPersistence
 				return false;
 			}
 
-			AgentProfile? match = agentSettings.TryGetValue("AgentSource", out string? agentSourceStr) && Enum.TryParse(agentSourceStr, out AgentSource agentSource)
-				? allAgents.FirstOrDefault(a => string.Equals(a.Config.Name, agentName, StringComparison.OrdinalIgnoreCase) && a.Source == agentSource)
-				: allAgents.FirstOrDefault(a => string.Equals(a.Config.Name, agentName, StringComparison.OrdinalIgnoreCase));
+			bool sourceFound = Enum.TryParse(agentSettings.GetValueOrDefault("AgentSource"), ignoreCase: true, out AgentSource agentSource);
+
+			AgentProfile? match = sourceFound
+				? allAgents.FirstOrDefault(a => string.Equals(a.Name, agentName, StringComparison.OrdinalIgnoreCase) && a.Source == agentSource)
+					?? allAgents.FirstOrDefault(a => string.Equals(a.Name, agentName, StringComparison.OrdinalIgnoreCase))
+				: allAgents.FirstOrDefault(a => string.Equals(a.Name, agentName, StringComparison.OrdinalIgnoreCase));
 
 			session.Context.SelectedAgent = match;
-
 			return true;
 		}
 		catch

@@ -16,9 +16,9 @@ public class SessionContext
 	public readonly Lock SessionPermissionCommandsLock = new();
 
 	/// <summary>
-	/// Custom agents discovered from the repo's .github/agents/ directory.
+	/// All agents discovered for this session via the SDK.
 	/// </summary>
-	public List<AgentProfile> RepoAgents { get; set; } = [];
+	public List<AgentProfile> Agents { get; set; } = [];
 
 	/// <summary>
 	/// The currently selected agent for this session. Null means default Copilot behaviour.

@@ -135,8 +135,7 @@ public static class MauiProgram
 
 		// Register agent services
 		builder.Services.AddSingleton<AgentPersistence>();
-		builder.Services.AddSingleton<GlobalAgentFeature>();
-		builder.Services.AddSingleton<SessionAgentFeature>();
+		builder.Services.AddSingleton<AgentFeature>();
 		builder.Services.AddSingleton<SessionModePersistence>();
 
 		MauiApp app = builder.Build();

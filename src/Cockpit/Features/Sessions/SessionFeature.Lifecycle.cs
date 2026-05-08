@@ -11,7 +11,7 @@ namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
-	const int ImmediateModeReplayOrderingThresholdMs = 100;
+	const int immediateModeReplayOrderingThresholdMs = 100;
 
 	Task? _loadExistingSessionsTask;
 	readonly Lock _loadGate = new();
@@ -100,11 +100,6 @@ public sealed partial class SessionFeature
 			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
 			GitContext gitContext = await _gitFeature.GetContext(workingDirectory);
 
-			IReadOnlyList<AgentProfile> globalAgents = _globalAgentFeature.Agents;
-			IReadOnlyList<AgentProfile> repoAgents = await _sessionAgentFeature.Load(gitContext.GitRoot);
-
-			List<AgentProfile> agents = [.. globalAgents, .. repoAgents];
-
 			SessionConfig config = new()
 			{
 				ClientName = "Cockpit",
@@ -118,7 +113,6 @@ public sealed partial class SessionFeature
 				WorkingDirectory = workingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null,
 				EnableConfigDiscovery = true
 			};
 
@@ -145,13 +139,14 @@ public sealed partial class SessionFeature
 					WorkspacePath = sdkSession.WorkspacePath,
 					GitRoot = gitContext.GitRoot,
 					Repository = gitContext.Repository,
-					Branch = gitContext.Branch,
-					RepoAgents = [.. repoAgents]
+					Branch = gitContext.Branch
 				},
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				SdkState = SdkSessionStateEnum.Resumed
 			};
+
+			chatSession.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(sdkSession, gitContext.GitRoot);
 
 			_sessionListFeature.AddSession(chatSession);
 
@@ -196,12 +191,6 @@ public sealed partial class SessionFeature
 
 			_logger.LogInformation("Loading session {SessionId}", sessionId);
 
-			IReadOnlyList<AgentProfile> globalAgents = _globalAgentFeature.Agents;
-			IReadOnlyList<AgentProfile> repoAgents = await _sessionAgentFeature.Load(session.Context.GitRoot);
-			session.Context.RepoAgents = [.. repoAgents];
-
-			List<AgentProfile> agents = [.. globalAgents, .. repoAgents];
-
 			ResumeSessionConfig config = new()
 			{
 				ClientName = "Cockpit",
@@ -212,8 +201,7 @@ public sealed partial class SessionFeature
 				DisableResume = true,
 				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
-				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null
+				OnUserInputRequest = _userInputHandler.HandleUserInputRequest
 			};
 
 			session.SdkState = SdkSessionStateEnum.Loading;
@@ -221,6 +209,8 @@ public sealed partial class SessionFeature
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
+
+			session.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
 
 			bool registered = false;
 			try
@@ -289,7 +279,7 @@ public sealed partial class SessionFeature
 				await _agentPersistence.TryRestoreSessionAgentAsync(session);
 				if(session.Context.SelectedAgent is not null)
 				{
-					await sdkSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Config.Name);
+					await sdkSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Name);
 				}
 
 				await _sessionModePersistence.TryRestoreSessionModeAsync(session);
@@ -391,11 +381,6 @@ public sealed partial class SessionFeature
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
 			CopilotSession newSdkSession;
 
-			IReadOnlyList<AgentProfile> globalAgents = _globalAgentFeature.Agents;
-			IReadOnlyList<AgentProfile> repoAgents = chatSession?.Context.RepoAgents ?? [];
-
-			List<AgentProfile> agents = [.. globalAgents, .. repoAgents];
-
 			bool hasMessages = chatSession?.Messages.Count > 0;
 			if(hasMessages)
 			{
@@ -404,9 +389,9 @@ public sealed partial class SessionFeature
 					Model = newModelId,
 					ReasoningEffort = newReasoningEffort,
 					Streaming = true,
+					EnableConfigDiscovery = true,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
-					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-					CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null
+					OnUserInputRequest = _userInputHandler.HandleUserInputRequest
 				};
 				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
 			}
@@ -417,14 +402,14 @@ public sealed partial class SessionFeature
 					Model = newModelId,
 					ReasoningEffort = newReasoningEffort,
 					Streaming = true,
+					EnableConfigDiscovery = true,
 					InfiniteSessions = new InfiniteSessionConfig
 					{
 						Enabled = true
 					},
 					WorkingDirectory = chatSession?.Context.CurrentWorkingDirectory,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
-					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-					CustomAgents = agents.Count > 0 ? [.. agents.Select(x => x.Config)] : null
+					OnUserInputRequest = _userInputHandler.HandleUserInputRequest
 				};
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
 
@@ -432,8 +417,35 @@ public sealed partial class SessionFeature
 				{
 					_sdkRegistry.Remove(chatSession.Id);
 					chatSession.Id = newSdkSession.SessionId;
+					chatSession.Context.WorkspacePath = newSdkSession.WorkspacePath;
 				}
 			}
+
+#pragma warning disable GHCP001
+			if(chatSession is not null)
+			{
+				chatSession.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(newSdkSession, chatSession.Context.GitRoot);
+
+				AgentProfile? restored = chatSession.Context.SelectedAgent is not null
+					? chatSession.Context.Agents.FirstOrDefault(a =>
+						string.Equals(a.Name, chatSession.Context.SelectedAgent.Name, StringComparison.OrdinalIgnoreCase) &&
+						a.Source == chatSession.Context.SelectedAgent.Source)
+						?? chatSession.Context.Agents.FirstOrDefault(a =>
+						string.Equals(a.Name, chatSession.Context.SelectedAgent.Name, StringComparison.OrdinalIgnoreCase))
+					: null;
+				chatSession.Context.SelectedAgent = restored;
+
+				if(chatSession.Context.SelectedAgent is not null)
+				{
+					await newSdkSession.Rpc.Agent.SelectAsync(chatSession.Context.SelectedAgent.Name, cancellationToken);
+				}
+
+				if(chatSession.Context.SelectedAgentMode != Models.SessionAgentModeEnum.Interactive)
+				{
+					await newSdkSession.Rpc.Mode.SetAsync(chatSession.Context.SelectedAgentMode.ToSdkSessionMode(), cancellationToken);
+				}
+			}
+#pragma warning restore GHCP001
 
 			_sdkRegistry.Register(newSdkSession, evt =>
 			{
@@ -628,7 +640,7 @@ public sealed partial class SessionFeature
 		{
 			if(orderedEvents[i] is AssistantTurnStartEvent
 				&& orderedEvents[i + 1] is UserMessageEvent userMsgEvt
-				&& (userMsgEvt.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds is >= 0 and <= ImmediateModeReplayOrderingThresholdMs)
+				&& (userMsgEvt.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds is >= 0 and <= immediateModeReplayOrderingThresholdMs)
 			{
 				(orderedEvents[i], orderedEvents[i + 1]) = (orderedEvents[i + 1], orderedEvents[i]);
 			}

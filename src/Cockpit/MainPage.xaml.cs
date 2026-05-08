@@ -1,5 +1,4 @@
 using Cockpit.Components.Popups.Settings;
-using Cockpit.Features.Agents;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Splash;
 using Cockpit.Features.Theme;
@@ -9,21 +8,18 @@ namespace Cockpit;
 
 public partial class MainPage : ContentPage
 {
-	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SplashFeature _splashFeature;
 	readonly SessionFeature _sessionFeature;
 	readonly ThemeStateFeature _themeStateFeature;
 	int _splashHidden;
 
 	public MainPage(
-		GlobalAgentFeature globalAgentFeature,
 		SplashFeature splashFeature,
 		SessionFeature sessionFeature,
 		ThemeStateFeature themeStateFeature)
 	{
 		InitializeComponent();
 
-		_globalAgentFeature = globalAgentFeature;
 		_splashFeature = splashFeature;
 		_sessionFeature = sessionFeature;
 		_themeStateFeature = themeStateFeature;
@@ -68,7 +64,7 @@ public partial class MainPage : ContentPage
 		blazorWebView.Focus();
 	}
 
-	protected override async void OnAppearing()
+	protected override void OnAppearing()
 	{
 		base.OnAppearing();
 #if WINDOWS
@@ -76,7 +72,6 @@ public partial class MainPage : ContentPage
 #endif
 		// Fire and forget — starts loading sessions before Blazor is ready
 		_ = _sessionFeature.LoadExistingSessions();
-		await _globalAgentFeature.Load();
 	}
 
 	protected override void OnDisappearing()

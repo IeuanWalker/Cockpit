@@ -28,8 +28,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly GitFeature _gitFeature;
 	readonly SdkSessionRegistry _sdkRegistry;
 	readonly AgentPersistence _agentPersistence;
-	readonly GlobalAgentFeature _globalAgentFeature;
-	readonly SessionAgentFeature _sessionAgentFeature;
+	readonly AgentFeature _agentFeature;
 	readonly SessionModePersistence _sessionModePersistence;
 
 	public SessionFeature(
@@ -45,8 +44,7 @@ public sealed partial class SessionFeature : IDisposable
 		GitFeature gitFeature,
 		SdkSessionRegistry sdkRegistry,
 		AgentPersistence agentPersistence,
-		GlobalAgentFeature globalAgentFeature,
-		SessionAgentFeature sessionAgentFeature,
+		AgentFeature agentFeature,
 		SessionModePersistence sessionModePersistence)
 	{
 		_clientFeature = clientFeature;
@@ -61,8 +59,7 @@ public sealed partial class SessionFeature : IDisposable
 		_gitFeature = gitFeature;
 		_sdkRegistry = sdkRegistry;
 		_agentPersistence = agentPersistence;
-		_globalAgentFeature = globalAgentFeature;
-		_sessionAgentFeature = sessionAgentFeature;
+		_agentFeature = agentFeature;
 		_sessionModePersistence = sessionModePersistence;
 	}
 

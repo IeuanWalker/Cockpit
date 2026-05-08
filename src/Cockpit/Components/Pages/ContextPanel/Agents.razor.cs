@@ -1,4 +1,3 @@
-using Cockpit.Features.Agents;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
@@ -9,12 +8,10 @@ public sealed partial class Agents : ComponentBase, IDisposable
 {
 	AgentInfoPopup? _agentInfoPopup;
 
-	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SessionListFeature _sessionListFeature;
 
-	public Agents(GlobalAgentFeature globalAgentFeature, SessionListFeature sessionListFeature)
+	public Agents(SessionListFeature sessionListFeature)
 	{
-		_globalAgentFeature = globalAgentFeature;
 		_sessionListFeature = sessionListFeature;
 	}
 
@@ -26,7 +23,6 @@ public sealed partial class Agents : ComponentBase, IDisposable
 	protected override void OnInitialized()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;
-		_globalAgentFeature.OnAgentsChanged += OnStateChanged;
 		Refresh();
 	}
 
@@ -35,7 +31,7 @@ public sealed partial class Agents : ComponentBase, IDisposable
 		InvokeAsync(() => { Refresh(); StateHasChanged(); });
 	}
 
-	void ShowAgentInfo(AgentProfile agent) => _agentInfoPopup?.Open(agent);
+	void ShowAgentInfo(AgentProfile agent) => _agentInfoPopup?.Open(_allAgents, agent);
 
 	AgentProfile? _renderedSelectedAgent;
 	List<AgentProfile> _renderedAgents = [];
@@ -54,15 +50,12 @@ public sealed partial class Agents : ComponentBase, IDisposable
 
 	void Refresh()
 	{
-		List<AgentProfile> global = [.. _globalAgentFeature.Agents];
-		List<AgentProfile> repo = _sessionListFeature.CurrentSession?.Context.RepoAgents ?? [];
-		_allAgents = [.. global, .. repo];
+		_allAgents = [.. _sessionListFeature.CurrentSession?.Context.Agents ?? []];
 		_selectedAgent = _sessionListFeature.CurrentSession?.Context.SelectedAgent;
 	}
 
 	public void Dispose()
 	{
 		_sessionListFeature.OnStateChanged -= OnStateChanged;
-		_globalAgentFeature.OnAgentsChanged -= OnStateChanged;
 	}
 }

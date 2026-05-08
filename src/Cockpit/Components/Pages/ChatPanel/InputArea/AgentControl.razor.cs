@@ -8,16 +8,13 @@ namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 public partial class AgentControl : ComponentBase, IDisposable
 {
 	readonly AgentPersistence _agentPersistence;
-	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SessionListFeature _sessionListFeature;
 
 	public AgentControl(
 		AgentPersistence agentPersistence,
-		GlobalAgentFeature globalAgentFeature,
 		SessionListFeature sessionListFeature)
 	{
 		_agentPersistence = agentPersistence;
-		_globalAgentFeature = globalAgentFeature;
 		_sessionListFeature = sessionListFeature;
 	}
 
@@ -27,7 +24,6 @@ public partial class AgentControl : ComponentBase, IDisposable
 	protected override void OnInitialized()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;
-		_globalAgentFeature.OnAgentsChanged += OnAgentsChanged;
 		RefreshAgents();
 	}
 
@@ -36,16 +32,9 @@ public partial class AgentControl : ComponentBase, IDisposable
 		InvokeAsync(() => { RefreshAgents(); StateHasChanged(); });
 	}
 
-	void OnAgentsChanged()
-	{
-		InvokeAsync(() => { RefreshAgents(); StateHasChanged(); });
-	}
-
 	void RefreshAgents()
 	{
-		List<AgentProfile> global = [.. _globalAgentFeature.Agents];
-		List<AgentProfile> repo = _sessionListFeature.CurrentSession?.Context.RepoAgents ?? [];
-		_allAgents = [.. global, .. repo];
+		_allAgents = [.. _sessionListFeature.CurrentSession?.Context.Agents ?? []];
 	}
 
 	void SelectAgent(AgentProfile? agent)
@@ -65,7 +54,7 @@ public partial class AgentControl : ComponentBase, IDisposable
 			return;
 		}
 
-		if(agent is not null && current is not null && agent.Config.Name == current.Config.Name && agent.Source == current.Source)
+		if(agent is not null && current is not null && agent.Name == current.Name && agent.Source == current.Source)
 		{
 			_picker.Close();
 			return;
@@ -98,7 +87,6 @@ public partial class AgentControl : ComponentBase, IDisposable
 		if(disposing)
 		{
 			_sessionListFeature.OnStateChanged -= OnStateChanged;
-			_globalAgentFeature.OnAgentsChanged -= OnAgentsChanged;
 		}
 	}
 }

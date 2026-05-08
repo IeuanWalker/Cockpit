@@ -32,7 +32,7 @@
                         class="w-full px-3 py-1.5 text-xs hover:bg-app-hover flex items-center justify-between"
                         style="color: var(--text-color);">
                     <span class="text-left">@agent.DisplayLabel</span>
-                    <span class="text-right ml-4 secondary-text text-xs">@(agent.Source == AgentSource.Global ? "global" : "repo")</span>
+                    <span class="text-right ml-4 secondary-text text-xs">@(agent.Source == AgentSource.Repo ? "repo" : "global")</span>
                 </button>
             }
         }
