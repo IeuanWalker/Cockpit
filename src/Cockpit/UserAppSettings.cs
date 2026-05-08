@@ -44,7 +44,12 @@ public static class UserAppSettings
 		{
 			string? result = Preferences.Default.Get("MessageTurnMode", (string?)null);
 
-			if(result is null || !Enum.TryParse(result, out MessageTurnModeEnum mode))
+			if(result is null)
+			{
+				return MessageTurnModeEnum.Immediate;
+			}
+
+			if(!Enum.TryParse(result, true, out MessageTurnModeEnum mode) || !Enum.IsDefined(mode))
 			{
 				return MessageTurnModeEnum.Immediate;
 			}
