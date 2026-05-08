@@ -70,7 +70,8 @@ public sealed partial class SessionFeature
 					.Select(g => g.First())];
 			}
 
-			string turnMode = UserAppSettings.MessageTurnMode == MessageTurnModeEnum.Enqueue ? "enqueue" : "immediate";
+			MessageTurnModeEnum selectedTurnMode = UserAppSettings.MessageTurnMode;
+			string turnMode = selectedTurnMode.ToSdkToken();
 
 			lock(CurrentSession.SessionEventLock)
 			{
@@ -85,7 +86,7 @@ public sealed partial class SessionFeature
 					Type = MessageTypeEnum.Text,
 					IsComplete = false,
 					// Immediate mode bypasses the queue — never show as pending even if agent is busy
-					IsPending = agentWasBusy && turnMode == "enqueue",
+					IsPending = agentWasBusy && selectedTurnMode == MessageTurnModeEnum.Enqueue,
 					Attachments = attachments?.Count > 0 ? attachments : null,
 					EventJson = null
 				};

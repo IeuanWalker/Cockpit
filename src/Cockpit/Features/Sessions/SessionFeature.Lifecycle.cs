@@ -11,6 +11,8 @@ namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
+	const int ImmediateModeReplayOrderingThresholdMs = 100;
+
 	Task? _loadExistingSessionsTask;
 	readonly Lock _loadGate = new();
 
@@ -234,16 +236,7 @@ public sealed partial class SessionFeature
 				// the safety-net which closes the group prematurely—displaying operations before
 				// the message that caused them. Swapping adjacent (turn_start → user.message)
 				// pairs that are within 100 ms of each other restores the correct logical order.
-				List<SessionEvent> orderedEvents = events.ToList();
-				for(int i = 0; i < orderedEvents.Count - 1; i++)
-				{
-					if(orderedEvents[i] is AssistantTurnStartEvent
-						&& orderedEvents[i + 1] is UserMessageEvent userMsgEvt
-						&& (userMsgEvt.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds is >= 0 and <= 100)
-					{
-						(orderedEvents[i], orderedEvents[i + 1]) = (orderedEvents[i + 1], orderedEvents[i]);
-					}
-				}
+				List<SessionEvent> orderedEvents = ReorderImmediateModeReplayEvents(events);
 
 				SessionModel tempSession = new()
 				{
@@ -580,16 +573,7 @@ public sealed partial class SessionFeature
 
 			// Same immediate-mode ordering fix as LoadSession: swap adjacent (turn_start → user.message)
 			// pairs within 100 ms so the user message precedes the turn it triggered.
-			List<SessionEvent> orderedEvents = events.ToList();
-			for(int i = 0; i < orderedEvents.Count - 1; i++)
-			{
-				if(orderedEvents[i] is AssistantTurnStartEvent
-					&& orderedEvents[i + 1] is UserMessageEvent replayUserMsg
-					&& (replayUserMsg.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds is >= 0 and <= 100)
-				{
-					(orderedEvents[i], orderedEvents[i + 1]) = (orderedEvents[i + 1], orderedEvents[i]);
-				}
-			}
+			List<SessionEvent> orderedEvents = ReorderImmediateModeReplayEvents(events);
 
 			Task streamCallback(ChatMessageModel msg, string text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged);
 
@@ -635,5 +619,21 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogError(ex, "Replay failed for session {SessionId}", session.Id);
 		}
+	}
+
+	static List<SessionEvent> ReorderImmediateModeReplayEvents(IReadOnlyList<SessionEvent> events)
+	{
+		List<SessionEvent> orderedEvents = events.ToList();
+		for(int i = 0; i < orderedEvents.Count - 1; i++)
+		{
+			if(orderedEvents[i] is AssistantTurnStartEvent
+				&& orderedEvents[i + 1] is UserMessageEvent userMsgEvt
+				&& (userMsgEvt.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds is >= 0 and <= ImmediateModeReplayOrderingThresholdMs)
+			{
+				(orderedEvents[i], orderedEvents[i + 1]) = (orderedEvents[i + 1], orderedEvents[i]);
+			}
+		}
+
+		return orderedEvents;
 	}
 }
