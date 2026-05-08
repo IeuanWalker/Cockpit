@@ -29,6 +29,7 @@
 					<div class="ai-file-item @(isSelected ? "selected" : "")" @onclick="() => SelectServer(server)">
 						<input type="checkbox"
 						       class="mr-2 flex-shrink-0"
+						       style="accent-color: var(--accent-color);"
 						       checked="@(server.Status != McpServerStatus.Disabled)"
 						       disabled="@_isBusy"
 						       @onclick:stopPropagation="true"
