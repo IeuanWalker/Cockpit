@@ -1,12 +1,16 @@
 using Blazor.Sonner.Services;
 using Cockpit.Features.Agents;
 using Cockpit.Features.Git;
+using Cockpit.Features.Instructions;
+using Cockpit.Features.Mcp;
 using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
+using Cockpit.Features.Plugins;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
+using Cockpit.Features.Skills;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.UserInputRequests;
 using GitHub.Copilot.SDK;
@@ -30,6 +34,10 @@ public sealed partial class SessionFeature : IDisposable
 	readonly AgentPersistence _agentPersistence;
 	readonly AgentFeature _agentFeature;
 	readonly SessionModePersistence _sessionModePersistence;
+	readonly InstructionsFeature _instructionsFeature;
+	readonly McpFeature _mcpFeature;
+	readonly SkillsFeature _skillsFeature;
+	readonly PluginsFeature _pluginsFeature;
 
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
@@ -45,7 +53,11 @@ public sealed partial class SessionFeature : IDisposable
 		SdkSessionRegistry sdkRegistry,
 		AgentPersistence agentPersistence,
 		AgentFeature agentFeature,
-		SessionModePersistence sessionModePersistence)
+		SessionModePersistence sessionModePersistence,
+		InstructionsFeature instructionsFeature,
+		McpFeature mcpFeature,
+		SkillsFeature skillsFeature,
+		PluginsFeature pluginsFeature)
 	{
 		_clientFeature = clientFeature;
 		_logger = logger;
@@ -61,6 +73,10 @@ public sealed partial class SessionFeature : IDisposable
 		_agentPersistence = agentPersistence;
 		_agentFeature = agentFeature;
 		_sessionModePersistence = sessionModePersistence;
+		_instructionsFeature = instructionsFeature;
+		_mcpFeature = mcpFeature;
+		_skillsFeature = skillsFeature;
+		_pluginsFeature = pluginsFeature;
 	}
 
 	IDisposable? _currentWatcher;

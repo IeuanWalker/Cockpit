@@ -1,24 +1,43 @@
-﻿@using Cockpit.Components.Controls
+@using Cockpit.Components.Controls
 
 <Expander>
-    <Icon>
-        <svg class="icon-xs mr-2 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
-            <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
-            <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
-        </svg>
-    </Icon>
-    <Title>MCP Server</Title>
-    <Content>
-        @*  <div class="px-3 py-1.5 hover:bg-app-hover cursor-pointer">
-            <div class="flex items-center justify-between">
-                <span class="text-xs">@McpServerUrl</span>
-                <span class="w-2 h-2 @(McpServerConnected ? "bg-green-500" : "bg-red-500") rounded-full"></span>
-            </div>
-        </div>
-        <div class="px-3 py-1 text-xs secondary-text">Status: @(McpServerConnected ? "Connected" : "Disconnected")</div>
-        <div class="px-3 pb-2">
-            <button class="text-xs hover:underline" style="color: var(--accent-color);">Configure...</button>
-        </div> *@
-    </Content>
+<Icon>
+<svg class="icon-xs mr-2 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+<path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
+<path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
+<path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
+</svg>
+</Icon>
+<Title>MCP Servers (@TotalCount)</Title>
+<Content>
+@if(_allServers.Count == 0)
+{
+<div class="px-3 py-2 text-xs secondary-text">No MCP servers configured</div>
+}
+else
+{
+@foreach(McpServer server in _allServers)
+{
+bool isSelected = _selectedServer?.Name == server.Name;
+<button type="button"
+        class="w-full px-3 py-1.5 text-xs transition-colors flex items-center justify-between @(isSelected ? "" : "hover:bg-app-hover")"
+        style="@(isSelected ? "background-color: var(--accent-color); color: white;" : string.Empty)"
+        @onclick="() => ShowMcpServerInfo(server)">
+<div class="flex items-center gap-2 min-w-0">
+<span class="@(server.Status == McpServerStatus.Connected ? "text-green-400" : server.Status == McpServerStatus.Failed ? "text-red-400" : "text-yellow-400") text-xs flex-shrink-0">&#x25CF;</span>
+<span class="truncate">@server.Name</span>
+</div>
+@if(server.Status == McpServerStatus.Disabled)
+{
+<span class="flex-shrink-0 text-xs px-1.5 py-0.5 rounded ml-2"
+      style="@(isSelected ? "background-color: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white;" : "background-color: var(--input-bg); border: 1px solid var(--input-border);")">
+off
+</span>
+}
+</button>
+}
+}
+</Content>
 </Expander>
+
+<McpServerInfoPopup @ref="_mcpServerInfoPopup" />

@@ -5,6 +5,7 @@ using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
+using GitHub.Copilot.SDK.Rpc;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;
@@ -146,7 +147,7 @@ public sealed partial class SessionFeature
 				SdkState = SdkSessionStateEnum.Resumed
 			};
 
-			chatSession.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(sdkSession, gitContext.GitRoot);
+			await LoadContextPanelDataAsync(chatSession, sdkSession);
 
 			_sessionListFeature.AddSession(chatSession);
 
@@ -210,7 +211,7 @@ public sealed partial class SessionFeature
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
 
-			session.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
+			await LoadContextPanelDataAsync(session, sdkSession);
 
 			bool registered = false;
 			try
@@ -424,7 +425,7 @@ public sealed partial class SessionFeature
 #pragma warning disable GHCP001
 			if(chatSession is not null)
 			{
-				chatSession.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(newSdkSession, chatSession.Context.GitRoot);
+				await LoadContextPanelDataAsync(chatSession, newSdkSession);
 
 				AgentProfile? restored = chatSession.Context.SelectedAgent is not null
 					? chatSession.Context.Agents.FirstOrDefault(a =>
@@ -647,5 +648,16 @@ public sealed partial class SessionFeature
 		}
 
 		return orderedEvents;
+	}
+
+	async Task LoadContextPanelDataAsync(SessionModel session, CopilotSession sdkSession)
+	{
+		session.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
+		session.Context.Instructions = await _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
+#pragma warning disable GHCP001
+		session.Context.McpServers = await _mcpFeature.LoadSessionMcpServersAsync(sdkSession);
+		session.Context.Skills = await _skillsFeature.LoadSessionSkillsAsync(sdkSession);
+		session.Context.Plugins = await _pluginsFeature.LoadSessionPluginsAsync(sdkSession);
+#pragma warning restore GHCP001
 	}
 }
