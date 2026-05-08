@@ -67,7 +67,7 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 		{
 			string? sessionId = _sessionListFeature.CurrentSession?.Id;
 			if(sessionId is null) return;
-			await _mcpFeature.ReloadAsync(sessionId);
+			await Task.WhenAll(_mcpFeature.ReloadAsync(sessionId), Task.Delay(200));
 		}
 		finally
 		{

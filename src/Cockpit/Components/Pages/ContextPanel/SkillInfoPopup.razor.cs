@@ -76,7 +76,7 @@ public partial class SkillInfoPopup : ComponentBase
 		StateHasChanged();
 		try
 		{
-			await _skillsFeature.ReloadAsync(_sessionId);
+			await Task.WhenAll(_skillsFeature.ReloadAsync(_sessionId), Task.Delay(200));
 			RefreshFromSession();
 		}
 		finally

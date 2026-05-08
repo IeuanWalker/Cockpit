@@ -66,7 +66,7 @@ public sealed partial class Skills : ComponentBase, IDisposable
 		{
 			string? sessionId = _sessionListFeature.CurrentSession?.Id;
 			if(sessionId is null) return;
-			await _skillsFeature.ReloadAsync(sessionId);
+			await Task.WhenAll(_skillsFeature.ReloadAsync(sessionId), Task.Delay(200));
 		}
 		finally
 		{

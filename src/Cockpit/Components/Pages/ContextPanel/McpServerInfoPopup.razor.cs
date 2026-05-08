@@ -67,7 +67,7 @@ public partial class McpServerInfoPopup : ComponentBase
 		StateHasChanged();
 		try
 		{
-			await _mcpFeature.ReloadAsync(_sessionId);
+			await Task.WhenAll(_mcpFeature.ReloadAsync(_sessionId), Task.Delay(200));
 			RefreshFromSession();
 		}
 		finally
