@@ -137,6 +137,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<AgentPersistence>();
 		builder.Services.AddSingleton<GlobalAgentFeature>();
 		builder.Services.AddSingleton<SessionAgentFeature>();
+		builder.Services.AddSingleton<SessionModePersistence>();
 
 		MauiApp app = builder.Build();
 

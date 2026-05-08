@@ -42,10 +42,12 @@ static class UserMessageHandler
 			optimistic.Timestamp = evt.Timestamp;
 			optimistic.EventType = evt.Type;
 			optimistic.IsComplete = true;
-			// Keep IsPending=true if already set (optimistic was created while agent was busy),
-			// or set it now if the agent is still busy when the SDK echo arrives.
+			// Preserve IsPending only if it was set at send time (enqueue mode, agent was busy).
+			// Do NOT escalate via wasAgentBusy — for immediate mode, AssistantTurnStart fires
+			// before the user.message echo, making wasAgentBusy spuriously true and leaving the
+			// message stuck as pending with nothing to clear it.
 			// Never set IsPending for agent-generated messages.
-			optimistic.IsPending = !isAgentGenerated && (optimistic.IsPending || wasAgentBusy);
+			optimistic.IsPending = !isAgentGenerated && optimistic.IsPending;
 			// Fill in attachments from event if the optimistic message didn't already have them
 			optimistic.Attachments ??= attachments;
 			optimistic.EventJson ??= [];

@@ -30,6 +30,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly AgentPersistence _agentPersistence;
 	readonly GlobalAgentFeature _globalAgentFeature;
 	readonly SessionAgentFeature _sessionAgentFeature;
+	readonly SessionModePersistence _sessionModePersistence;
 
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
@@ -45,7 +46,8 @@ public sealed partial class SessionFeature : IDisposable
 		SdkSessionRegistry sdkRegistry,
 		AgentPersistence agentPersistence,
 		GlobalAgentFeature globalAgentFeature,
-		SessionAgentFeature sessionAgentFeature)
+		SessionAgentFeature sessionAgentFeature,
+		SessionModePersistence sessionModePersistence)
 	{
 		_clientFeature = clientFeature;
 		_logger = logger;
@@ -61,6 +63,7 @@ public sealed partial class SessionFeature : IDisposable
 		_agentPersistence = agentPersistence;
 		_globalAgentFeature = globalAgentFeature;
 		_sessionAgentFeature = sessionAgentFeature;
+		_sessionModePersistence = sessionModePersistence;
 	}
 
 	IDisposable? _currentWatcher;

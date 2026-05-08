@@ -24,4 +24,9 @@ public class SessionContext
 	/// The currently selected agent for this session. Null means default Copilot behaviour.
 	/// </summary>
 	public AgentProfile? SelectedAgent { get; set; }
+
+	/// <summary>
+	/// The session-level agent mode (interactive, plan, or autopilot).
+	/// </summary>
+	public SessionAgentModeEnum SelectedAgentMode { get; set; } = SessionAgentModeEnum.Interactive;
 }

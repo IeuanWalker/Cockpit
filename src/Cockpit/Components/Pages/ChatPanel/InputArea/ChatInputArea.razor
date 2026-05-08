@@ -30,6 +30,7 @@
                          aria-disabled="@IsInputDisabled.ToString().ToLower()"></div>
                 </div>
                 <div class="flex items-end space-x-1 p-2 border-l border-app-border self-stretch">
+                    <MessageTurnModeControl />
                     <button @onclick="AttachFiles" class="p-1.5 hover:bg-app-hover rounded" title="Attach file" disabled="@IsInputDisabled">
                         <svg class="icon-xs secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -48,7 +49,10 @@
                 </div>
             </div>
             <div class="flex items-center justify-between px-3 py-1.5 border-t border-app-border">
-                <AgentControl />
+                <div class="flex items-center space-x-2">
+                    <AgentControl />
+                    <SessionModeControl />
+                </div>
                 <div class="flex items-center space-x-3">
                     <ModelControl />
                     <button @onclick="ToggleYoloMode"
