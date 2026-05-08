@@ -5,39 +5,33 @@
            Title="@($"Instructions ({_instructions.Count})")"
            PopupStyle="width: 1100px; height: 700px;"
            ContentClass="flex-1 min-h-0 overflow-hidden">
+	<HeaderRight>
+		@if(_selectedInstruction is not null)
+		{
+			<button class="ef-action-btn" @onclick="RevealInstructionFile" title="Reveal instruction file in explorer">
+				<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+				</svg>
+				<span>Reveal</span>
+			</button>
+		}
+	</HeaderRight>
 	<Content>
 		<div class="flex overflow-hidden" style="height: 100%;">
 
-			@* Left: instruction list grouped by location *@
+			@* Left: flat instruction list sorted alphabetically *@
 			<div class="ai-file-tree scrollbar-thin">
 				@if(_instructions.Count == 0)
 				{
 					<div class="px-3 py-4 text-center secondary-text text-xs">No instructions available</div>
 				}
-				@foreach(string location in _groupedInstructions.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
+				@foreach(InstructionsSources instr in _instructions.OrderBy(i => i.Label, StringComparer.OrdinalIgnoreCase))
 				{
-					bool expanded = _expandedGroups.GetValueOrDefault(location, true);
-					<div class="ai-dir-item" @onclick="() => ToggleGroup(location)">
-						<svg class="ai-chevron @(expanded ? "expanded" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-						</svg>
-						<svg class="ai-folder-icon" fill="currentColor" viewBox="0 0 20 20">
-							<path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-						</svg>
-						<span class="text-xs truncate">@location</span>
+					bool isSelected = _selectedInstruction?.Id == instr.Id;
+					<div class="ai-file-item @(isSelected ? "selected" : "")"
+					     @onclick="() => SelectInstruction(instr)">
+						<span class="text-xs truncate flex-1 min-w-0">@(instr.Label.StartsWith(".github/", StringComparison.OrdinalIgnoreCase) ? instr.Label[".github/".Length..] : instr.Label)</span>
 					</div>
-					@if(expanded)
-					{
-						@foreach(InstructionsSources instr in _groupedInstructions[location])
-						{
-							bool isSelected = _selectedInstruction?.Id == instr.Id;
-							<div class="ai-file-item @(isSelected ? "selected" : "")"
-							     style="padding-left: 24px"
-							     @onclick="() => SelectInstruction(instr)">
-								<span class="text-xs truncate flex-1 min-w-0">@instr.Label</span>
-							</div>
-						}
-					}
 				}
 			</div>
 
@@ -54,10 +48,6 @@
 						<div class="rounded p-3 text-xs flex flex-col gap-1"
 						     style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
 							<div class="font-semibold secondary-text uppercase tracking-widest mb-1" style="font-size: 10px;">Metadata</div>
-							<div class="flex gap-4">
-								<span class="secondary-text flex-shrink-0" style="min-width: 100px;">Type</span>
-								<span style="color: var(--text-color);">@_selectedInstruction.Type</span>
-							</div>
 							<div class="flex gap-4">
 								<span class="secondary-text flex-shrink-0" style="min-width: 100px;">Location</span>
 								<span style="color: var(--text-color);">@_selectedInstruction.Location</span>

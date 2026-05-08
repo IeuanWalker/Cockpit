@@ -7,6 +7,19 @@
            PopupStyle="width: 1100px; height: 700px;"
            ContentClass="flex-1 min-h-0 overflow-hidden">
 	<HeaderRight>
+		<div class="view-toggle">
+			<button class="toggle-btn @(!_treeView ? "active" : "")" @onclick='() => SetTreeView(false)'>Flat</button>
+			<button class="toggle-btn @(_treeView ? "active" : "")" @onclick='() => SetTreeView(true)'>Tree</button>
+		</div>
+		@if(_selectedSkill is not null)
+		{
+			<button class="ef-action-btn" @onclick="RevealSkillFile" title="Reveal skill file in explorer">
+				<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+				</svg>
+				<span>Reveal</span>
+			</button>
+		}
 		<button class="ef-action-btn @(_isBusy ? string.Empty : "hover:bg-app-hover")" style="@(_isBusy ? "background-color: var(--accent-color);" : string.Empty)" @onclick="ReloadSkills" disabled="@_isBusy" title="Reload skills">
 			<svg class="w-3.5 h-3.5 @(_isBusy ? "animate-spin-reverse" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -17,42 +30,43 @@
 	<Content>
 		<div class="flex overflow-hidden" style="height: 100%;">
 
-			@* Left: skill list grouped by source *@
+			@* Left: skill tree/flat list *@
 			<div class="ai-file-tree scrollbar-thin">
 				@if(_skills.Count == 0)
 				{
 					<div class="px-3 py-4 text-center secondary-text text-xs">No skills available</div>
 				}
-				@foreach(string source in _groupedSkills.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
+				@foreach(SkillNode node in DisplayNodes)
 				{
-					bool expanded = _expandedGroups.GetValueOrDefault(source, true);
-					<div class="ai-dir-item" @onclick="() => ToggleGroup(source)">
-						<svg class="ai-chevron @(expanded ? "expanded" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-						</svg>
-						<svg class="ai-folder-icon" fill="currentColor" viewBox="0 0 20 20">
-							<path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-						</svg>
-						<span class="text-xs truncate">@source</span>
-					</div>
-					@if(expanded)
+					@if(node.IsGroup)
 					{
-						@foreach(Skill skill in _groupedSkills[source])
-						{
-							bool isSelected = _selectedSkill?.Name == skill.Name;
-							<div class="ai-file-item @(isSelected ? "selected" : "")"
-							     style="padding-left: 24px"
-							     @onclick="() => SelectSkill(skill)">
-								<input type="checkbox"
-								       class="mr-2 flex-shrink-0"
-								       style="accent-color: var(--accent-color);"
-								       checked="@skill.Enabled"
-								       disabled="@_isBusy"
-								       @onclick:stopPropagation="true"
-								       @onchange="() => ToggleSkill(skill)" />
-								<span class="@(!skill.Enabled ? "opacity-50" : "") text-xs truncate flex-1 min-w-0">@skill.Name</span>
-							</div>
-						}
+						<div class="ai-dir-item" style="padding-left: @(8 + node.Depth * 12)px"
+						     @onclick="() => ToggleGroup(node.DirKey!)">
+							<svg class="ai-chevron @(_expandedGroups.GetValueOrDefault(node.DirKey!, true) ? "expanded" : "")"
+							     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+							</svg>
+							<svg class="ai-folder-icon" fill="currentColor" viewBox="0 0 20 20">
+								<path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+							</svg>
+							<span class="text-xs truncate">@node.Label</span>
+						</div>
+					}
+					else
+					{
+						bool isSelected = node.Skill?.Name == _selectedSkill?.Name;
+						<div class="ai-file-item @(isSelected ? "selected" : "")"
+						     style="padding-left: @(12 + node.Depth * 12)px"
+						     @onclick="() => SelectSkill(node.Skill!)">
+							<input type="checkbox"
+							       class="mr-2 flex-shrink-0"
+							       style="accent-color: var(--accent-color);"
+							       checked="@node.Skill!.Enabled"
+							       disabled="@_isBusy"
+							       @onclick:stopPropagation="true"
+							       @onchange="() => ToggleSkill(node.Skill!)" />
+							<span class="@(!node.Skill!.Enabled ? "opacity-50" : "") text-xs truncate flex-1 min-w-0">@node.Label</span>
+						</div>
 					}
 				}
 			</div>
@@ -61,13 +75,10 @@
 			<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
 				@if(_selectedSkill is not null)
 				{
-					<div class="flex items-center justify-between px-4 py-2 flex-shrink-0 border-b text-xs"
+					<div class="flex items-center px-4 py-2 flex-shrink-0 border-b text-xs"
 					     style="border-color: var(--input-border);">
-						<span class="font-mono font-medium" style="color: var(--text-color);">@_selectedSkill.Name</span>
-						@if(_selectedSkill.UserInvocable)
-						{
-							<span class="text-xs px-1.5 py-0.5 rounded" style="background-color: var(--input-bg); border: 1px solid var(--input-border);">slash command</span>
-						}
+						<span class="font-mono font-medium flex-shrink-0" style="color: var(--text-color);">@_selectedSkill.Name</span>
+						<span class="secondary-text ml-4 truncate font-mono text-xs" title="@_selectedSkill.Path">@_selectedSkill.Path</span>
 					</div>
 					<div class="flex-1 overflow-y-auto scrollbar-thin p-4 flex flex-col gap-4">
 						<div class="rounded p-3 text-xs flex flex-col gap-1"
@@ -85,6 +96,13 @@
 								<span class="secondary-text flex-shrink-0" style="min-width: 100px;">User Invocable</span>
 								<span style="color: var(--text-color);">@(_selectedSkill.UserInvocable ? "Yes" : "No")</span>
 							</div>
+							@if(!string.IsNullOrWhiteSpace(_selectedSkill.Description))
+							{
+								<div class="flex gap-4">
+									<span class="secondary-text flex-shrink-0" style="min-width: 100px;">Description</span>
+									<span style="color: var(--text-color);">@_selectedSkill.Description</span>
+								</div>
+							}
 							@if(!string.IsNullOrWhiteSpace(_selectedSkill.Path))
 							{
 								<div class="flex gap-4">
@@ -93,9 +111,9 @@
 								</div>
 							}
 						</div>
-						@if(!string.IsNullOrWhiteSpace(_selectedSkill.Description))
+						@if(!string.IsNullOrWhiteSpace(_skillFileContent))
 						{
-							<div class="text-xs secondary-text">@_selectedSkill.Description</div>
+							<MarkdownRenderer Content="@_skillFileContent" />
 						}
 					</div>
 				}

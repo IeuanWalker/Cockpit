@@ -154,7 +154,10 @@ public partial class AgentInfoPopup : ComponentBase
 					int colon = line.IndexOf(':');
 					if(colon > 0)
 					{
-						frontmatter[line[..colon].Trim()] = line[(colon + 1)..].Trim();
+						string val = line[(colon + 1)..].Trim();
+						if(val.Length >= 2 && val[0] == '\'' && val[^1] == '\'')
+						val = val[1..^1];
+						frontmatter[line[..colon].Trim()] = val;
 					}
 				}
 

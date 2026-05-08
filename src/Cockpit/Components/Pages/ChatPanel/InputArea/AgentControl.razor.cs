@@ -34,7 +34,8 @@ public partial class AgentControl : ComponentBase, IDisposable
 
 	void RefreshAgents()
 	{
-		_allAgents = [.. _sessionListFeature.CurrentSession?.Context.Agents ?? []];
+		_allAgents = [.. (_sessionListFeature.CurrentSession?.Context.Agents ?? [])
+			.Where(a => a.UserInvocable)];
 	}
 
 	void SelectAgent(AgentProfile? agent)

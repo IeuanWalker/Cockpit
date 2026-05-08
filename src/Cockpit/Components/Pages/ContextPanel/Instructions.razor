@@ -23,12 +23,8 @@
 				        style="@(isSelected ? "background-color: var(--accent-color); color: white;" : string.Empty)"
 				        @onclick="() => ShowInstructionInfo(instruction)">
 					<div class="flex items-center gap-2 min-w-0">
-						<span class="truncate">@instruction.Label</span>
+						<span class="truncate">@(instruction.Label.StartsWith(".github/", StringComparison.OrdinalIgnoreCase) ? instruction.Label[".github/".Length..] : instruction.Label)</span>
 					</div>
-					<span class="flex-shrink-0 text-xs px-1.5 py-0.5 rounded ml-2"
-					      style="@(isSelected ? "background-color: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white;" : "background-color: var(--input-bg); border: 1px solid var(--input-border);")">
-						@instruction.Location.ToString().ToLowerInvariant()
-					</span>
 				</button>
 			}
 		}
