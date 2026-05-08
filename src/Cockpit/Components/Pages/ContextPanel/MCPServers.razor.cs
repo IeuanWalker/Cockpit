@@ -78,13 +78,15 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 
 	List<McpServer> _renderedServers = [];
 	McpServer? _renderedSelected;
+	bool _renderedIsBusy;
 
 	protected override bool ShouldRender()
 	{
-		if(ReferenceEquals(_allServers, _renderedServers) && ReferenceEquals(_renderedSelected, _selectedServer))
+		if(ReferenceEquals(_allServers, _renderedServers) && ReferenceEquals(_renderedSelected, _selectedServer) && _isBusy == _renderedIsBusy)
 			return false;
 		_renderedServers = _allServers;
 		_renderedSelected = _selectedServer;
+		_renderedIsBusy = _isBusy;
 		return true;
 	}
 

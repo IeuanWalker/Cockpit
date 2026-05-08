@@ -77,13 +77,15 @@ public sealed partial class Skills : ComponentBase, IDisposable
 
 	List<Skill> _renderedSkills = [];
 	Skill? _renderedSelected;
+	bool _renderedIsBusy;
 
 	protected override bool ShouldRender()
 	{
-		if(ReferenceEquals(_allSkills, _renderedSkills) && ReferenceEquals(_renderedSelected, _selectedSkill))
+		if(ReferenceEquals(_allSkills, _renderedSkills) && ReferenceEquals(_renderedSelected, _selectedSkill) && _isBusy == _renderedIsBusy)
 			return false;
 		_renderedSkills = _allSkills;
 		_renderedSelected = _selectedSkill;
+		_renderedIsBusy = _isBusy;
 		return true;
 	}
 
