@@ -36,6 +36,18 @@ public partial class InstructionInfoPopup : ComponentBase
 		StateHasChanged();
 	}
 
+	string ResolvedInstructionPath
+	{
+		get
+		{
+			string? path = _selectedInstruction?.SourcePath;
+			if(string.IsNullOrEmpty(path)) return string.Empty;
+			if(!Path.IsPathRooted(path) && !string.IsNullOrEmpty(_workspacePath))
+				return Path.GetFullPath(Path.Combine(_workspacePath, path));
+			return path;
+		}
+	}
+
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		if(_needsSplitInit)
@@ -47,10 +59,8 @@ public partial class InstructionInfoPopup : ComponentBase
 
 	void RevealInstructionFile()
 	{
-		string? path = _selectedInstruction?.SourcePath;
-		if(string.IsNullOrEmpty(path)) return;
-		if(!Path.IsPathRooted(path) && !string.IsNullOrEmpty(_workspacePath))
-			path = Path.Combine(_workspacePath, path);
-		FileUtil.RevealFile(path);
+		string path = ResolvedInstructionPath;
+		if(!string.IsNullOrEmpty(path))
+			FileUtil.RevealFile(path);
 	}
 }
