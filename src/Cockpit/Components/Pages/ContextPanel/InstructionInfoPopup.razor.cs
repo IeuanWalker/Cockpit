@@ -2,6 +2,7 @@ using Cockpit.Components.Controls;
 using Cockpit.Utilities;
 using GitHub.Copilot.SDK.Rpc;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
@@ -10,10 +11,21 @@ public partial class InstructionInfoPopup : ComponentBase
 	PopupBase? _popup;
 	InstructionsSources? _selectedInstruction;
 	List<InstructionsSources> _instructions = [];
+	string? _workspacePath;
+	bool _needsSplitInit;
 
-	public void Open(IReadOnlyList<InstructionsSources> instructions, InstructionsSources selectedInstruction)
+	readonly IJSRuntime _jsRuntime;
+
+	public InstructionInfoPopup(IJSRuntime jsRuntime)
+	{
+		_jsRuntime = jsRuntime;
+	}
+
+	public void Open(IReadOnlyList<InstructionsSources> instructions, InstructionsSources selectedInstruction, string? workspacePath = null)
 	{
 		_instructions = [.. instructions];
+		_workspacePath = workspacePath;
+		_needsSplitInit = true;
 		_popup?.Open();
 		SelectInstruction(selectedInstruction);
 	}
@@ -24,5 +36,21 @@ public partial class InstructionInfoPopup : ComponentBase
 		StateHasChanged();
 	}
 
-	void RevealInstructionFile() => FileUtil.RevealFile(_selectedInstruction?.SourcePath);
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if(_needsSplitInit)
+		{
+			_needsSplitInit = false;
+			await _jsRuntime.InvokeVoidAsync("cockpit.initializePanelSplit", "instruction-left-panel", "instruction-split-handle");
+		}
+	}
+
+	void RevealInstructionFile()
+	{
+		string? path = _selectedInstruction?.SourcePath;
+		if(string.IsNullOrEmpty(path)) return;
+		if(!Path.IsPathRooted(path) && !string.IsNullOrEmpty(_workspacePath))
+			path = Path.Combine(_workspacePath, path);
+		FileUtil.RevealFile(path);
+	}
 }

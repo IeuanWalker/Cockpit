@@ -2,6 +2,7 @@ using Cockpit.Components.Controls;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Utilities;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
@@ -18,12 +19,22 @@ public partial class AgentInfoPopup : ComponentBase
 	readonly Dictionary<string, bool> _expandedGroups = new(StringComparer.OrdinalIgnoreCase);
 	List<AgentNode>? _cachedNodes;
 
+	bool _needsSplitInit;
+
+	readonly IJSRuntime _jsRuntime;
+
+	public AgentInfoPopup(IJSRuntime jsRuntime)
+	{
+		_jsRuntime = jsRuntime;
+	}
+
 	List<AgentNode> DisplayNodes => _cachedNodes ??= BuildDisplayNodes();
 
 	public void Open(IReadOnlyList<AgentProfile> agents, AgentProfile selectedAgent)
 	{
 		_agents = [.. agents];
 		_cachedNodes = null;
+		_needsSplitInit = true;
 		_popup?.Open();
 		SelectAgent(selectedAgent);
 	}
@@ -38,6 +49,15 @@ public partial class AgentInfoPopup : ComponentBase
 			await LoadAgentContentAsync(agent);
 			StateHasChanged();
 		});
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if(_needsSplitInit)
+		{
+			_needsSplitInit = false;
+			await _jsRuntime.InvokeVoidAsync("cockpit.initializePanelSplit", "agent-left-panel", "agent-split-handle");
+		}
 	}
 
 	async Task LoadAgentContentAsync(AgentProfile agent)

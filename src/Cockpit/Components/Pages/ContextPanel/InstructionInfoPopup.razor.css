@@ -60,6 +60,8 @@
 
 .ai-file-tree {
     width: 224px;
+    min-width: 120px;
+    max-width: 500px;
     flex-shrink: 0;
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
@@ -117,4 +119,29 @@
     height: 13px;
     flex-shrink: 0;
     color: #78a9e8;
+}
+
+/* ── Popup split handle ──────────────────────────────────────────── */
+
+.popup-split-handle {
+    width: 4px;
+    background-color: var(--sidebar-color);
+    cursor: col-resize;
+    flex-shrink: 0;
+    transition: background-color 0.15s;
+}
+
+    .popup-split-handle:hover,
+    .popup-split-handle.resizing {
+        background-color: var(--accent-color);
+    }
+
+/* ── Path truncate from start ────────────────────────────────────── */
+
+.path-truncate-start {
+    direction: rtl;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    text-align: left;
 }

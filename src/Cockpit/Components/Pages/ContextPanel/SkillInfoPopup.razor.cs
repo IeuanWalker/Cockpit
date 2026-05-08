@@ -5,6 +5,7 @@ using Cockpit.Features.Skills;
 using Cockpit.Utilities;
 using GitHub.Copilot.SDK.Rpc;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
@@ -15,6 +16,7 @@ public partial class SkillInfoPopup : ComponentBase
 	List<Skill> _skills = [];
 	bool _isBusy;
 	string? _sessionId;
+	bool _needsSplitInit;
 
 	bool _treeView;
 	readonly Dictionary<string, bool> _expandedGroups = new(StringComparer.OrdinalIgnoreCase);
@@ -26,11 +28,13 @@ public partial class SkillInfoPopup : ComponentBase
 
 	readonly SkillsFeature _skillsFeature;
 	readonly SessionListFeature _sessionListFeature;
+	readonly IJSRuntime _jsRuntime;
 
-	public SkillInfoPopup(SkillsFeature skillsFeature, SessionListFeature sessionListFeature)
+	public SkillInfoPopup(SkillsFeature skillsFeature, SessionListFeature sessionListFeature, IJSRuntime jsRuntime)
 	{
 		_skillsFeature = skillsFeature;
 		_sessionListFeature = sessionListFeature;
+		_jsRuntime = jsRuntime;
 	}
 
 	public void Open(IReadOnlyList<Skill> skills, Skill selectedSkill)
@@ -38,8 +42,18 @@ public partial class SkillInfoPopup : ComponentBase
 		_skills = [.. skills];
 		_sessionId = _sessionListFeature.CurrentSession?.Id;
 		_cachedNodes = null;
+		_needsSplitInit = true;
 		_popup?.Open();
 		SelectSkill(selectedSkill);
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if(_needsSplitInit)
+		{
+			_needsSplitInit = false;
+			await _jsRuntime.InvokeVoidAsync("cockpit.initializePanelSplit", "skill-left-panel", "skill-split-handle");
+		}
 	}
 
 	void SelectSkill(Skill skill)
@@ -62,7 +76,8 @@ public partial class SkillInfoPopup : ComponentBase
 			{
 				try
 				{
-					_skillFileContent = await File.ReadAllTextAsync(skill.Path);
+					string raw = await File.ReadAllTextAsync(skill.Path);
+					_skillFileContent = StripFrontmatter(raw);
 				}
 				catch
 				{
@@ -71,6 +86,23 @@ public partial class SkillInfoPopup : ComponentBase
 			}
 			StateHasChanged();
 		});
+	}
+
+	static string StripFrontmatter(string raw)
+	{
+		string content = raw.TrimStart('\uFEFF').ReplaceLineEndings("\n");
+		if(content.StartsWith("---\n", StringComparison.Ordinal))
+		{
+			int endFm = content.IndexOf("\n---", 3, StringComparison.Ordinal);
+			if(endFm > 0)
+			{
+				int bodyStart = endFm + 4;
+				while(bodyStart < content.Length && content[bodyStart] == '\n')
+					bodyStart++;
+				return content[bodyStart..].TrimStart('\n');
+			}
+		}
+		return content;
 	}
 
 	void RevealSkillFile() => FileUtil.RevealFile(_selectedSkill?.Path);

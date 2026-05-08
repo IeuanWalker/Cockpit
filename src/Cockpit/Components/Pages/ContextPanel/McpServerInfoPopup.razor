@@ -18,7 +18,7 @@
 		<div class="flex overflow-hidden" style="height: 100%;">
 
 			@* Left: server list *@
-			<div class="ai-file-tree scrollbar-thin">
+			<div id="mcp-left-panel" class="ai-file-tree scrollbar-thin">
 				@if(_servers.Count == 0)
 				{
 					<div class="px-3 py-4 text-center secondary-text text-xs">No MCP servers configured</div>
@@ -40,6 +40,8 @@
 				}
 			</div>
 
+			<div id="mcp-split-handle" class="popup-split-handle"></div>
+
 			@* Right: server detail *@
 			<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
 				@if(_selectedServer is not null)
@@ -53,18 +55,16 @@
 						</span>
 					</div>
 					<div class="flex-1 overflow-y-auto scrollbar-thin p-4 flex flex-col gap-4">
-						<div class="rounded p-3 text-xs flex flex-col gap-1"
+						<div class="rounded p-3 text-xs"
 						     style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
-							<div class="font-semibold secondary-text uppercase tracking-widest mb-1" style="font-size: 10px;">Details</div>
-							@if(_selectedServer.Source.HasValue)
-							{
-								<div class="flex gap-4">
-									<span class="secondary-text flex-shrink-0" style="min-width: 100px;">Source</span>
+							<div class="font-semibold secondary-text uppercase tracking-widest mb-1" style="font-size: 10px;">Frontmatter</div>
+							<div class="grid gap-x-4 gap-y-0.5" style="grid-template-columns: auto 1fr;">
+								@if(_selectedServer.Source.HasValue)
+								{
+									<span class="secondary-text">Source</span>
 									<span style="color: var(--text-color);">@_selectedServer.Source</span>
-								</div>
-							}
-							<div class="flex gap-4">
-								<span class="secondary-text flex-shrink-0" style="min-width: 100px;">Status</span>
+								}
+								<span class="secondary-text">Status</span>
 								<span style="color: var(--text-color);">@McpFeature.GetStatusDisplayString(_selectedServer.Status)</span>
 							</div>
 						</div>

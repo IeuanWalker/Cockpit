@@ -4,6 +4,7 @@ using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK.Rpc;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
@@ -14,22 +15,35 @@ public partial class McpServerInfoPopup : ComponentBase
 	List<McpServer> _servers = [];
 	bool _isBusy;
 	string? _sessionId;
+	bool _needsSplitInit;
 
 	readonly McpFeature _mcpFeature;
 	readonly SessionListFeature _sessionListFeature;
+	readonly IJSRuntime _jsRuntime;
 
-	public McpServerInfoPopup(McpFeature mcpFeature, SessionListFeature sessionListFeature)
+	public McpServerInfoPopup(McpFeature mcpFeature, SessionListFeature sessionListFeature, IJSRuntime jsRuntime)
 	{
 		_mcpFeature = mcpFeature;
 		_sessionListFeature = sessionListFeature;
+		_jsRuntime = jsRuntime;
 	}
 
 	public void Open(IReadOnlyList<McpServer> servers, McpServer selectedServer)
 	{
 		_servers = [.. servers];
 		_sessionId = _sessionListFeature.CurrentSession?.Id;
+		_needsSplitInit = true;
 		_popup?.Open();
 		SelectServer(selectedServer);
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if(_needsSplitInit)
+		{
+			_needsSplitInit = false;
+			await _jsRuntime.InvokeVoidAsync("cockpit.initializePanelSplit", "mcp-left-panel", "mcp-split-handle");
+		}
 	}
 
 	void SelectServer(McpServer server)

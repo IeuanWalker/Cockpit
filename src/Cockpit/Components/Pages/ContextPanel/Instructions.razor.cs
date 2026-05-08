@@ -30,7 +30,7 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 		InvokeAsync(() => { Refresh(); StateHasChanged(); });
 	}
 
-	void ShowInstructionInfo(InstructionsSources instruction) => _instructionInfoPopup?.Open(_allInstructions, instruction);
+	void ShowInstructionInfo(InstructionsSources instruction) => _instructionInfoPopup?.Open(_allInstructions, instruction, _sessionListFeature.CurrentSession?.Context.WorkspacePath);
 
 	List<InstructionsSources> _renderedInstructions = [];
 	InstructionsSources? _renderedSelected;
