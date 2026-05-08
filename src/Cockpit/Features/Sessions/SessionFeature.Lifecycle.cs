@@ -239,7 +239,7 @@ public sealed partial class SessionFeature
 				{
 					if(orderedEvents[i] is AssistantTurnStartEvent
 						&& orderedEvents[i + 1] is UserMessageEvent userMsgEvt
-						&& (userMsgEvt.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds <= 100)
+						&& (userMsgEvt.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds is >= 0 and <= 100)
 					{
 						(orderedEvents[i], orderedEvents[i + 1]) = (orderedEvents[i + 1], orderedEvents[i]);
 					}
@@ -585,7 +585,7 @@ public sealed partial class SessionFeature
 			{
 				if(orderedEvents[i] is AssistantTurnStartEvent
 					&& orderedEvents[i + 1] is UserMessageEvent replayUserMsg
-					&& (replayUserMsg.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds <= 100)
+					&& (replayUserMsg.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds is >= 0 and <= 100)
 				{
 					(orderedEvents[i], orderedEvents[i + 1]) = (orderedEvents[i + 1], orderedEvents[i]);
 				}
