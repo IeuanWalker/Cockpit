@@ -112,19 +112,21 @@ public class UserMessageHandlerTests
 	}
 
 	[Fact]
-	public void Handle_OptimisticMessage_MarkedPending_WhenAgentWasBusy()
+	public void Handle_OptimisticMessage_MarkedPending_WhenEnqueueModeAndAgentWasBusy()
 	{
-		// Arrange: optimistic message added while agent was busy
+		// Arrange: enqueue-mode optimistic message — SessionFeature.Messages.cs sets IsPending=true
+		// at send time when the agent is busy. After the SDK echo, IsPending must be preserved.
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		session.ActiveWorkingGroup = new ActivityGroupModel { Status = GroupStatusEnum.Running };
 
-		// Simulate optimistic add
+		// Simulate optimistic add with IsPending=true (enqueue mode)
 		session.Messages.Add(new ChatMessageModel
 		{
 			Content = "Queued message",
 			IsUser = true,
 			IsComplete = false,
+			IsPending = true,   // set by SessionFeature.Messages.cs for enqueue mode
 			EventJson = null
 		});
 
@@ -137,7 +139,7 @@ public class UserMessageHandlerTests
 		// Act
 		processor.Process(session, evt);
 
-		// Assert: optimistic message confirmed and marked pending
+		// Assert: optimistic confirmed and IsPending preserved (cleared later by AssistantTurnStart)
 		ChatMessageModel? msg = session.Messages.FirstOrDefault(m => m.IsUser);
 		msg.ShouldNotBeNull();
 		msg.IsComplete.ShouldBeTrue();

@@ -1,4 +1,5 @@
-﻿using Cockpit.Features.TextToSpeech;
+﻿using Cockpit.Features.MessageMode;
+using Cockpit.Features.TextToSpeech;
 using Cockpit.Features.Theme;
 
 namespace Cockpit;
@@ -35,6 +36,28 @@ public static class UserAppSettings
 	{
 		get => Preferences.Default.Get("AccentHoverColor", "#0050a0");
 		set => Preferences.Default.Set("AccentHoverColor", value);
+	}
+
+	public static MessageTurnModeEnum MessageTurnMode
+	{
+		get
+		{
+			string? result = Preferences.Default.Get("MessageTurnMode", (string?)null);
+
+			if(result is null)
+			{
+				return MessageTurnModeEnum.Immediate;
+			}
+
+			if(!Enum.TryParse(result, true, out MessageTurnModeEnum mode) || !Enum.IsDefined(mode))
+			{
+				return MessageTurnModeEnum.Immediate;
+			}
+
+			return mode;
+		}
+
+		set => Preferences.Default.Set("MessageTurnMode", value.ToString());
 	}
 
 	public static bool SendOnEnter

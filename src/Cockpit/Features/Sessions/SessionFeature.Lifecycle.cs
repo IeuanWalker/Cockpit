@@ -11,6 +11,8 @@ namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
+	const int ImmediateModeReplayOrderingThresholdMs = 100;
+
 	Task? _loadExistingSessionsTask;
 	readonly Lock _loadGate = new();
 
@@ -155,6 +157,7 @@ public sealed partial class SessionFeature
 
 			await _modelFeature.SaveSessionModel(chatSession);
 			await _agentPersistence.SaveSessionAgent(chatSession);
+			await _sessionModePersistence.SaveSessionModeAsync(chatSession);
 
 			await SwitchCurrentSessionAsync(chatSession);
 
@@ -225,6 +228,16 @@ public sealed partial class SessionFeature
 				IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
 				_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 
+				// Fix immediate-mode ordering: the SDK writes assistant.turn_start to the event
+				// log *before* the user.message echo for immediate-mode sends (both events share
+				// nearly the same timestamp). During live sessions this is fine because the
+				// optimistic message is already in the UI; during replay the turn_start fires
+				// first, creating a working group with no anchor, then the user.message triggers
+				// the safety-net which closes the group prematurely—displaying operations before
+				// the message that caused them. Swapping adjacent (turn_start → user.message)
+				// pairs that are within 100 ms of each other restores the correct logical order.
+				List<SessionEvent> orderedEvents = ReorderImmediateModeReplayEvents(events);
+
 				SessionModel tempSession = new()
 				{
 					Id = sessionId,
@@ -240,7 +253,7 @@ public sealed partial class SessionFeature
 
 				await Task.Run(() =>
 				{
-					foreach(SessionEvent evt in events)
+					foreach(SessionEvent evt in orderedEvents)
 					{
 						_processor.Process(tempSession, evt);
 					}
@@ -277,6 +290,12 @@ public sealed partial class SessionFeature
 				if(session.Context.SelectedAgent is not null)
 				{
 					await sdkSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Config.Name);
+				}
+
+				await _sessionModePersistence.TryRestoreSessionModeAsync(session);
+				if(session.Context.SelectedAgentMode != Models.SessionAgentModeEnum.Interactive)
+				{
+					await sdkSession.Rpc.Mode.SetAsync(session.Context.SelectedAgentMode.ToSdkSessionMode());
 				}
 
 				_sdkRegistry.Register(sdkSession, evt =>
@@ -552,10 +571,14 @@ public sealed partial class SessionFeature
 			}
 			_sessionListFeature.NotifyStateChanged();
 
+			// Same immediate-mode ordering fix as LoadSession: swap adjacent (turn_start → user.message)
+			// pairs within 100 ms so the user message precedes the turn it triggered.
+			List<SessionEvent> orderedEvents = ReorderImmediateModeReplayEvents(events);
+
 			Task streamCallback(ChatMessageModel msg, string text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged);
 
 			DateTimeOffset? prevTimestamp = null;
-			foreach(SessionEvent evt in events)
+			foreach(SessionEvent evt in orderedEvents)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
@@ -596,5 +619,21 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogError(ex, "Replay failed for session {SessionId}", session.Id);
 		}
+	}
+
+	static List<SessionEvent> ReorderImmediateModeReplayEvents(IReadOnlyList<SessionEvent> events)
+	{
+		List<SessionEvent> orderedEvents = events.ToList();
+		for(int i = 0; i < orderedEvents.Count - 1; i++)
+		{
+			if(orderedEvents[i] is AssistantTurnStartEvent
+				&& orderedEvents[i + 1] is UserMessageEvent userMsgEvt
+				&& (userMsgEvt.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds is >= 0 and <= ImmediateModeReplayOrderingThresholdMs)
+			{
+				(orderedEvents[i], orderedEvents[i + 1]) = (orderedEvents[i + 1], orderedEvents[i]);
+			}
+		}
+
+		return orderedEvents;
 	}
 }

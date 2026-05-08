@@ -1,3 +1,4 @@
+using Cockpit.Features.MessageMode;
 using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
@@ -46,6 +47,12 @@ public sealed partial class SessionFeature
 				session.AgentChanged = false;
 			}
 
+			if(session.AgentModeChanged)
+			{
+				await existingSession.Rpc.Mode.SetAsync(session.Context.SelectedAgentMode.ToSdkSessionMode());
+				session.AgentModeChanged = false;
+			}
+
 			if(session.SdkState == SdkSessionStateEnum.Loaded)
 			{
 				bool resumed = await ResumeSession(sessionId);
@@ -63,6 +70,9 @@ public sealed partial class SessionFeature
 					.Select(g => g.First())];
 			}
 
+			MessageTurnModeEnum selectedTurnMode = UserAppSettings.MessageTurnMode;
+			string turnMode = selectedTurnMode.ToSdkToken();
+
 			lock(CurrentSession.SessionEventLock)
 			{
 				bool agentWasBusy = CurrentSession.ActiveWorkingGroup is not null;
@@ -75,7 +85,8 @@ public sealed partial class SessionFeature
 					Timestamp = DateTime.UtcNow,
 					Type = MessageTypeEnum.Text,
 					IsComplete = false,
-					IsPending = agentWasBusy,
+					// Immediate mode bypasses the queue — never show as pending even if agent is busy
+					IsPending = agentWasBusy && selectedTurnMode == MessageTurnModeEnum.Enqueue,
 					Attachments = attachments?.Count > 0 ? attachments : null,
 					EventJson = null
 				};
@@ -94,11 +105,11 @@ public sealed partial class SessionFeature
 						DisplayName = a.FileName
 					})];
 			}
-
 			string sentMessageId = await existingSession.SendAsync(new MessageOptions
 			{
 				Prompt = content,
-				Attachments = sdkAttachments
+				Attachments = sdkAttachments,
+				Mode = turnMode
 			});
 
 			if(!string.IsNullOrWhiteSpace(sentMessageId) && optimisticMessage is not null)

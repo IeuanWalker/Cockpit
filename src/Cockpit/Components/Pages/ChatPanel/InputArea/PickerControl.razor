@@ -1,11 +1,10 @@
 @namespace Cockpit.Components.Pages.ChatPanel.InputArea
 
-@if(_isOpen)
-{
-    <div class="fixed inset-0" style="z-index: 999;" @onclick="Close"></div>
-}
-
 <div class="relative">
+    @if(_isOpen)
+    {
+        <div class="fixed inset-0" style="z-index: 999;" @onclick="Close"></div>
+    }
     <div class="relative group">
         <button @onclick="Toggle"
                 class="rounded px-2 py-0.5 text-xs focus:outline-none flex items-center space-x-1 transition-opacity duration-200 @(IsDisabled ? "opacity-50 cursor-not-allowed" : "")"

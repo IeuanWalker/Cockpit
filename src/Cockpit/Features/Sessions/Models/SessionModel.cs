@@ -69,6 +69,7 @@ public class SessionModel
 	public SdkSessionStateEnum SdkState { get; set; } = SdkSessionStateEnum.NotLoaded;
 	public bool ModelChanged { get; set; }
 	public bool AgentChanged { get; set; }
+	public bool AgentModeChanged { get; set; }
 
 	/// <summary>
 	/// When <see langword="true"/> the <c>session.idle</c> handler will not raise
