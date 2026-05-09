@@ -54,16 +54,24 @@ public partial class McpServerInfoPopup : ComponentBase
 
 	async Task ToggleServer(McpServer server)
 	{
-		if(_isBusy || _sessionId is null) return;
+		if(_isBusy || _sessionId is null)
+		{
+			return;
+		}
+
 		_isBusy = true;
 		StateHasChanged();
 		try
 		{
 			bool isEnabled = server.Status != McpServerStatus.Disabled;
 			if(isEnabled)
+			{
 				await _mcpFeature.DisableServerAsync(_sessionId, server.Name);
+			}
 			else
+			{
 				await _mcpFeature.EnableServerAsync(_sessionId, server.Name);
+			}
 
 			RefreshFromSession();
 		}
@@ -76,7 +84,11 @@ public partial class McpServerInfoPopup : ComponentBase
 
 	async Task ReloadServers()
 	{
-		if(_isBusy || _sessionId is null) return;
+		if(_isBusy || _sessionId is null)
+		{
+			return;
+		}
+
 		_isBusy = true;
 		StateHasChanged();
 		try
@@ -94,7 +106,11 @@ public partial class McpServerInfoPopup : ComponentBase
 	void RefreshFromSession()
 	{
 		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == _sessionId);
-		if(session is null) return;
+		if(session is null)
+		{
+			return;
+		}
+
 		_servers = [.. session.Context.McpServers];
 		McpServer? refreshed = _servers.FirstOrDefault(s => s.Name == _selectedServer?.Name);
 		_selectedServer = refreshed ?? _selectedServer;

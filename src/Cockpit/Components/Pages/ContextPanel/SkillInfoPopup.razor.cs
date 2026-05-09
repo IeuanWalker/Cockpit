@@ -67,7 +67,11 @@ public partial class SkillInfoPopup : ComponentBase
 	void LoadSkillFileContent()
 	{
 		Skill? skill = _selectedSkill;
-		if(skill is null) return;
+		if(skill is null)
+		{
+			return;
+		}
+
 		_ = InvokeAsync(async () =>
 		{
 			if(!string.IsNullOrEmpty(skill.Path)
@@ -98,7 +102,10 @@ public partial class SkillInfoPopup : ComponentBase
 			{
 				int bodyStart = endFm + 4;
 				while(bodyStart < content.Length && content[bodyStart] == '\n')
+				{
 					bodyStart++;
+				}
+
 				return content[bodyStart..].TrimStart('\n');
 			}
 		}
@@ -131,7 +138,7 @@ public partial class SkillInfoPopup : ComponentBase
 
 		SkillTreeDir root = new() { Name = string.Empty, Key = string.Empty };
 
-		foreach(var skill in _skills)
+		foreach(Skill skill in _skills)
 		{
 			if(string.IsNullOrEmpty(skill.Path))
 			{
@@ -176,7 +183,7 @@ public partial class SkillInfoPopup : ComponentBase
 			}
 		}
 
-		foreach(var skill in dir.Skills.OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase))
+		foreach(Skill? skill in dir.Skills.OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase))
 		{
 			result.Add(new SkillNode(false, skill.Name, null, skill, depth));
 		}
@@ -184,15 +191,23 @@ public partial class SkillInfoPopup : ComponentBase
 
 	async Task ToggleSkill(Skill skill)
 	{
-		if(_isBusy || _sessionId is null) return;
+		if(_isBusy || _sessionId is null)
+		{
+			return;
+		}
+
 		_isBusy = true;
 		StateHasChanged();
 		try
 		{
 			if(skill.Enabled)
+			{
 				await _skillsFeature.DisableSkillAsync(_sessionId, skill.Name);
+			}
 			else
+			{
 				await _skillsFeature.EnableSkillAsync(_sessionId, skill.Name);
+			}
 
 			RefreshFromSession();
 		}
@@ -205,7 +220,11 @@ public partial class SkillInfoPopup : ComponentBase
 
 	async Task ReloadSkills()
 	{
-		if(_isBusy || _sessionId is null) return;
+		if(_isBusy || _sessionId is null)
+		{
+			return;
+		}
+
 		_isBusy = true;
 		StateHasChanged();
 		try
@@ -223,10 +242,14 @@ public partial class SkillInfoPopup : ComponentBase
 	void RefreshFromSession()
 	{
 		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == _sessionId);
-		if(session is null) return;
+		if(session is null)
+		{
+			return;
+		}
+
 		_skills = [.. session.Context.Skills];
 		_cachedNodes = null;
-		var refreshed = _skills.FirstOrDefault(s => s.Name == _selectedSkill?.Name);
+		Skill? refreshed = _skills.FirstOrDefault(s => s.Name == _selectedSkill?.Name);
 		if(refreshed is not null && !ReferenceEquals(refreshed, _selectedSkill))
 		{
 			_selectedSkill = refreshed;

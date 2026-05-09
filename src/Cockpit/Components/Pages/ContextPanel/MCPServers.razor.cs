@@ -38,18 +38,30 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 
 	async Task ToggleServer(McpServer server)
 	{
-		if(_isBusy) return;
+		if(_isBusy)
+		{
+			return;
+		}
+
 		_isBusy = true;
 		StateHasChanged();
 		try
 		{
 			string? sessionId = _sessionListFeature.CurrentSession?.Id;
-			if(sessionId is null) return;
+			if(sessionId is null)
+			{
+				return;
+			}
+
 			bool isEnabled = server.Status != McpServerStatus.Disabled;
 			if(isEnabled)
+			{
 				await _mcpFeature.DisableServerAsync(sessionId, server.Name);
+			}
 			else
+			{
 				await _mcpFeature.EnableServerAsync(sessionId, server.Name);
+			}
 		}
 		finally
 		{
@@ -60,13 +72,21 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 
 	async Task ReloadServers()
 	{
-		if(_isBusy) return;
+		if(_isBusy)
+		{
+			return;
+		}
+
 		_isBusy = true;
 		StateHasChanged();
 		try
 		{
 			string? sessionId = _sessionListFeature.CurrentSession?.Id;
-			if(sessionId is null) return;
+			if(sessionId is null)
+			{
+				return;
+			}
+
 			await Task.WhenAll(_mcpFeature.ReloadAsync(sessionId), Task.Delay(200));
 		}
 		finally
@@ -83,7 +103,10 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 	protected override bool ShouldRender()
 	{
 		if(ReferenceEquals(_allServers, _renderedServers) && ReferenceEquals(_renderedSelected, _selectedServer) && _isBusy == _renderedIsBusy)
+		{
 			return false;
+		}
+
 		_renderedServers = _allServers;
 		_renderedSelected = _selectedServer;
 		_renderedIsBusy = _isBusy;

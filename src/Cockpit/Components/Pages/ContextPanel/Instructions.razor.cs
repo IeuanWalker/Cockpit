@@ -1,4 +1,5 @@
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK.Rpc;
 using Microsoft.AspNetCore.Components;
 
@@ -43,7 +44,10 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 	protected override bool ShouldRender()
 	{
 		if(ReferenceEquals(_allInstructions, _renderedInstructions) && ReferenceEquals(_renderedSelected, _selectedInstruction))
+		{
 			return false;
+		}
+
 		_renderedInstructions = _allInstructions;
 		_renderedSelected = _selectedInstruction;
 		return true;

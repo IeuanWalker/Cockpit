@@ -38,7 +38,10 @@ public sealed partial class Plugins : ComponentBase, IDisposable
 	protected override bool ShouldRender()
 	{
 		if(ReferenceEquals(_allPlugins, _renderedPlugins) && ReferenceEquals(_renderedSelected, _selectedPlugin))
+		{
 			return false;
+		}
+
 		_renderedPlugins = _allPlugins;
 		_renderedSelected = _selectedPlugin;
 		return true;

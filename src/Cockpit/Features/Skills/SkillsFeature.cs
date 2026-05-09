@@ -28,7 +28,7 @@ public sealed class SkillsFeature
 			_logger.LogInformation("Discovered {Count} skills for session", result.Skills.Count);
 			return [.. result.Skills];
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load skills from SDK");
 			return [];
@@ -37,7 +37,7 @@ public sealed class SkillsFeature
 
 	public async Task EnableSkillAsync(string sessionId, string name, CancellationToken cancellationToken = default)
 	{
-		if (!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
+		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
 		{
 			_logger.LogWarning("SDK session {SessionId} not found for skill enable", sessionId);
 			return;
@@ -48,7 +48,7 @@ public sealed class SkillsFeature
 			await sdkSession.Rpc.Skills.EnableAsync(name, cancellationToken);
 			await RefreshSessionSkillsAsync(sessionId, sdkSession, cancellationToken);
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to enable skill {Name}", name);
 		}
@@ -56,7 +56,7 @@ public sealed class SkillsFeature
 
 	public async Task DisableSkillAsync(string sessionId, string name, CancellationToken cancellationToken = default)
 	{
-		if (!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
+		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
 		{
 			_logger.LogWarning("SDK session {SessionId} not found for skill disable", sessionId);
 			return;
@@ -67,7 +67,7 @@ public sealed class SkillsFeature
 			await sdkSession.Rpc.Skills.DisableAsync(name, cancellationToken);
 			await RefreshSessionSkillsAsync(sessionId, sdkSession, cancellationToken);
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to disable skill {Name}", name);
 		}
@@ -75,7 +75,7 @@ public sealed class SkillsFeature
 
 	public async Task ReloadAsync(string sessionId, CancellationToken cancellationToken = default)
 	{
-		if (!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
+		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
 		{
 			_logger.LogWarning("SDK session {SessionId} not found for skills reload", sessionId);
 			return;
@@ -86,7 +86,7 @@ public sealed class SkillsFeature
 			await sdkSession.Rpc.Skills.ReloadAsync(cancellationToken);
 			await RefreshSessionSkillsAsync(sessionId, sdkSession, cancellationToken);
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to reload skills");
 		}
@@ -95,7 +95,10 @@ public sealed class SkillsFeature
 	async Task RefreshSessionSkillsAsync(string sessionId, CopilotSession sdkSession, CancellationToken cancellationToken)
 	{
 		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if (session is null) return;
+		if(session is null)
+		{
+			return;
+		}
 
 		session.Context.Skills = await LoadSessionSkillsAsync(sdkSession, cancellationToken);
 		_sessionListFeature.NotifyStateChanged();

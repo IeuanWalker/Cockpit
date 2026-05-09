@@ -5,7 +5,6 @@ using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
-using GitHub.Copilot.SDK.Rpc;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;
@@ -422,7 +421,6 @@ public sealed partial class SessionFeature
 				}
 			}
 
-#pragma warning disable GHCP001
 			if(chatSession is not null)
 			{
 				await LoadContextPanelDataAsync(chatSession, newSdkSession);
@@ -446,7 +444,6 @@ public sealed partial class SessionFeature
 					await newSdkSession.Rpc.Mode.SetAsync(chatSession.Context.SelectedAgentMode.ToSdkSessionMode(), cancellationToken);
 				}
 			}
-#pragma warning restore GHCP001
 
 			_sdkRegistry.Register(newSdkSession, evt =>
 			{
@@ -636,7 +633,7 @@ public sealed partial class SessionFeature
 
 	static List<SessionEvent> ReorderImmediateModeReplayEvents(IReadOnlyList<SessionEvent> events)
 	{
-		List<SessionEvent> orderedEvents = events.ToList();
+		List<SessionEvent> orderedEvents = [.. events];
 		for(int i = 0; i < orderedEvents.Count - 1; i++)
 		{
 			if(orderedEvents[i] is AssistantTurnStartEvent
@@ -654,10 +651,8 @@ public sealed partial class SessionFeature
 	{
 		session.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
 		session.Context.Instructions = await _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
-#pragma warning disable GHCP001
 		session.Context.McpServers = await _mcpFeature.LoadSessionMcpServersAsync(sdkSession);
 		session.Context.Skills = await _skillsFeature.LoadSessionSkillsAsync(sdkSession);
 		session.Context.Plugins = await _pluginsFeature.LoadSessionPluginsAsync(sdkSession);
-#pragma warning restore GHCP001
 	}
 }

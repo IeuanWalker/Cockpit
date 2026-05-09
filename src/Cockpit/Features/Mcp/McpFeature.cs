@@ -28,7 +28,7 @@ public sealed class McpFeature
 			_logger.LogInformation("Discovered {Count} MCP servers for session", result.Servers.Count);
 			return [.. result.Servers];
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load MCP servers from SDK");
 			return [];
@@ -37,7 +37,7 @@ public sealed class McpFeature
 
 	public async Task EnableServerAsync(string sessionId, string serverName, CancellationToken cancellationToken = default)
 	{
-		if (!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
+		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
 		{
 			_logger.LogWarning("SDK session {SessionId} not found for MCP enable", sessionId);
 			return;
@@ -48,7 +48,7 @@ public sealed class McpFeature
 			await sdkSession.Rpc.Mcp.EnableAsync(serverName, cancellationToken);
 			await RefreshSessionMcpAsync(sessionId, sdkSession, cancellationToken);
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to enable MCP server {ServerName}", serverName);
 		}
@@ -56,7 +56,7 @@ public sealed class McpFeature
 
 	public async Task DisableServerAsync(string sessionId, string serverName, CancellationToken cancellationToken = default)
 	{
-		if (!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
+		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
 		{
 			_logger.LogWarning("SDK session {SessionId} not found for MCP disable", sessionId);
 			return;
@@ -67,7 +67,7 @@ public sealed class McpFeature
 			await sdkSession.Rpc.Mcp.DisableAsync(serverName, cancellationToken);
 			await RefreshSessionMcpAsync(sessionId, sdkSession, cancellationToken);
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to disable MCP server {ServerName}", serverName);
 		}
@@ -75,7 +75,7 @@ public sealed class McpFeature
 
 	public async Task ReloadAsync(string sessionId, CancellationToken cancellationToken = default)
 	{
-		if (!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
+		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
 		{
 			_logger.LogWarning("SDK session {SessionId} not found for MCP reload", sessionId);
 			return;
@@ -86,7 +86,7 @@ public sealed class McpFeature
 			await sdkSession.Rpc.Mcp.ReloadAsync(cancellationToken);
 			await RefreshSessionMcpAsync(sessionId, sdkSession, cancellationToken);
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to reload MCP servers");
 		}
@@ -95,7 +95,10 @@ public sealed class McpFeature
 	async Task RefreshSessionMcpAsync(string sessionId, CopilotSession sdkSession, CancellationToken cancellationToken)
 	{
 		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if (session is null) return;
+		if(session is null)
+		{
+			return;
+		}
 
 		session.Context.McpServers = await LoadSessionMcpServersAsync(sdkSession, cancellationToken);
 		_sessionListFeature.NotifyStateChanged();

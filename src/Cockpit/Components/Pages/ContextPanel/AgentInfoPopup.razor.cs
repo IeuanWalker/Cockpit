@@ -163,24 +163,35 @@ public partial class AgentInfoPopup : ComponentBase
 		string content = raw.TrimStart('\uFEFF').ReplaceLineEndings("\n");
 
 		if(!content.StartsWith("---\n", StringComparison.Ordinal))
+		{
 			return (frontmatter, content.TrimStart('\n'));
+		}
 
 		int endFm = content.IndexOf("\n---", 4, StringComparison.Ordinal);
 		if(endFm <= 0)
+		{
 			return (frontmatter, content.TrimStart('\n'));
+		}
 
 		string[] lines = content[4..endFm].Split('\n');
 
 		string? currentKey = null;
 		string? scalarMode = null;
-		List<string> collected = new();
+		List<string> collected = [];
 
 		void Flush()
 		{
-			if(currentKey is null) return;
+			if(currentKey is null)
+			{
+				return;
+			}
+
 			string val = BuildFrontmatterValue(scalarMode, collected);
 			if(!string.IsNullOrEmpty(val))
+			{
 				frontmatter[currentKey] = val;
+			}
+
 			currentKey = null;
 			scalarMode = null;
 			collected.Clear();
@@ -197,7 +208,10 @@ public partial class AgentInfoPopup : ComponentBase
 			Flush();
 
 			int colon = line.IndexOf(':');
-			if(colon <= 0) continue;
+			if(colon <= 0)
+			{
+				continue;
+			}
 
 			currentKey = line[..colon].Trim();
 			string rawVal = line[(colon + 1)..].Trim();
@@ -210,8 +224,11 @@ public partial class AgentInfoPopup : ComponentBase
 			{
 				if(rawVal.Length >= 2 &&
 				   ((rawVal[0] == '\'' && rawVal[^1] == '\'') ||
-				    (rawVal[0] == '"' && rawVal[^1] == '"')))
+					(rawVal[0] == '"' && rawVal[^1] == '"')))
+				{
 					rawVal = rawVal[1..^1];
+				}
+
 				collected.Add(rawVal);
 			}
 		}
@@ -220,17 +237,24 @@ public partial class AgentInfoPopup : ComponentBase
 
 		int bodyStart = endFm + 4;
 		while(bodyStart < content.Length && content[bodyStart] == '\n')
+		{
 			bodyStart++;
+		}
 
 		return (frontmatter, content[bodyStart..].TrimStart('\n'));
 	}
 
 	static string BuildFrontmatterValue(string? scalarMode, List<string> lines)
 	{
-		if(lines.Count == 0) return string.Empty;
+		if(lines.Count == 0)
+		{
+			return string.Empty;
+		}
 
 		if(scalarMode is ">-" or ">")
+		{
 			return string.Join(" ", lines.Select(l => l.Trim()).Where(l => l.Length > 0));
+		}
 
 		if(scalarMode is "|" or "|-")
 		{
@@ -238,20 +262,27 @@ public partial class AgentInfoPopup : ComponentBase
 			return string.Join("\n", lines.Select(l => l.Length > indent ? l[indent..] : l.TrimStart())).Trim();
 		}
 
-		if(lines.Count == 1) return lines[0];
+		if(lines.Count == 1)
+		{
+			return lines[0];
+		}
 
 		return FormatBlockFrontmatterValue(lines);
 	}
 
 	static string FormatBlockFrontmatterValue(List<string> lines)
 	{
-		List<string> items = new();
+		List<string> items = [];
 		string? label = null;
 		string? agent = null;
 
 		void FlushItem()
 		{
-			if(label is null) return;
+			if(label is null)
+			{
+				return;
+			}
+
 			items.Add(agent is not null ? $"{label} → {agent}" : label);
 			label = null;
 			agent = null;
@@ -270,9 +301,13 @@ public partial class AgentInfoPopup : ComponentBase
 					string key = rest[..c].Trim();
 					string val = rest[(c + 1)..].Trim().Trim('\'', '"');
 					if(key.Equals("label", StringComparison.OrdinalIgnoreCase))
+					{
 						label = val;
+					}
 					else
+					{
 						items.Add($"{key}: {val}");
+					}
 				}
 				else if(rest.Length > 0)
 				{
@@ -287,16 +322,23 @@ public partial class AgentInfoPopup : ComponentBase
 					string key = line[..c].Trim();
 					string val = line[(c + 1)..].Trim().Trim('\'', '"');
 					if(key.Equals("agent", StringComparison.OrdinalIgnoreCase))
+					{
 						agent = val;
+					}
 					else if(key.Equals("label", StringComparison.OrdinalIgnoreCase) && label is null)
+					{
 						label = val;
+					}
 				}
 			}
 		}
 
 		FlushItem();
 
-		if(items.Count > 0) return string.Join(", ", items);
+		if(items.Count > 0)
+		{
+			return string.Join(", ", items);
+		}
 
 		return string.Join(", ", lines.Select(l => l.Trim()).Where(l => l.Length > 0));
 	}

@@ -62,17 +62,31 @@ public sealed class AgentFeature
 		{
 			string content = File.ReadAllText(filePath);
 			content = content.TrimStart('\uFEFF').ReplaceLineEndings("\n");
-			if(!content.StartsWith("---\n", StringComparison.Ordinal)) return true;
+			if(!content.StartsWith("---\n", StringComparison.Ordinal))
+			{
+				return true;
+			}
+
 			int end = content.IndexOf("\n---", 3, StringComparison.Ordinal);
-			if(end < 0) return true;
+			if(end < 0)
+			{
+				return true;
+			}
+
 			foreach(string line in content[3..end].Split('\n'))
 			{
 				int colon = line.IndexOf(':');
-				if(colon <= 0) continue;
+				if(colon <= 0)
+				{
+					continue;
+				}
+
 				string key = line[..colon].Trim();
 				string val = line[(colon + 1)..].Trim();
 				if(key.Equals("user-invocable", StringComparison.OrdinalIgnoreCase))
+				{
 					return !val.Equals("false", StringComparison.OrdinalIgnoreCase);
+				}
 			}
 		}
 		catch { /* best-effort */ }

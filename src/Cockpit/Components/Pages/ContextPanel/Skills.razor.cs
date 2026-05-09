@@ -38,17 +38,29 @@ public sealed partial class Skills : ComponentBase, IDisposable
 
 	async Task ToggleSkill(Skill skill)
 	{
-		if(_isBusy) return;
+		if(_isBusy)
+		{
+			return;
+		}
+
 		_isBusy = true;
 		StateHasChanged();
 		try
 		{
 			string? sessionId = _sessionListFeature.CurrentSession?.Id;
-			if(sessionId is null) return;
+			if(sessionId is null)
+			{
+				return;
+			}
+
 			if(skill.Enabled)
+			{
 				await _skillsFeature.DisableSkillAsync(sessionId, skill.Name);
+			}
 			else
+			{
 				await _skillsFeature.EnableSkillAsync(sessionId, skill.Name);
+			}
 		}
 		finally
 		{
@@ -59,13 +71,21 @@ public sealed partial class Skills : ComponentBase, IDisposable
 
 	async Task ReloadSkills()
 	{
-		if(_isBusy) return;
+		if(_isBusy)
+		{
+			return;
+		}
+
 		_isBusy = true;
 		StateHasChanged();
 		try
 		{
 			string? sessionId = _sessionListFeature.CurrentSession?.Id;
-			if(sessionId is null) return;
+			if(sessionId is null)
+			{
+				return;
+			}
+
 			await Task.WhenAll(_skillsFeature.ReloadAsync(sessionId), Task.Delay(200));
 		}
 		finally
@@ -82,7 +102,10 @@ public sealed partial class Skills : ComponentBase, IDisposable
 	protected override bool ShouldRender()
 	{
 		if(ReferenceEquals(_allSkills, _renderedSkills) && ReferenceEquals(_renderedSelected, _selectedSkill) && _isBusy == _renderedIsBusy)
+		{
 			return false;
+		}
+
 		_renderedSkills = _allSkills;
 		_renderedSelected = _selectedSkill;
 		_renderedIsBusy = _isBusy;

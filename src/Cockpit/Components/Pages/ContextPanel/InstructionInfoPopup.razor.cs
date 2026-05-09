@@ -41,9 +41,16 @@ public partial class InstructionInfoPopup : ComponentBase
 		get
 		{
 			string? path = _selectedInstruction?.SourcePath;
-			if(string.IsNullOrEmpty(path)) return string.Empty;
+			if(string.IsNullOrEmpty(path))
+			{
+				return string.Empty;
+			}
+
 			if(!Path.IsPathRooted(path) && !string.IsNullOrEmpty(_workspacePath))
+			{
 				return Path.GetFullPath(Path.Combine(_workspacePath, path));
+			}
+
 			return path;
 		}
 	}
@@ -61,6 +68,8 @@ public partial class InstructionInfoPopup : ComponentBase
 	{
 		string path = ResolvedInstructionPath;
 		if(!string.IsNullOrEmpty(path))
+		{
 			FileUtil.RevealFile(path);
+		}
 	}
 }
