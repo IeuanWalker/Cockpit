@@ -51,8 +51,46 @@ public sealed class AgentFeature
 			DisplayName = string.IsNullOrWhiteSpace(info.DisplayName) ? null : info.DisplayName,
 			Description = string.IsNullOrWhiteSpace(info.Description) ? null : info.Description,
 			FilePath = info.Path,
-			Source = DetermineSource(info.Path, gitRoot)
+			Source = DetermineSource(info.Path, gitRoot),
+			UserInvocable = ReadUserInvocable(info.Path)
 		};
+	}
+
+	static bool ReadUserInvocable(string filePath)
+	{
+		try
+		{
+			string content = File.ReadAllText(filePath);
+			content = content.TrimStart('\uFEFF').ReplaceLineEndings("\n");
+			if(!content.StartsWith("---\n", StringComparison.Ordinal))
+			{
+				return true;
+			}
+
+			int end = content.IndexOf("\n---", 3, StringComparison.Ordinal);
+			if(end < 0)
+			{
+				return true;
+			}
+
+			foreach(string line in content[3..end].Split('\n'))
+			{
+				int colon = line.IndexOf(':');
+				if(colon <= 0)
+				{
+					continue;
+				}
+
+				string key = line[..colon].Trim();
+				string val = line[(colon + 1)..].Trim();
+				if(key.Equals("user-invocable", StringComparison.OrdinalIgnoreCase))
+				{
+					return !val.Equals("false", StringComparison.OrdinalIgnoreCase);
+				}
+			}
+		}
+		catch { /* best-effort */ }
+		return true;
 	}
 
 	/// <summary>

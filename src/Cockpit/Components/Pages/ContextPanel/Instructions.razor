@@ -1,0 +1,32 @@
+@using Cockpit.Components.Controls
+@using GitHub.Copilot.SDK.Rpc
+
+<Expander>
+	<Icon>
+		<svg class="icon-xs mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+		</svg>
+	</Icon>
+	<Title>Instructions (@TotalCount)</Title>
+	<Content>
+		@if(_allInstructions.Count == 0)
+		{
+			<div class="px-3 py-2 text-xs secondary-text">No instruction files found</div>
+		}
+		else
+		{
+			@foreach(InstructionsSources instruction in _allInstructions)
+			{
+				<button type="button"
+				        class="w-full px-3 py-1.5 text-xs transition-colors flex items-center justify-between hover:bg-app-hover"
+				        @onclick="() => ShowInstructionInfo(instruction)">
+					<div class="flex items-center gap-2 min-w-0">
+						<span class="truncate">@(instruction.Label.StartsWith(".github/", StringComparison.OrdinalIgnoreCase) ? instruction.Label[".github/".Length..] : instruction.Label)</span>
+					</div>
+				</button>
+			}
+		}
+	</Content>
+</Expander>
+
+<InstructionInfoPopup @ref="_instructionInfoPopup" />

@@ -2,6 +2,7 @@ using Cockpit.Components.Controls;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Utilities;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
@@ -18,12 +19,22 @@ public partial class AgentInfoPopup : ComponentBase
 	readonly Dictionary<string, bool> _expandedGroups = new(StringComparer.OrdinalIgnoreCase);
 	List<AgentNode>? _cachedNodes;
 
+	bool _needsSplitInit;
+
+	readonly IJSRuntime _jsRuntime;
+
+	public AgentInfoPopup(IJSRuntime jsRuntime)
+	{
+		_jsRuntime = jsRuntime;
+	}
+
 	List<AgentNode> DisplayNodes => _cachedNodes ??= BuildDisplayNodes();
 
 	public void Open(IReadOnlyList<AgentProfile> agents, AgentProfile selectedAgent)
 	{
 		_agents = [.. agents];
 		_cachedNodes = null;
+		_needsSplitInit = true;
 		_popup?.Open();
 		SelectAgent(selectedAgent);
 	}
@@ -38,6 +49,15 @@ public partial class AgentInfoPopup : ComponentBase
 			await LoadAgentContentAsync(agent);
 			StateHasChanged();
 		});
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if(_needsSplitInit)
+		{
+			_needsSplitInit = false;
+			await _jsRuntime.InvokeVoidAsync("cockpit.initializePanelSplit", "agent-left-panel", "agent-split-handle");
+		}
 	}
 
 	async Task LoadAgentContentAsync(AgentProfile agent)
@@ -139,34 +159,188 @@ public partial class AgentInfoPopup : ComponentBase
 
 	static (Dictionary<string, string> frontmatter, string body) ParseAgentFile(string raw)
 	{
-		Dictionary<string, string> frontmatter = [];
+		Dictionary<string, string> frontmatter = new(StringComparer.OrdinalIgnoreCase);
 		string content = raw.TrimStart('\uFEFF').ReplaceLineEndings("\n");
-		int bodyStart = 0;
 
-		if(content.StartsWith("---\n", StringComparison.Ordinal))
+		if(!content.StartsWith("---\n", StringComparison.Ordinal))
 		{
-			int endFm = content.IndexOf("\n---", 3, StringComparison.Ordinal);
-			if(endFm > 0)
+			return (frontmatter, content.TrimStart('\n'));
+		}
+
+		int endFm = content.IndexOf("\n---", 4, StringComparison.Ordinal);
+		if(endFm <= 0)
+		{
+			return (frontmatter, content.TrimStart('\n'));
+		}
+
+		string[] lines = content[4..endFm].Split('\n');
+
+		string? currentKey = null;
+		string? scalarMode = null;
+		List<string> collected = [];
+
+		void Flush()
+		{
+			if(currentKey is null)
 			{
-				string fm = content[3..endFm].Trim();
-				foreach(string line in fm.Split('\n'))
+				return;
+			}
+
+			string val = BuildFrontmatterValue(scalarMode, collected);
+			if(!string.IsNullOrEmpty(val))
+			{
+				frontmatter[currentKey] = val;
+			}
+
+			currentKey = null;
+			scalarMode = null;
+			collected.Clear();
+		}
+
+		foreach(string line in lines)
+		{
+			if(line.Length > 0 && (line[0] == ' ' || line[0] == '\t'))
+			{
+				collected.Add(line);
+				continue;
+			}
+
+			Flush();
+
+			int colon = line.IndexOf(':');
+			if(colon <= 0)
+			{
+				continue;
+			}
+
+			currentKey = line[..colon].Trim();
+			string rawVal = line[(colon + 1)..].Trim();
+
+			if(rawVal is ">-" or ">" or "|" or "|-")
+			{
+				scalarMode = rawVal;
+			}
+			else
+			{
+				if(rawVal.Length >= 2 &&
+				   ((rawVal[0] == '\'' && rawVal[^1] == '\'') ||
+					(rawVal[0] == '"' && rawVal[^1] == '"')))
 				{
-					int colon = line.IndexOf(':');
-					if(colon > 0)
-					{
-						frontmatter[line[..colon].Trim()] = line[(colon + 1)..].Trim();
-					}
+					rawVal = rawVal[1..^1];
 				}
 
-				bodyStart = endFm + 4; // past "\n---"
-				while(bodyStart < content.Length && content[bodyStart] == '\n')
+				collected.Add(rawVal);
+			}
+		}
+
+		Flush();
+
+		int bodyStart = endFm + 4;
+		while(bodyStart < content.Length && content[bodyStart] == '\n')
+		{
+			bodyStart++;
+		}
+
+		return (frontmatter, content[bodyStart..].TrimStart('\n'));
+	}
+
+	static string BuildFrontmatterValue(string? scalarMode, List<string> lines)
+	{
+		if(lines.Count == 0)
+		{
+			return string.Empty;
+		}
+
+		if(scalarMode is ">-" or ">")
+		{
+			return string.Join(" ", lines.Select(l => l.Trim()).Where(l => l.Length > 0));
+		}
+
+		if(scalarMode is "|" or "|-")
+		{
+			int indent = lines.Where(l => l.Length > 0).Select(l => l.Length - l.TrimStart().Length).DefaultIfEmpty(0).Min();
+			return string.Join("\n", lines.Select(l => l.Length > indent ? l[indent..] : l.TrimStart())).Trim();
+		}
+
+		if(lines.Count == 1)
+		{
+			return lines[0];
+		}
+
+		return FormatBlockFrontmatterValue(lines);
+	}
+
+	static string FormatBlockFrontmatterValue(List<string> lines)
+	{
+		List<string> items = [];
+		string? label = null;
+		string? agent = null;
+
+		void FlushItem()
+		{
+			if(label is null)
+			{
+				return;
+			}
+
+			items.Add(agent is not null ? $"{label} → {agent}" : label);
+			label = null;
+			agent = null;
+		}
+
+		foreach(string raw in lines)
+		{
+			string line = raw.TrimStart();
+			if(line.StartsWith("- ", StringComparison.Ordinal))
+			{
+				FlushItem();
+				string rest = line[2..].Trim();
+				int c = rest.IndexOf(':');
+				if(c > 0)
 				{
-					bodyStart++;
+					string key = rest[..c].Trim();
+					string val = rest[(c + 1)..].Trim().Trim('\'', '"');
+					if(key.Equals("label", StringComparison.OrdinalIgnoreCase))
+					{
+						label = val;
+					}
+					else
+					{
+						items.Add($"{key}: {val}");
+					}
+				}
+				else if(rest.Length > 0)
+				{
+					items.Add(rest.Trim('\'', '"'));
+				}
+			}
+			else if(line.Length > 0 && (label is not null || agent is not null))
+			{
+				int c = line.IndexOf(':');
+				if(c > 0)
+				{
+					string key = line[..c].Trim();
+					string val = line[(c + 1)..].Trim().Trim('\'', '"');
+					if(key.Equals("agent", StringComparison.OrdinalIgnoreCase))
+					{
+						agent = val;
+					}
+					else if(key.Equals("label", StringComparison.OrdinalIgnoreCase) && label is null)
+					{
+						label = val;
+					}
 				}
 			}
 		}
 
-		return (frontmatter, content[bodyStart..].TrimStart('\n'));
+		FlushItem();
+
+		if(items.Count > 0)
+		{
+			return string.Join(", ", items);
+		}
+
+		return string.Join(", ", lines.Select(l => l.Trim()).Where(l => l.Length > 0));
 	}
 }
 

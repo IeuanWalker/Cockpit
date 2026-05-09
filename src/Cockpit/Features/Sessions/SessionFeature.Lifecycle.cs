@@ -146,7 +146,7 @@ public sealed partial class SessionFeature
 				SdkState = SdkSessionStateEnum.Resumed
 			};
 
-			chatSession.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(sdkSession, gitContext.GitRoot);
+			await LoadContextPanelDataAsync(chatSession, sdkSession);
 
 			_sessionListFeature.AddSession(chatSession);
 
@@ -210,7 +210,7 @@ public sealed partial class SessionFeature
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
 
-			session.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
+			await LoadContextPanelDataAsync(session, sdkSession);
 
 			bool registered = false;
 			try
@@ -421,10 +421,9 @@ public sealed partial class SessionFeature
 				}
 			}
 
-#pragma warning disable GHCP001
 			if(chatSession is not null)
 			{
-				chatSession.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(newSdkSession, chatSession.Context.GitRoot);
+				await LoadContextPanelDataAsync(chatSession, newSdkSession);
 
 				AgentProfile? restored = chatSession.Context.SelectedAgent is not null
 					? chatSession.Context.Agents.FirstOrDefault(a =>
@@ -445,7 +444,6 @@ public sealed partial class SessionFeature
 					await newSdkSession.Rpc.Mode.SetAsync(chatSession.Context.SelectedAgentMode.ToSdkSessionMode(), cancellationToken);
 				}
 			}
-#pragma warning restore GHCP001
 
 			_sdkRegistry.Register(newSdkSession, evt =>
 			{
@@ -635,7 +633,7 @@ public sealed partial class SessionFeature
 
 	static List<SessionEvent> ReorderImmediateModeReplayEvents(IReadOnlyList<SessionEvent> events)
 	{
-		List<SessionEvent> orderedEvents = events.ToList();
+		List<SessionEvent> orderedEvents = [.. events];
 		for(int i = 0; i < orderedEvents.Count - 1; i++)
 		{
 			if(orderedEvents[i] is AssistantTurnStartEvent
@@ -647,5 +645,22 @@ public sealed partial class SessionFeature
 		}
 
 		return orderedEvents;
+	}
+
+	async Task LoadContextPanelDataAsync(SessionModel session, CopilotSession sdkSession)
+	{
+		var agentsTask = _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
+		var instructionsTask = _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
+		var mcpTask = _mcpFeature.LoadSessionMcpServersAsync(sdkSession);
+		var skillsTask = _skillsFeature.LoadSessionSkillsAsync(sdkSession);
+		var pluginsTask = _pluginsFeature.LoadSessionPluginsAsync(sdkSession);
+
+		await Task.WhenAll(agentsTask, instructionsTask, mcpTask, skillsTask, pluginsTask);
+
+		session.Context.Agents = agentsTask.Result;
+		session.Context.Instructions = instructionsTask.Result;
+		session.Context.McpServers = mcpTask.Result;
+		session.Context.Skills = skillsTask.Result;
+		session.Context.Plugins = pluginsTask.Result;
 	}
 }

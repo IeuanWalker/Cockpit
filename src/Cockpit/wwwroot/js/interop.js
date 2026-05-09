@@ -302,6 +302,44 @@ window.cockpit = {
 
         handle.addEventListener('mousedown', startResize);
     },
+    initializePanelSplit: function (leftPanelId, handleId) {
+        const leftPanel = document.getElementById(leftPanelId);
+        const handle = document.getElementById(handleId);
+        if (!leftPanel || !handle) return;
+
+        if (handle.dataset.splitInitialized) return;
+        handle.dataset.splitInitialized = 'true';
+
+        let isResizing = false;
+
+        handle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isResizing = true;
+            handle.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+
+            const doResize = (e) => {
+                if (!isResizing) return;
+                const containerRect = leftPanel.parentElement.getBoundingClientRect();
+                const newWidth = Math.max(120, Math.min(500, e.clientX - containerRect.left));
+                leftPanel.style.width = newWidth + 'px';
+            };
+
+            const stopResize = () => {
+                if (!isResizing) return;
+                isResizing = false;
+                handle.classList.remove('resizing');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                document.removeEventListener('mousemove', doResize);
+                document.removeEventListener('mouseup', stopResize);
+            };
+
+            document.addEventListener('mousemove', doResize);
+            document.addEventListener('mouseup', stopResize);
+        });
+    },
     setupScrollAnchor: function (elementId) {
         const element = document.getElementById(elementId);
         if (!element) return;

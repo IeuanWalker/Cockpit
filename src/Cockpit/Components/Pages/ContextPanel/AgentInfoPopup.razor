@@ -24,7 +24,7 @@
         <div class="flex overflow-hidden" style="height: 100%;">
 
             @* Left: agent tree/flat list *@
-            <div class="ai-file-tree scrollbar-thin">
+            <div id="agent-left-panel" class="ai-file-tree scrollbar-thin">
                 @if(_agents.Count == 0)
                 {
                     <div class="px-3 py-4 text-center secondary-text text-xs">No agents available</div>
@@ -61,6 +61,8 @@
                 }
             </div>
 
+            <div id="agent-split-handle" class="popup-split-handle" style="cursor: col-resize;"></div>
+
             @* Right: agent content *@
             <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
                 @if(_selectedAgent is not null)
@@ -71,7 +73,7 @@
                         <span class="font-mono font-medium flex-shrink-0" style="color: var(--text-color);">
                             @Path.GetFileName(_selectedAgent.FilePath)
                         </span>
-                        <span class="secondary-text ml-4 truncate" title="@_selectedAgent.FilePath">
+                        <span class="secondary-text ml-4 path-truncate-start flex-1 min-w-0" title="@_selectedAgent.FilePath">
                             @_selectedAgent.FilePath
                         </span>
                     </div>
@@ -80,19 +82,19 @@
                     <div class="flex-1 overflow-y-auto scrollbar-thin p-4 flex flex-col gap-4">
                         @if(_frontmatter.Count > 0)
                         {
-                            <div class="rounded p-3 text-xs flex flex-col gap-1"
+                            <div class="rounded p-3 text-xs"
                                  style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
                                 <div class="font-semibold secondary-text uppercase tracking-widest mb-1"
                                      style="font-size: 10px;">
                                     Frontmatter
                                 </div>
-                                @foreach(KeyValuePair<string, string> kv in _frontmatter)
-                                {
-                                    <div class="flex gap-4">
-                                        <span class="secondary-text flex-shrink-0" style="min-width: 100px;">@kv.Key</span>
+                                <div class="grid gap-x-4 gap-y-0.5" style="grid-template-columns: auto 1fr;">
+                                    @foreach(KeyValuePair<string, string> kv in _frontmatter)
+                                    {
+                                        <span class="secondary-text">@kv.Key</span>
                                         <span style="color: var(--text-color);">@kv.Value</span>
-                                    </div>
-                                }
+                                    }
+                                </div>
                             </div>
                         }
                         @if(!string.IsNullOrWhiteSpace(_body))

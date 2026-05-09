@@ -1,0 +1,52 @@
+@using Cockpit.Components.Controls
+@using GitHub.Copilot.SDK.Rpc
+
+<Expander>
+<Icon>
+<svg class="icon-xs mr-2 text-pink-400" fill="currentColor" viewBox="0 0 20 20">
+<path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+</svg>
+</Icon>
+<Title>Skills (@TotalCount)</Title>
+<HeaderRight>
+<button type="button"
+        class="p-1.5 rounded @(_isBusy ? string.Empty : "hover:bg-app-hover")"
+        style="@(_isBusy ? "background-color: var(--accent-color);" : string.Empty)"
+        disabled="@_isBusy"
+        title="Reload skills"
+        @onclick="ReloadSkills">
+<svg class="w-3 h-3 @(_isBusy ? "animate-spin-reverse" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+</svg>
+</button>
+</HeaderRight>
+<Content>
+@if(_allSkills.Count == 0)
+{
+<div class="px-3 py-2 text-xs secondary-text">No skills available</div>
+}
+else
+{
+@foreach(Skill skill in _allSkills)
+{
+<div class="w-full px-3 py-1.5 text-xs transition-colors flex items-center gap-2 hover:bg-app-hover">
+<button type="button"
+        class="@(!skill.Enabled ? "opacity-50" : "") truncate flex-1 text-left"
+        @onclick="() => ShowSkillInfo(skill)">
+@skill.Name
+</button>
+<input type="checkbox"
+       class="flex-shrink-0 cursor-pointer"
+       style="accent-color: var(--accent-color);"
+       checked="@skill.Enabled"
+       disabled="@_isBusy"
+       aria-label="@($"Enable {skill.Name}")"
+       @onclick:stopPropagation="true"
+       @onchange="() => ToggleSkill(skill)" />
+</div>
+}
+}
+</Content>
+</Expander>
+
+<SkillInfoPopup @ref="_skillInfoPopup" />

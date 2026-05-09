@@ -5,14 +5,18 @@ using Cockpit.Features.Agents;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Connection;
 using Cockpit.Features.Git;
+using Cockpit.Features.Instructions;
 using Cockpit.Features.Markdown;
+using Cockpit.Features.Mcp;
 using Cockpit.Features.Models;
 using Cockpit.Features.Permissions;
+using Cockpit.Features.Plugins;
 using Plugin.Maui.Audio;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.FileSearch;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Skills;
 using Cockpit.Features.Sounds;
 using Cockpit.Features.Splash;
 using Cockpit.Features.Terminal;
@@ -137,6 +141,10 @@ public static class MauiProgram
 		builder.Services.AddSingleton<AgentPersistence>();
 		builder.Services.AddSingleton<AgentFeature>();
 		builder.Services.AddSingleton<SessionModePersistence>();
+		builder.Services.AddSingleton<InstructionsFeature>();
+		builder.Services.AddSingleton<McpFeature>();
+		builder.Services.AddSingleton<SkillsFeature>();
+		builder.Services.AddSingleton<PluginsFeature>();
 
 		MauiApp app = builder.Build();
 

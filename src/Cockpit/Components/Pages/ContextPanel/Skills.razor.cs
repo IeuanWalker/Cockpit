@@ -1,27 +1,26 @@
-using Cockpit.Features.Mcp;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Skills;
 using GitHub.Copilot.SDK.Rpc;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
-public sealed partial class MCPServers : ComponentBase, IDisposable
+public sealed partial class Skills : ComponentBase, IDisposable
 {
-	McpServerInfoPopup? _mcpServerInfoPopup;
-	readonly McpFeature _mcpFeature;
+	SkillInfoPopup? _skillInfoPopup;
+	readonly SkillsFeature _skillsFeature;
 	readonly SessionListFeature _sessionListFeature;
 
-	public MCPServers(McpFeature mcpFeature, SessionListFeature sessionListFeature)
+	public Skills(SkillsFeature skillsFeature, SessionListFeature sessionListFeature)
 	{
-		_mcpFeature = mcpFeature;
+		_skillsFeature = skillsFeature;
 		_sessionListFeature = sessionListFeature;
 	}
 
-	List<McpServer> _allServers = [];
-	McpServer? _selectedServer;
+	List<Skill> _allSkills = [];
 	bool _isBusy;
 
-	int TotalCount => _allServers.Count;
+	int TotalCount => _allSkills.Count;
 
 	protected override void OnInitialized()
 	{
@@ -34,9 +33,9 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 		InvokeAsync(() => { Refresh(); StateHasChanged(); });
 	}
 
-	void ShowMcpServerInfo(McpServer server) => _mcpServerInfoPopup?.Open(_allServers, server);
+	void ShowSkillInfo(Skill skill) => _skillInfoPopup?.Open(_allSkills, skill);
 
-	async Task ToggleServer(McpServer server)
+	async Task ToggleSkill(Skill skill)
 	{
 		if(_isBusy)
 		{
@@ -53,14 +52,13 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 				return;
 			}
 
-			bool isEnabled = server.Status != McpServerStatus.Disabled;
-			if(isEnabled)
+			if(skill.Enabled)
 			{
-				await _mcpFeature.DisableServerAsync(sessionId, server.Name);
+				await _skillsFeature.DisableSkillAsync(sessionId, skill.Name);
 			}
 			else
 			{
-				await _mcpFeature.EnableServerAsync(sessionId, server.Name);
+				await _skillsFeature.EnableSkillAsync(sessionId, skill.Name);
 			}
 		}
 		finally
@@ -70,7 +68,7 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 		}
 	}
 
-	async Task ReloadServers()
+	async Task ReloadSkills()
 	{
 		if(_isBusy)
 		{
@@ -87,7 +85,7 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 				return;
 			}
 
-			await Task.WhenAll(_mcpFeature.ReloadAsync(sessionId), Task.Delay(200));
+			await Task.WhenAll(_skillsFeature.ReloadAsync(sessionId), Task.Delay(200));
 		}
 		finally
 		{
@@ -96,27 +94,24 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 		}
 	}
 
-	List<McpServer> _renderedServers = [];
-	McpServer? _renderedSelected;
+	List<Skill> _renderedSkills = [];
 	bool _renderedIsBusy;
 
 	protected override bool ShouldRender()
 	{
-		if(ReferenceEquals(_allServers, _renderedServers) && ReferenceEquals(_renderedSelected, _selectedServer) && _isBusy == _renderedIsBusy)
+		if(ReferenceEquals(_allSkills, _renderedSkills) && _isBusy == _renderedIsBusy)
 		{
 			return false;
 		}
 
-		_renderedServers = _allServers;
-		_renderedSelected = _selectedServer;
+		_renderedSkills = _allSkills;
 		_renderedIsBusy = _isBusy;
 		return true;
 	}
 
 	void Refresh()
 	{
-		_allServers = [.. _sessionListFeature.CurrentSession?.Context.McpServers ?? []];
-		_selectedServer = null;
+		_allSkills = [.. _sessionListFeature.CurrentSession?.Context.Skills ?? []];
 	}
 
 	public void Dispose()
