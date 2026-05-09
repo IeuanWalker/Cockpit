@@ -31,7 +31,7 @@ public sealed class PluginsFeature
 	}
 #pragma warning restore GHCP001
 
-	/// <summary>Returns a formatted version string, falling back to "unknown" when null.</summary>
+	/// <summary>Returns a formatted version string, falling back to "unknown" when null, empty, or whitespace.</summary>
 	public static string FormatVersion(string? version)
 		=> string.IsNullOrWhiteSpace(version) ? "unknown" : version;
 }

@@ -307,6 +307,9 @@ window.cockpit = {
         const handle = document.getElementById(handleId);
         if (!leftPanel || !handle) return;
 
+        if (handle.dataset.splitInitialized) return;
+        handle.dataset.splitInitialized = 'true';
+
         let isResizing = false;
 
         handle.addEventListener('mousedown', (e) => {

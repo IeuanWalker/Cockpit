@@ -32,6 +32,7 @@
 						       style="accent-color: var(--accent-color);"
 						       checked="@(server.Status != McpServerStatus.Disabled)"
 						       disabled="@_isBusy"
+						       aria-label="@($"Enable {server.Name}")"
 						       @onclick:stopPropagation="true"
 						       @onchange="() => ToggleServer(server)" />
 						<span class="@GetStatusColor(server.Status) text-xs flex-shrink-0 mr-1">&#x25CF;</span>

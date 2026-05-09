@@ -16,10 +16,8 @@
 		{
 			@foreach(var plugin in _allPlugins)
 			{
-				bool isSelected = _selectedPlugin?.Name == plugin.Name;
 				<button type="button"
-				        class="w-full px-3 py-1.5 text-xs transition-colors flex items-center justify-between @(isSelected ? "" : "hover:bg-app-hover")"
-				        style="@(isSelected ? "background-color: var(--accent-color); color: white;" : string.Empty)"
+				        class="w-full px-3 py-1.5 text-xs transition-colors flex items-center justify-between hover:bg-app-hover"
 				        @onclick="() => ShowPluginInfo(plugin)">
 					<div class="flex items-center gap-2 min-w-0">
 						<span class="@(!plugin.Enabled ? "opacity-50" : "") truncate">@plugin.Name</span>
@@ -27,7 +25,7 @@
 					@if(!plugin.Enabled)
 					{
 						<span class="flex-shrink-0 text-xs px-1.5 py-0.5 rounded ml-2"
-						      style="@(isSelected ? "background-color: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white;" : "background-color: var(--input-bg); border: 1px solid var(--input-border);")">
+						      style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
 							off
 						</span>
 					}

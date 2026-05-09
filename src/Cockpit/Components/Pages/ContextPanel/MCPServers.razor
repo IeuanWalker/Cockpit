@@ -45,6 +45,7 @@ bool isSelected = _selectedServer?.Name == server.Name;
        style="accent-color: var(--accent-color);"
        checked="@(server.Status != McpServerStatus.Disabled)"
        disabled="@_isBusy"
+       aria-label="@($"Enable {server.Name}")"
        @onclick:stopPropagation="true"
        @onchange="() => ToggleServer(server)" />
 </div>

@@ -15,7 +15,6 @@ public sealed partial class Plugins : ComponentBase, IDisposable
 	}
 
 	List<SdkPlugin> _allPlugins = [];
-	SdkPlugin? _selectedPlugin;
 
 	int TotalCount => _allPlugins.Count;
 
@@ -33,24 +32,21 @@ public sealed partial class Plugins : ComponentBase, IDisposable
 	void ShowPluginInfo(SdkPlugin plugin) => _pluginInfoPopup?.Open(_allPlugins, plugin);
 
 	List<SdkPlugin> _renderedPlugins = [];
-	SdkPlugin? _renderedSelected;
 
 	protected override bool ShouldRender()
 	{
-		if(ReferenceEquals(_allPlugins, _renderedPlugins) && ReferenceEquals(_renderedSelected, _selectedPlugin))
+		if(ReferenceEquals(_allPlugins, _renderedPlugins))
 		{
 			return false;
 		}
 
 		_renderedPlugins = _allPlugins;
-		_renderedSelected = _selectedPlugin;
 		return true;
 	}
 
 	void Refresh()
 	{
 		_allPlugins = [.. _sessionListFeature.CurrentSession?.Context.Plugins ?? []];
-		_selectedPlugin = null;
 	}
 
 	public void Dispose()

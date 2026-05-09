@@ -29,9 +29,7 @@ else
 {
 @foreach(Skill skill in _allSkills)
 {
-bool isSelected = _selectedSkill?.Name == skill.Name;
-<div class="w-full px-3 py-1.5 text-xs transition-colors flex items-center gap-2 @(isSelected ? "" : "hover:bg-app-hover")"
-     style="@(isSelected ? "background-color: var(--accent-color); color: white;" : string.Empty)">
+<div class="w-full px-3 py-1.5 text-xs transition-colors flex items-center gap-2 hover:bg-app-hover">
 <button type="button"
         class="@(!skill.Enabled ? "opacity-50" : "") truncate flex-1 text-left"
         @onclick="() => ShowSkillInfo(skill)">
@@ -42,6 +40,7 @@ bool isSelected = _selectedSkill?.Name == skill.Name;
        style="accent-color: var(--accent-color);"
        checked="@skill.Enabled"
        disabled="@_isBusy"
+       aria-label="@($"Enable {skill.Name}")"
        @onclick:stopPropagation="true"
        @onchange="() => ToggleSkill(skill)" />
 </div>

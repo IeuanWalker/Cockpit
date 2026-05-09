@@ -649,10 +649,18 @@ public sealed partial class SessionFeature
 
 	async Task LoadContextPanelDataAsync(SessionModel session, CopilotSession sdkSession)
 	{
-		session.Context.Agents = await _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
-		session.Context.Instructions = await _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
-		session.Context.McpServers = await _mcpFeature.LoadSessionMcpServersAsync(sdkSession);
-		session.Context.Skills = await _skillsFeature.LoadSessionSkillsAsync(sdkSession);
-		session.Context.Plugins = await _pluginsFeature.LoadSessionPluginsAsync(sdkSession);
+		var agentsTask = _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
+		var instructionsTask = _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
+		var mcpTask = _mcpFeature.LoadSessionMcpServersAsync(sdkSession);
+		var skillsTask = _skillsFeature.LoadSessionSkillsAsync(sdkSession);
+		var pluginsTask = _pluginsFeature.LoadSessionPluginsAsync(sdkSession);
+
+		await Task.WhenAll(agentsTask, instructionsTask, mcpTask, skillsTask, pluginsTask);
+
+		session.Context.Agents = agentsTask.Result;
+		session.Context.Instructions = instructionsTask.Result;
+		session.Context.McpServers = mcpTask.Result;
+		session.Context.Skills = skillsTask.Result;
+		session.Context.Plugins = pluginsTask.Result;
 	}
 }

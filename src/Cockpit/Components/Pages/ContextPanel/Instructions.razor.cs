@@ -16,7 +16,6 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 	}
 
 	List<InstructionsSources> _allInstructions = [];
-	InstructionsSources? _selectedInstruction;
 
 	int TotalCount => _allInstructions.Count;
 
@@ -39,24 +38,21 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 	}
 
 	List<InstructionsSources> _renderedInstructions = [];
-	InstructionsSources? _renderedSelected;
 
 	protected override bool ShouldRender()
 	{
-		if(ReferenceEquals(_allInstructions, _renderedInstructions) && ReferenceEquals(_renderedSelected, _selectedInstruction))
+		if(ReferenceEquals(_allInstructions, _renderedInstructions))
 		{
 			return false;
 		}
 
 		_renderedInstructions = _allInstructions;
-		_renderedSelected = _selectedInstruction;
 		return true;
 	}
 
 	void Refresh()
 	{
 		_allInstructions = [.. _sessionListFeature.CurrentSession?.Context.Instructions ?? []];
-		_selectedInstruction = null;
 	}
 
 	public void Dispose()

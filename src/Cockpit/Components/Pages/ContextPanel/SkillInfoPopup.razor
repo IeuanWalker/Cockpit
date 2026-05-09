@@ -63,6 +63,7 @@
                                    style="accent-color: var(--accent-color);"
                                    checked="@node.Skill!.Enabled"
                                    disabled="@_isBusy"
+                                   aria-label="@($"Enable {node.Skill!.Name}")"
                                    @onclick:stopPropagation="true"
                                    @onchange="() => ToggleSkill(node.Skill!)" />
                             <span class="@(!node.Skill!.Enabled ? "opacity-50" : "") text-xs truncate flex-1 min-w-0">@node.Label</span>
