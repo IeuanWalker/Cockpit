@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Cockpit.Components.Controls;
 using Cockpit.Extensions;
 using Cockpit.Features.Permissions.Models;
@@ -17,7 +18,7 @@ public partial class PermissionDetailsPopup
 	{
 		try
 		{
-			return input.SerializeJson() ?? input;
+			return JsonSerializer.Deserialize<JsonElement>(input).SerializeJson() ?? input;
 		}
 		catch
 		{
