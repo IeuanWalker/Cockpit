@@ -1,4 +1,3 @@
-@using Cockpit.Components.Controls
 @using Cockpit.Features.Connection
 
 <button class="connection-banner @ConnectionStatusHelpers.GetStatusClass(_connectionFeature.Status)" @onclick="OpenPopup" title="Click for connection details">
@@ -6,7 +5,7 @@
     <span class="connection-label">@ConnectionStatusHelpers.GetStatusText(_connectionFeature.Status)</span>
     @if(_connectionFeature.LastChecked is not null)
     {
-        <span class="connection-time">@_connectionFeature.LastChecked.Value.ToString("HH:mm:ss")</span>
+        <span class="connection-time">@_connectionFeature.LastChecked.Value.ToLocalTime().ToString("HH:mm:ss")</span>
     }
 </button>
 

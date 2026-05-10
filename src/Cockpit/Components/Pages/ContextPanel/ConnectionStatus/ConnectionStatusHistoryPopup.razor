@@ -15,7 +15,7 @@
                     <Icon>
                         <div class="w-full py-2 flex items-center gap-2 text-xs hover:bg-app-hover text-left">
                             <span class="connection-dot @ConnectionStatusHelpers.GetStatusClass(item.Status)" style="width:8px;height:8px;display:inline-block;border-radius:50%;flex-shrink:0"></span>
-                            <span class="flex-1">@item.Status - @item.CheckedAt.ToString("HH:mm:ss")</span>
+                            <span class="flex-1">@item.Status - @item.CheckedAt.ToLocalTime().ToString("HH:mm:ss")</span>
                         </div>
                     </Icon>
                     <Content>

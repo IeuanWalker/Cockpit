@@ -14,11 +14,11 @@
         <div class="px-4 py-3 border-b border-app-border flex gap-6 text-xs secondary-text">
             <div>
                 <div class="font-medium text-app-text mb-0.5">Last checked</div>
-                <div>@(_connectionFeature.LastChecked?.ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</div>
+                <div>@(_connectionFeature.LastChecked?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</div>
             </div>
             <div>
                 <div class="font-medium text-app-text mb-0.5">Next check</div>
-                <div>@(_connectionFeature.LastChecked?.AddSeconds(ConnectionFeature.PollIntervalSeconds).ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</div>
+                <div>@(_connectionFeature.LastChecked?.AddSeconds(ConnectionFeature.PollIntervalSeconds).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "—")</div>
             </div>
         </div>
         <div class="max-h-[50vh] overflow-y-auto scrollbar-thin">
