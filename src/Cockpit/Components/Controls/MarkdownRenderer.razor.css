@@ -71,46 +71,38 @@
         text-align: left;
     }
 
+    /* linkthree */
     .markdown-content ::deep a {
+        -webkit-transition: all 0.1s linear;
+        transition: all 0.1s linear;
         color: inherit;
         position: relative;
-        text-decoration: none;
-        cursor: pointer;
     }
 
-        .markdown-content ::deep a::before {
+        .markdown-content ::deep a:before {
             content: '';
+            border-bottom: solid 1px currentColor;
             position: absolute;
-            width: 100%;
-            height: 3px;
-            border-radius: 20px;
-            background: currentColor;
-            top: 100%;
+            bottom: 0;
             left: 0;
-            pointer-events: none;
-            transform-origin: 50% 50%;
-            transform: scale3d(0.8, 1, 1);
-            transition: transform 0.2s;
-            transition-timing-function: cubic-bezier(0.2, 0.57, 0.67, 1.53);
+            width: 100%;
         }
 
-        .markdown-content ::deep a:hover::before {
-            transform: scale3d(1, 0.1, 1);
-            transition-timing-function: cubic-bezier(0.8, 0, 0.1, 1);
-            transition-duration: 0.4s;
+        .markdown-content ::deep a:hover {
+            text-shadow: 0.3px 0 currentColor, -0.3px 0 currentColor, 0 0.3px currentColor, 0 -0.3px currentColor;
         }
 
-        .markdown-content ::deep a span {
-            transform: translate3d(0, -4px, 0);
-            display: inline-block;
-            transition: transform 0.2s 0.05s cubic-bezier(0.2, 0.57, 0.67, 1.53);
-        }
+            .markdown-content ::deep a:hover:before {
+                -webkit-transform: scaleY(2);
+                -moz-transform: scaleY(2);
+                -ms-transform: scaleY(2);
+                -o-transform: scaleY(2);
+                transform: scaleY(2);
+            }
 
-        .markdown-content ::deep a:hover span {
-            transform: translate3d(0, 0, 0);
-            transition-timing-function: cubic-bezier(0.8, 0, 0.1, 1);
-            transition-duration: 0.4s;
-            transition-delay: 0s;
+        .markdown-content ::deep a:before {
+            -webkit-transition: all 0.3s ease;
+            transition: all 0.3s ease;
         }
 
     .markdown-content ::deep code {
