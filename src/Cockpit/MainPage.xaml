@@ -17,7 +17,8 @@
               ZIndex="1000">
             <VerticalStackLayout HorizontalOptions="Center"
                                  VerticalOptions="Center"
-                                 Spacing="0">
+                                 Spacing="0"
+                                 WidthRequest="420">
                 <Image Source="logo.png"
                        WidthRequest="72"
                        HeightRequest="72"
@@ -28,12 +29,171 @@
                        FontAttributes="Bold"
                        HorizontalOptions="Center"
                        Margin="0,14,0,0" />
-                <ActivityIndicator IsRunning="True"
-                                   Color="#0078D4"
-                                   WidthRequest="28"
-                                   HeightRequest="28"
-                                   Margin="0,28,0,0"
-                                   HorizontalOptions="Center" />
+
+                <!-- Loading section: spinner + status -->
+                <VerticalStackLayout x:Name="loadingSection"
+                                     HorizontalOptions="Center"
+                                     Spacing="0">
+                    <ActivityIndicator x:Name="splashSpinner"
+                                       IsRunning="True"
+                                       Color="#0078D4"
+                                       WidthRequest="28"
+                                       HeightRequest="28"
+                                       Margin="0,28,0,0"
+                                       HorizontalOptions="Center" />
+                    <Label x:Name="statusLabel"
+                           Text=""
+                           TextColor="#888888"
+                           FontSize="13"
+                           HorizontalOptions="Center"
+                           Margin="0,12,0,0" />
+                </VerticalStackLayout>
+
+                <!-- Auth required section: account type selection + sign-in -->
+                <VerticalStackLayout x:Name="authRequiredSection"
+                                     IsVisible="False"
+                                     Spacing="16"
+                                     Margin="0,28,0,0">
+                    <Border BackgroundColor="#172554"
+                            Stroke="#1E40AF"
+                            StrokeThickness="1"
+                            Padding="16">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8" />
+                        </Border.StrokeShape>
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="⚠ Authentication required"
+                                   TextColor="#60A5FA"
+                                   FontSize="14"
+                                   FontAttributes="Bold" />
+                            <Label Text="Sign in with your GitHub account to use Copilot"
+                                   TextColor="#93C5FD"
+                                   FontSize="12" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label Text="What account do you want to log into?"
+                           TextColor="#D1D5DB"
+                           FontSize="13" />
+                    <HorizontalStackLayout Spacing="10">
+                        <Border x:Name="githubComOption"
+                                BackgroundColor="#1E3A5F"
+                                Stroke="#3B82F6"
+                                StrokeThickness="1"
+                                Padding="14,10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="6" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnGitHubComSelected" />
+                            </Border.GestureRecognizers>
+                            <Label Text="GitHub.com"
+                                   TextColor="White"
+                                   FontSize="13" />
+                        </Border>
+                        <Border x:Name="enterpriseOption"
+                                BackgroundColor="#1F2937"
+                                Stroke="#374151"
+                                StrokeThickness="1"
+                                Padding="14,10">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="6" />
+                            </Border.StrokeShape>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnEnterpriseSelected" />
+                            </Border.GestureRecognizers>
+                            <Label Text="GitHub Enterprise (*.ghe.com)"
+                                   TextColor="#9CA3AF"
+                                   FontSize="13" />
+                        </Border>
+                    </HorizontalStackLayout>
+
+                    <VerticalStackLayout x:Name="enterpriseHostSection"
+                                         IsVisible="False"
+                                         Spacing="6">
+                        <Label Text="Enter your GitHub Enterprise instance URL:"
+                               TextColor="#9CA3AF"
+                               FontSize="12" />
+                        <Entry x:Name="enterpriseHostEntry"
+                               Placeholder="https://example.ghe.com"
+                               PlaceholderColor="#6B7280"
+                               TextColor="White"
+                               BackgroundColor="#1F2937"
+                               FontSize="13" />
+                    </VerticalStackLayout>
+
+                    <Button Text="Sign in with GitHub"
+                            BackgroundColor="#238636"
+                            TextColor="White"
+                            FontSize="13"
+                            CornerRadius="6"
+                            Padding="16,8"
+                            Clicked="OnSignInClicked" />
+                </VerticalStackLayout>
+
+                <!-- Device code section: code display + waiting -->
+                <VerticalStackLayout x:Name="deviceCodeSection"
+                                     IsVisible="False"
+                                     HorizontalOptions="Center"
+                                     Spacing="12"
+                                     Margin="0,28,0,0">
+                    <Label Text="Open the link below and enter this code:"
+                           TextColor="#D1D5DB"
+                           FontSize="14"
+                           HorizontalOptions="Center" />
+                    <Border BackgroundColor="#1F2937"
+                            Stroke="#374151"
+                            StrokeThickness="1"
+                            Padding="24,12"
+                            HorizontalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8" />
+                        </Border.StrokeShape>
+                        <HorizontalStackLayout Spacing="12"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center">
+                            <Label x:Name="deviceCodeLabel"
+                                   Text=""
+                                   TextColor="White"
+                                   FontSize="28"
+                                   FontAttributes="Bold"
+                                   FontFamily="Consolas"
+                                   CharacterSpacing="2"
+                                   VerticalOptions="Center" />
+                            <Button x:Name="copyCodeButton"
+                                    Text="Copy"
+                                    BackgroundColor="#374151"
+                                    TextColor="#9CA3AF"
+                                    FontSize="11"
+                                    CornerRadius="4"
+                                    Padding="10,4"
+                                    VerticalOptions="Center"
+                                    Clicked="OnCopyCodeClicked" />
+                        </HorizontalStackLayout>
+                    </Border>
+                    <Label x:Name="authUrlLabel"
+                           Text=""
+                           TextColor="#60A5FA"
+                           FontSize="13"
+                           TextDecorations="Underline"
+                           HorizontalOptions="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnAuthUrlTapped" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                    <HorizontalStackLayout HorizontalOptions="Center"
+                                           Spacing="8"
+                                           Margin="0,8,0,0">
+                        <ActivityIndicator IsRunning="True"
+                                           Color="#0078D4"
+                                           WidthRequest="16"
+                                           HeightRequest="16" />
+                        <Label Text="Waiting for authorization..."
+                               TextColor="#6B7280"
+                               FontSize="12"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
             </VerticalStackLayout>
         </Grid>
     </Grid>
