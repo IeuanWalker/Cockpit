@@ -19,6 +19,7 @@ public class PermissionFeatureTests
 		public void AddSession(SessionModel session) => _sessions.Add(session);
 
 		public IReadOnlyList<SessionModel> Sessions => _sessions;
+		public SessionModel? CurrentSession => _sessions.FirstOrDefault();
 
 		public void NotifyStateChanged()
 		{
@@ -798,6 +799,153 @@ public class PermissionFeatureTests
 		resultA.ShouldBe(PermissionDecisionEnum.Session);
 		resultB.ShouldBe(PermissionDecisionEnum.Session);
 		session.Status.ShouldBe(SessionStatusEnum.Running);
+
+		globalFeature.Dispose();
+	}
+
+	[Fact]
+	public async Task CheckPermissionAsync_SafeCommand_AutoApproves()
+	{
+		// Arrange
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		// "git status" is a safe, non-destructive command — should auto-approve without user prompt
+		PermissionRequestModel request = new()
+		{
+			SessionId = "session1",
+			FullCommand = "git status",
+			Commands = ["git status"],
+			RequestTitle = "Allow git status",
+			Intention = "Check repository status",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = false,
+			FullRequestJson = "{}"
+		};
+
+		// Act
+		PermissionDecisionEnum result = await feature.CheckPermissionAsync(request, isYolo: false);
+
+		// Assert - safe command auto-approved without user prompt (no OnPermissionRequested fired)
+		result.ShouldBe(PermissionDecisionEnum.Once);
+
+		globalFeature.Dispose();
+	}
+
+	[Fact]
+	public async Task HandlePermissionRequest_SessionNotFound_ReturnsUserNotAvailable()
+	{
+		// Arrange
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		// PermissionInvocation with a sessionId not in stateProvider
+		PermissionInvocation invocation = new() { SessionId = "nonexistent-session" };
+		PermissionRequestShell shellRequest = new()
+		{
+			FullCommandText = "rm -rf .",
+			Intention = "test",
+			Commands = [],
+			PossiblePaths = [],
+			PossibleUrls = [],
+			HasWriteFileRedirection = false,
+			CanOfferSessionApproval = true
+		};
+
+		// Act
+		PermissionRequestResult result = await feature.HandlePermissionRequest(shellRequest, invocation);
+
+		// Assert
+		result.Kind.ShouldBe(PermissionRequestResultKind.UserNotAvailable);
+
+		globalFeature.Dispose();
+	}
+
+	[Fact]
+	public async Task CancelPendingRequestsForSession_CancelsAllPending()
+	{
+		// Arrange
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		const string sessionId = "session1";
+		SessionModel session = new()
+		{
+			Id = sessionId,
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Status = SessionStatusEnum.Running,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
+		};
+		stateProvider.AddSession(session);
+
+		PermissionRequestModel requestA = new()
+		{
+			SessionId = sessionId,
+			FullCommand = "rm -rf ./node_modules",
+			Commands = ["rm"],
+			RequestTitle = "Allow rm",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = true,
+			FullRequestJson = "{}"
+		};
+
+		PermissionRequestModel requestB = new()
+		{
+			SessionId = sessionId,
+			FullCommand = "git push --force",
+			Commands = ["git push"],
+			RequestTitle = "Allow git push",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = false,
+			FullRequestJson = "{}"
+		};
+
+		Task<PermissionDecisionEnum> taskA = feature.CheckPermissionAsync(requestA);
+		Task<PermissionDecisionEnum> taskB = feature.CheckPermissionAsync(requestB);
+
+		// Wait for both requests to enter pending state
+		await WaitForPendingRequest(feature, requestA.Id);
+		await WaitForPendingRequest(feature, requestB.Id);
+
+		// Act
+		feature.CancelPendingRequestsForSession(sessionId);
+
+		// Assert — both tasks complete with Denied
+		PermissionDecisionEnum resultA = await taskA.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		PermissionDecisionEnum resultB = await taskB.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+		resultA.ShouldBe(PermissionDecisionEnum.Denied);
+		resultB.ShouldBe(PermissionDecisionEnum.Denied);
 
 		globalFeature.Dispose();
 	}

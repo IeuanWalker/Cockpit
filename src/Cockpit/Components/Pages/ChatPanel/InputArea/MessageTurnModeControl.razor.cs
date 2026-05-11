@@ -1,3 +1,4 @@
+using Cockpit.Features.AppSettings;
 using Cockpit.Features.MessageMode;
 using Microsoft.AspNetCore.Components;
 
@@ -5,23 +6,26 @@ namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
 public partial class MessageTurnModeControl : ComponentBase
 {
+	readonly IAppSettingsFeature _appSettings;
+
+	public MessageTurnModeControl(IAppSettingsFeature appSettings)
+	{
+		ArgumentNullException.ThrowIfNull(appSettings);
+		_appSettings = appSettings;
+	}
+
 	bool _isOpen;
 
-	MessageTurnModeEnum CurrentMode => UserAppSettings.MessageTurnMode;
+	MessageTurnModeEnum CurrentMode => _appSettings.MessageTurnMode;
 
 	void Toggle() => _isOpen = !_isOpen;
 
-	void Close()
-	{
-		_isOpen = false;
-		StateHasChanged();
-	}
+	void Close() => _isOpen = false;
 
 	void Select(MessageTurnModeEnum mode)
 	{
-		UserAppSettings.MessageTurnMode = mode;
+		_appSettings.MessageTurnMode = mode;
 		_isOpen = false;
-		StateHasChanged();
 	}
 
 	string GetTitle() => CurrentMode switch

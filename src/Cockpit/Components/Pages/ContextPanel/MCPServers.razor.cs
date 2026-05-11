@@ -34,11 +34,16 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 		InvokeAsync(() => { Refresh(); StateHasChanged(); });
 	}
 
-	void ShowMcpServerInfo(McpServer server) => _mcpServerInfoPopup?.Open(_allServers, server);
+	void ShowMcpServerInfo(McpServer server)
+	{
+		_selectedServer = server;
+		_mcpServerInfoPopup?.Open(_allServers, server);
+	}
 
 	async Task ToggleServer(McpServer server)
 	{
-		if(_isBusy)
+		string? sessionId = _sessionListFeature.CurrentSession?.Id;
+		if(_isBusy || sessionId is null)
 		{
 			return;
 		}
@@ -47,12 +52,6 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 		StateHasChanged();
 		try
 		{
-			string? sessionId = _sessionListFeature.CurrentSession?.Id;
-			if(sessionId is null)
-			{
-				return;
-			}
-
 			bool isEnabled = server.Status != McpServerStatus.Disabled;
 			if(isEnabled)
 			{
@@ -72,7 +71,8 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 
 	async Task ReloadServers()
 	{
-		if(_isBusy)
+		string? sessionId = _sessionListFeature.CurrentSession?.Id;
+		if(_isBusy || sessionId is null)
 		{
 			return;
 		}
@@ -81,12 +81,6 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 		StateHasChanged();
 		try
 		{
-			string? sessionId = _sessionListFeature.CurrentSession?.Id;
-			if(sessionId is null)
-			{
-				return;
-			}
-
 			await Task.WhenAll(_mcpFeature.ReloadAsync(sessionId), Task.Delay(200));
 		}
 		finally
@@ -115,8 +109,9 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 
 	void Refresh()
 	{
+		string? selectedName = _selectedServer?.Name;
 		_allServers = [.. _sessionListFeature.CurrentSession?.Context.McpServers ?? []];
-		_selectedServer = null;
+		_selectedServer = selectedName is null ? null : _allServers.FirstOrDefault(s => s.Name == selectedName);
 	}
 
 	public void Dispose()

@@ -33,7 +33,7 @@ public partial class GitDiffViewer : ComponentBase
 	readonly string _diffSplitLeftId = $"diff-split-left-{Guid.NewGuid():N}";
 	readonly string _diffSplitRightId = $"diff-split-right-{Guid.NewGuid():N}";
 
-	string _fileName => string.IsNullOrEmpty(FilePath) ? string.Empty : Path.GetFileName(FilePath);
+	string FileName => string.IsNullOrEmpty(FilePath) ? string.Empty : Path.GetFileName(FilePath);
 
 	static readonly Dictionary<string, string> extensionLanguageMap = new(StringComparer.OrdinalIgnoreCase)
 	{

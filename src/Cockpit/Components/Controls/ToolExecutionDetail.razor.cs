@@ -10,8 +10,8 @@ public sealed partial class ToolExecutionDetail : IDisposable
 	[Parameter] public ToolExecutionModel Tool { get; set; } = default!;
 	[Parameter] public bool IsLive { get; set; }
 
-	readonly TimestampFeature _timestampFeature;
-	public ToolExecutionDetail(TimestampFeature timestampFeature)
+	readonly ITimestampFeature _timestampFeature;
+	public ToolExecutionDetail(ITimestampFeature timestampFeature)
 	{
 		_timestampFeature = timestampFeature;
 	}
@@ -112,7 +112,7 @@ public sealed partial class ToolExecutionDetail : IDisposable
 		};
 	}
 
-	readonly Dictionary<string, (string Label, string Color)> _toolInfo = new()
+	static readonly Dictionary<string, (string Label, string Color)> _toolInfo = new()
 	{
 		["edit"] = ("Edit", "#f59e0b"),
 		["create"] = ("Create", "#22c55e"),
@@ -292,20 +292,7 @@ public sealed partial class ToolExecutionDetail : IDisposable
 
 	string GetDuration()
 	{
-		TimeSpan duration = Tool.EndTime.HasValue
-			? Tool.EndTime.Value - Tool.StartTime
-			: DateTime.Now - Tool.StartTime;
-		if(duration.TotalSeconds < 1)
-		{
-			return "<1s";
-		}
-
-		if(duration.TotalSeconds < 60)
-		{
-			return $"{duration.TotalSeconds:F1}s";
-		}
-
-		return $"{duration.TotalMinutes:F1}m";
+		return _timestampFeature.FormatDuration(Tool.StartTime, Tool.EndTime);
 	}
 
 }

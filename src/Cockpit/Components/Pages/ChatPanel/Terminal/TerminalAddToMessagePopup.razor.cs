@@ -12,12 +12,12 @@ public partial class TerminalAddToMessagePopup : ComponentBase
 	[Parameter] public string SessionId { get; set; } = string.Empty;
 
 	readonly IJSRuntime _jsRuntime;
-	readonly UIStateFeature _uiStateFeature;
+	readonly IUIStateFeature _uiStateFeature;
 	readonly ILogger<TerminalAddToMessagePopup> _logger;
 
 	public TerminalAddToMessagePopup(
 		IJSRuntime jsRuntime,
-		UIStateFeature uiStateFeature,
+		IUIStateFeature uiStateFeature,
 		ILogger<TerminalAddToMessagePopup> logger)
 	{
 		_jsRuntime = jsRuntime;
@@ -28,64 +28,70 @@ public partial class TerminalAddToMessagePopup : ComponentBase
 	public int SelectedLineCount { get; set; } = 50;
 	public int TotalLineCount { get; set; }
 	public string PreviewText { get; set; } = string.Empty;
+	int _previewLineCount;
+	string[] _allLines = [];
 
 	PopupBase _popup = default!;
 
 	public async Task Open()
 	{
-		PreviewText = string.Empty;
 		SelectedLineCount = 50;
+		PreviewText = string.Empty;
+		_previewLineCount = 0;
+		_allLines = [];
 
 		_popup.Open();
 
-		await OnParametersSetAsync();
-	}
-
-	protected override async Task OnParametersSetAsync()
-	{
-		TotalLineCount = await GetRenderedLineCount();
-		SelectedLineCount = Math.Min(100, TotalLineCount > 0 ? TotalLineCount : 100);
-		await UpdatePreview();
-	}
-
-	async Task UpdatePreview()
-	{
-		if(SelectedLineCount > 0)
-		{
-			try
-			{
-				PreviewText = await _jsRuntime.InvokeAsync<string>("xtermInterop.getTerminalText", TerminalId, SelectedLineCount);
-			}
-			catch(Exception ex)
-			{
-				_logger.LogDebug(ex, "Failed to get terminal text for session {SessionId}", SessionId);
-				PreviewText = string.Empty;
-			}
-		}
-		else
-		{
-			PreviewText = string.Empty;
-		}
+		await RefreshTerminalContent();
 		await InvokeAsync(StateHasChanged);
 	}
 
-	async Task<int> GetRenderedLineCount()
+	async Task RefreshTerminalContent()
 	{
 		try
 		{
-			string text = await _jsRuntime.InvokeAsync<string>("xtermInterop.getTerminalText", TerminalId, int.MaxValue);
-			return string.IsNullOrEmpty(text) ? 0 : text.Split('\n').Length;
+			// Cap at 10 000 lines to avoid serialising a huge payload through JS interop,
+			// which can freeze the UI for sessions with very large output histories.
+			string allText = await _jsRuntime.InvokeAsync<string>("xtermInterop.getTerminalText", TerminalId, 10_000);
+			_allLines = string.IsNullOrEmpty(allText) ? [] : allText.Split('\n');
+			TotalLineCount = _allLines.Length;
+			SelectedLineCount = Math.Min(SelectedLineCount > 0 ? SelectedLineCount : 100, TotalLineCount > 0 ? TotalLineCount : 100);
 		}
-		catch
+		catch(Exception ex)
 		{
-			return 0;
+			_logger.LogDebug(ex, "Failed to fetch terminal text for session {SessionId}", SessionId);
+			_allLines = [];
+			TotalLineCount = 0;
 		}
+
+		BuildPreview();
 	}
 
-	void HandleClose()
+	void BuildPreview()
 	{
-		_popup.Close();
+		if(_allLines.Length == 0 || SelectedLineCount <= 0)
+		{
+			PreviewText = string.Empty;
+			_previewLineCount = 0;
+			return;
+		}
+
+		string[] selectedLines = _allLines.Length > SelectedLineCount
+			? _allLines[^SelectedLineCount..]
+			: _allLines;
+
+		PreviewText = string.Join('\n', selectedLines);
+		_previewLineCount = selectedLines.Length;
 	}
+
+	Task UpdatePreview()
+	{
+		BuildPreview();
+		StateHasChanged();
+		return Task.CompletedTask;
+	}
+
+	void HandleClose() => _popup.Close();
 
 	void HandleConfirm()
 	{

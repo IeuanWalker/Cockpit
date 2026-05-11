@@ -4,8 +4,8 @@ namespace Cockpit.Components.Popups.Settings;
 
 public partial class InputSettings
 {
-	readonly UIStateFeature _uiState;
-	public InputSettings(UIStateFeature uiState)
+	readonly IUIStateFeature _uiState;
+	public InputSettings(IUIStateFeature uiState)
 	{
 		_uiState = uiState;
 	}

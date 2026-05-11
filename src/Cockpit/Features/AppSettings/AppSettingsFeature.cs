@@ -1,138 +1,152 @@
+using Cockpit.Features.MessageMode;
 using Cockpit.Features.Theme;
 
 namespace Cockpit.Features.AppSettings;
 
-public class AppSettingsFeature : IAppSettingsFeature
+public sealed class AppSettingsFeature : IAppSettingsFeature
 {
+	readonly UserAppSettings _settings;
+
+	public AppSettingsFeature(UserAppSettings settings)
+	{
+		_settings = settings;
+	}
+
 	public ThemeEnum Theme
 	{
-		get => UserAppSettings.Theme;
-		set => UserAppSettings.Theme = value;
+		get => _settings.Theme;
+		set => _settings.Theme = value;
 	}
 
 	public string AccentColor
 	{
-		get => UserAppSettings.AccentColor;
-		set => UserAppSettings.AccentColor = value;
+		get => _settings.AccentColor;
+		set => _settings.AccentColor = value;
 	}
 
 	public string AccentHoverColor
 	{
-		get => UserAppSettings.AccentHoverColor;
-		set => UserAppSettings.AccentHoverColor = value;
+		get => _settings.AccentHoverColor;
+		set => _settings.AccentHoverColor = value;
+	}
+
+	public MessageTurnModeEnum MessageTurnMode
+	{
+		get => _settings.MessageTurnMode;
+		set => _settings.MessageTurnMode = value;
 	}
 
 	public bool SendOnEnter
 	{
-		get => UserAppSettings.SendOnEnter;
-		set => UserAppSettings.SendOnEnter = value;
+		get => _settings.SendOnEnter;
+		set => _settings.SendOnEnter = value;
 	}
 
 	public int LeftSidebarWidth
 	{
-		get => UserAppSettings.LeftSidebarWidth;
-		set => UserAppSettings.LeftSidebarWidth = value;
+		get => _settings.LeftSidebarWidth;
+		set => _settings.LeftSidebarWidth = value;
 	}
 
 	public int RightSidebarWidth
 	{
-		get => UserAppSettings.RightSidebarWidth;
-		set => UserAppSettings.RightSidebarWidth = value;
+		get => _settings.RightSidebarWidth;
+		set => _settings.RightSidebarWidth = value;
 	}
 
 	public bool DiffSplitView
 	{
-		get => UserAppSettings.DiffSplitView;
-		set => UserAppSettings.DiffSplitView = value;
+		get => _settings.DiffSplitView;
+		set => _settings.DiffSplitView = value;
 	}
 
 	public bool DiffTreeView
 	{
-		get => UserAppSettings.DiffTreeView;
-		set => UserAppSettings.DiffTreeView = value;
+		get => _settings.DiffTreeView;
+		set => _settings.DiffTreeView = value;
 	}
 
 	public bool SoundPermissionEnabled
 	{
-		get => UserAppSettings.SoundPermissionEnabled;
-		set => UserAppSettings.SoundPermissionEnabled = value;
+		get => _settings.SoundPermissionEnabled;
+		set => _settings.SoundPermissionEnabled = value;
 	}
 
 	public float SoundPermissionVolume
 	{
-		get => UserAppSettings.SoundPermissionVolume;
-		set => UserAppSettings.SoundPermissionVolume = value;
+		get => _settings.SoundPermissionVolume;
+		set => _settings.SoundPermissionVolume = value;
 	}
 
 	public bool SoundUserInputEnabled
 	{
-		get => UserAppSettings.SoundUserInputEnabled;
-		set => UserAppSettings.SoundUserInputEnabled = value;
+		get => _settings.SoundUserInputEnabled;
+		set => _settings.SoundUserInputEnabled = value;
 	}
 
 	public float SoundUserInputVolume
 	{
-		get => UserAppSettings.SoundUserInputVolume;
-		set => UserAppSettings.SoundUserInputVolume = value;
+		get => _settings.SoundUserInputVolume;
+		set => _settings.SoundUserInputVolume = value;
 	}
 
 	public bool SoundFinishedEnabled
 	{
-		get => UserAppSettings.SoundFinishedEnabled;
-		set => UserAppSettings.SoundFinishedEnabled = value;
+		get => _settings.SoundFinishedEnabled;
+		set => _settings.SoundFinishedEnabled = value;
 	}
 
 	public float SoundFinishedVolume
 	{
-		get => UserAppSettings.SoundFinishedVolume;
-		set => UserAppSettings.SoundFinishedVolume = value;
+		get => _settings.SoundFinishedVolume;
+		set => _settings.SoundFinishedVolume = value;
 	}
 
 	public string SoundPermissionCustomFileName
 	{
-		get => UserAppSettings.SoundPermissionCustomFileName;
-		set => UserAppSettings.SoundPermissionCustomFileName = value;
+		get => _settings.SoundPermissionCustomFileName;
+		set => _settings.SoundPermissionCustomFileName = value;
 	}
 
 	public string SoundUserInputCustomFileName
 	{
-		get => UserAppSettings.SoundUserInputCustomFileName;
-		set => UserAppSettings.SoundUserInputCustomFileName = value;
+		get => _settings.SoundUserInputCustomFileName;
+		set => _settings.SoundUserInputCustomFileName = value;
 	}
 
 	public string SoundFinishedCustomFileName
 	{
-		get => UserAppSettings.SoundFinishedCustomFileName;
-		set => UserAppSettings.SoundFinishedCustomFileName = value;
+		get => _settings.SoundFinishedCustomFileName;
+		set => _settings.SoundFinishedCustomFileName = value;
 	}
 
 	public bool TextToSpeechEnabled
 	{
-		get => UserAppSettings.TextToSpeechEnabled;
-		set => UserAppSettings.TextToSpeechEnabled = value;
+		get => _settings.TextToSpeechEnabled;
+		set => _settings.TextToSpeechEnabled = value;
 	}
 
 	public float VoiceVolume
 	{
-		get => UserAppSettings.VoiceVolume;
-		set => UserAppSettings.VoiceVolume = value;
+		get => _settings.VoiceVolume;
+		set => _settings.VoiceVolume = value;
 	}
 
 	public float VoicePitch
 	{
-		get => UserAppSettings.VoicePitch;
-		set => UserAppSettings.VoicePitch = value;
+		get => _settings.VoicePitch;
+		set => _settings.VoicePitch = value;
 	}
 
 	public float VoiceRate
 	{
-		get => UserAppSettings.VoiceRate;
-		set => UserAppSettings.VoiceRate = value;
+		get => _settings.VoiceRate;
+		set => _settings.VoiceRate = value;
 	}
 
 	public string VoiceLocale
 	{
-		get => UserAppSettings.VoiceLocale;
-		set => UserAppSettings.VoiceLocale = value;
+		get => _settings.VoiceLocale;
+		set => _settings.VoiceLocale = value;
 	}
 }

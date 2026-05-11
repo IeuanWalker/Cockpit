@@ -9,7 +9,7 @@ using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
-public partial class SkillInfoPopup : ComponentBase
+public sealed partial class SkillInfoPopup : ComponentBase
 {
 	PopupBase? _popup;
 	Skill? _selectedSkill;
@@ -74,42 +74,15 @@ public partial class SkillInfoPopup : ComponentBase
 
 		_ = InvokeAsync(async () =>
 		{
-			if(!string.IsNullOrEmpty(skill.Path)
-				&& skill.Path.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
-				&& File.Exists(skill.Path))
+			string? content = await SkillFileReader.ReadAsync(skill.Path);
+			if(!ReferenceEquals(_selectedSkill, skill))
 			{
-				try
-				{
-					string raw = await File.ReadAllTextAsync(skill.Path);
-					_skillFileContent = StripFrontmatter(raw);
-				}
-				catch
-				{
-					_skillFileContent = string.Empty;
-				}
+				return;
 			}
+
+			_skillFileContent = content ?? string.Empty;
 			StateHasChanged();
 		});
-	}
-
-	static string StripFrontmatter(string raw)
-	{
-		string content = raw.TrimStart('\uFEFF').ReplaceLineEndings("\n");
-		if(content.StartsWith("---\n", StringComparison.Ordinal))
-		{
-			int endFm = content.IndexOf("\n---", 3, StringComparison.Ordinal);
-			if(endFm > 0)
-			{
-				int bodyStart = endFm + 4;
-				while(bodyStart < content.Length && content[bodyStart] == '\n')
-				{
-					bodyStart++;
-				}
-
-				return content[bodyStart..].TrimStart('\n');
-			}
-		}
-		return content;
 	}
 
 	void RevealSkillFile() => FileUtil.RevealFile(_selectedSkill?.Path);
@@ -146,7 +119,7 @@ public partial class SkillInfoPopup : ComponentBase
 				continue;
 			}
 
-			string[] parts = skill.Path.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+			string[] parts = skill.Path.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
 			SkillTreeDir dir = root;
 
 			for(int i = 0; i < parts.Length - 1; i++)

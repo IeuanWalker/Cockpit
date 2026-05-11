@@ -18,14 +18,14 @@ public partial class CreateSessionPopup : ComponentBase
 	}
 
 	public string SelectedPath { get; set; } = string.Empty;
-	public string? ErrorMessage { get; set; } = string.Empty;
+	public string ErrorMessage { get; set; } = string.Empty;
 	public List<string> RecentDirectories { get; set; } = [];
 	PopupBase _popup = default!;
 
 	public void Open()
 	{
 		SelectedPath = string.Empty;
-		ErrorMessage = null;
+		ErrorMessage = string.Empty;
 		RecentDirectories = [.. _sessionFeature.Sessions
 			.OrderByDescending(s => s.LastActivity)
 			.Where(x => !string.IsNullOrWhiteSpace(x.Context.CurrentWorkingDirectory))
@@ -41,7 +41,7 @@ public partial class CreateSessionPopup : ComponentBase
 	void SelectPath(string path)
 	{
 		SelectedPath = path;
-		ErrorMessage = null;
+		ErrorMessage = string.Empty;
 		StateHasChanged();
 	}
 
@@ -54,7 +54,7 @@ public partial class CreateSessionPopup : ComponentBase
 			if(result.IsSuccessful)
 			{
 				SelectedPath = result.Folder.Path;
-				ErrorMessage = null;
+				ErrorMessage = string.Empty;
 			}
 			else
 			{

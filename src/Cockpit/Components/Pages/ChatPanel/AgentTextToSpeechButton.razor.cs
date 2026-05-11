@@ -1,4 +1,3 @@
-using Blazor.Sonner.Services;
 using Cockpit.Features.TextToSpeech;
 using Microsoft.AspNetCore.Components;
 
@@ -10,34 +9,37 @@ public partial class AgentTextToSpeechButton : IDisposable
 	[Parameter] public string Content { get; set; } = string.Empty;
 	[Parameter] public bool Disabled { get; set; }
 
-	readonly TextToSpeechFeature _textToSpeechFeature;
-	readonly ToastService _toastService;
-	public AgentTextToSpeechButton(TextToSpeechFeature textToSpeechFeature, ToastService toastService)
+	readonly ITextToSpeechFeature _textToSpeechFeature;
+
+	// Cached value to skip re-renders when this button's active state hasn't changed.
+	bool _isActive;
+
+	public AgentTextToSpeechButton(ITextToSpeechFeature textToSpeechFeature)
 	{
 		_textToSpeechFeature = textToSpeechFeature;
-		_toastService = toastService;
 	}
 
 	protected override void OnInitialized()
 	{
+		_isActive = _textToSpeechFeature.ActiveMessageId == MessageId;
 		_textToSpeechFeature.OnStateChanged += OnTtsStateChanged;
 	}
 
 	void OnTtsStateChanged()
 	{
+		bool isActive = _textToSpeechFeature.ActiveMessageId == MessageId;
+		if(isActive == _isActive)
+		{
+			return;
+		}
+
+		_isActive = isActive;
 		_ = InvokeAsync(StateHasChanged);
 	}
 
 	async Task OnClick()
 	{
-		try
-		{
-			await _textToSpeechFeature.Speak(MessageId, Content);
-		}
-		catch(Exception ex)
-		{
-			_toastService.Error("Text-to-Speech Error", opts => opts.Description = ex.Message);
-		}
+		await _textToSpeechFeature.Speak(MessageId, Content);
 	}
 
 	public void Dispose()

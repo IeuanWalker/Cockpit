@@ -651,6 +651,7 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 
 		public void AddSession(SessionModel session) => _sessions.Add(session);
 		public IReadOnlyList<SessionModel> Sessions => _sessions;
+		public SessionModel? CurrentSession => _sessions.FirstOrDefault();
 		public void NotifyStateChanged() => OnStateChanged?.Invoke();
 		public event Action? OnStateChanged;
 	}

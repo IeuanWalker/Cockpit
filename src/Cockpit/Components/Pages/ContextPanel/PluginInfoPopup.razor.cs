@@ -5,7 +5,7 @@ using SdkPlugin = GitHub.Copilot.SDK.Rpc.Plugin;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
-public partial class PluginInfoPopup : ComponentBase
+public sealed partial class PluginInfoPopup : ComponentBase
 {
 	PopupBase? _popup;
 	SdkPlugin? _selectedPlugin;

@@ -20,7 +20,7 @@ public sealed partial class AllowedCommands : ComponentBase, IDisposable
 		_sessionListFeature = sessionListFeature;
 	}
 
-	public int TotalCommandsCount { get; set; }
+	int TotalCommandsCount { get; set; }
 
 	protected override void OnInitialized()
 	{

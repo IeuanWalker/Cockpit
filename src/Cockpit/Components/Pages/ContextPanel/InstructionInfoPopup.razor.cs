@@ -6,7 +6,7 @@ using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
-public partial class InstructionInfoPopup : ComponentBase
+public sealed partial class InstructionInfoPopup : ComponentBase
 {
 	PopupBase? _popup;
 	InstructionsSources? _selectedInstruction;
@@ -23,7 +23,7 @@ public partial class InstructionInfoPopup : ComponentBase
 
 	public void Open(IReadOnlyList<InstructionsSources> instructions, InstructionsSources selectedInstruction, string? workspacePath = null)
 	{
-		_instructions = [.. instructions];
+		_instructions = [.. instructions.OrderBy(i => i.Label, StringComparer.OrdinalIgnoreCase)];
 		_workspacePath = workspacePath;
 		_needsSplitInit = true;
 		_popup?.Open();

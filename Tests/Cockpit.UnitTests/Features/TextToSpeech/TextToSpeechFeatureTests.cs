@@ -72,6 +72,33 @@ public class TextToSpeechFeatureTests
 		result.ShouldBe("Title\nBold and italic with code and link");
 	}
 
+	[Fact]
+	public void StripMarkdown_FencedCodeBlockWithLanguage_ReplacedWithPlaceholder()
+	{
+		string input = "```csharp\nvar x = 1;\n```";
+		string result = TextToSpeechFeature.StripMarkdown(input);
+		result.ShouldBe("code block");
+	}
+
+	[Fact]
+	public void StripMarkdown_MultipleCodeBlocks_EachReplacedWithPlaceholder()
+	{
+		string input = "```\nblock one\n```\nsome text\n```\nblock two\n```";
+		string result = TextToSpeechFeature.StripMarkdown(input);
+		result.ShouldContain("code block");
+		result.ShouldContain("some text");
+		result.ShouldNotContain("block one");
+		result.ShouldNotContain("block two");
+	}
+
+	[Fact]
+	public void StripMarkdown_NestedInlineMarkup_StrippedCompletely()
+	{
+		string input = "Text with [**bold link**](http://example.com) inline";
+		string result = TextToSpeechFeature.StripMarkdown(input);
+		result.ShouldBe("Text with bold link inline");
+	}
+
 	// -------------------------------------------------------------------------
 	// Speak / Stop state-machine tests
 	// -------------------------------------------------------------------------
@@ -198,6 +225,19 @@ public class TextToSpeechFeatureTests
 	}
 
 	[Fact]
+	public async Task Stop_WhenIdle_DoesNotFireOnStateChanged()
+	{
+		TestableTextToSpeechFeature feature = new(new FakeTextToSpeech());
+
+		int eventCount = 0;
+		feature.OnStateChanged += () => eventCount++;
+
+		await feature.Stop();
+
+		eventCount.ShouldBe(0);
+	}
+
+	[Fact]
 	public async Task Stop_AllowsSubsequentSpeakToSucceed()
 	{
 		// Tests CancellationTokenSource disposal indirectly: after Stop() the feature
@@ -268,4 +308,33 @@ public class TextToSpeechFeatureTests
 
 		eventCount.ShouldBe(1);
 	}
+
+	// -------------------------------------------------------------------------
+	// GetLocales tests
+	// -------------------------------------------------------------------------
+
+	[Fact]
+	public async Task GetLocales_ReturnsLocalesFromUnderlyingImplementation()
+	{
+		FakeTextToSpeech fake = new();
+		TestableTextToSpeechFeature feature = new(fake);
+
+		IEnumerable<Locale> locales = await feature.GetLocales();
+
+		locales.ShouldNotBeNull();
+	}
+
+	// -------------------------------------------------------------------------
+	// ITextToSpeechFeature interface tests
+	// -------------------------------------------------------------------------
+
+	[Fact]
+	public void Feature_ImplementsInterface()
+	{
+		FakeTextToSpeech fake = new();
+		TestableTextToSpeechFeature feature = new(fake);
+
+		feature.ShouldBeAssignableTo<ITextToSpeechFeature>();
+	}
 }
+

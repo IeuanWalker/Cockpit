@@ -15,9 +15,15 @@ public partial class PermissionDetailsPopup
 
 	static string FormatAsJson(string input)
 	{
+		if(string.IsNullOrWhiteSpace(input))
+		{
+			return input;
+		}
+
 		try
 		{
-			return input.SerializeJson() ?? input;
+			object? parsed = input.DeserializeJson<object>();
+			return parsed.SerializeJson() ?? input;
 		}
 		catch
 		{

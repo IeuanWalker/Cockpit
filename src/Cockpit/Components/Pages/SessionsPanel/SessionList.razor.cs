@@ -2,7 +2,6 @@ using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
-using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
@@ -14,14 +13,14 @@ public partial class SessionList : ComponentBase, IDisposable
 	[Parameter] public DeleteSessionPopup? DeletePopup { get; set; }
 	[Parameter] public bool ShowSearch { get; set; }
 
-	readonly TimestampFeature _timestampFeature;
-	readonly UIStateFeature _uiStateFeature;
+	readonly ITimestampFeature _timestampFeature;
+	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionFeature _sessionFeature;
 	readonly IJSRuntime _jsRuntime;
 
 	public SessionList(
-		TimestampFeature timestampFeature,
-		UIStateFeature uiStateFeature,
+		ITimestampFeature timestampFeature,
+		IUIStateFeature uiStateFeature,
 		SessionFeature sessionFeature,
 		IJSRuntime jsRuntime)
 	{
@@ -109,6 +108,7 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	public async Task FocusSearchAsync()
 	{
+		// Ensure the search input is rendered (it only exists when ShowSearch=true) before trying to focus it.
 		await InvokeAsync(StateHasChanged);
 		await _jsRuntime.InvokeVoidAsync("cockpit.focusElement", "sessionSearch");
 	}
@@ -180,15 +180,14 @@ public partial class SessionList : ComponentBase, IDisposable
 		await _sessionFeature.LoadSession(session.Id);
 	}
 
-	static string GetTimeAgo(DateTime dateTime)
+	string GetTimeAgo(DateTime dateTime)
 	{
-		return dateTime.Humanize();
+		return _timestampFeature.FormatRelative(dateTime);
 	}
 
 	void ShowDeleteDialog(SessionModel session, MouseEventArgs _)
 	{
 		DeletePopup?.Open(session.Id);
-		StateHasChanged();
 	}
 
 	public void Dispose()

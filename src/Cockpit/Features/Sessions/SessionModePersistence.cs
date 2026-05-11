@@ -6,6 +6,9 @@ namespace Cockpit.Features.Sessions;
 
 public class SessionModePersistence
 {
+	const string SettingsDirectoryName = "Cockpit";
+	const string SessionAgentModeFileName = "session-agentmode.json";
+
 	readonly ILogger<SessionModePersistence> _logger;
 
 	public SessionModePersistence(ILogger<SessionModePersistence> logger)
@@ -13,7 +16,7 @@ public class SessionModePersistence
 		_logger = logger;
 	}
 
-	public async Task SaveSessionModeAsync(SessionModel session)
+	public async Task SaveSessionModeAsync(SessionModel session, CancellationToken cancellationToken = default)
 	{
 		string? filePath = GetFilePath(session);
 		if(string.IsNullOrWhiteSpace(filePath))
@@ -35,7 +38,11 @@ public class SessionModePersistence
 				["AgentMode"] = session.Context.SelectedAgentMode.ToString()
 			};
 			string json = settings.SerializeJson()!;
-			await File.WriteAllTextAsync(filePath, json);
+			await File.WriteAllTextAsync(filePath, json, cancellationToken);
+		}
+		catch(OperationCanceledException)
+		{
+			throw;
 		}
 		catch(Exception ex)
 		{
@@ -43,7 +50,7 @@ public class SessionModePersistence
 		}
 	}
 
-	public async Task<bool> TryRestoreSessionModeAsync(SessionModel session)
+	public async Task<bool> TryRestoreSessionModeAsync(SessionModel session, CancellationToken cancellationToken = default)
 	{
 		string? filePath = GetFilePath(session);
 		if(string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
@@ -53,7 +60,7 @@ public class SessionModePersistence
 
 		try
 		{
-			string json = await File.ReadAllTextAsync(filePath);
+			string json = await File.ReadAllTextAsync(filePath, cancellationToken);
 			Dictionary<string, string>? settings = json.DeserializeJson<Dictionary<string, string>>();
 
 			if(settings is null || !settings.TryGetValue("AgentMode", out string? modeStr) || string.IsNullOrWhiteSpace(modeStr))
@@ -69,6 +76,10 @@ public class SessionModePersistence
 			session.Context.SelectedAgentMode = mode;
 			return true;
 		}
+		catch(OperationCanceledException)
+		{
+			throw;
+		}
 		catch(Exception ex)
 		{
 			_logger.LogWarning(ex, "Failed to restore agent mode for session {SessionId}", session.Id);
@@ -83,6 +94,6 @@ public class SessionModePersistence
 			return null;
 		}
 
-		return Path.Combine(session.Context.WorkspacePath, "Cockpit", "session-agentmode.json");
+		return Path.Combine(session.Context.WorkspacePath, SettingsDirectoryName, SessionAgentModeFileName);
 	}
 }

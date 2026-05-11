@@ -70,7 +70,7 @@ public sealed partial class SessionFeature
 					.Select(g => g.First())];
 			}
 
-			MessageTurnModeEnum selectedTurnMode = UserAppSettings.MessageTurnMode;
+			MessageTurnModeEnum selectedTurnMode = _appSettingsFeature.MessageTurnMode;
 			string turnMode = selectedTurnMode.ToSdkToken();
 
 			lock(CurrentSession.SessionEventLock)

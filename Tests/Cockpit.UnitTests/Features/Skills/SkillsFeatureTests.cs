@@ -84,4 +84,49 @@ public sealed class SkillsFeatureTests
 		result["project"].Count.ShouldBe(2);
 		result["PROJECT"].Count.ShouldBe(2);
 	}
+
+	// ── GroupBySource — empty source → "Unknown" group ───────────────────────
+
+	[Fact]
+	public void GroupBySource_EmptySource_GroupedUnderUnknown()
+	{
+		Skill skill = new() { Name = "skill-a", Source = string.Empty };
+
+		IReadOnlyDictionary<string, List<Skill>> result = SkillsFeature.GroupBySource([skill]);
+
+		result.Count.ShouldBe(1);
+		result["Unknown"].ShouldHaveSingleItem();
+	}
+
+	// ── GroupBySource — whitespace-only source → "Unknown" group ─────────────
+
+	[Fact]
+	public void GroupBySource_WhitespaceSource_GroupedUnderUnknown()
+	{
+		Skill skill = new() { Name = "skill-a", Source = "   " };
+
+		IReadOnlyDictionary<string, List<Skill>> result = SkillsFeature.GroupBySource([skill]);
+
+		result.Count.ShouldBe(1);
+		result["Unknown"].ShouldHaveSingleItem();
+	}
+
+	// ── GroupBySource — mix of blank and named sources ────────────────────────
+
+	[Fact]
+	public void GroupBySource_MixedBlankAndNamedSources_GroupsCorrectly()
+	{
+		List<Skill> skills =
+		[
+			new() { Name = "skill-a", Source = string.Empty },
+			new() { Name = "skill-b", Source = "   " },
+			new() { Name = "skill-c", Source = "builtin" },
+		];
+
+		IReadOnlyDictionary<string, List<Skill>> result = SkillsFeature.GroupBySource(skills);
+
+		result.Count.ShouldBe(2);
+		result["Unknown"].Count.ShouldBe(2);
+		result["builtin"].ShouldHaveSingleItem();
+	}
 }

@@ -14,7 +14,7 @@ namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
 public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 {
-	readonly UIStateFeature _uiStateFeature;
+	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionFeature _sessionFeature;
 	readonly IJSRuntime _jsRuntime;
 	readonly ToastService _toastService;
@@ -22,7 +22,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	readonly IFileSearchFeature _fileSearchFeature;
 
 	public ChatInputArea(
-		UIStateFeature uiStateFeature,
+		IUIStateFeature uiStateFeature,
 		SessionFeature sessionFeature,
 		IJSRuntime jsRuntime,
 		ToastService toastService,

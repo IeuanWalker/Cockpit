@@ -10,7 +10,7 @@ namespace Cockpit.Features.UserInputRequests;
 /// <summary>
 /// Service for managing user input requests from Copilot SDK
 /// </summary>
-public sealed class UserInputFeature : IUserInputHandler
+public sealed class UserInputFeature : IUserInputHandler, IUserInputEventSource
 {
 	readonly ISessionStateProvider _sessionStateProvider;
 	readonly ILogger<UserInputFeature> _logger;
@@ -80,16 +80,22 @@ public sealed class UserInputFeature : IUserInputHandler
 
 	async Task<string?> RequestUserResponseAsync(UserInputRequestModel request)
 	{
-		// Store pending request using unique request ID
 		_pendingRequests[request.Id] = request;
 
-		// Notify UI
-		UpdateSessionOnUserInputRequested(request.SessionId, request);
-		OnUserInputRequested?.Invoke(request.SessionId, request);
-
-		// Wait for user response
 		try
 		{
+			// Notify UI — inside try so cleanup always runs even if a subscriber throws
+			UpdateSessionOnUserInputRequested(request.SessionId, request);
+
+			try
+			{
+				OnUserInputRequested?.Invoke(request.SessionId, request);
+			}
+			catch(Exception ex)
+			{
+				_logger.LogError(ex, "Subscriber exception in OnUserInputRequested for request {RequestId}", request.Id);
+			}
+
 			string? response = await request.GetResponseAsync();
 			return response;
 		}
@@ -100,7 +106,6 @@ public sealed class UserInputFeature : IUserInputHandler
 		}
 		finally
 		{
-			// Clean up pending request using request ID
 			_pendingRequests.TryRemove(request.Id, out _);
 		}
 	}
@@ -235,9 +240,16 @@ public sealed class UserInputFeature : IUserInputHandler
 			return;
 		}
 
-		// Notify UI with requestId so it can be removed from session list
 		UpdateSessionOnUserInputResolved(request.SessionId, request.Id);
-		OnUserInputResolved?.Invoke(request.SessionId, request.Id);
+
+		try
+		{
+			OnUserInputResolved?.Invoke(request.SessionId, request.Id);
+		}
+		catch(Exception ex)
+		{
+			_logger.LogError(ex, "Subscriber exception in OnUserInputResolved for request {RequestId}", request.Id);
+		}
 	}
 
 	/// <summary>

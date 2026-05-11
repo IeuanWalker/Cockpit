@@ -1,6 +1,6 @@
 ﻿namespace Cockpit.Features.SessionEvents.Models;
 
-public class ToolExecutionModel
+public sealed class ToolExecutionModel
 {
 	public string Id { get; set; } = Guid.NewGuid().ToString();
 	public string ToolName { get; set; } = string.Empty;

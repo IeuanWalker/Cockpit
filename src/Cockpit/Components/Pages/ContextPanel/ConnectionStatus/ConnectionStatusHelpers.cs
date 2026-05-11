@@ -10,6 +10,7 @@ public static class ConnectionStatusHelpers
 		ConnectionStatusEnum.Disconnected => "disconnected",
 		ConnectionStatusEnum.Error => "disconnected",
 		ConnectionStatusEnum.Checking => "checking",
+		ConnectionStatusEnum.Unknown => "checking",
 		_ => "checking"
 	};
 
