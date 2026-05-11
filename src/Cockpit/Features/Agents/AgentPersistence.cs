@@ -15,7 +15,7 @@ public sealed class AgentPersistence
 		return Path.Combine(session.Context.WorkspacePath, "Cockpit", "session-agent.json");
 	}
 
-	public async Task SaveSessionAgentAsync(SessionModel session)
+	public async Task SaveSessionAgent(SessionModel session)
 	{
 		string? agentFilePath = GetAgentFilePath(session);
 		if(string.IsNullOrWhiteSpace(agentFilePath))
@@ -44,7 +44,7 @@ public sealed class AgentPersistence
 		catch { /* best-effort */ }
 	}
 
-	public async Task<bool> TryRestoreSessionAgentAsync(SessionModel session)
+	public async Task<bool> TryRestoreSessionAgent(SessionModel session)
 	{
 		string? agentFilePath = GetAgentFilePath(session);
 		if(string.IsNullOrWhiteSpace(agentFilePath) || !File.Exists(agentFilePath))
