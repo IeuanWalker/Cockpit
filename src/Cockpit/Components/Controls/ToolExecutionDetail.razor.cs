@@ -64,7 +64,7 @@ public sealed partial class ToolExecutionDetail : IDisposable
 		oldCts?.Cancel();
 		oldCts?.Dispose();
 
-		if (elapsed < ThresholdMs)
+		if(elapsed < ThresholdMs)
 		{
 			return;
 		}
@@ -78,10 +78,10 @@ public sealed partial class ToolExecutionDetail : IDisposable
 			Tool.IsExpanded = !Tool.IsExpanded;
 			StateHasChanged();
 		}
-		catch (OperationCanceledException) { }
+		catch(OperationCanceledException) { }
 		finally
 		{
-			if (ReferenceEquals(_clickCts, cts))
+			if(ReferenceEquals(_clickCts, cts))
 			{
 				_clickCts = null;
 			}
@@ -112,7 +112,7 @@ public sealed partial class ToolExecutionDetail : IDisposable
 		};
 	}
 
-	static readonly Dictionary<string, (string Label, string Color)> _toolInfo = new()
+	static readonly Dictionary<string, (string Label, string Color)> toolInfo = new()
 	{
 		["edit"] = ("Edit", "#f59e0b"),
 		["create"] = ("Create", "#22c55e"),
@@ -133,7 +133,7 @@ public sealed partial class ToolExecutionDetail : IDisposable
 
 	string GetToolLabel()
 	{
-		if(_toolInfo.TryGetValue(Tool.ToolName, out (string Label, string Color) info))
+		if(toolInfo.TryGetValue(Tool.ToolName, out (string Label, string Color) info))
 		{
 			return info.Label;
 		}
@@ -149,7 +149,7 @@ public sealed partial class ToolExecutionDetail : IDisposable
 
 	string GetLabelColor()
 	{
-		if(_toolInfo.TryGetValue(Tool.ToolName, out (string Label, string Color) info))
+		if(toolInfo.TryGetValue(Tool.ToolName, out (string Label, string Color) info))
 		{
 			return info.Color;
 		}
