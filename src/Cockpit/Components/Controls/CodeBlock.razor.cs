@@ -50,13 +50,9 @@ public sealed partial class CodeBlock : ComponentBase
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.highlightBlock", _id);
 		}
-		catch(JSException)
+		catch
 		{
-			// hljs not yet loaded or JS function unavailable — expected on first render
-		}
-		catch(InvalidOperationException)
-		{
-			// WebView being torn down — safe to ignore
+			// Ignore if hljs unavailable
 		}
 	}
 }
