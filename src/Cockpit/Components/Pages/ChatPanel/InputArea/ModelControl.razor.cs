@@ -131,7 +131,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 	{
 		if(model is null)
 		{
-			return string.Empty;
+			return "Unknown";
 		}
 
 		if(model.Id.Equals("Auto", StringComparison.OrdinalIgnoreCase))
@@ -141,7 +141,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 		if(model.Billing is null)
 		{
-			return string.Empty;
+			return "Unknown";
 		}
 
 		return $"{model.Billing.Multiplier:0.0}x";
