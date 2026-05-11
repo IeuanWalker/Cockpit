@@ -10,7 +10,6 @@ public partial class MessageTurnModeControl : ComponentBase
 
 	public MessageTurnModeControl(IAppSettingsFeature appSettings)
 	{
-		ArgumentNullException.ThrowIfNull(appSettings);
 		_appSettings = appSettings;
 	}
 
