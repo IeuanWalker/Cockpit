@@ -815,14 +815,14 @@ public class PermissionFeatureTests
 		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
 		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
 
-		// "git status" is a safe, non-destructive command — should auto-approve without user prompt
+		// "ls" is a safe, non-destructive command in safeCommands — should auto-approve without user prompt
 		PermissionRequestModel request = new()
 		{
 			SessionId = "session1",
-			FullCommand = "git status",
-			Commands = ["git status"],
-			RequestTitle = "Allow git status",
-			Intention = "Check repository status",
+			FullCommand = "ls",
+			Commands = ["ls"],
+			RequestTitle = "Allow ls",
+			Intention = "List directory contents",
 			CanApproveGlobally = true,
 			CanApproveForSession = true,
 			IsDestructive = false,
