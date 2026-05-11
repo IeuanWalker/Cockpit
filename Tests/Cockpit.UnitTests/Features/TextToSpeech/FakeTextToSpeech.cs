@@ -56,6 +56,7 @@ sealed class MockAppSettingsFeature : IAppSettingsFeature
 	public Cockpit.Features.Theme.ThemeEnum Theme { get; set; }
 	public string AccentColor { get; set; } = "";
 	public string AccentHoverColor { get; set; } = "";
+	public Cockpit.Features.MessageMode.MessageTurnModeEnum MessageTurnMode { get; set; }
 	public bool SendOnEnter { get; set; }
 	public int LeftSidebarWidth { get; set; }
 	public int RightSidebarWidth { get; set; }

@@ -80,6 +80,48 @@ public sealed class FileSearchFeatureTests : IDisposable
 		results.ShouldBeEmpty();
 	}
 
+	[Fact]
+	public async Task SearchAsync_FilterWithDotExtension_ReturnsMatchingFiles()
+	{
+		CreateFile("Program.cs");
+		CreateFile("readme.md");
+		CreateFile("Notes.cs");
+
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, ".cs", cancellationToken: TestContext.Current.CancellationToken);
+
+		results.Count.ShouldBe(2);
+		results.ShouldAllBe(r => r.FileName.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
+	}
+
+	// -----------------------------------------------------------------------
+	// Result correctness
+
+	[Fact]
+	public async Task SearchAsync_ResultHasCorrectProperties()
+	{
+		string relativePath = Path.Combine("src", "Program.cs");
+		CreateFile(relativePath);
+
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "Program", cancellationToken: TestContext.Current.CancellationToken);
+
+		results.Count.ShouldBe(1);
+		FileSearchResult result = results[0];
+		result.FileName.ShouldBe("Program.cs");
+		result.FullPath.ShouldBe(Path.Combine(_root, "src", "Program.cs"));
+		result.RelativePath.ShouldBe(Path.Combine("src", "Program.cs"));
+	}
+
+	[Fact]
+	public async Task SearchAsync_FilesInSubdirectory_AreFound()
+	{
+		CreateFile(Path.Combine("src", "Services", "MyService.cs"));
+
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "MyService", cancellationToken: TestContext.Current.CancellationToken);
+
+		results.Count.ShouldBe(1);
+		results[0].FileName.ShouldBe("MyService.cs");
+	}
+
 	// -----------------------------------------------------------------------
 	// Skip dirs
 
@@ -89,6 +131,17 @@ public sealed class FileSearchFeatureTests : IDisposable
 	[InlineData("bin")]
 	[InlineData("obj")]
 	[InlineData(".vs")]
+	[InlineData(".vscode")]
+	[InlineData(".idea")]
+	[InlineData("__pycache__")]
+	[InlineData(".next")]
+	[InlineData("dist")]
+	[InlineData("build")]
+	[InlineData("out")]
+	[InlineData(".cache")]
+	[InlineData("coverage")]
+	[InlineData("packages")]
+	[InlineData(".nuget")]
 	public async Task SearchAsync_SkipsKnownDirectories(string skipDir)
 	{
 		CreateFile(Path.Combine(skipDir, "hidden.cs"));
@@ -116,25 +169,36 @@ public sealed class FileSearchFeatureTests : IDisposable
 		results.Count.ShouldBeLessThanOrEqualTo(3);
 	}
 
+	[Fact]
+	public async Task SearchAsync_MaxResultsZero_ReturnsEmpty()
+	{
+		CreateFile("a.txt");
+		CreateFile("b.txt");
+
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, string.Empty, 0, TestContext.Current.CancellationToken);
+
+		results.ShouldBeEmpty();
+	}
+
 	// -----------------------------------------------------------------------
 	// Relevance ordering
 
 	[Fact]
 	public async Task SearchAsync_PrefixMatchesBeforeContainsMatches()
 	{
-		CreateFile("sub/foobaz.txt");  // contains "foo"
-		CreateFile("foobar.txt");      // prefix "foo"
+		CreateFile(Path.Combine("sub", "foobaz.txt")); // contains "foo"
+		CreateFile("foobar.txt");                       // prefix "foo"
 
 		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "foo", cancellationToken: TestContext.Current.CancellationToken);
 
 		results.Count.ShouldBe(2);
-		results[0].FileName.ShouldBe("foobar.txt");  // prefix match first
+		results[0].FileName.ShouldBe("foobar.txt"); // prefix match first
 	}
 
 	[Fact]
 	public async Task SearchAsync_ShallowerFilesBeforeDeeperFiles()
 	{
-		CreateFile("deep/sub/alpha.cs");
+		CreateFile(Path.Combine("deep", "sub", "alpha.cs"));
 		CreateFile("alpha.cs");
 
 		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "alpha", cancellationToken: TestContext.Current.CancellationToken);
@@ -143,8 +207,20 @@ public sealed class FileSearchFeatureTests : IDisposable
 		results[0].RelativePath.ShouldBe("alpha.cs");
 	}
 
+	[Fact]
+	public async Task SearchAsync_SameFileNameAtDifferentDepths_SortedShallowerFirst()
+	{
+		CreateFile("Component.cs");
+		CreateFile(Path.Combine("sub", "Component.cs"));
+
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, "Component", cancellationToken: TestContext.Current.CancellationToken);
+
+		results.Count.ShouldBe(2);
+		results[0].RelativePath.ShouldBe("Component.cs");
+	}
+
 	// -----------------------------------------------------------------------
-	// Non-existent / empty directory
+	// Non-existent / empty / invalid directory
 
 	[Fact]
 	public async Task SearchAsync_NonExistentDirectory_ReturnsEmpty()
@@ -158,6 +234,14 @@ public sealed class FileSearchFeatureTests : IDisposable
 	public async Task SearchAsync_EmptyDirectory_ReturnsEmpty()
 	{
 		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync(_root, string.Empty, cancellationToken: TestContext.Current.CancellationToken);
+
+		results.ShouldBeEmpty();
+	}
+
+	[Fact]
+	public async Task SearchAsync_WhitespaceDirectory_ReturnsEmpty()
+	{
+		IReadOnlyList<FileSearchResult> results = await _feature.SearchAsync("   ", string.Empty, cancellationToken: TestContext.Current.CancellationToken);
 
 		results.ShouldBeEmpty();
 	}

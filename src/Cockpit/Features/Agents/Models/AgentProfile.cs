@@ -1,6 +1,6 @@
 namespace Cockpit.Features.Agents.Models;
 
-public class AgentProfile
+public sealed class AgentProfile
 {
 	public required string Name { get; set; }
 	public string? DisplayName { get; set; }

@@ -11,7 +11,7 @@
 
         <!-- Preview -->
         <div class="pt-3 pb-0">
-            <p class="text-xs secondary-text mb-2 ml-4">Preview (@(string.IsNullOrEmpty(PreviewText) ? "0" : PreviewText.Split('\n').Length.ToString()) lines)</p>
+            <p class="text-xs secondary-text mb-2 ml-4">Preview (@_previewLineCount lines)</p>
             <div class="overflow-y-auto scrollbar-thin max-h-[40vh] pl-4">
                 <CodeBlock Code="@(string.IsNullOrEmpty(PreviewText) ? "(no terminal output available)" : PreviewText)" Language="powershell" />
             </div>

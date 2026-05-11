@@ -7,7 +7,7 @@ using XtermBlazor;
 
 namespace Cockpit.Components.Pages.ChatPanel.Terminal;
 
-public partial class TerminalPanel : IDisposable
+public partial class TerminalPanel : IAsyncDisposable, IDisposable
 {
 	[Parameter] public bool IsOpen { get; set; }
 	[Parameter] public string SessionId { get; set; } = string.Empty;
@@ -15,13 +15,13 @@ public partial class TerminalPanel : IDisposable
 
 	readonly TerminalFeature _terminalFeature;
 	readonly IJSRuntime _jsRuntime;
-	readonly UIStateFeature _uiStateFeature;
+	readonly IUIStateFeature _uiStateFeature;
 	readonly ILogger<TerminalPanel> _logger;
 
 	public TerminalPanel(
 		TerminalFeature terminalFeature,
 		IJSRuntime jsRuntime,
-		UIStateFeature uiStateFeature,
+		IUIStateFeature uiStateFeature,
 		ILogger<TerminalPanel> logger)
 	{
 		_terminalFeature = terminalFeature;
@@ -93,7 +93,17 @@ public partial class TerminalPanel : IDisposable
 
 	void OnUIStateChanged()
 	{
-		_ = InvokeAsync(async () => await Resize());
+		_ = InvokeAsync(async () =>
+		{
+			try
+			{
+				await Resize();
+			}
+			catch(Exception ex)
+			{
+				_logger.LogDebug(ex, "Failed to resize terminal after UI state change for session {SessionId}", SessionId);
+			}
+		});
 	}
 
 	async Task ToggleFullscreen()
@@ -131,11 +141,25 @@ public partial class TerminalPanel : IDisposable
 			return;
 		}
 
-		await Task.Delay(100);
+		await Task.Delay(100); // Allow the DOM to settle before accessing the terminal element
 
-		// Try to create session (returns true if new, false if already exists)
+		// Re-check after delay: panel may have been closed or disposed during the 100ms wait
+		if(!IsOpen || _terminal is null || _isTerminalInitialized || _disposed)
+		{
+			return;
+		}
+
+		// Try to create session (true = new, false = already exists or failed)
 		string workDir = !string.IsNullOrEmpty(WorkingDirectory) ? WorkingDirectory : Directory.GetCurrentDirectory();
 		await _terminalFeature.CreateSession(SessionId, workDir);
+
+		// If no session exists (creation genuinely failed), bail out so the UI
+		// is not left showing an active terminal with no backing process.
+		if(_terminalFeature.GetSession(SessionId) is null)
+		{
+			_logger.LogError("Failed to create terminal session for {SessionId}", SessionId);
+			return;
+		}
 
 		// Restore buffered output (works for both new and existing sessions)
 		if(!_hasRestoredBuffer)
@@ -163,12 +187,14 @@ public partial class TerminalPanel : IDisposable
 	}
 
 	DotNetObjectReference<TerminalPanel>? _dotNetRef;
+	IJSObjectReference? _windowResizeRef;
+	IJSObjectReference? _elementResizeRef;
 
 	async Task OnTerminalFirstRender()
 	{
 		_dotNetRef = DotNetObjectReference.Create(this);
-		await _jsRuntime.InvokeVoidAsync("xtermInterop.registerWindowResize", _terminalId, _dotNetRef);
-		await _jsRuntime.InvokeVoidAsync("xtermInterop.observeElementResize", _terminalId, _dotNetRef);
+		_windowResizeRef = await _jsRuntime.InvokeAsync<IJSObjectReference>("xtermInterop.registerWindowResize", _terminalId, _dotNetRef);
+		_elementResizeRef = await _jsRuntime.InvokeAsync<IJSObjectReference>("xtermInterop.observeElementResize", _terminalId, _dotNetRef);
 		await Resize();
 	}
 
@@ -231,8 +257,6 @@ public partial class TerminalPanel : IDisposable
 		await _terminalFeature.WriteAsync(SessionId, data);
 	}
 
-	// Event handler must be async void to match event signature
-	// Top-level exception handling ensures app doesn't crash
 	async void OnTerminalData(string sessionId, string data)
 	{
 		if(sessionId != SessionId || _terminal is null || !_isSessionActive)
@@ -242,47 +266,11 @@ public partial class TerminalPanel : IDisposable
 
 		try
 		{
-			await InvokeAsync(async () =>
-			{
-				try
-				{
-					await _terminal.Write(data);
-				}
-				catch(Exception ex)
-				{
-					_logger.LogDebug(ex, "Failed to write data to terminal for session {SessionId}", sessionId);
-				}
-			});
+			await InvokeAsync(() => _terminal.Write(data));
 		}
 		catch(Exception ex)
 		{
-			// Log unhandled exceptions from async void to prevent app crash
-			_logger.LogError(ex, "Unhandled exception in terminal data event handler for session {SessionId}", sessionId);
-
-			// Surface a minimal error indication to the user in the terminal itself
-			try
-			{
-				if(_terminal is not null)
-				{
-					await InvokeAsync(async () =>
-					{
-						try
-						{
-							await _terminal.Write("\r\n[Error] Failed to deliver terminal output. See logs for details.\r\n");
-						}
-						catch(Exception writeEx)
-						{
-							// Swallow any secondary errors while reporting the failure
-							_logger.LogDebug(writeEx, "Failed to write error message to terminal for session {SessionId}", sessionId);
-						}
-					});
-				}
-			}
-			catch(Exception notifyEx)
-			{
-				// As a final safeguard, ignore any errors while attempting to notify the user
-				_logger.LogDebug(notifyEx, "Failed to notify user of terminal error for session {SessionId}", sessionId);
-			}
+			_logger.LogDebug(ex, "Failed to deliver terminal output for session {SessionId}", sessionId);
 		}
 	}
 
@@ -298,11 +286,40 @@ public partial class TerminalPanel : IDisposable
 				_terminalFeature.OnDataReceived -= OnTerminalData;
 				_uiStateFeature.OnStateChanged -= OnUIStateChanged;
 				_dotNetRef?.Dispose();
-				//! Important: Don't close the session - keep it alive for when we switch back
+				// Important: Don't close the session - keep it alive for when we switch back
 			}
 			// Free unmanaged resources if any
 			_disposed = true;
 		}
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		// Disconnect JS observers before disposing the DotNetObjectReference so
+		// the observers stop invoking .NET callbacks and don't hold a stale ref.
+		try
+		{
+			if(_windowResizeRef is not null)
+			{
+				await _windowResizeRef.InvokeVoidAsync("dispose");
+				await _windowResizeRef.DisposeAsync();
+				_windowResizeRef = null;
+			}
+
+			if(_elementResizeRef is not null)
+			{
+				await _elementResizeRef.InvokeVoidAsync("dispose");
+				await _elementResizeRef.DisposeAsync();
+				_elementResizeRef = null;
+			}
+		}
+		catch(Exception ex)
+		{
+			_logger.LogDebug(ex, "Failed to unregister terminal observers for session {SessionId}", SessionId);
+		}
+
+		Dispose(true);
+		GC.SuppressFinalize(this);
 	}
 
 	async Task Reset()
@@ -312,8 +329,7 @@ public partial class TerminalPanel : IDisposable
 			return;
 		}
 
-		// Clear buffered output and restart PTY
-		_terminalFeature.SoftClear(SessionId);
+		// Restart PTY (RestartSession internally clears the buffer before restarting)
 		await _terminalFeature.RestartSession(SessionId, WorkingDirectory ?? Directory.GetCurrentDirectory());
 		_hasRestoredBuffer = false;
 		_isSessionActive = true;

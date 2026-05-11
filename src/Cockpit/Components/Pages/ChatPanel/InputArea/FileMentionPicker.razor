@@ -1,12 +1,12 @@
 @namespace Cockpit.Components.Pages.ChatPanel.InputArea
 
-@if(Visible && _filteredFiles.Count > 0)
+@if(Visible && Files.Count > 0)
 {
     <div class="file-mention-picker" @onmousedown:preventDefault>
         <div class="file-mention-picker-list">
-            @for(int i = 0; i < _filteredFiles.Count; i++)
+            @for(int i = 0; i < Files.Count; i++)
             {
-                var file = _filteredFiles[i];
+                var file = Files[i];
                 int idx = i;
                 <div class="file-mention-picker-item @(i == SelectedIndex ? "active" : "")"
                      id="picker-item-@i"
@@ -23,7 +23,7 @@
         </div>
     </div>
 }
-else if(Visible && _filteredFiles.Count == 0 && !string.IsNullOrEmpty(Filter))
+else if(Visible && Files.Count == 0 && !string.IsNullOrEmpty(Filter))
 {
     <div class="file-mention-picker">
         <div class="file-mention-picker-empty">No files found</div>

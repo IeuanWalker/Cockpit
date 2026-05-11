@@ -14,6 +14,10 @@ public sealed class PluginsFeature
 		_logger = logger;
 	}
 
+	/// <summary>
+	/// Queries the SDK for all plugins associated with <paramref name="sdkSession"/>.
+	/// Returns an empty list on SDK failure; re-throws on cancellation.
+	/// </summary>
 #pragma warning disable GHCP001
 	public async Task<List<SdkPlugin>> LoadSessionPluginsAsync(CopilotSession sdkSession, CancellationToken cancellationToken = default)
 	{
@@ -23,7 +27,11 @@ public sealed class PluginsFeature
 			_logger.LogInformation("Discovered {Count} plugins for session", result.Plugins.Count);
 			return [.. result.Plugins];
 		}
-		catch (Exception ex)
+		catch(OperationCanceledException)
+		{
+			throw;
+		}
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load plugins from SDK");
 			return [];
@@ -31,7 +39,7 @@ public sealed class PluginsFeature
 	}
 #pragma warning restore GHCP001
 
-	/// <summary>Returns a formatted version string, falling back to "unknown" when null, empty, or whitespace.</summary>
+	/// <summary>Returns a formatted version string, falling back to <c>"unknown"</c> when <paramref name="version"/> is <see langword="null"/>, empty, or whitespace.</summary>
 	public static string FormatVersion(string? version)
 		=> string.IsNullOrWhiteSpace(version) ? "unknown" : version;
 }

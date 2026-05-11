@@ -1,5 +1,6 @@
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Models;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
@@ -50,8 +51,9 @@ public sealed partial class Agents : ComponentBase, IDisposable
 
 	void Refresh()
 	{
-		_allAgents = [.. _sessionListFeature.CurrentSession?.Context.Agents ?? []];
-		_selectedAgent = _sessionListFeature.CurrentSession?.Context.SelectedAgent;
+		SessionModel? session = _sessionListFeature.CurrentSession;
+		_allAgents = [.. session?.Context.Agents ?? []];
+		_selectedAgent = session?.Context.SelectedAgent;
 	}
 
 	public void Dispose()

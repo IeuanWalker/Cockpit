@@ -1,9 +1,9 @@
-@namespace Cockpit.Components.Pages.ChatPanel.InputArea
+﻿@namespace Cockpit.Components.Pages.ChatPanel.InputArea
 
 <PickerControl @ref="_modelPicker"
                Title="Model"
                IsDisabled="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running || _sessionListFeature.CurrentSession?.PendingPermissionRequests?.Count > 0)"
-               TooltipText="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running ? "You can't change model while the agent is working" : null)"
+               TooltipText="@GetModelPickerTooltip()"
                DropdownMinWidth="250px">
     <SelectedContent>
         @(_sessionListFeature.CurrentSession?.Model.Name ?? "No Model")
@@ -15,7 +15,8 @@
     <DropdownContent>
         @foreach(var model in _availableModels)
         {
-            <button @onclick="() => SelectModel(model)"
+            <button type="button"
+                    @onclick="() => SelectModel(model)"
                     class="w-full px-3 py-1.5 text-xs hover:bg-app-hover flex items-center justify-between"
                     style="color: var(--text-color);">
                 <span class="text-left">@model.Name</span>
@@ -25,7 +26,10 @@
     </DropdownContent>
 </PickerControl>
 
-@if(_sessionListFeature.CurrentSession?.Model.SupportedReasoningEfforts?.Count > 0)
+@{
+    IList<string>? supportedEfforts = _sessionListFeature.CurrentSession?.Model.SupportedReasoningEfforts;
+}
+@if(supportedEfforts is { Count: > 0 })
 {
     <PickerControl @ref="_reasoningPicker"
                    Title="Reasoning"
@@ -37,16 +41,14 @@
             @GetSelectedReasoningEffortDisplay()
         </SelectedContent>
         <DropdownContent>
-            @if(_sessionListFeature.CurrentSession?.Model?.SupportedReasoningEfforts is not null)
+            @foreach(string effort in supportedEfforts.Where(e => !string.IsNullOrWhiteSpace(e)))
             {
-                @foreach(var effort in _sessionListFeature.CurrentSession.Model.SupportedReasoningEfforts)
-                {
-                    <button @onclick="() => SelectReasoningEffort(effort)"
-                            class="w-full px-3 py-1.5 text-xs hover:bg-app-hover text-left"
-                            style="color: var(--text-color);">
-                        @(char.ToUpper(effort[0]) + effort.Substring(1))@(effort == _sessionListFeature.CurrentSession.Model.DefaultReasoningEffort ? " (default)" : "")
-                    </button>
-                }
+                <button type="button"
+                        @onclick="() => SelectReasoningEffort(effort)"
+                        class="w-full px-3 py-1.5 text-xs hover:bg-app-hover text-left"
+                        style="color: var(--text-color);">
+                    @(char.ToUpper(effort[0]) + effort[1..])@(effort == _sessionListFeature.CurrentSession?.Model.DefaultReasoningEffort ? " (default)" : "")
+                </button>
             }
         </DropdownContent>
     </PickerControl>

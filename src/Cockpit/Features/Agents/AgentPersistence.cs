@@ -4,7 +4,7 @@ using Cockpit.Features.Sessions.Models;
 
 namespace Cockpit.Features.Agents;
 
-public class AgentPersistence
+public sealed class AgentPersistence
 {
 	public string? GetAgentFilePath(SessionModel session)
 	{
@@ -15,7 +15,7 @@ public class AgentPersistence
 		return Path.Combine(session.Context.WorkspacePath, "Cockpit", "session-agent.json");
 	}
 
-	public async Task SaveSessionAgent(SessionModel session)
+	public async Task SaveSessionAgentAsync(SessionModel session)
 	{
 		string? agentFilePath = GetAgentFilePath(session);
 		if(string.IsNullOrWhiteSpace(agentFilePath))
@@ -65,10 +65,11 @@ public class AgentPersistence
 
 			bool sourceFound = Enum.TryParse(agentSettings.GetValueOrDefault("AgentSource"), ignoreCase: true, out AgentSource agentSource);
 
-			AgentProfile? match = sourceFound
-				? allAgents.FirstOrDefault(a => string.Equals(a.Name, agentName, StringComparison.OrdinalIgnoreCase) && a.Source == agentSource)
-					?? allAgents.FirstOrDefault(a => string.Equals(a.Name, agentName, StringComparison.OrdinalIgnoreCase))
-				: allAgents.FirstOrDefault(a => string.Equals(a.Name, agentName, StringComparison.OrdinalIgnoreCase));
+			AgentProfile? match =
+				(sourceFound
+					? allAgents.FirstOrDefault(a => string.Equals(a.Name, agentName, StringComparison.OrdinalIgnoreCase) && a.Source == agentSource)
+					: null)
+				?? allAgents.FirstOrDefault(a => string.Equals(a.Name, agentName, StringComparison.OrdinalIgnoreCase));
 
 			session.Context.SelectedAgent = match;
 			return true;

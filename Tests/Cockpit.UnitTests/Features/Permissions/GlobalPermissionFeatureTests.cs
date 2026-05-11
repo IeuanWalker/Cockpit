@@ -299,6 +299,113 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	}
 
 	[Fact]
+	public void Persistence_SavesAndLoadsFromFile()
+	{
+		// Arrange - add commands to first instance (writes to file)
+		using GlobalPermissionFeature feature1 = CreateFeature();
+		feature1.Add("npm");
+		feature1.Add("yarn");
+
+		// Act - create new instance from the same file
+		using GlobalPermissionFeature feature2 = CreateFeature();
+
+		// Assert - commands loaded from disk
+		feature2.HasPermission("npm").ShouldBeTrue();
+		feature2.HasPermission("yarn").ShouldBeTrue();
+		feature2.GetAll().Count.ShouldBe(2);
+	}
+
+	[Fact]
+	public void Persistence_AfterRemove_RemovedCommandNotLoadedFromFile()
+	{
+		// Arrange
+		using GlobalPermissionFeature feature1 = CreateFeature();
+		feature1.Add("npm");
+		feature1.Add("yarn");
+		feature1.Remove("npm");
+
+		// Act
+		using GlobalPermissionFeature feature2 = CreateFeature();
+
+		// Assert
+		feature2.HasPermission("npm").ShouldBeFalse();
+		feature2.HasPermission("yarn").ShouldBeTrue();
+	}
+
+	[Fact]
+	public void Persistence_NoFileExists_StartsEmpty()
+	{
+		// Arrange - use a path that definitely doesn't exist
+		string nonExistentPath = Path.Combine(_testDirectory, "does-not-exist.json");
+
+		// Act & Assert - starts empty without throwing
+		Should.NotThrow(() =>
+		{
+			using GlobalPermissionFeature feature = new(NullLogger<GlobalPermissionFeature>.Instance, nonExistentPath);
+			feature.GetAll().ShouldBeEmpty();
+		});
+	}
+
+	[Fact]
+	public void GetAll_ReturnsCommandsInAlphabeticalOrder()
+	{
+		// Arrange
+		using GlobalPermissionFeature feature = CreateFeature();
+		feature.Add("yarn");
+		feature.Add("npm");
+		feature.Add("docker");
+
+		// Act
+		List<string> all = feature.GetAll();
+
+		// Assert
+		all.ShouldBe(["docker", "npm", "yarn"], ignoreOrder: false);
+	}
+
+	[Fact]
+	public void OnPermissionsChanged_NotFired_WhenDuplicateAdded()
+	{
+		// Arrange
+		using GlobalPermissionFeature feature = CreateFeature();
+		feature.Add("npm");
+		int eventCount = 0;
+		feature.OnPermissionsChanged += () => eventCount++;
+
+		// Act - add duplicate
+		feature.Add("npm");
+
+		// Assert
+		eventCount.ShouldBe(0);
+	}
+
+	[Fact]
+	public void HasPermission_SingleCommand_ReturnsCorrectly()
+	{
+		// Arrange
+		using GlobalPermissionFeature feature = CreateFeature();
+		feature.Add("npm");
+
+		// Act & Assert
+		feature.HasPermission("npm").ShouldBeTrue();
+		feature.HasPermission("yarn").ShouldBeFalse();
+	}
+
+	[Fact]
+	public void Remove_NonExistentCommand_DoesNotFireEvent()
+	{
+		// Arrange
+		using GlobalPermissionFeature feature = CreateFeature();
+		int eventCount = 0;
+		feature.OnPermissionsChanged += () => eventCount++;
+
+		// Act
+		feature.Remove("nonexistent");
+
+		// Assert
+		eventCount.ShouldBe(0);
+	}
+
+	[Fact]
 	public void Dispose_ReleasesResources()
 	{
 		// Arrange

@@ -1,6 +1,6 @@
 ﻿namespace Cockpit.Features.SessionEvents.Models;
 
-public class ThinkingEventModel
+public sealed class ThinkingEventModel
 {
 	public string? Id { get; set; }
 	public DateTime Timestamp { get; set; } = DateTime.Now;

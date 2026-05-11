@@ -9,19 +9,19 @@ using Plugin.Maui.Audio;
 
 namespace Cockpit.Features.Sounds;
 
-public sealed partial class SoundFeature : IDisposable
+public sealed class SoundFeature : IDisposable
 {
 	readonly IAudioManager _audioManager;
-	readonly PermissionFeature _permissionFeature;
-	readonly UserInputFeature _userInputFeature;
+	readonly IPermissionEventSource _permissionEventSource;
+	readonly IUserInputEventSource _userInputEventSource;
 	readonly IAppSettingsFeature _appSettings;
 	readonly ILogger<SoundFeature> _logger;
-	const long maxSoundFileSizeBytes = 10 * 1024 * 1024; // 10 MB
+	const long MaxSoundFileSizeBytes = 10 * 1024 * 1024; // 10 MB
 
 	readonly ConcurrentDictionary<string, byte[]> _soundBytes = new();
 
-	// Default raw asset per sound name. Both "permission" and "userInput" fall back to request.mp3.
-	static readonly Dictionary<string, string> defaultSoundAssets = new()
+	// Default raw asset per sound name. Both "permission" and "userInput" share request.mp3.
+	static readonly Dictionary<string, string> DefaultSoundAssets = new()
 	{
 		["permission"] = "Sounds/request.mp3",
 		["userInput"] = "Sounds/request.mp3",
@@ -39,21 +39,37 @@ public sealed partial class SoundFeature : IDisposable
 		_ => "finished"
 	};
 
+	bool GetEnabled(SoundEffectTypeEnum soundType) => soundType switch
+	{
+		SoundEffectTypeEnum.Permission => _appSettings.SoundPermissionEnabled,
+		SoundEffectTypeEnum.UserInput => _appSettings.SoundUserInputEnabled,
+		SoundEffectTypeEnum.Finished => _appSettings.SoundFinishedEnabled,
+		_ => false
+	};
+
+	double GetVolume(SoundEffectTypeEnum soundType) => soundType switch
+	{
+		SoundEffectTypeEnum.Permission => _appSettings.SoundPermissionVolume,
+		SoundEffectTypeEnum.UserInput => _appSettings.SoundUserInputVolume,
+		SoundEffectTypeEnum.Finished => _appSettings.SoundFinishedVolume,
+		_ => 0.5
+	};
+
 	public SoundFeature(
 		IAudioManager audioManager,
-		PermissionFeature permissionFeature,
-		UserInputFeature userInputFeature,
+		IPermissionEventSource permissionEventSource,
+		IUserInputEventSource userInputEventSource,
 		IAppSettingsFeature appSettings,
 		ILogger<SoundFeature> logger)
 	{
 		_audioManager = audioManager;
-		_permissionFeature = permissionFeature;
-		_userInputFeature = userInputFeature;
+		_permissionEventSource = permissionEventSource;
+		_userInputEventSource = userInputEventSource;
 		_appSettings = appSettings;
 		_logger = logger;
 
-		_permissionFeature.OnPermissionRequested += OnPermissionRequested;
-		_userInputFeature.OnUserInputRequested += OnUserInputRequested;
+		_permissionEventSource.OnPermissionRequested += OnPermissionRequested;
+		_userInputEventSource.OnUserInputRequested += OnUserInputRequested;
 		SessionIdleHandler.OnSessionFinished += OnSessionFinished;
 
 		_ = LoadAllSoundsAsync();
@@ -61,7 +77,7 @@ public sealed partial class SoundFeature : IDisposable
 
 	async Task LoadAllSoundsAsync()
 	{
-		await Task.WhenAll(defaultSoundAssets.Keys.Select(LoadSingleSoundAsync));
+		await Task.WhenAll(DefaultSoundAssets.Keys.Select(LoadSingleSoundAsync));
 	}
 
 	async Task LoadSingleSoundAsync(string soundName)
@@ -76,7 +92,7 @@ public sealed partial class SoundFeature : IDisposable
 			}
 			else
 			{
-				using Stream stream = await FileSystem.OpenAppPackageFileAsync(defaultSoundAssets[soundName]);
+				using Stream stream = await FileSystem.OpenAppPackageFileAsync(DefaultSoundAssets[soundName]);
 				using MemoryStream ms = new();
 				await stream.CopyToAsync(ms);
 				_soundBytes[soundName] = ms.ToArray();
@@ -94,7 +110,7 @@ public sealed partial class SoundFeature : IDisposable
 	/// </summary>
 	public async Task SetCustomSoundAsync(SoundEffectTypeEnum soundType, Stream stream, string displayFileName)
 	{
-		if(stream.CanSeek && stream.Length > maxSoundFileSizeBytes)
+		if(stream.CanSeek && stream.Length > MaxSoundFileSizeBytes)
 		{
 			throw new InvalidOperationException("The selected audio file exceeds the 10 MB size limit.");
 		}
@@ -106,7 +122,7 @@ public sealed partial class SoundFeature : IDisposable
 		try
 		{
 			await using FileStream fs = File.Create(customPath);
-			await CopyToAsyncWithSizeLimit(stream, fs, maxSoundFileSizeBytes);
+			await CopyToAsyncWithSizeLimit(stream, fs, MaxSoundFileSizeBytes);
 		}
 		catch
 		{
@@ -186,38 +202,23 @@ public sealed partial class SoundFeature : IDisposable
 	void OnSessionFinished() => _ = PlaySoundAsync(SoundEffectTypeEnum.Finished);
 
 	/// <summary>
-	/// Plays a sound. Pass <paramref name="forPreview"/> = <c>true</c> from the settings
-	/// page to bypass the per-sound enabled toggle.
+	/// Plays a sound. Pass <paramref name="forPreview"/> = <c>true</c> from the settings page
+	/// to bypass the per-sound enabled toggle.
 	/// </summary>
-	public async Task PlaySoundAsync(SoundEffectTypeEnum soundType, bool forPreview = false)
+	public Task PlaySoundAsync(SoundEffectTypeEnum soundType, bool forPreview = false)
 	{
-		bool enabled = soundType switch
+		if(!forPreview && !GetEnabled(soundType))
 		{
-			SoundEffectTypeEnum.Permission => _appSettings.SoundPermissionEnabled,
-			SoundEffectTypeEnum.UserInput => _appSettings.SoundUserInputEnabled,
-			SoundEffectTypeEnum.Finished => _appSettings.SoundFinishedEnabled,
-			_ => false
-		};
-
-		if(!forPreview && !enabled)
-		{
-			return;
+			return Task.CompletedTask;
 		}
 
 		string soundName = GetSoundName(soundType);
-
 		if(!_soundBytes.TryGetValue(soundName, out byte[]? bytes))
 		{
-			return;
+			return Task.CompletedTask;
 		}
 
-		double volume = soundType switch
-		{
-			SoundEffectTypeEnum.Permission => _appSettings.SoundPermissionVolume,
-			SoundEffectTypeEnum.UserInput => _appSettings.SoundUserInputVolume,
-			SoundEffectTypeEnum.Finished => _appSettings.SoundFinishedVolume,
-			_ => 0.5
-		};
+		double volume = GetVolume(soundType);
 
 		try
 		{
@@ -251,12 +252,14 @@ public sealed partial class SoundFeature : IDisposable
 		{
 			_logger.LogDebug(ex, "Failed to play sound effect {SoundType}", soundType);
 		}
+
+		return Task.CompletedTask;
 	}
 
 	public void Dispose()
 	{
-		_permissionFeature.OnPermissionRequested -= OnPermissionRequested;
-		_userInputFeature.OnUserInputRequested -= OnUserInputRequested;
+		_permissionEventSource.OnPermissionRequested -= OnPermissionRequested;
+		_userInputEventSource.OnUserInputRequested -= OnUserInputRequested;
 		SessionIdleHandler.OnSessionFinished -= OnSessionFinished;
 	}
 }

@@ -14,7 +14,7 @@ public sealed partial class SessionCommands : ComponentBase, IDisposable
 		_sessionListFeature = sessionListFeature;
 	}
 
-	public List<string> Commands { get; set; } = [];
+	List<string> Commands { get; set; } = [];
 
 	protected override void OnInitialized()
 	{
@@ -24,8 +24,11 @@ public sealed partial class SessionCommands : ComponentBase, IDisposable
 
 	void OnStateChanged()
 	{
-		RefreshCommands();
-		InvokeAsync(StateHasChanged);
+		InvokeAsync(() =>
+		{
+			RefreshCommands();
+			StateHasChanged();
+		});
 	}
 
 	void RefreshCommands()

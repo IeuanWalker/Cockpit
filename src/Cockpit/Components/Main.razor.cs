@@ -11,7 +11,7 @@ public partial class Main : ComponentBase, IDisposable
 		_sessionListFeature = sessionListFeature;
 	}
 
-	protected override async Task OnInitializedAsync()
+	protected override void OnInitialized()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;
 	}

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.TextToSpeech;
 
-public partial class TextToSpeechFeature : IDisposable
+public partial class TextToSpeechFeature : ITextToSpeechFeature
 {
 	public const float DefaultVoiceVolume = 1.0f;
 	public const float DefaultVoicePitch = 1.0f;
@@ -82,7 +82,7 @@ public partial class TextToSpeechFeature : IDisposable
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Text-to-speech error");
-			_toastService?.Error("Text-to-Speech Error", opts => opts.Description = ex.Message);
+			_toastService.Error("Text-to-Speech Error", opts => opts.Description = ex.Message);
 		}
 		finally
 		{

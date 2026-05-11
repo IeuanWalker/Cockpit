@@ -42,6 +42,7 @@ public class SessionPermissionFeatureTests
 		}
 
 		public IReadOnlyList<SessionModel> Sessions => _sessions;
+		public SessionModel? CurrentSession => _sessions.FirstOrDefault();
 		public void NotifyStateChanged() { }
 	}
 

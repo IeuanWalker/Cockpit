@@ -3,7 +3,7 @@ using Cockpit.Features.Connection;
 
 namespace Cockpit.Components.Pages.ContextPanel.ConnectionStatus;
 
-public partial class ConnectionStatusPopup
+public sealed partial class ConnectionStatusPopup
 {
 	readonly ConnectionFeature _connectionFeature;
 	public ConnectionStatusPopup(ConnectionFeature connectionFeature)

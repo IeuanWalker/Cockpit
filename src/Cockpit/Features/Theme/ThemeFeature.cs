@@ -5,13 +5,13 @@ using Microsoft.JSInterop;
 
 namespace Cockpit.Features.Theme;
 
-public class ThemeFeature
+public sealed class ThemeFeature : IThemeFeature, IDisposable
 {
 	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<ThemeFeature> _logger;
 	readonly IAppSettingsFeature _appSettings;
 	readonly ThemeStateFeature _themeStateFeature;
-	bool _isInitialized = false;
+	bool _isInitialized;
 
 	public event Action? OnThemeChanged;
 
@@ -19,18 +19,10 @@ public class ThemeFeature
 	public string AccentColor { get; private set; }
 	public string AccentHoverColor { get; private set; }
 
-	public bool IsLightTheme
-	{
-		get
-		{
-			if(CurrentTheme != ThemeEnum.System)
-			{
-				return CurrentTheme == ThemeEnum.Light;
-			}
-
-			return (Application.Current?.RequestedTheme ?? AppTheme.Dark) == AppTheme.Light;
-		}
-	}
+	public bool IsLightTheme =>
+		CurrentTheme != ThemeEnum.System
+			? CurrentTheme == ThemeEnum.Light
+			: (Application.Current?.RequestedTheme ?? AppTheme.Dark) == AppTheme.Light;
 
 	public ThemeFeature(
 		IJSRuntime jsRuntime,
@@ -79,29 +71,27 @@ public class ThemeFeature
 	{
 		bool isLight = IsLightTheme;
 
+		// Keep the MAUI resource dictionary in sync so native controls always reflect the theme.
+		if(Application.Current is not null)
+		{
+			Application.Current.Resources = isLight ? new LightTheme() : new DarkTheme();
+		}
+
+		// Apply the CSS theme class to the Blazor web layer.
 		if(Application.Current?.Windows?.FirstOrDefault()?.Page is MainPage mainPage)
 		{
-			if(isLight)
-			{
-				await mainPage.InvokeJavaScriptAsync("window.cockpit?.addBodyClass?.('light-theme');");
-			}
-			else
-			{
-				await mainPage.InvokeJavaScriptAsync("window.cockpit?.removeBodyClass?.('light-theme');");
-			}
+			// Called from outside the primary Blazor scope – dispatch through the native WebView API.
+			string js = isLight
+				? "window.cockpit?.addBodyClass?.('light-theme');"
+				: "window.cockpit?.removeBodyClass?.('light-theme');";
+			await mainPage.InvokeJavaScriptAsync(js);
 		}
 		else
 		{
-			if(isLight)
-			{
-				await _jsRuntime.InvokeVoidAsync("cockpit.addBodyClass", "light-theme");
-				Application.Current!.Resources = new LightTheme();
-			}
-			else
-			{
-				await _jsRuntime.InvokeVoidAsync("cockpit.removeBodyClass", "light-theme");
-				Application.Current!.Resources = new DarkTheme();
-			}
+			// Called from within the primary Blazor scope – use the injected JSRuntime.
+			await _jsRuntime.InvokeVoidAsync(
+				isLight ? "cockpit.addBodyClass" : "cockpit.removeBodyClass",
+				"light-theme");
 		}
 
 		_themeStateFeature.Update(isLight, AccentColor, AccentHoverColor);
@@ -125,9 +115,17 @@ public class ThemeFeature
 		await _jsRuntime.InvokeVoidAsync("cockpit.setAccentColor", AccentColor, AccentHoverColor);
 	}
 
+	public void Dispose()
+	{
+		if(Application.Current is not null)
+		{
+			Application.Current.RequestedThemeChanged -= OnRequestedThemeChanged;
+		}
+	}
+
 	async void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e)
 	{
-		if(!CurrentTheme.Equals(ThemeEnum.System))
+		if(CurrentTheme != ThemeEnum.System)
 		{
 			return;
 		}
@@ -147,45 +145,37 @@ public class ThemeFeature
 
 	static void UpdateTitleBarTheme(ThemeEnum theme)
 	{
-		App? app = Application.Current as App;
-		bool isLightTheme = theme == ThemeEnum.Light;
-
-		if(app is not null)
+		if(Application.Current is not App app)
 		{
-			// Keep MAUI application theme in sync so Windows caption button colors update correctly.
-			app.UserAppTheme = theme switch
-			{
-				ThemeEnum.Light => AppTheme.Light,
-				ThemeEnum.Dark => AppTheme.Dark,
-				_ => AppTheme.Unspecified
-			};
-
-			if(theme == ThemeEnum.System)
-			{
-				isLightTheme = app.RequestedTheme == AppTheme.Light;
-			}
+			return;
 		}
 
-		// Update title bar on all open windows
-		if(app is not null)
+		// Keep MAUI application theme in sync so Windows caption button colors update correctly.
+		app.UserAppTheme = theme switch
 		{
-			Color bg = isLightTheme ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
-			Color fg = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
+			ThemeEnum.Light => AppTheme.Light,
+			ThemeEnum.Dark => AppTheme.Dark,
+			_ => AppTheme.Unspecified
+		};
 
-			foreach(Window window in app.Windows)
+		bool isLight = theme == ThemeEnum.Light ||
+			(theme == ThemeEnum.System && app.RequestedTheme == AppTheme.Light);
+
+		Color bg = isLight ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
+		Color fg = isLight ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
+
+		foreach(Window window in app.Windows)
+		{
+			if(window.TitleBar is TitleBar titleBar)
 			{
-				if(window.TitleBar is TitleBar titleBar)
-				{
-					titleBar.BackgroundColor = bg;
-					titleBar.ForegroundColor = fg;
+				titleBar.BackgroundColor = bg;
+				titleBar.ForegroundColor = fg;
 
-					// Also update any Label inside LeadingContent (e.g. "Log Viewer" label)
-					if(titleBar.LeadingContent is HorizontalStackLayout hsl)
+				if(titleBar.LeadingContent is HorizontalStackLayout hsl)
+				{
+					foreach(Label label in hsl.Children.OfType<Label>())
 					{
-						foreach(Label label in hsl.Children.OfType<Label>())
-						{
-							label.TextColor = fg;
-						}
+						label.TextColor = fg;
 					}
 				}
 			}

@@ -8,12 +8,12 @@ namespace Cockpit.Components.Popups.Settings;
 
 public partial class VoiceSettings : ComponentBase, IDisposable
 {
-	readonly UIStateFeature _uiStateFeature;
-	readonly TextToSpeechFeature _textToSpeechFeature;
+	readonly IUIStateFeature _uiStateFeature;
+	readonly ITextToSpeechFeature _textToSpeechFeature;
 	readonly IAppSettingsFeature _appSettingsFeature;
 	public VoiceSettings(
-		UIStateFeature uiState,
-		TextToSpeechFeature textToSpeechFeature,
+		IUIStateFeature uiState,
+		ITextToSpeechFeature textToSpeechFeature,
 		IAppSettingsFeature appSettings)
 	{
 		_uiStateFeature = uiState;
@@ -97,7 +97,7 @@ public partial class VoiceSettings : ComponentBase, IDisposable
 
 	void OnStateChanged()
 	{
-		InvokeAsync(StateHasChanged);
+		_ = InvokeAsync(StateHasChanged);
 	}
 
 	public void Dispose()

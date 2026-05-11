@@ -8,6 +8,11 @@ static class SessionShutdownHandler
 {
 	internal static void Handle(SessionModel session, SessionShutdownEvent evt, ILogger logger)
 	{
+		if(evt.Data is null)
+		{
+			return;
+		}
+
 		logger.LogInformation("Session {SessionId} shutdown — type: {ShutdownType}, requests: {Requests}, duration: {Duration}ms",
 			session.Id, evt.Data.ShutdownType, evt.Data.TotalPremiumRequests, evt.Data.TotalApiDurationMs);
 

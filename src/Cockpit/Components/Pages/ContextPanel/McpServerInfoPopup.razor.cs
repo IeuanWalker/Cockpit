@@ -32,9 +32,9 @@ public partial class McpServerInfoPopup : ComponentBase
 	{
 		_servers = [.. servers];
 		_sessionId = _sessionListFeature.CurrentSession?.Id;
+		_selectedServer = selectedServer;
 		_needsSplitInit = true;
 		_popup?.Open();
-		SelectServer(selectedServer);
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -49,7 +49,6 @@ public partial class McpServerInfoPopup : ComponentBase
 	void SelectServer(McpServer server)
 	{
 		_selectedServer = server;
-		StateHasChanged();
 	}
 
 	async Task ToggleServer(McpServer server)
@@ -112,16 +111,8 @@ public partial class McpServerInfoPopup : ComponentBase
 		}
 
 		_servers = [.. session.Context.McpServers];
-		McpServer? refreshed = _servers.FirstOrDefault(s => s.Name == _selectedServer?.Name);
-		_selectedServer = refreshed ?? _selectedServer;
+		_selectedServer = _servers.FirstOrDefault(s => s.Name == _selectedServer?.Name);
 	}
 
-	static string GetStatusColor(McpServerStatus status) => status switch
-	{
-		McpServerStatus.Connected => "text-green-400",
-		McpServerStatus.Failed => "text-red-400",
-		McpServerStatus.NeedsAuth => "text-yellow-400",
-		McpServerStatus.Disabled => "secondary-text",
-		_ => "text-yellow-400"
-	};
+	static string GetStatusColor(McpServerStatus status) => McpFeature.GetStatusColor(status);
 }

@@ -8,9 +8,54 @@ namespace Cockpit.Features.Git;
 public sealed partial class GitFeature
 {
 	readonly ILogger<GitFeature> _logger;
+	readonly Func<string, string[], Task<string?>> _runCommand;
+
 	public GitFeature(ILogger<GitFeature> logger)
+		: this(logger, RunGitAsync)
+	{
+	}
+
+	// Internal constructor used by unit tests to inject a fake command runner.
+	internal GitFeature(ILogger<GitFeature> logger, Func<string, string[], Task<string?>> runCommand)
 	{
 		_logger = logger;
+		_runCommand = runCommand;
+	}
+
+	Task<string?> RunCommand(string workingDirectory, params string[] arguments) =>
+		_runCommand(workingDirectory, arguments);
+
+	static async Task<string?> RunGitAsync(string workingDirectory, string[] arguments)
+	{
+		try
+		{
+			ProcessStartInfo psi = new("git")
+			{
+				WorkingDirectory = workingDirectory,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				UseShellExecute = false,
+				CreateNoWindow = true,
+				StandardOutputEncoding = Encoding.UTF8
+			};
+
+			foreach(string arg in arguments)
+			{
+				psi.ArgumentList.Add(arg);
+			}
+
+			using Process process = Process.Start(psi)!;
+			// Read stdout and stderr concurrently to prevent deadlock on large output.
+			Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
+			Task<string> stderrTask = process.StandardError.ReadToEndAsync();
+			await Task.WhenAll(stdoutTask, stderrTask, process.WaitForExitAsync());
+
+			return process.ExitCode == 0 ? stdoutTask.Result.TrimEnd() : null;
+		}
+		catch
+		{
+			return null;
+		}
 	}
 
 	/// <summary>
@@ -21,14 +66,16 @@ public sealed partial class GitFeature
 	{
 		try
 		{
-			string? gitRoot = await RunCommand(workingDirectory, "rev-parse", "--show-toplevel");
-			if(!string.IsNullOrEmpty(gitRoot))
-			{
-				gitRoot = Path.GetFullPath(gitRoot);
-			}
-			string? branch = await RunCommand(workingDirectory, "rev-parse", "--abbrev-ref", "HEAD");
-			string? remoteUrl = await RunCommand(workingDirectory, "remote", "get-url", "origin");
+			// Run all three git queries in parallel to minimise latency.
+			Task<string?> rootTask = RunCommand(workingDirectory, "rev-parse", "--show-toplevel");
+			Task<string?> branchTask = RunCommand(workingDirectory, "rev-parse", "--abbrev-ref", "HEAD");
+			Task<string?> remoteTask = RunCommand(workingDirectory, "remote", "get-url", "origin");
 
+			await Task.WhenAll(rootTask, branchTask, remoteTask);
+
+			string? gitRoot = string.IsNullOrEmpty(rootTask.Result) ? rootTask.Result : Path.GetFullPath(rootTask.Result);
+
+			string? remoteUrl = remoteTask.Result;
 			string? repository = null;
 			if(!string.IsNullOrEmpty(remoteUrl))
 			{
@@ -37,7 +84,7 @@ public sealed partial class GitFeature
 				repository = Path.GetFileNameWithoutExtension(lastSegment);
 			}
 
-			return new GitContext { GitRoot = gitRoot, Repository = repository, Branch = branch };
+			return new GitContext { GitRoot = gitRoot, Repository = repository, Branch = branchTask.Result };
 		}
 		catch(Exception ex)
 		{
@@ -48,6 +95,7 @@ public sealed partial class GitFeature
 
 	/// <summary>
 	/// Returns the current branch name for a git repository, or null if not in a repo.
+	/// Returns "HEAD" when in detached-HEAD state.
 	/// </summary>
 	public Task<string?> GetBranch(string gitRoot) => RunCommand(gitRoot, "rev-parse", "--abbrev-ref", "HEAD");
 
@@ -56,81 +104,174 @@ public sealed partial class GitFeature
 	/// </summary>
 	public async Task<List<GitChangedFileModel>> GetChangedFiles(string gitRoot)
 	{
-		List<GitChangedFileModel> results = [];
-
 		try
 		{
 			string? output = await RunCommand(gitRoot, "status", "--porcelain");
 			if(string.IsNullOrEmpty(output))
 			{
-				return results;
+				return [];
 			}
 
-			foreach(string line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-			{
-				if(line.Length < 4)
-				{
-					continue;
-				}
+			// First pass: resolve all file paths and statuses (expand untracked directories).
+			List<(string FilePath, GitFileStatusEnum Status)> fileEntries = ParsePorcelainOutput(output, gitRoot);
 
-				// If untracked directory, recursively enumerate files
-				if(line[0] == '?' && line[1] == '?' && line.Last().Equals('/'))
+			// Second pass: fetch all diffs concurrently with bounded parallelism.
+			using SemaphoreSlim semaphore = new(8);
+			GitChangedFileModel?[] results = await Task.WhenAll(
+				fileEntries.Select(async e =>
 				{
-					string dirPath = line[3..].Trim();
-					string fullDirPath = Path.Combine(gitRoot, dirPath);
-					if(Directory.Exists(fullDirPath))
+					await semaphore.WaitAsync();
+					try
 					{
-						foreach(string untrackedFile in Directory.EnumerateFiles(fullDirPath, "*", SearchOption.AllDirectories))
-						{
-							GitChangedFileModel fileModel = new()
-							{
-								Name = Path.GetFileName(untrackedFile),
-								Path = Path.GetRelativePath(gitRoot, untrackedFile),
-								Status = GitFileStatusEnum.Added,
-								Diff = await GetDiffAsync(gitRoot, Path.GetRelativePath(gitRoot, untrackedFile), GitFileStatusEnum.Untracked)
-							};
-							results.Add(fileModel);
-						}
+						return await BuildFileModelAsync(gitRoot, e.FilePath, e.Status);
 					}
-					continue;
-				}
+					finally
+					{
+						semaphore.Release();
+					}
+				}));
 
-				char staged = line[0];
-				char unstaged = line[1];
-				string filePath = line[3..].Trim();
-
-				// Handle renames: "old.txt -> new.txt" — take the new name
-				if(filePath.Contains(" -> "))
-				{
-					filePath = filePath.Split(" -> ")[1];
-				}
-
-				GitFileStatusEnum status = (staged, unstaged) switch
-				{
-					('?', '?') => GitFileStatusEnum.Untracked,
-					('A', _) => GitFileStatusEnum.Added,
-					('D', _) or (_, 'D') => GitFileStatusEnum.Deleted,
-					('R', _) => GitFileStatusEnum.Renamed,
-					_ => GitFileStatusEnum.Modified
-				};
-
-				GitChangedFileModel file = new()
-				{
-					Name = Path.GetFileName(filePath),
-					Path = filePath,
-					Status = status,
-					Diff = await GetDiffAsync(gitRoot, filePath, status)
-				};
-
-				results.Add(file);
-			}
+			return [.. results.OfType<GitChangedFileModel>()];
 		}
 		catch(Exception ex)
 		{
 			_logger.LogWarning(ex, "Failed to get changed files for {GitRoot}", gitRoot);
+			return [];
+		}
+	}
+
+	/// <summary>
+	/// Parses <c>git status --porcelain</c> output into (filePath, status) pairs.
+	/// Untracked directories are expanded to their constituent files.
+	/// </summary>
+	internal static List<(string FilePath, GitFileStatusEnum Status)> ParsePorcelainOutput(string output, string gitRoot)
+	{
+		List<(string, GitFileStatusEnum)> entries = [];
+
+		foreach(string line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+		{
+			if(line.Length < 4)
+			{
+				continue;
+			}
+
+			char staged = line[0];
+			char unstaged = line[1];
+			string path = UnescapeGitPath(line[3..].Trim());
+
+			if(staged == '?' && unstaged == '?')
+			{
+				// Untracked directory — recurse into it.
+				if(path.EndsWith('/'))
+				{
+					string fullDir = Path.Combine(gitRoot, path);
+					if(Directory.Exists(fullDir))
+					{
+						foreach(string file in Directory.EnumerateFiles(fullDir, "*", SearchOption.AllDirectories))
+						{
+							entries.Add((Path.GetRelativePath(gitRoot, file), GitFileStatusEnum.Untracked));
+						}
+					}
+				}
+				else
+				{
+					entries.Add((path, GitFileStatusEnum.Untracked));
+				}
+				continue;
+			}
+
+			// Handle renames: "old.txt -> new.txt" — take the new name.
+			if(path.Contains(" -> "))
+			{
+				path = path.Split(" -> ")[1];
+			}
+
+			GitFileStatusEnum status = ClassifyStatus(staged, unstaged);
+			entries.Add((path, status));
 		}
 
-		return results;
+		return entries;
+	}
+
+	/// <summary>
+	/// Maps a pair of git porcelain status characters to a <see cref="GitFileStatusEnum"/>.
+	/// </summary>
+	internal static GitFileStatusEnum ClassifyStatus(char staged, char unstaged) =>
+		(staged, unstaged) switch
+		{
+			('A', _) => GitFileStatusEnum.Added,
+			('D', _) or (_, 'D') => GitFileStatusEnum.Deleted,
+			('R', _) => GitFileStatusEnum.Renamed,
+			_ => GitFileStatusEnum.Modified
+		};
+
+	/// <summary>
+	/// Strips the surrounding double-quotes from a git C-quoted path and unescapes the contents.
+	/// Paths without quotes are returned unchanged.
+	/// </summary>
+	static string UnescapeGitPath(string raw)
+	{
+		if(raw.Length < 2 || raw[0] != '"' || raw[^1] != '"')
+		{
+			return raw;
+		}
+
+		string inner = raw[1..^1];
+		StringBuilder sb = new(inner.Length);
+		int i = 0;
+		while(i < inner.Length)
+		{
+			if(inner[i] != '\\' || i + 1 >= inner.Length)
+			{
+				sb.Append(inner[i++]);
+				continue;
+			}
+
+			char esc = inner[++i];
+			switch(esc)
+			{
+				case 'n':  sb.Append('\n'); i++; break;
+				case 't':  sb.Append('\t'); i++; break;
+				case '"':  sb.Append('"');  i++; break;
+				case '\\': sb.Append('\\'); i++; break;
+				default:
+					// Octal escape: \NNN
+					if(esc >= '0' && esc <= '7' && i + 2 < inner.Length)
+					{
+						int octal = (esc - '0') * 64 + (inner[i + 1] - '0') * 8 + (inner[i + 2] - '0');
+						sb.Append((char)octal);
+						i += 3;
+					}
+					else
+					{
+						sb.Append('\\');
+						sb.Append(esc);
+						i++;
+					}
+					break;
+			}
+		}
+
+		return sb.ToString();
+	}
+
+	async Task<GitChangedFileModel?> BuildFileModelAsync(string gitRoot, string filePath, GitFileStatusEnum status)
+	{
+		try
+		{
+			string? diff = await GetDiffAsync(gitRoot, filePath, status);
+			return new GitChangedFileModel
+			{
+				Name = Path.GetFileName(filePath),
+				Path = filePath,
+				Status = status,
+				Diff = diff
+			};
+		}
+		catch
+		{
+			return null;
+		}
 	}
 
 	/// <summary>
@@ -142,50 +283,59 @@ public sealed partial class GitFeature
 		FileSystemWatcher watcher = new(gitRoot)
 		{
 			IncludeSubdirectories = true,
-			NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
-			EnableRaisingEvents = true
+			NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName
+			// EnableRaisingEvents is set after handlers are attached to avoid a race where
+			// FS events could fire before any handler is registered.
 		};
 
-		// Debounce to avoid flooding callbacks on bulk changes
+		// Debounce to avoid flooding callbacks on bulk changes.
 		System.Timers.Timer debounce = new(300)
 		{
 			AutoReset = false
 		};
 
 		int running = 0;
+		int pending = 0;
 		debounce.Elapsed += async (_, _) =>
 		{
 			if(Interlocked.CompareExchange(ref running, 1, 0) != 0)
 			{
+				// Another execution is in progress; record that new events arrived so
+				// it will re-run after finishing rather than silently dropping them.
+				Interlocked.Exchange(ref pending, 1);
 				return;
 			}
 
-			try
+			do
 			{
-				await onChanged();
+				Interlocked.Exchange(ref pending, 0);
+				try
+				{
+					await onChanged();
+				}
+				catch(Exception ex)
+				{
+					_logger.LogError(ex, "GitFeature.Watch callback exception");
+				}
 			}
-			catch(Exception ex)
-			{
-				_logger.LogError(ex, "GitFeature.Watch callback exception");
-			}
+			while(Interlocked.CompareExchange(ref pending, 0, 0) == 1);
 
 			Interlocked.Exchange(ref running, 0);
 		};
 
-		watcher.Changed += handler;
-		watcher.Created += handler;
-		watcher.Deleted += handler;
-		watcher.Renamed += (_, e) =>
-		{
-			debounce.Stop();
-			debounce.Start();
-		};
+		watcher.Changed += OnFsEvent;
+		watcher.Created += OnFsEvent;
+		watcher.Deleted += OnFsEvent;
+		// RenamedEventArgs derives from FileSystemEventArgs so the same handler works.
+		watcher.Renamed += (_, e) => OnFsEvent(null!, e);
+		// Start raising events only after all handlers are attached.
+		watcher.EnableRaisingEvents = true;
 
 		return new GitWatcher(watcher, debounce);
 
-		void handler(object _, FileSystemEventArgs e)
+		void OnFsEvent(object _, FileSystemEventArgs e)
 		{
-			// Ignore internal git object churn
+			// Ignore internal git object churn.
 			if(e.FullPath.Contains(Path.DirectorySeparatorChar + ".git" + Path.DirectorySeparatorChar + "objects"))
 			{
 				return;
@@ -219,7 +369,7 @@ public sealed partial class GitFeature
 			return await GetUntrackedFileDiffAsync(gitRoot, filePath);
 		}
 
-		// working-tree vs index (unstaged changes); if nothing unstaged, try index vs HEAD (staged-only)
+		// working-tree vs index (unstaged changes); if nothing unstaged, try index vs HEAD (staged-only).
 		string? diff = await RunCommand(gitRoot, "diff", "--", fullPath);
 		if(!string.IsNullOrEmpty(diff))
 		{
@@ -235,10 +385,12 @@ public sealed partial class GitFeature
 		{
 			string fullPath = Path.Combine(gitRoot, filePath);
 			string content = await File.ReadAllTextAsync(fullPath);
-			// Format as a pseudo-diff so consumers can treat all diffs uniformly
-			string[] lines = content.Split('\n');
+			// Trim trailing newline so Split doesn't produce a spurious empty element,
+			// which would make the hunk header count wrong and emit a lone "+" line.
+			string trimmed = content.TrimEnd('\n');
+			string[] lines = trimmed.Length == 0 ? [] : trimmed.Split('\n');
 			StringBuilder sb = new();
-			sb.AppendLine($"--- /dev/null");
+			sb.AppendLine("--- /dev/null");
 			sb.AppendLine($"+++ b/{filePath}");
 			sb.AppendLine($"@@ -0,0 +1,{lines.Length} @@");
 			foreach(string line in lines)
@@ -255,46 +407,17 @@ public sealed partial class GitFeature
 		}
 	}
 
-	async Task<string?> RunCommand(string workingDirectory, params string[] arguments)
-	{
-		try
-		{
-			ProcessStartInfo psi = new("git")
-			{
-				WorkingDirectory = workingDirectory,
-				RedirectStandardOutput = true,
-				RedirectStandardError = true,
-				UseShellExecute = false,
-				CreateNoWindow = true,
-				StandardOutputEncoding = Encoding.UTF8
-			};
-
-			foreach(string arg in arguments)
-			{
-				psi.ArgumentList.Add(arg);
-			}
-
-			using Process process = Process.Start(psi)!;
-			string output = await process.StandardOutput.ReadToEndAsync();
-			await process.WaitForExitAsync();
-
-			return process.ExitCode == 0 ? output.TrimEnd() : null;
-		}
-		catch
-		{
-			return null;
-		}
-	}
-
-	sealed partial class GitWatcher : IDisposable
+	sealed class GitWatcher : IDisposable
 	{
 		readonly FileSystemWatcher _watcher;
 		readonly System.Timers.Timer _debounce;
+
 		public GitWatcher(FileSystemWatcher watcher, System.Timers.Timer debounce)
 		{
 			_watcher = watcher;
 			_debounce = debounce;
 		}
+
 		public void Dispose()
 		{
 			_watcher.Dispose();

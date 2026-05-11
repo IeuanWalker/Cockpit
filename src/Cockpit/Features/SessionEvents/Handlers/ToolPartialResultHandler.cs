@@ -8,7 +8,7 @@ static class ToolPartialResultHandler
 {
 	internal static void Handle(SessionModel session, ToolExecutionPartialResultEvent evt)
 	{
-		if(session.ActiveWorkingGroup is null)
+		if(evt.Data is null || session.ActiveWorkingGroup is null)
 		{
 			return;
 		}

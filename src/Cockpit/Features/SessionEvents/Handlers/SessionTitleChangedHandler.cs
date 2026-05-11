@@ -7,6 +7,11 @@ static class SessionTitleChangedHandler
 {
 	internal static void Handle(SessionModel session, SessionTitleChangedEvent evt)
 	{
+		if(evt.Data is null)
+		{
+			return;
+		}
+
 		session.Title = evt.Data.Title;
 	}
 }

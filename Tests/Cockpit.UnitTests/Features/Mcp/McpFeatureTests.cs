@@ -1,56 +1,85 @@
 using Cockpit.Features.Mcp;
+using Cockpit.Features.Sessions;
 using GitHub.Copilot.SDK.Rpc;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Mcp;
 
 public sealed class McpFeatureTests
 {
-	[Fact]
-	public void GetStatusDisplayString_Connected_ReturnsConnected()
-	{
-		string result = McpFeature.GetStatusDisplayString(McpServerStatus.Connected);
+	// ── GetStatusDisplayString ────────────────────────────────────────────────
 
-		result.ShouldBe("Connected");
+	[Theory]
+	[InlineData(McpServerStatus.Connected, "Connected")]
+	[InlineData(McpServerStatus.Failed, "Failed")]
+	[InlineData(McpServerStatus.NeedsAuth, "Needs Auth")]
+	[InlineData(McpServerStatus.Pending, "Pending")]
+	[InlineData(McpServerStatus.Disabled, "Disabled")]
+	[InlineData(McpServerStatus.NotConfigured, "Not Configured")]
+	public void GetStatusDisplayString_KnownStatus_ReturnsExpectedLabel(McpServerStatus status, string expected)
+	{
+		McpFeature.GetStatusDisplayString(status).ShouldBe(expected);
 	}
 
 	[Fact]
-	public void GetStatusDisplayString_Failed_ReturnsFailed()
+	public void GetStatusDisplayString_UnknownStatus_FallsBackToToString()
 	{
-		string result = McpFeature.GetStatusDisplayString(McpServerStatus.Failed);
+		McpServerStatus unknown = (McpServerStatus)999;
 
-		result.ShouldBe("Failed");
+		McpFeature.GetStatusDisplayString(unknown).ShouldBe("999");
+	}
+
+	// ── GetStatusColor ────────────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData(McpServerStatus.Connected, "text-green-400")]
+	[InlineData(McpServerStatus.Failed, "text-red-400")]
+	[InlineData(McpServerStatus.Disabled, "secondary-text")]
+	[InlineData(McpServerStatus.NeedsAuth, "text-yellow-400")]
+	[InlineData(McpServerStatus.Pending, "text-yellow-400")]
+	[InlineData(McpServerStatus.NotConfigured, "text-yellow-400")]
+	public void GetStatusColor_KnownStatus_ReturnsExpectedCssClass(McpServerStatus status, string expectedClass)
+	{
+		McpFeature.GetStatusColor(status).ShouldBe(expectedClass);
 	}
 
 	[Fact]
-	public void GetStatusDisplayString_NeedsAuth_ReturnsNeedsAuth()
+	public void GetStatusColor_UnknownStatus_FallsBackToYellow()
 	{
-		string result = McpFeature.GetStatusDisplayString(McpServerStatus.NeedsAuth);
+		McpServerStatus unknown = (McpServerStatus)999;
 
-		result.ShouldBe("Needs Auth");
+		McpFeature.GetStatusColor(unknown).ShouldBe("text-yellow-400");
+	}
+
+	// ── Session-not-found guard ───────────────────────────────────────────────
+
+	static McpFeature CreateFeature() => new(
+		NullLogger<McpFeature>.Instance,
+		new SdkSessionRegistry(),
+		new SessionListFeature(NullLogger<SessionListFeature>.Instance));
+
+	[Fact]
+	public async Task EnableServerAsync_SessionNotInRegistry_CompletesWithoutThrowing()
+	{
+		McpFeature feature = CreateFeature();
+
+		await Should.NotThrowAsync(() => feature.EnableServerAsync("missing-session", "my-server"));
 	}
 
 	[Fact]
-	public void GetStatusDisplayString_Pending_ReturnsPending()
+	public async Task DisableServerAsync_SessionNotInRegistry_CompletesWithoutThrowing()
 	{
-		string result = McpFeature.GetStatusDisplayString(McpServerStatus.Pending);
+		McpFeature feature = CreateFeature();
 
-		result.ShouldBe("Pending");
+		await Should.NotThrowAsync(() => feature.DisableServerAsync("missing-session", "my-server"));
 	}
 
 	[Fact]
-	public void GetStatusDisplayString_Disabled_ReturnsDisabled()
+	public async Task ReloadAsync_SessionNotInRegistry_CompletesWithoutThrowing()
 	{
-		string result = McpFeature.GetStatusDisplayString(McpServerStatus.Disabled);
+		McpFeature feature = CreateFeature();
 
-		result.ShouldBe("Disabled");
-	}
-
-	[Fact]
-	public void GetStatusDisplayString_NotConfigured_ReturnsNotConfigured()
-	{
-		string result = McpFeature.GetStatusDisplayString(McpServerStatus.NotConfigured);
-
-		result.ShouldBe("Not Configured");
+		await Should.NotThrowAsync(() => feature.ReloadAsync("missing-session"));
 	}
 }

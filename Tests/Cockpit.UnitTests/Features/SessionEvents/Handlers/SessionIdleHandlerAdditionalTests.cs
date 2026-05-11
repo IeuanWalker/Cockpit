@@ -13,6 +13,7 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 /// the <see cref="SessionIdleHandler.OnSessionFinished"/> event, and
 /// <see cref="SessionModel.SuppressFinishedNotification"/>.
 /// </summary>
+[Collection("SessionIdleEvent")]
 public class SessionIdleHandlerAdditionalTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };

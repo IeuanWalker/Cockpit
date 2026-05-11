@@ -75,6 +75,22 @@ public class SessionListFeatureTests
 	}
 
 	[Fact]
+	public async Task RemoveSession_FiresStateChanged_WhenSessionRemoved()
+	{
+		SessionListFeature feature = CreateFeature();
+		SessionModel session = MakeSession("removed");
+		feature.AddSession(session);
+		int callCount = 0;
+		feature.OnStateChanged += () => callCount++;
+
+		feature.RemoveSession(session.Id);
+
+		await Task.Delay(50, TestContext.Current.CancellationToken);
+
+		callCount.ShouldBe(1);
+	}
+
+	[Fact]
 	public void RemoveSession_NoOp_WhenSessionNotFound()
 	{
 		SessionListFeature feature = CreateFeature();
@@ -148,14 +164,47 @@ public class SessionListFeatureTests
 	}
 
 	[Fact]
+	public async Task NotifyStateChanged_CanBeCalledMultipleTimes_WithoutThrowing()
+	{
+		SessionListFeature feature = CreateFeature();
+		int callCount = 0;
+		feature.OnStateChanged += () => callCount++;
+
+		Should.NotThrow(() =>
+		{
+			for(int i = 0; i < 10; i++)
+			{
+				feature.NotifyStateChanged();
+			}
+		});
+
+		await Task.Delay(100, TestContext.Current.CancellationToken);
+
+		callCount.ShouldBe(1);
+	}
+
+	[Fact]
 	public void ISessionStateProvider_GetSessions_ReturnsSessions()
 	{
 		SessionListFeature feature = CreateFeature();
 		feature.AddSession(MakeSession("a"));
 		feature.AddSession(MakeSession("b"));
 
-		SessionListFeature provider = feature;
+		ISessionStateProvider provider = feature;
 		provider.Sessions.Count.ShouldBe(2);
+	}
+
+	[Fact]
+	public void ISessionStateProvider_CurrentSession_ReflectsCurrentSession()
+	{
+		SessionListFeature feature = CreateFeature();
+		SessionModel session = MakeSession("current");
+		feature.AddSession(session);
+		feature.SetCurrentSession(session);
+
+		ISessionStateProvider provider = feature;
+
+		provider.CurrentSession.ShouldBe(session);
 	}
 
 	[Fact]

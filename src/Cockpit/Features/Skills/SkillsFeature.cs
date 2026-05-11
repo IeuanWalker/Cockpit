@@ -28,6 +28,10 @@ public sealed class SkillsFeature
 			_logger.LogInformation("Discovered {Count} skills for session", result.Skills.Count);
 			return [.. result.Skills];
 		}
+		catch(OperationCanceledException)
+		{
+			throw;
+		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load skills from SDK");
@@ -35,60 +39,35 @@ public sealed class SkillsFeature
 		}
 	}
 
-	public async Task EnableSkillAsync(string sessionId, string name, CancellationToken cancellationToken = default)
+	public Task EnableSkillAsync(string sessionId, string name, CancellationToken cancellationToken = default)
+		=> ExecuteSkillOperationAsync(sessionId, $"enable:{name}", (s, ct) => s.Rpc.Skills.EnableAsync(name, ct), cancellationToken);
+
+	public Task DisableSkillAsync(string sessionId, string name, CancellationToken cancellationToken = default)
+		=> ExecuteSkillOperationAsync(sessionId, $"disable:{name}", (s, ct) => s.Rpc.Skills.DisableAsync(name, ct), cancellationToken);
+
+	public Task ReloadAsync(string sessionId, CancellationToken cancellationToken = default)
+		=> ExecuteSkillOperationAsync(sessionId, "reload", (s, ct) => s.Rpc.Skills.ReloadAsync(ct), cancellationToken);
+
+	async Task ExecuteSkillOperationAsync(
+		string sessionId,
+		string operationName,
+		Func<CopilotSession, CancellationToken, Task> sdkOp,
+		CancellationToken cancellationToken)
 	{
 		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
 		{
-			_logger.LogWarning("SDK session {SessionId} not found for skill enable", sessionId);
+			_logger.LogWarning("SDK session {SessionId} not found for skill operation {OperationName}", sessionId, operationName);
 			return;
 		}
 
 		try
 		{
-			await sdkSession.Rpc.Skills.EnableAsync(name, cancellationToken);
+			await sdkOp(sdkSession, cancellationToken);
 			await RefreshSessionSkillsAsync(sessionId, sdkSession, cancellationToken);
 		}
-		catch(Exception ex)
+		catch(Exception ex) when(ex is not OperationCanceledException)
 		{
-			_logger.LogError(ex, "Failed to enable skill {Name}", name);
-		}
-	}
-
-	public async Task DisableSkillAsync(string sessionId, string name, CancellationToken cancellationToken = default)
-	{
-		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
-		{
-			_logger.LogWarning("SDK session {SessionId} not found for skill disable", sessionId);
-			return;
-		}
-
-		try
-		{
-			await sdkSession.Rpc.Skills.DisableAsync(name, cancellationToken);
-			await RefreshSessionSkillsAsync(sessionId, sdkSession, cancellationToken);
-		}
-		catch(Exception ex)
-		{
-			_logger.LogError(ex, "Failed to disable skill {Name}", name);
-		}
-	}
-
-	public async Task ReloadAsync(string sessionId, CancellationToken cancellationToken = default)
-	{
-		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
-		{
-			_logger.LogWarning("SDK session {SessionId} not found for skills reload", sessionId);
-			return;
-		}
-
-		try
-		{
-			await sdkSession.Rpc.Skills.ReloadAsync(cancellationToken);
-			await RefreshSessionSkillsAsync(sessionId, sdkSession, cancellationToken);
-		}
-		catch(Exception ex)
-		{
-			_logger.LogError(ex, "Failed to reload skills");
+			_logger.LogError(ex, "Skills operation {OperationName} failed", operationName);
 		}
 	}
 

@@ -3,13 +3,13 @@
 
 <PopupBase @ref="_popup" Title="Connection History">
     <Content>
-        @if(!_connectionFeature.History.Any())
+        @if(_connectionFeature.History.Count == 0)
         {
             <div class="px-4 py-6 text-center secondary-text text-sm">No checks recorded yet.</div>
         }
         else
         {
-            @foreach(var (item, idx) in _connectionFeature.History.Reverse<ConnectionCheckRecordModel>().Select((x, i) => (x, i)))
+            @foreach(ConnectionCheckRecordModel item in _connectionFeature.History.Reverse<ConnectionCheckRecordModel>())
             {
                 <Expander>
                     <Icon>
