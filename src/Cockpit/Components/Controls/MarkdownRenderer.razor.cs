@@ -86,13 +86,9 @@ public sealed partial class MarkdownRenderer : ComponentBase
 			await _jsRuntime.InvokeVoidAsync("cockpit.highlightCodeBlocks", _containerId);
 			await _jsRuntime.InvokeVoidAsync("cockpit.addCopyButtonsToCodeBlocks", _containerId);
 		}
-		catch(JSException)
+		catch
 		{
-			// hljs not yet loaded or JS function unavailable — expected during initial render
-		}
-		catch(InvalidOperationException)
-		{
-			// WebView being torn down during navigation or disposal — safe to ignore
+			// Handle error silently
 		}
 	}
 
