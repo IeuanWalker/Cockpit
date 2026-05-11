@@ -43,7 +43,7 @@ public sealed partial class Opperations : IDisposable
 		oldCts?.Cancel();
 		oldCts?.Dispose();
 
-		if (elapsed < ThresholdMs)
+		if(elapsed < ThresholdMs)
 		{
 			return;
 		}
@@ -57,10 +57,10 @@ public sealed partial class Opperations : IDisposable
 			Group.IsExpanded = !Group.IsExpanded;
 			StateHasChanged();
 		}
-		catch (OperationCanceledException) { }
+		catch(OperationCanceledException) { }
 		finally
 		{
-			if (ReferenceEquals(_clickCts, cts))
+			if(ReferenceEquals(_clickCts, cts))
 			{
 				_clickCts = null;
 			}
@@ -139,7 +139,7 @@ public sealed partial class Opperations : IDisposable
 		}
 
 		// Get unique tool names
-		List<string> distinctNames = tools.Select(t => t.ToolName).Distinct().ToList();
+		List<string> distinctNames = [.. tools.Select(t => t.ToolName).Distinct()];
 		string preview = string.Join(", ", distinctNames.Take(3)) + (distinctNames.Count > 3 ? $", +{distinctNames.Count - 3}" : string.Empty);
 
 		string result = $"{tools.Sum(t => CountAllTools(t))} operations ({preview})";
