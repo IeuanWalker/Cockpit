@@ -266,7 +266,7 @@ public partial class TerminalPanel : IAsyncDisposable, IDisposable
 
 		try
 		{
-			await InvokeAsync(() => _terminal.Write(data));
+			await InvokeAsync(async () => await _terminal.Write(data));
 		}
 		catch(Exception ex)
 		{
