@@ -17,7 +17,6 @@ public partial class SessionListItem
 		SessionStatusEnum.NeedsPermission => "status-needs-permission",
 		SessionStatusEnum.NeedsUserInput => "status-needs-user-input",
 		SessionStatusEnum.Running => "status-running",
-		SessionStatusEnum.Finished => "status-finished",
 		_ => "secondary-text"
 	};
 

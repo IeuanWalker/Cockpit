@@ -189,7 +189,15 @@ public sealed partial class SessionFeature
 			{
 				_logger.LogInformation("Session {SessionId} already loaded or loading, switching to it", sessionId);
 				await SwitchCurrentSessionAsync(session);
-				return true;
+
+				// Guard: eviction may have cleared the session between the state check and SwitchCurrentSessionAsync.
+				// If state is now NotLoaded, fall through to perform a full reload.
+				if(session.SdkState != SdkSessionStateEnum.NotLoaded)
+				{
+					return true;
+				}
+
+				_logger.LogInformation("Session {SessionId} was evicted during switch; performing full load", sessionId);
 			}
 
 			_logger.LogInformation("Loading session {SessionId}", sessionId);
