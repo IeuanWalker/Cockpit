@@ -24,7 +24,7 @@ public sealed class SessionModePersistenceTests : IDisposable
 		}
 	}
 
-	static readonly ModelInfo _testModel = new() { Id = "test", Name = "Test Model" };
+	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
 
 	SessionModel MakeSession(string id, SessionAgentModeEnum mode = SessionAgentModeEnum.Interactive)
 	{
@@ -34,7 +34,7 @@ public sealed class SessionModePersistenceTests : IDisposable
 			Title = "Test",
 			CreatedAt = DateTime.UtcNow,
 			LastActivity = DateTime.UtcNow,
-			Model = _testModel,
+			Model = testModel,
 			Context = new()
 			{
 				CurrentWorkingDirectory = _tempDir,
@@ -144,7 +144,7 @@ public sealed class SessionModePersistenceTests : IDisposable
 			Title = "Test",
 			CreatedAt = DateTime.UtcNow,
 			LastActivity = DateTime.UtcNow,
-			Model = _testModel,
+			Model = testModel,
 			Context = new()
 			{
 				CurrentWorkingDirectory = string.Empty,
@@ -168,7 +168,7 @@ public sealed class SessionModePersistenceTests : IDisposable
 			Title = "Test",
 			CreatedAt = DateTime.UtcNow,
 			LastActivity = DateTime.UtcNow,
-			Model = _testModel,
+			Model = testModel,
 			Context = new()
 			{
 				CurrentWorkingDirectory = string.Empty,

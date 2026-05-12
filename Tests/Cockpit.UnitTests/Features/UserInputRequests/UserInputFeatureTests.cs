@@ -9,8 +9,8 @@ namespace Cockpit.UnitTests.Features.UserInputRequests;
 
 public sealed class UserInputFeatureTests
 {
-	static readonly ModelInfo TestModel = new() { Id = "test", Name = "Test Model" };
-	const string SessionId = "session-1";
+	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
+	const string sessionId = "session-1";
 
 	sealed class TestSessionStateProvider : ISessionStateProvider
 	{
@@ -24,13 +24,13 @@ public sealed class UserInputFeatureTests
 		public void NotifyStateChanged() { }
 	}
 
-	static SessionModel CreateSession(string id = SessionId) => new()
+	static SessionModel CreateSession(string id = sessionId) => new()
 	{
 		Id = id,
 		Title = "Test Session",
 		CreatedAt = DateTime.UtcNow,
 		LastActivity = DateTime.UtcNow,
-		Model = TestModel,
+		Model = testModel,
 		Status = SessionStatusEnum.Active,
 		Context = new()
 		{
@@ -42,7 +42,7 @@ public sealed class UserInputFeatureTests
 		}
 	};
 
-	static (UserInputFeature Feature, SessionModel Session, TestSessionStateProvider StateProvider) CreateFeature(string sessionId = SessionId)
+	static (UserInputFeature Feature, SessionModel Session, TestSessionStateProvider StateProvider) CreateFeature(string sessionId = sessionId)
 	{
 		TestSessionStateProvider stateProvider = new();
 		SessionModel session = CreateSession(sessionId);
@@ -61,7 +61,7 @@ public sealed class UserInputFeatureTests
 			AllowFreeform = allowFreeform
 		};
 
-	static UserInputInvocation BuildInvocation(string sessionId = SessionId) =>
+	static UserInputInvocation BuildInvocation(string sessionId = sessionId) =>
 		new() { SessionId = sessionId };
 
 	/// <summary>Awaits <see cref="UserInputFeature.HandleUserInputRequest"/> and captures the pending model.</summary>
@@ -242,7 +242,7 @@ public sealed class UserInputFeatureTests
 			BuildRequest(question: "Do you agree?"),
 			BuildInvocation());
 
-		capturedSessionId.ShouldBe(SessionId);
+		capturedSessionId.ShouldBe(sessionId);
 		capturedModel.ShouldNotBeNull();
 		capturedModel.Question.ShouldBe("Do you agree?");
 
@@ -273,7 +273,7 @@ public sealed class UserInputFeatureTests
 
 		await handleTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
-		resolvedSessionId.ShouldBe(SessionId);
+		resolvedSessionId.ShouldBe(sessionId);
 		resolvedRequestId.ShouldBe(model.Id);
 	}
 
@@ -343,7 +343,7 @@ public sealed class UserInputFeatureTests
 		(Task<UserInputResponse> taskB, UserInputRequestModel modelB) = await StartHandleAsync(
 			feature, BuildRequest(question: "Question B"), BuildInvocation());
 
-		feature.CancelPendingRequestsForSession(SessionId);
+		feature.CancelPendingRequestsForSession(sessionId);
 
 		UserInputResponse resultA = await taskA.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 		UserInputResponse resultB = await taskB.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);

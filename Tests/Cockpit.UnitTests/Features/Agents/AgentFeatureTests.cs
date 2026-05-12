@@ -8,7 +8,7 @@ namespace Cockpit.UnitTests.Features.Agents;
 
 public sealed class AgentFeatureTests : IDisposable
 {
-	static readonly ModelInfo TestModel = new() { Id = "test", Name = "Test Model" };
+	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };
 	readonly string _tempDir;
 
 	public AgentFeatureTests()
@@ -32,7 +32,7 @@ public sealed class AgentFeatureTests : IDisposable
 		Status = SessionStatusEnum.Active,
 		CreatedAt = DateTime.UtcNow,
 		LastActivity = DateTime.UtcNow,
-		Model = TestModel,
+		Model = testModel,
 		Context = new()
 		{
 			CurrentWorkingDirectory = workspacePath ?? string.Empty,
@@ -315,7 +315,7 @@ public sealed class AgentFeatureTests : IDisposable
 		SessionModel session = MakeSession(_tempDir);
 		string agentFilePath = persistence.GetAgentFilePath(session)!;
 		Directory.CreateDirectory(Path.GetDirectoryName(agentFilePath)!);
-		await File.WriteAllTextAsync(agentFilePath, "not valid json {{{");
+		await File.WriteAllTextAsync(agentFilePath, "not valid json {{{", TestContext.Current.CancellationToken);
 
 		bool result = await persistence.TryRestoreSessionAgent(session);
 
