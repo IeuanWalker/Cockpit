@@ -79,7 +79,7 @@ public class UserAppSettings
 			string? stored = _preferences.Get<string?>(Keys.messageTurnMode, null);
 			return Enum.TryParse(stored, true, out MessageTurnModeEnum parsed) && Enum.IsDefined(parsed)
 				? parsed
-				: MessageTurnModeEnum.Enqueue;
+				: MessageTurnModeEnum.Immediate;
 		}
 		set => _preferences.Set(Keys.messageTurnMode, value.ToString());
 	}
