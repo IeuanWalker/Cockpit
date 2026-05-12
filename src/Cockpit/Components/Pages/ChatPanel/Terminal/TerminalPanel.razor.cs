@@ -149,9 +149,30 @@ public partial class TerminalPanel : IAsyncDisposable, IDisposable
 			return;
 		}
 
+		// Fit the terminal to its container BEFORE creating the PTY so the shell
+		// starts with dimensions that match the visible terminal area.  This
+		// prevents the initial output being formatted for the wrong column width
+		// which causes text overlap / misalignment.
+		int cols = 120;
+		int rows = 30;
+		try
+		{
+			await _terminal.Addon("addon-fit").InvokeVoidAsync("fit");
+			TerminalSize? size = await _jsRuntime.InvokeAsync<TerminalSize?>("xtermInterop.getTerminalSize", _terminalId);
+			if(size is not null && size.Cols > 0 && size.Rows > 0)
+			{
+				cols = size.Cols;
+				rows = size.Rows;
+			}
+		}
+		catch(Exception ex)
+		{
+			_logger.LogDebug(ex, "Failed to pre-fit terminal for session {SessionId}, using default dimensions", SessionId);
+		}
+
 		// Try to create session (true = new, false = already exists or failed)
 		string workDir = !string.IsNullOrEmpty(WorkingDirectory) ? WorkingDirectory : Directory.GetCurrentDirectory();
-		await _terminalFeature.CreateSession(SessionId, workDir);
+		await _terminalFeature.CreateSession(SessionId, workDir, cols, rows);
 
 		// If no session exists (creation genuinely failed), bail out so the UI
 		// is not left showing an active terminal with no backing process.
@@ -179,11 +200,15 @@ public partial class TerminalPanel : IAsyncDisposable, IDisposable
 			}
 		}
 
-		_isSessionActive = true;
 		_isTerminalInitialized = true;
 
 		await _terminal.Focus();
+
+		// Final resize to sync everything, then enable data flow from the PTY.
+		// Setting _isSessionActive after resize ensures no output arrives while
+		// the terminal is still at mismatched dimensions.
 		await Resize();
+		_isSessionActive = true;
 	}
 
 	DotNetObjectReference<TerminalPanel>? _dotNetRef;
@@ -222,18 +247,31 @@ public partial class TerminalPanel : IAsyncDisposable, IDisposable
 			// Wait briefly for the DOM/container layout to settle after a resize
 			await Task.Delay(domLayoutSettleDelayMs, token);
 
-			// IMPORTANT: Call fit() once to resize the terminal to match the container
+			// Get the dimensions the terminal WOULD resize to, without applying yet.
+			// This lets us resize the PTY first so the shell is already at the
+			// correct dimensions when xterm.js reflows content.
+			TerminalSize? proposed = await _terminal.Addon("addon-fit").InvokeAsync<TerminalSize?>("proposeDimensions");
+			if(proposed is not null && proposed.Cols > 0 && proposed.Rows > 0)
+			{
+				// Resize PTY BEFORE fit() so the shell processes the new dimensions
+				// before xterm.js reflows content — prevents cursor misplacement.
+				_terminalFeature.ResizePty(SessionId, proposed.Cols, proposed.Rows);
+			}
+
+			// Now apply the resize to xterm.js — the PTY is already at the new size
 			await _terminal.Addon("addon-fit").InvokeVoidAsync("fit");
 
 			// Clear texture atlas to fix any stale rendering artifacts
 			await _jsRuntime.InvokeVoidAsync("xtermInterop.triggerResize", _terminalId);
 
-			// Query the actual cols/rows after fit
-			TerminalSize? size = await _jsRuntime.InvokeAsync<TerminalSize?>("xtermInterop.getTerminalSize", _terminalId);
-			if(size is not null && size.Cols > 0 && size.Rows > 0)
+			// If proposeDimensions wasn't available, fall back to querying after fit
+			if(proposed is null)
 			{
-				// Resize the PTY to match the terminal's new dimensions
-				_terminalFeature.ResizePty(SessionId, size.Cols, size.Rows);
+				TerminalSize? size = await _jsRuntime.InvokeAsync<TerminalSize?>("xtermInterop.getTerminalSize", _terminalId);
+				if(size is not null && size.Cols > 0 && size.Rows > 0)
+				{
+					_terminalFeature.ResizePty(SessionId, size.Cols, size.Rows);
+				}
 			}
 		}
 		catch(OperationCanceledException)
@@ -329,18 +367,37 @@ public partial class TerminalPanel : IAsyncDisposable, IDisposable
 			return;
 		}
 
+		_isSessionActive = false;
+
+		// Get current terminal dimensions before restarting
+		int cols = 120;
+		int rows = 30;
+		try
+		{
+			TerminalSize? size = await _jsRuntime.InvokeAsync<TerminalSize?>("xtermInterop.getTerminalSize", _terminalId);
+			if(size is not null && size.Cols > 0 && size.Rows > 0)
+			{
+				cols = size.Cols;
+				rows = size.Rows;
+			}
+		}
+		catch(Exception ex)
+		{
+			_logger.LogDebug(ex, "Failed to get terminal size for reset, using defaults");
+		}
+
 		// Restart PTY (RestartSession internally clears the buffer before restarting)
-		await _terminalFeature.RestartSession(SessionId, WorkingDirectory ?? Directory.GetCurrentDirectory());
+		await _terminalFeature.RestartSession(SessionId, WorkingDirectory ?? Directory.GetCurrentDirectory(), cols, rows);
 		_hasRestoredBuffer = false;
-		_isSessionActive = true;
 
 		// Reset frontend terminal view and focus
 		await _terminal.Reset();
 		await _terminal.Focus();
 
-		// Small delay then resize to current container
+		// Small delay then resize to current container, then enable data flow
 		await Task.Delay(50);
 		await Resize();
+		_isSessionActive = true;
 	}
 
 	public void Dispose()

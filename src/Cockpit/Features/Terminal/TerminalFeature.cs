@@ -44,14 +44,14 @@ public sealed partial class TerminalFeature : IDisposable, IAsyncDisposable
 	/// </summary>
 	internal void RaiseDataReceived(string sessionId, string data) => OnDataReceived?.Invoke(sessionId, data);
 
-	public async Task<bool> CreateSession(string sessionId, string workingDirectory, CancellationToken ct = default)
+	public async Task<bool> CreateSession(string sessionId, string workingDirectory, int cols = 120, int rows = 30, CancellationToken ct = default)
 	{
 		try
 		{
 			PtyOptions options = new()
 			{
-				Cols = 120,
-				Rows = 30,
+				Cols = cols,
+				Rows = rows,
 				Cwd = workingDirectory,
 				// NOTE: Shell application is currently fixed; update here if user override is added.
 				App = OperatingSystem.IsWindows() ? "powershell.exe" : "/bin/bash",
@@ -161,16 +161,23 @@ public sealed partial class TerminalFeature : IDisposable, IAsyncDisposable
 		}
 	}
 
-	public async Task RestartSession(string sessionId, string workingDirectory, CancellationToken ct = default)
+	public async Task RestartSession(string sessionId, string workingDirectory, int cols = 120, int rows = 30, CancellationToken ct = default)
 	{
 		if(_sessions.TryRemove(sessionId, out TerminalSessionModel? existing))
 		{
+			// Preserve dimensions from the previous session if caller didn't specify
+			if(cols == 120 && rows == 30)
+			{
+				cols = existing.Cols;
+				rows = existing.Rows;
+			}
+
 			// Clear buffer before teardown so old output can't re-appear in the new session
 			existing.ClearBuffer();
 			await TearDownSessionAsync(existing, sessionId);
 		}
 
-		await CreateSession(sessionId, workingDirectory, ct);
+		await CreateSession(sessionId, workingDirectory, cols, rows, ct);
 	}
 
 	public void SoftClear(string sessionId)

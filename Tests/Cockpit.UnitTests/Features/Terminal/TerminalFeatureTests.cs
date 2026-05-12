@@ -178,7 +178,7 @@ public sealed class TerminalFeatureTests : IAsyncDisposable
 			capturedData = data;
 		};
 
-		await featureWithData.CreateSession("stream-session", ".", TestContext.Current.CancellationToken);
+		await featureWithData.CreateSession("stream-session", ".", ct: TestContext.Current.CancellationToken);
 
 		// Wait for the read loop to drain the pre-loaded stream
 		Task? readTask = featureWithData.GetSession("stream-session")?.ReadTask;
@@ -201,7 +201,7 @@ public sealed class TerminalFeatureTests : IAsyncDisposable
 		await CreateSessionAsync("r1");
 		InjectOutput("r1", "stale output");
 
-		await _feature.RestartSession("r1", ".", TestContext.Current.CancellationToken);
+		await _feature.RestartSession("r1", ".", ct: TestContext.Current.CancellationToken);
 
 		// A fresh session must exist with an empty buffer
 		_feature.GetSession("r1").ShouldNotBeNull();
@@ -211,7 +211,7 @@ public sealed class TerminalFeatureTests : IAsyncDisposable
 	[Fact]
 	public async Task RestartSession_WhenNoExistingSession_CreatesNewSession()
 	{
-		await _feature.RestartSession("r2", ".", TestContext.Current.CancellationToken);
+		await _feature.RestartSession("r2", ".", ct: TestContext.Current.CancellationToken);
 
 		_feature.GetSession("r2").ShouldNotBeNull();
 	}
