@@ -1,6 +1,6 @@
 ﻿namespace Cockpit.Features.SessionEvents.Models;
 
-public class ActivityGroupModel
+public sealed class ActivityGroupModel
 {
 	public string Id { get; set; } = Guid.NewGuid().ToString();
 	public DateTime StartTime { get; set; } = DateTime.MinValue;

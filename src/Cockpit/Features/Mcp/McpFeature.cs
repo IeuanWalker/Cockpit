@@ -35,60 +35,51 @@ public sealed class McpFeature
 		}
 	}
 
-	public async Task EnableServerAsync(string sessionId, string serverName, CancellationToken cancellationToken = default)
+	public Task EnableServerAsync(string sessionId, string serverName, CancellationToken cancellationToken = default) =>
+		ExecuteAndRefreshAsync(
+			sessionId,
+			(s, ct) => s.Rpc.Mcp.EnableAsync(serverName, ct),
+			"MCP enable",
+			ex => _logger.LogError(ex, "Failed to enable MCP server {ServerName}", serverName),
+			cancellationToken);
+
+	public Task DisableServerAsync(string sessionId, string serverName, CancellationToken cancellationToken = default) =>
+		ExecuteAndRefreshAsync(
+			sessionId,
+			(s, ct) => s.Rpc.Mcp.DisableAsync(serverName, ct),
+			"MCP disable",
+			ex => _logger.LogError(ex, "Failed to disable MCP server {ServerName}", serverName),
+			cancellationToken);
+
+	public Task ReloadAsync(string sessionId, CancellationToken cancellationToken = default) =>
+		ExecuteAndRefreshAsync(
+			sessionId,
+			(s, ct) => s.Rpc.Mcp.ReloadAsync(ct),
+			"MCP reload",
+			ex => _logger.LogError(ex, "Failed to reload MCP servers"),
+			cancellationToken);
+
+	async Task ExecuteAndRefreshAsync(
+		string sessionId,
+		Func<CopilotSession, CancellationToken, Task> sdkOperation,
+		string operationContext,
+		Action<Exception> logFailure,
+		CancellationToken cancellationToken)
 	{
 		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
 		{
-			_logger.LogWarning("SDK session {SessionId} not found for MCP enable", sessionId);
+			_logger.LogWarning("SDK session {SessionId} not found for {OperationContext}", sessionId, operationContext);
 			return;
 		}
 
 		try
 		{
-			await sdkSession.Rpc.Mcp.EnableAsync(serverName, cancellationToken);
+			await sdkOperation(sdkSession, cancellationToken);
 			await RefreshSessionMcpAsync(sessionId, sdkSession, cancellationToken);
 		}
 		catch(Exception ex)
 		{
-			_logger.LogError(ex, "Failed to enable MCP server {ServerName}", serverName);
-		}
-	}
-
-	public async Task DisableServerAsync(string sessionId, string serverName, CancellationToken cancellationToken = default)
-	{
-		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
-		{
-			_logger.LogWarning("SDK session {SessionId} not found for MCP disable", sessionId);
-			return;
-		}
-
-		try
-		{
-			await sdkSession.Rpc.Mcp.DisableAsync(serverName, cancellationToken);
-			await RefreshSessionMcpAsync(sessionId, sdkSession, cancellationToken);
-		}
-		catch(Exception ex)
-		{
-			_logger.LogError(ex, "Failed to disable MCP server {ServerName}", serverName);
-		}
-	}
-
-	public async Task ReloadAsync(string sessionId, CancellationToken cancellationToken = default)
-	{
-		if(!_sdkRegistry.TryGet(sessionId, out CopilotSession? sdkSession))
-		{
-			_logger.LogWarning("SDK session {SessionId} not found for MCP reload", sessionId);
-			return;
-		}
-
-		try
-		{
-			await sdkSession.Rpc.Mcp.ReloadAsync(cancellationToken);
-			await RefreshSessionMcpAsync(sessionId, sdkSession, cancellationToken);
-		}
-		catch(Exception ex)
-		{
-			_logger.LogError(ex, "Failed to reload MCP servers");
+			logFailure(ex);
 		}
 	}
 
@@ -115,5 +106,14 @@ public sealed class McpFeature
 		McpServerStatus.Disabled => "Disabled",
 		McpServerStatus.NotConfigured => "Not Configured",
 		_ => status.ToString()
+	};
+
+	/// <summary>Returns the Tailwind CSS text-colour class for the given MCP server status.</summary>
+	public static string GetStatusColor(McpServerStatus status) => status switch
+	{
+		McpServerStatus.Connected => "text-green-400",
+		McpServerStatus.Failed => "text-red-400",
+		McpServerStatus.Disabled => "secondary-text",
+		_ => "text-yellow-400"
 	};
 }

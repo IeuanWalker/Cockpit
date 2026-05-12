@@ -1,3 +1,4 @@
+using System.Net;
 using Cockpit.Extensions;
 using Cockpit.Features.Updates;
 using Cockpit.Features.Updates.Models;
@@ -258,4 +259,301 @@ public class UpdateFeatureTests
 	};
 
 	#endregion
+
+	#region CheckForUpdate
+
+	[Fact]
+	public async Task CheckForUpdate_ReturnsUpdateAvailable_WhenNewerVersionExists()
+	{
+		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.7.0");
+
+		UpdateCheckResult result = await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+
+		result.UpdateAvailable.ShouldBeTrue();
+		result.LatestRelease.ShouldNotBeNull();
+		result.LatestRelease.TagName.ShouldBe("1.8.0");
+		result.CurrentVersion.ShouldBe("1.7.0");
+	}
+
+	[Fact]
+	public async Task CheckForUpdate_ReturnsNoUpdate_WhenSameVersion()
+	{
+		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.8.0");
+
+		UpdateCheckResult result = await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+
+		result.UpdateAvailable.ShouldBeFalse();
+		result.CurrentVersion.ShouldBe("1.8.0");
+	}
+
+	[Fact]
+	public async Task CheckForUpdate_ReturnsNoUpdate_WhenCurrentIsNewer()
+	{
+		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.9.0");
+
+		UpdateCheckResult result = await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+
+		result.UpdateAvailable.ShouldBeFalse();
+	}
+
+	[Fact]
+	public async Task CheckForUpdate_ReturnsNoUpdate_WhenHttpFails()
+	{
+		using HttpClient httpClient = new(new MockHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
+		using UpdateFeature feature = new(httpClient, "1.7.0");
+
+		UpdateCheckResult result = await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+
+		result.UpdateAvailable.ShouldBeFalse();
+	}
+
+	[Fact]
+	public async Task CheckForUpdate_ReturnsNoUpdate_WhenReleaseHasNoAssets()
+	{
+		string noAssetsJson = BuildReleaseJson("1.8.0", assets: []);
+		using UpdateFeature feature = MakeFeature(noAssetsJson, currentVersion: "1.7.0");
+
+		UpdateCheckResult result = await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+
+		result.UpdateAvailable.ShouldBeFalse();
+	}
+
+	[Fact]
+	public async Task CheckForUpdate_UpdatesCachedResult_WhenReleaseHasNoAssets()
+	{
+		string noAssetsJson = BuildReleaseJson("1.8.0", assets: []);
+		using UpdateFeature feature = MakeFeature(noAssetsJson, currentVersion: "1.7.0");
+
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+
+		feature.CachedResult.ShouldNotBeNull();
+		feature.CachedResult.UpdateAvailable.ShouldBeFalse();
+	}
+
+	[Fact]
+	public async Task CheckForUpdate_UpdatesCachedResult_WhenUpdateAvailable()
+	{
+		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.7.0");
+
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+
+		feature.CachedResult.ShouldNotBeNull();
+		feature.CachedResult.UpdateAvailable.ShouldBeTrue();
+	}
+
+	[Fact]
+	public async Task CheckForUpdate_SetsLastChecked_AfterSuccessfulCheck()
+	{
+		DateTime before = DateTime.UtcNow;
+		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.7.0");
+
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+
+		feature.LastChecked.ShouldNotBeNull();
+		feature.LastChecked.Value.ShouldBeGreaterThanOrEqualTo(before);
+	}
+
+	[Fact]
+	public async Task CheckForUpdate_SetsLastChecked_EvenWhenHttpFails()
+	{
+		DateTime before = DateTime.UtcNow;
+		using HttpClient httpClient = new(new MockHttpMessageHandler(HttpStatusCode.InternalServerError));
+		using UpdateFeature feature = new(httpClient, "1.7.0");
+
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+
+		feature.LastChecked.ShouldNotBeNull();
+		feature.LastChecked.Value.ShouldBeGreaterThanOrEqualTo(before);
+	}
+
+	[Fact]
+	public async Task CheckForUpdate_RaisesOnUpdateCheckedEvent()
+	{
+		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.7.0");
+		bool eventFired = false;
+		feature.OnUpdateChecked += () => eventFired = true;
+
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+
+		eventFired.ShouldBeTrue();
+	}
+
+	[Fact]
+	public async Task CheckForUpdate_RaisesOnUpdateCheckedEvent_EvenWhenHttpFails()
+	{
+		using HttpClient httpClient = new(new MockHttpMessageHandler(HttpStatusCode.BadGateway));
+		using UpdateFeature feature = new(httpClient, "1.7.0");
+		bool eventFired = false;
+		feature.OnUpdateChecked += () => eventFired = true;
+
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+
+		eventFired.ShouldBeTrue();
+	}
+
+	[Fact]
+	public async Task CheckForUpdate_RespectsPassedCancellationToken()
+	{
+		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.7.0");
+		using CancellationTokenSource cts = new();
+		cts.Cancel();
+
+		UpdateCheckResult result = await feature.CheckForUpdate(cts.Token);
+
+		// Cancelled request is caught and treated as no-update
+		result.UpdateAvailable.ShouldBeFalse();
+	}
+
+	static UpdateFeature MakeFeature(string json, string currentVersion)
+	{
+		HttpClient httpClient = new(new MockHttpMessageHandler(json));
+		return new UpdateFeature(httpClient, currentVersion);
+	}
+
+	static string BuildReleaseJson(string tagName, IEnumerable<(string name, string url)> assets)
+	{
+		string assetArray = string.Join(",\n", assets.Select(a => $$"""
+			{
+			  "name": "{{a.name}}",
+			  "size": 1000,
+			  "browser_download_url": "{{a.url}}"
+			}
+			"""));
+
+		return $$"""
+			{
+			  "tag_name": "{{tagName}}",
+			  "html_url": "https://github.com/IeuanWalker/Cockpit/releases/tag/{{tagName}}",
+			  "draft": false,
+			  "prerelease": false,
+			  "assets": [{{assetArray}}]
+			}
+			""";
+	}
+
+	#endregion
+
+	#region DismissVersion
+
+	[Fact]
+	public void DismissVersion_SetsDismissedVersion()
+	{
+		using UpdateFeature feature = new(new HttpClient(), "1.7.0");
+
+		feature.DismissVersion("1.8.0");
+
+		feature.DismissedVersion.ShouldBe("1.8.0");
+	}
+
+	[Fact]
+	public void DismissVersion_OverwritesPreviousDismissedVersion()
+	{
+		using UpdateFeature feature = new(new HttpClient(), "1.7.0");
+		feature.DismissVersion("1.8.0");
+
+		feature.DismissVersion("2.0.0");
+
+		feature.DismissedVersion.ShouldBe("2.0.0");
+	}
+
+	[Fact]
+	public void DismissedVersion_IsNullByDefault()
+	{
+		using UpdateFeature feature = new(new HttpClient(), "1.7.0");
+
+		feature.DismissedVersion.ShouldBeNull();
+	}
+
+	#endregion
+
+	#region Edge cases
+
+	[Fact]
+	public void HasRequiredAssets_ReturnsFalse_WhenAssetNameIsNull()
+	{
+		GitHubReleaseModel release = new()
+		{
+			TagName = "1.8.0",
+			Assets =
+			[
+				new GitHubReleaseAssetModel { Name = null, BrowserDownloadUrl = "https://example.com/x", Size = 1000 },
+				new GitHubReleaseAssetModel { Name = null, BrowserDownloadUrl = "https://example.com/y", Size = 1000 }
+			]
+		};
+
+		UpdateFeature.HasRequiredAssets(release).ShouldBeFalse();
+	}
+
+	[Theory]
+	[InlineData("", "", false)]
+	[InlineData("1.0.0", "", true)]
+	[InlineData("", "1.0.0", false)]
+	[InlineData("v1.2.4-beta", "v1.2.3", true)]
+	[InlineData("v1.0.0", "v1.0.0-beta", true)]
+	public void IsNewerVersion_EdgeCases(string remote, string current, bool expected)
+	{
+		bool result = UpdateFeature.IsNewerVersion(remote, current);
+		result.ShouldBe(expected);
+	}
+
+	[Fact]
+	public void CachedResult_IsNullBeforeFirstCheck()
+	{
+		using UpdateFeature feature = new(new HttpClient(), "1.7.0");
+
+		feature.CachedResult.ShouldBeNull();
+	}
+
+	[Fact]
+	public void LastChecked_IsNullBeforeFirstCheck()
+	{
+		using UpdateFeature feature = new(new HttpClient(), "1.7.0");
+
+		feature.LastChecked.ShouldBeNull();
+	}
+
+	[Fact]
+	public void Initialize_CanBeCalledMultipleTimes_WithoutError()
+	{
+		using HttpClient httpClient = new(new MockHttpMessageHandler(HttpStatusCode.OK));
+		using UpdateFeature feature = new(httpClient, "1.7.0");
+
+		Should.NotThrow(() =>
+		{
+			feature.Initialize();
+			feature.Initialize();
+		});
+	}
+
+	#endregion
+}
+
+sealed class MockHttpMessageHandler : HttpMessageHandler
+{
+	readonly string? _responseJson;
+	readonly HttpStatusCode _statusCode;
+
+	internal MockHttpMessageHandler(string responseJson, HttpStatusCode statusCode = HttpStatusCode.OK)
+	{
+		_responseJson = responseJson;
+		_statusCode = statusCode;
+	}
+
+	internal MockHttpMessageHandler(HttpStatusCode statusCode)
+	{
+		_statusCode = statusCode;
+	}
+
+	protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+	{
+		cancellationToken.ThrowIfCancellationRequested();
+
+		HttpResponseMessage response = new(_statusCode);
+		if(_responseJson is not null)
+		{
+			response.Content = new StringContent(_responseJson, System.Text.Encoding.UTF8, "application/json");
+		}
+
+		return Task.FromResult(response);
+	}
 }

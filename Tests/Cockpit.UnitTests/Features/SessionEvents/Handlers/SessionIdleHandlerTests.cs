@@ -7,6 +7,7 @@ using Shouldly;
 
 namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 
+[Collection("SessionIdleEvent")]
 public class SessionIdleHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };

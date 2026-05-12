@@ -8,11 +8,6 @@ static class AssistantReasoningHandler
 {
 	internal static void Handle(SessionModel session, AssistantReasoningEvent evt)
 	{
-		if(evt.Data is null)
-		{
-			return;
-		}
-
 		string content = evt.Data.Content ?? string.Empty;
 		if(string.IsNullOrWhiteSpace(content))
 		{

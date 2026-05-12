@@ -1,101 +1,66 @@
-using System.Globalization;
-using Cockpit.Features.UIState;
-using CommunityToolkit.Maui.Media;
+using Cockpit.Features.TextToSpeech;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
-public sealed partial class SpeechToTextControl : ComponentBase, IDisposable
+public sealed partial class SpeechToTextControl : ComponentBase, IAsyncDisposable
 {
 	[Parameter] public string ChatInput { get; set; } = string.Empty;
 	[Parameter] public EventCallback<string> ChatInputChanged { get; set; }
 	[Parameter] public bool Disabled { get; set; }
 
-	readonly UIStateFeature _uiStateFeature;
-	readonly ISpeechToText _speechToText;
-	public SpeechToTextControl(UIStateFeature uiStateFeature, ISpeechToText speechToText)
-	{
-		_uiStateFeature = uiStateFeature;
-		_speechToText = speechToText;
-	}
+	readonly ISpeechToTextFeature _speechToTextFeature;
 
+	// Captures the text already in the input when recording begins so that
+	// each partial-result update replaces only the in-progress spoken segment
+	// rather than appending every interim token to the growing accumulation.
+	string _textBeforeRecording = string.Empty;
 	bool _disposed;
+
+	public SpeechToTextControl(ISpeechToTextFeature speechToTextFeature)
+	{
+		_speechToTextFeature = speechToTextFeature;
+	}
 
 	protected override void OnInitialized()
 	{
-		_speechToText.RecognitionResultCompleted += HandleRecognitionResultCompleted;
+		_speechToTextFeature.OnStateChanged += OnSpeechToTextStateChanged;
+		_speechToTextFeature.PartialResultReceived += OnPartialResultReceived;
+		_speechToTextFeature.FinalResultReceived += OnFinalResultReceived;
+		_speechToTextFeature.ErrorReceived += OnErrorReceived;
+	}
+
+	void OnSpeechToTextStateChanged()
+	{
+		_ = InvokeAsync(StateHasChanged);
 	}
 
 	public async Task VoiceRecording()
 	{
-		if(!_uiStateFeature.IsRecording)
+		if(!_speechToTextFeature.IsListening)
 		{
-			bool started = await StartListening();
-			if(started)
-			{
-				_uiStateFeature.ToggleRecording();
-			}
+			_textBeforeRecording = ChatInput;
+			await _speechToTextFeature.StartListeningAsync();
 		}
 		else
 		{
-			await StopListen();
-			_uiStateFeature.ToggleRecording();
-		}
-
-		async Task<bool> StartListening()
-		{
-			try
-			{
-				bool isGranted = await _speechToText.RequestPermissions();
-				if(!isGranted)
-				{
-					return false;
-				}
-
-				_speechToText.RecognitionResultUpdated += HandleRecognitionResultUpdated;
-				await _speechToText.StartListenAsync(new SpeechToTextOptions { Culture = CultureInfo.CurrentCulture, ShouldReportPartialResults = true }, CancellationToken.None);
-				return true;
-			}
-			catch(FileNotFoundException ex) when((ex.FileName ?? string.Empty).EndsWith("AppxManifest.xml", StringComparison.OrdinalIgnoreCase))
-			{
-				await SetChatInput("Speech recognition requires the packaged MSIX app. Run using the 'MsixPackage' debug profile.");
-				return false;
-			}
-			catch(Exception ex)
-			{
-				await SetChatInput($"Error starting recording: {ex.Message}");
-				return false;
-			}
-		}
-
-		async Task StopListen()
-		{
-			try
-			{
-				_speechToText.RecognitionResultUpdated -= HandleRecognitionResultUpdated;
-				await _speechToText.StopListenAsync(CancellationToken.None);
-			}
-			catch(Exception ex)
-			{
-				await SetChatInput($"Error stopping recording: {ex.Message}");
-			}
+			await _speechToTextFeature.StopListeningAsync();
 		}
 	}
 
-	void HandleRecognitionResultUpdated(object? sender, SpeechToTextRecognitionResultUpdatedEventArgs args)
+	void OnPartialResultReceived(object? sender, string result)
 	{
-		_ = InvokeAsync(async () =>
-		{
-			await SetChatInput(ChatInput + args.RecognitionResult);
-		});
+		_ = InvokeAsync(() => SetChatInput(_textBeforeRecording + result));
 	}
 
-	void HandleRecognitionResultCompleted(object? sender, SpeechToTextRecognitionResultCompletedEventArgs e)
+	void OnFinalResultReceived(object? sender, string result)
 	{
-		_ = InvokeAsync(async () =>
-		{
-			await SetChatInput(e.RecognitionResult.IsSuccessful ? e.RecognitionResult.Text : e.RecognitionResult.Exception.Message);
-		});
+		_ = InvokeAsync(() => SetChatInput(_textBeforeRecording + result));
+	}
+
+	void OnErrorReceived(object? sender, string error)
+	{
+		_ = InvokeAsync(() => SetChatInput(error));
 	}
 
 	async Task SetChatInput(string value)
@@ -104,25 +69,26 @@ public sealed partial class SpeechToTextControl : ComponentBase, IDisposable
 		await ChatInputChanged.InvokeAsync(value);
 	}
 
-	void Dispose(bool disposing)
+	public async ValueTask DisposeAsync()
 	{
 		if(_disposed)
 		{
 			return;
 		}
 
-		if(disposing)
-		{
-			_speechToText.RecognitionResultUpdated -= HandleRecognitionResultUpdated;
-			_speechToText.RecognitionResultCompleted -= HandleRecognitionResultCompleted;
-		}
-
 		_disposed = true;
-	}
 
-	public void Dispose()
-	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
+		_speechToTextFeature.OnStateChanged -= OnSpeechToTextStateChanged;
+		_speechToTextFeature.PartialResultReceived -= OnPartialResultReceived;
+		_speechToTextFeature.FinalResultReceived -= OnFinalResultReceived;
+		_speechToTextFeature.ErrorReceived -= OnErrorReceived;
+
+		try
+		{
+			await _speechToTextFeature.StopListeningAsync();
+		}
+		catch(Exception)
+		{
+		}
 	}
 }

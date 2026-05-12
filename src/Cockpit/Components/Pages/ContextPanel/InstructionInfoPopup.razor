@@ -1,85 +1,87 @@
 @using Cockpit.Components.Controls
+@using Cockpit.Features.Instructions
 @using GitHub.Copilot.SDK.Rpc
 
 <PopupBase @ref="_popup"
            Title="@($"Instructions ({_instructions.Count})")"
            PopupStyle="width: 1100px; height: 700px;"
            ContentClass="flex-1 min-h-0 overflow-hidden">
-    <HeaderRight>
-        @if(_selectedInstruction is not null)
-        {
-            <button class="ef-action-btn" @onclick="RevealInstructionFile" title="Reveal instruction file in explorer">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
-                <span>Reveal</span>
-            </button>
-        }
-    </HeaderRight>
-    <Content>
-        <div class="flex overflow-hidden" style="height: 100%;">
+	<HeaderRight>
+		@if(_selectedInstruction is not null)
+		{
+			<button class="ef-action-btn" @onclick="RevealInstructionFile" title="Reveal instruction file in explorer">
+				<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+				</svg>
+				<span>Reveal</span>
+			</button>
+		}
+	</HeaderRight>
+	<Content>
+		<div class="flex overflow-hidden" style="height: 100%;">
 
-            @* Left: flat instruction list sorted alphabetically *@
-            <div id="instruction-left-panel" class="ai-file-tree scrollbar-thin">
-                @if(_instructions.Count == 0)
-                {
-                    <div class="px-3 py-4 text-center secondary-text text-xs">No instructions available</div>
-                }
-                @foreach(InstructionsSources instr in _instructions.OrderBy(i => i.Label, StringComparer.OrdinalIgnoreCase))
-                {
-                    bool isSelected = _selectedInstruction?.Id == instr.Id;
-                    <div class="ai-file-item @(isSelected ? "selected" : "")"
-                         @onclick="() => SelectInstruction(instr)">
-                        <span class="text-xs truncate flex-1 min-w-0">@(instr.Label.StartsWith(".github/", StringComparison.OrdinalIgnoreCase) ? instr.Label[".github/".Length..] : instr.Label)</span>
-                    </div>
-                }
-            </div>
+			@* Left: flat instruction list sorted alphabetically *@
+			<div id="instruction-left-panel" class="ai-file-tree scrollbar-thin">
+				@if(_instructions.Count == 0)
+				{
+					<div class="px-3 py-4 text-center secondary-text text-xs">No instructions available</div>
+				}
+				@foreach(InstructionsSources instr in _instructions)
+				{
+					bool isSelected = _selectedInstruction?.Id == instr.Id;
+					<div class="ai-file-item @(isSelected ? "selected" : "")"
+					     @key="instr.Id"
+					     @onclick="() => SelectInstruction(instr)">
+						<span class="text-xs truncate flex-1 min-w-0">@InstructionsFeature.GetDisplayLabel(instr.Label)</span>
+					</div>
+				}
+			</div>
 
-            <div id="instruction-split-handle" class="popup-split-handle" style="cursor: col-resize;"></div>
+			<div id="instruction-split-handle" class="popup-split-handle" style="cursor: col-resize;"></div>
 
-            @* Right: instruction detail *@
-            <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-                @if(_selectedInstruction is not null)
-                {
-                    <div class="flex items-center justify-between px-4 py-2 flex-shrink-0 border-b text-xs"
-                         style="border-color: var(--input-border);">
-                        <span class="font-mono font-medium flex-shrink-0" style="color: var(--text-color);">
-                            @Path.GetFileName(ResolvedInstructionPath)
-                        </span>
-                        <span class="secondary-text ml-4 path-truncate-start flex-1 min-w-0 font-mono" title="@ResolvedInstructionPath">@ResolvedInstructionPath</span>
-                    </div>
-                    <div class="flex-1 overflow-y-auto scrollbar-thin p-4 flex flex-col gap-4">
-                        <div class="rounded p-3 text-xs"
-                             style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
-                            <div class="font-semibold secondary-text uppercase tracking-widest mb-1" style="font-size: 10px;">Details</div>
-                            <div class="grid gap-x-4 gap-y-0.5" style="grid-template-columns: auto 1fr;">
-                                <span class="secondary-text">Location</span>
-                                <span style="color: var(--text-color);">@_selectedInstruction.Location</span>
-                                @if(!string.IsNullOrWhiteSpace(_selectedInstruction.ApplyTo))
-                                {
-                                    <span class="secondary-text">Apply To</span>
-                                    <span style="color: var(--text-color);">@_selectedInstruction.ApplyTo</span>
-                                }
-                                @if(!string.IsNullOrWhiteSpace(_selectedInstruction.Description))
-                                {
-                                    <span class="secondary-text">Description</span>
-                                    <span style="color: var(--text-color);">@_selectedInstruction.Description</span>
-                                }
-                            </div>
-                        </div>
-                        @if(!string.IsNullOrWhiteSpace(_selectedInstruction.Content))
-                        {
-                            <MarkdownRenderer Content="@_selectedInstruction.Content" />
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="flex-1 flex items-center justify-center secondary-text text-xs">
-                        Select an instruction to view details
-                    </div>
-                }
-            </div>
-        </div>
-    </Content>
+			@* Right: instruction detail *@
+			<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+				@if(_selectedInstruction is not null)
+				{
+					<div class="flex items-center justify-between px-4 py-2 flex-shrink-0 border-b text-xs"
+					     style="border-color: var(--input-border);">
+						<span class="font-mono font-medium flex-shrink-0" style="color: var(--text-color);">
+							@Path.GetFileName(ResolvedInstructionPath)
+						</span>
+						<span class="secondary-text ml-4 path-truncate-start flex-1 min-w-0 font-mono" title="@ResolvedInstructionPath">@ResolvedInstructionPath</span>
+					</div>
+					<div class="flex-1 overflow-y-auto scrollbar-thin p-4 flex flex-col gap-4">
+						<div class="rounded p-3 text-xs"
+						     style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
+							<div class="font-semibold secondary-text uppercase tracking-widest mb-1" style="font-size: 10px;">Details</div>
+							<div class="grid gap-x-4 gap-y-0.5" style="grid-template-columns: auto 1fr;">
+								<span class="secondary-text">Location</span>
+								<span style="color: var(--text-color);">@_selectedInstruction.Location</span>
+								@if(!string.IsNullOrWhiteSpace(_selectedInstruction.ApplyTo))
+								{
+									<span class="secondary-text">Apply To</span>
+									<span style="color: var(--text-color);">@_selectedInstruction.ApplyTo</span>
+								}
+								@if(!string.IsNullOrWhiteSpace(_selectedInstruction.Description))
+								{
+									<span class="secondary-text">Description</span>
+									<span style="color: var(--text-color);">@_selectedInstruction.Description</span>
+								}
+							</div>
+						</div>
+						@if(!string.IsNullOrWhiteSpace(_selectedInstruction.Content))
+						{
+							<MarkdownRenderer Content="@_selectedInstruction.Content" />
+						}
+					</div>
+				}
+				else
+				{
+					<div class="flex-1 flex items-center justify-center secondary-text text-xs">
+						Select an instruction to view details
+					</div>
+				}
+			</div>
+		</div>
+	</Content>
 </PopupBase>

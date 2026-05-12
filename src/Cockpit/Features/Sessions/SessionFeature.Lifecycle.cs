@@ -5,7 +5,9 @@ using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
+using GitHub.Copilot.SDK.Rpc;
 using Microsoft.Extensions.Logging;
+using SdkPlugin = GitHub.Copilot.SDK.Rpc.Plugin;
 
 namespace Cockpit.Features.Sessions;
 
@@ -130,8 +132,8 @@ public sealed partial class SessionFeature
 				Title = !string.IsNullOrEmpty(workingDirectory)
 					? Path.GetFileName(workingDirectory)
 					: "New Session",
-				CreatedAt = DateTime.Now,
-				LastActivity = DateTime.Now,
+				CreatedAt = DateTime.UtcNow,
+				LastActivity = DateTime.UtcNow,
 				Status = SessionStatusEnum.Idle,
 				Context = new()
 				{
@@ -152,7 +154,7 @@ public sealed partial class SessionFeature
 
 			await _modelFeature.SaveSessionModel(chatSession);
 			await _agentPersistence.SaveSessionAgent(chatSession);
-			await _sessionModePersistence.SaveSessionModeAsync(chatSession);
+			await _sessionModePersistence.SaveSessionMode(chatSession);
 
 			await SwitchCurrentSessionAsync(chatSession);
 
@@ -190,6 +192,11 @@ public sealed partial class SessionFeature
 			}
 
 			_logger.LogInformation("Loading session {SessionId}", sessionId);
+
+			if(string.IsNullOrWhiteSpace(session.Context.CurrentWorkingDirectory) || !Directory.Exists(session.Context.CurrentWorkingDirectory))
+			{
+				session.Context.CurrentWorkingDirectory = null;
+			}
 
 			ResumeSessionConfig config = new()
 			{
@@ -276,13 +283,13 @@ public sealed partial class SessionFeature
 				session.Context.WorkspacePath = sdkSession.WorkspacePath;
 				SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 				await _modelFeature.TryRestoreModelSettings(session);
-				await _agentPersistence.TryRestoreSessionAgentAsync(session);
+				await _agentPersistence.TryRestoreSessionAgent(session);
 				if(session.Context.SelectedAgent is not null)
 				{
 					await sdkSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Name);
 				}
 
-				await _sessionModePersistence.TryRestoreSessionModeAsync(session);
+				await _sessionModePersistence.TryRestoreSessionMode(session);
 				if(session.Context.SelectedAgentMode != Models.SessionAgentModeEnum.Interactive)
 				{
 					await sdkSession.Rpc.Mode.SetAsync(session.Context.SelectedAgentMode.ToSdkSessionMode());
@@ -460,7 +467,7 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	public async Task DeleteSession(string sessionId)
+	public async Task DeleteSession(string sessionId, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -473,17 +480,15 @@ public sealed partial class SessionFeature
 			_userInputHandler.CancelPendingRequestsForSession(sessionId);
 			_permissionHandler.CancelPendingRequestsForSession(sessionId);
 
-			CopilotClient client = await _clientFeature.GetClientAsync();
-			await client.DeleteSessionAsync(sessionId);
+			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
+			await client.DeleteSessionAsync(sessionId, cancellationToken);
 
 			_sessionListFeature.RemoveSession(sessionId);
-			_sessionListFeature.NotifyStateChanged();
 		}
 		catch(InvalidOperationException ex) when(ex.Message.Contains("Error: Session file not found"))
 		{
 			_logger.LogWarning(ex, "Session {SessionId} not found during deletion - it may have already been deleted", sessionId);
 			_sessionListFeature.RemoveSession(sessionId);
-			_sessionListFeature.NotifyStateChanged();
 		}
 		catch(Exception ex)
 		{
@@ -649,11 +654,11 @@ public sealed partial class SessionFeature
 
 	async Task LoadContextPanelDataAsync(SessionModel session, CopilotSession sdkSession)
 	{
-		var agentsTask = _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
-		var instructionsTask = _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
-		var mcpTask = _mcpFeature.LoadSessionMcpServersAsync(sdkSession);
-		var skillsTask = _skillsFeature.LoadSessionSkillsAsync(sdkSession);
-		var pluginsTask = _pluginsFeature.LoadSessionPluginsAsync(sdkSession);
+		Task<List<AgentProfile>> agentsTask = _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
+		Task<List<InstructionsSources>> instructionsTask = _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
+		Task<List<McpServer>> mcpTask = _mcpFeature.LoadSessionMcpServersAsync(sdkSession);
+		Task<List<Skill>> skillsTask = _skillsFeature.LoadSessionSkillsAsync(sdkSession);
+		Task<List<SdkPlugin>> pluginsTask = _pluginsFeature.LoadSessionPluginsAsync(sdkSession);
 
 		await Task.WhenAll(agentsTask, instructionsTask, mcpTask, skillsTask, pluginsTask);
 

@@ -7,7 +7,7 @@ namespace Cockpit.Features.Permissions;
 /// Manages the global deny list — commands that are never allowed to be globally approved.
 /// When a command is on this list the "Allow globally" option is suppressed in the UI.
 /// </summary>
-public sealed partial class GlobalDenyFeature : IDisposable
+public sealed class GlobalDenyFeature : IDisposable
 {
 	readonly ILogger<GlobalDenyFeature> _logger;
 	readonly string _denyFilePath;
@@ -19,7 +19,7 @@ public sealed partial class GlobalDenyFeature : IDisposable
 		Load();
 	}
 
-	readonly List<string> _commands = [];
+	readonly HashSet<string> _commands = new(StringComparer.Ordinal);
 	readonly ReaderWriterLockSlim _lock = new();
 	public event Action? OnDenyListChanged;
 
@@ -71,9 +71,8 @@ public sealed partial class GlobalDenyFeature : IDisposable
 		_lock.EnterWriteLock();
 		try
 		{
-			if(!_commands.Contains(command))
+			if(_commands.Add(command))
 			{
-				_commands.Add(command);
 				snapshot = [.. _commands];
 			}
 		}
@@ -131,7 +130,7 @@ public sealed partial class GlobalDenyFeature : IDisposable
 				try
 				{
 					_commands.Clear();
-					_commands.AddRange(file);
+					_commands.UnionWith(file);
 				}
 				finally
 				{

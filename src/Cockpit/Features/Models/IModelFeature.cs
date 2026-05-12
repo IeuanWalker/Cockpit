@@ -1,0 +1,12 @@
+using Cockpit.Features.Sessions.Models;
+using GitHub.Copilot.SDK;
+
+namespace Cockpit.Features.Models;
+
+public interface IModelFeature
+{
+	ValueTask<IReadOnlyList<ModelInfo>> GetModels(CancellationToken cancellationToken = default);
+	ValueTask<ModelInfo> GetDefaultModel(CancellationToken cancellationToken = default);
+	Task SaveSessionModel(SessionModel session);
+	Task<bool> TryRestoreModelSettings(SessionModel session);
+}

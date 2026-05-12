@@ -1,9 +1,8 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.FileSearch;
 
-public class FileSearchFeature : IFileSearchFeature
+public sealed class FileSearchFeature : IFileSearchFeature
 {
 	readonly ILogger<FileSearchFeature> _logger;
 
@@ -22,12 +21,16 @@ public class FileSearchFeature : IFileSearchFeature
 
 	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = 50, CancellationToken cancellationToken = default)
 	{
-		return Task.Run(() => Search(workingDirectory, filter, maxResults, cancellationToken), cancellationToken);
+		return Task.Run<IReadOnlyList<FileSearchResult>>(() => Search(workingDirectory, filter, maxResults, cancellationToken), cancellationToken);
 	}
 
-	[SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
-	IReadOnlyList<FileSearchResult> Search(string workingDirectory, string filter, int maxResults, CancellationToken cancellationToken)
+	List<FileSearchResult> Search(string workingDirectory, string filter, int maxResults, CancellationToken cancellationToken)
 	{
+		if(maxResults <= 0)
+		{
+			return [];
+		}
+
 		if(string.IsNullOrWhiteSpace(workingDirectory) || !Directory.Exists(workingDirectory))
 		{
 			return [];
@@ -37,30 +40,11 @@ public class FileSearchFeature : IFileSearchFeature
 		{
 			List<FileSearchResult> results = [];
 			EnumerateFiles(workingDirectory, workingDirectory, filter, results, maxResults, cancellationToken);
-
-			// Sort: exact filename prefix matches first, then contains matches, then by path length
-			string lowerFilter = filter.ToLowerInvariant();
-			results.Sort((a, b) =>
+			SortResults(results, filter);
+			if(results.Count > maxResults)
 			{
-				string aName = a.FileName.ToLowerInvariant();
-				string bName = b.FileName.ToLowerInvariant();
-				bool aPrefix = aName.StartsWith(lowerFilter);
-				bool bPrefix = bName.StartsWith(lowerFilter);
-				if(aPrefix != bPrefix)
-				{
-					return aPrefix ? -1 : 1;
-				}
-				// Within same tier, sort by path depth (shallower first) then alphabetically
-				int aDepth = a.RelativePath.Count(c => c == Path.DirectorySeparatorChar || c == '/');
-				int bDepth = b.RelativePath.Count(c => c == Path.DirectorySeparatorChar || c == '/');
-				if(aDepth != bDepth)
-				{
-					return aDepth.CompareTo(bDepth);
-				}
-
-				return string.Compare(a.RelativePath, b.RelativePath, StringComparison.OrdinalIgnoreCase);
-			});
-
+				results.RemoveRange(maxResults, results.Count - maxResults);
+			}
 			return results;
 		}
 		catch(OperationCanceledException)
@@ -72,6 +56,60 @@ public class FileSearchFeature : IFileSearchFeature
 			_logger.LogDebug(ex, "File search failed in {Directory}", workingDirectory);
 			return [];
 		}
+	}
+
+	// Pre-computes per-result sort keys to avoid repeated ToLowerInvariant() and depth counting
+	// inside each comparison during sort. Results are bounded at maxResults (≤ 50 by default).
+	static void SortResults(List<FileSearchResult> results, string filter)
+	{
+		if(results.Count <= 1)
+		{
+			return;
+		}
+
+		string lowerFilter = filter.ToLowerInvariant();
+
+		(FileSearchResult Result, string LowerName, int Depth)[] keyed = new (FileSearchResult, string, int)[results.Count];
+		for(int i = 0; i < results.Count; i++)
+		{
+			FileSearchResult r = results[i];
+			keyed[i] = (r, r.FileName.ToLowerInvariant(), CountPathDepth(r.RelativePath));
+		}
+
+		// Sort: prefix matches first, then by depth (shallower first), then alphabetically
+		Array.Sort(keyed, (a, b) =>
+		{
+			bool aPrefix = a.LowerName.StartsWith(lowerFilter, StringComparison.Ordinal);
+			bool bPrefix = b.LowerName.StartsWith(lowerFilter, StringComparison.Ordinal);
+			if(aPrefix != bPrefix)
+			{
+				return aPrefix ? -1 : 1;
+			}
+			if(a.Depth != b.Depth)
+			{
+				return a.Depth.CompareTo(b.Depth);
+			}
+			return string.Compare(a.Result.RelativePath, b.Result.RelativePath, StringComparison.OrdinalIgnoreCase);
+		});
+
+		results.Clear();
+		foreach((FileSearchResult result, string _, int _) in keyed)
+		{
+			results.Add(result);
+		}
+	}
+
+	static int CountPathDepth(string relativePath)
+	{
+		int count = 0;
+		foreach(char c in relativePath)
+		{
+			if(c == Path.DirectorySeparatorChar || c == '/')
+			{
+				count++;
+			}
+		}
+		return count;
 	}
 
 	void EnumerateFiles(string root, string dir, string filter, List<FileSearchResult> results, int maxResults, CancellationToken cancellationToken)
@@ -87,11 +125,6 @@ public class FileSearchFeature : IFileSearchFeature
 		{
 			foreach(string filePath in Directory.EnumerateFiles(dir))
 			{
-				if(results.Count >= maxResults)
-				{
-					return;
-				}
-
 				cancellationToken.ThrowIfCancellationRequested();
 
 				string fileName = Path.GetFileName(filePath);
@@ -99,6 +132,10 @@ public class FileSearchFeature : IFileSearchFeature
 				{
 					string relativePath = Path.GetRelativePath(root, filePath);
 					results.Add(new FileSearchResult(fileName, relativePath, filePath));
+					if(results.Count >= maxResults)
+					{
+						return;
+					}
 				}
 			}
 
@@ -126,7 +163,7 @@ public class FileSearchFeature : IFileSearchFeature
 		}
 		catch(UnauthorizedAccessException)
 		{
-			// Skip inaccessible directories
+			// Skip inaccessible directories silently
 		}
 		catch(Exception ex)
 		{

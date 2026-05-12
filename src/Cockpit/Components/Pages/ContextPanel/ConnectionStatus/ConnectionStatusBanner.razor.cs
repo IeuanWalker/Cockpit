@@ -3,9 +3,10 @@ using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel.ConnectionStatus;
 
-public partial class ConnectionStatusBanner : ComponentBase, IDisposable
+public sealed partial class ConnectionStatusBanner : ComponentBase, IDisposable
 {
 	readonly ConnectionFeature _connectionFeature;
+
 	public ConnectionStatusBanner(ConnectionFeature connectionFeature)
 	{
 		_connectionFeature = connectionFeature;
@@ -27,18 +28,9 @@ public partial class ConnectionStatusBanner : ComponentBase, IDisposable
 
 	void OpenPopup() => _popup.Open();
 
-
 	public void Dispose()
 	{
-		Dispose(true);
+		_connectionFeature.OnStatusChanged -= OnStatusChanged;
 		GC.SuppressFinalize(this);
-	}
-
-	protected virtual void Dispose(bool disposing)
-	{
-		if(disposing)
-		{
-			_connectionFeature.OnStatusChanged -= OnStatusChanged;
-		}
 	}
 }

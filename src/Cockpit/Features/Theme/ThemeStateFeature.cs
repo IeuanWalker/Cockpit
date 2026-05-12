@@ -6,7 +6,7 @@ namespace Cockpit.Features.Theme;
 /// Singleton that holds the current resolved theme state and notifies all subscribers
 /// (including secondary windows with their own BlazorWebView scope).
 /// </summary>
-public class ThemeStateFeature
+public sealed class ThemeStateFeature
 {
 	public event Action? OnThemeChanged;
 

@@ -19,6 +19,7 @@ public class PermissionFeatureTests
 		public void AddSession(SessionModel session) => _sessions.Add(session);
 
 		public IReadOnlyList<SessionModel> Sessions => _sessions;
+		public SessionModel? CurrentSession => _sessions.FirstOrDefault();
 
 		public void NotifyStateChanged()
 		{
@@ -57,8 +58,6 @@ public class PermissionFeatureTests
 
 		// Assert
 		result.ShouldBe(PermissionDecisionEnum.Once);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -92,8 +91,6 @@ public class PermissionFeatureTests
 
 		// Assert
 		result.ShouldBe(PermissionDecisionEnum.Global);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -144,8 +141,6 @@ public class PermissionFeatureTests
 
 		// Assert
 		result.ShouldBe(PermissionDecisionEnum.Session);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -197,8 +192,6 @@ public class PermissionFeatureTests
 
 		// Assert - Session takes priority
 		result.ShouldBe(PermissionDecisionEnum.Session);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -270,8 +263,6 @@ public class PermissionFeatureTests
 		feature.ResolvePermissionRequest(mixedRequest.Id, PermissionDecisionEnum.Denied);
 		PermissionDecisionEnum mixedResult = await mixedTask.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 		mixedResult.ShouldBe(PermissionDecisionEnum.Denied);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -324,8 +315,6 @@ public class PermissionFeatureTests
 		// Assert
 		globalFeature.HasPermissions(["npm"]).ShouldBeTrue();
 		sessionFeature.HasPermission("session1", "npm").ShouldBeFalse();
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -378,8 +367,6 @@ public class PermissionFeatureTests
 		// Assert
 		sessionFeature.HasPermission("session1", "npm").ShouldBeTrue();
 		globalFeature.HasPermissions(["npm"]).ShouldBeFalse();
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -432,8 +419,6 @@ public class PermissionFeatureTests
 		// Assert
 		sessionFeature.HasPermission("session1", "npm").ShouldBeFalse();
 		globalFeature.HasPermissions(["npm"]).ShouldBeFalse();
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -486,8 +471,6 @@ public class PermissionFeatureTests
 		// Assert
 		sessionFeature.HasPermission("session1", "npm").ShouldBeFalse();
 		globalFeature.HasPermissions(["npm"]).ShouldBeFalse();
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -574,8 +557,6 @@ public class PermissionFeatureTests
 		PermissionDecisionEnum result2 = await task2.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 		result1.ShouldBe(PermissionDecisionEnum.Global);
 		result2.ShouldBe(PermissionDecisionEnum.Global);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -664,8 +645,6 @@ public class PermissionFeatureTests
 
 		// Clean up
 		feature.ResolvePermissionRequest(request2.Id, PermissionDecisionEnum.Denied);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -722,8 +701,6 @@ public class PermissionFeatureTests
 
 		// Assert - All should return Global decision
 		results.All(r => r == PermissionDecisionEnum.Global).ShouldBeTrue();
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -798,8 +775,311 @@ public class PermissionFeatureTests
 		resultA.ShouldBe(PermissionDecisionEnum.Session);
 		resultB.ShouldBe(PermissionDecisionEnum.Session);
 		session.Status.ShouldBe(SessionStatusEnum.Running);
+	}
 
-		globalFeature.Dispose();
+	[Fact]
+	public async Task CheckPermissionAsync_SafeCommand_AutoApproves()
+	{
+		// Arrange
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		// "ls" is a safe, non-destructive command in safeCommands — should auto-approve without user prompt
+		PermissionRequestModel request = new()
+		{
+			SessionId = "session1",
+			FullCommand = "ls",
+			Commands = ["ls"],
+			RequestTitle = "Allow ls",
+			Intention = "List directory contents",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = false,
+			FullRequestJson = "{}"
+		};
+
+		// Act
+		PermissionDecisionEnum result = await feature.CheckPermissionAsync(request, isYolo: false);
+
+		// Assert - safe command auto-approved without user prompt (no OnPermissionRequested fired)
+		result.ShouldBe(PermissionDecisionEnum.Once);
+	}
+
+	[Fact]
+	public async Task HandlePermissionRequest_SessionNotFound_ReturnsUserNotAvailable()
+	{
+		// Arrange
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		// PermissionInvocation with a sessionId not in stateProvider
+		PermissionInvocation invocation = new() { SessionId = "nonexistent-session" };
+		PermissionRequestShell shellRequest = new()
+		{
+			FullCommandText = "rm -rf .",
+			Intention = "test",
+			Commands = [],
+			PossiblePaths = [],
+			PossibleUrls = [],
+			HasWriteFileRedirection = false,
+			CanOfferSessionApproval = true
+		};
+
+		// Act
+		PermissionRequestResult result = await feature.HandlePermissionRequest(shellRequest, invocation);
+
+		// Assert
+		result.Kind.ShouldBe(PermissionRequestResultKind.UserNotAvailable);
+	}
+
+	[Fact]
+	public async Task CancelPendingRequestsForSession_CancelsAllPending()
+	{
+		// Arrange
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		const string sessionId = "session1";
+		SessionModel session = new()
+		{
+			Id = sessionId,
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Status = SessionStatusEnum.Running,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
+		};
+		stateProvider.AddSession(session);
+
+		PermissionRequestModel requestA = new()
+		{
+			SessionId = sessionId,
+			FullCommand = "rm -rf ./node_modules",
+			Commands = ["rm"],
+			RequestTitle = "Allow rm",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = true,
+			FullRequestJson = "{}"
+		};
+
+		PermissionRequestModel requestB = new()
+		{
+			SessionId = sessionId,
+			FullCommand = "git push --force",
+			Commands = ["git push"],
+			RequestTitle = "Allow git push",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = false,
+			FullRequestJson = "{}"
+		};
+
+		Task<PermissionDecisionEnum> taskA = feature.CheckPermissionAsync(requestA);
+		Task<PermissionDecisionEnum> taskB = feature.CheckPermissionAsync(requestB);
+
+		// Wait for both requests to enter pending state
+		await WaitForPendingRequest(feature, requestA.Id);
+		await WaitForPendingRequest(feature, requestB.Id);
+
+		// Act
+		feature.CancelPendingRequestsForSession(sessionId);
+
+		// Assert — both tasks complete with Denied
+		PermissionDecisionEnum resultA = await taskA.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		PermissionDecisionEnum resultB = await taskB.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+		resultA.ShouldBe(PermissionDecisionEnum.Denied);
+		resultB.ShouldBe(PermissionDecisionEnum.Denied);
+	}
+
+	[Fact]
+	public void ResolvePermissionRequest_UnknownRequestId_IsNoOp()
+	{
+		// Arrange
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		// Act & Assert — should not throw
+		feature.ResolvePermissionRequest("nonexistent-request-id", PermissionDecisionEnum.Once);
+
+		// Nothing was saved
+		globalFeature.HasPermission("anything").ShouldBeFalse();
+	}
+
+	[Fact]
+	public async Task ResolvePermissionRequest_GlobalApproval_BlockedByDenyList_DowngradesToSession()
+	{
+		// Arrange
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		const string sessionId = "session1";
+		SessionModel session = new()
+		{
+			Id = sessionId,
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Status = SessionStatusEnum.Running,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
+		};
+		stateProvider.AddSession(session);
+
+		// Add "rm" to global deny list
+		denyFeature.Add("rm");
+
+		PermissionRequestModel request = new()
+		{
+			SessionId = sessionId,
+			FullCommand = "rm -rf ./node_modules",
+			Commands = ["rm"],
+			RequestTitle = "Allow rm",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = true,
+			FullRequestJson = "{}"
+		};
+
+		Task<PermissionDecisionEnum> task = feature.CheckPermissionAsync(request);
+		await WaitForPendingRequest(feature, request.Id);
+
+		// Act — resolve with Global, which should be downgraded to Session
+		feature.ResolvePermissionRequest(request.Id, PermissionDecisionEnum.Global);
+
+		PermissionDecisionEnum result = await task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+		// Assert — decision returned is Session (downgraded), not Global
+		result.ShouldBe(PermissionDecisionEnum.Session);
+
+		// Global permission should NOT have been saved
+		globalFeature.HasPermission("rm").ShouldBeFalse();
+
+		// Session permission SHOULD have been saved
+		sessionFeature.HasPermission(sessionId, "rm").ShouldBeTrue();
+	}
+
+	[Fact]
+	public async Task ResolvePermissionRequest_GlobalApprovalBlockedByDenyList_DoesNotAutoResolveOtherDeniedRequests()
+	{
+		// Arrange
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		const string sessionId = "session1";
+		SessionModel session = new()
+		{
+			Id = sessionId,
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Status = SessionStatusEnum.Running,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
+		};
+		stateProvider.AddSession(session);
+		denyFeature.Add("rm");
+
+		PermissionRequestModel request1 = new()
+		{
+			SessionId = sessionId,
+			FullCommand = "rm -rf ./node_modules",
+			Commands = ["rm"],
+			RequestTitle = "Allow rm",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = true,
+			FullRequestJson = "{}"
+		};
+
+		PermissionRequestModel request2 = new()
+		{
+			SessionId = sessionId,
+			FullCommand = "rm -rf ./dist",
+			Commands = ["rm"],
+			RequestTitle = "Allow rm",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = true,
+			FullRequestJson = "{}"
+		};
+
+		Task<PermissionDecisionEnum> task1 = feature.CheckPermissionAsync(request1);
+		Task<PermissionDecisionEnum> task2 = feature.CheckPermissionAsync(request2);
+		await WaitForPendingRequest(feature, request1.Id);
+		await WaitForPendingRequest(feature, request2.Id);
+
+		// Act
+		feature.ResolvePermissionRequest(request1.Id, PermissionDecisionEnum.Global);
+
+		PermissionDecisionEnum result1 = await task1.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+		// Assert
+		result1.ShouldBe(PermissionDecisionEnum.Session);
+		await Task.Delay(200, TestContext.Current.CancellationToken);
+		task2.IsCompleted.ShouldBeFalse();
+
+		feature.ResolvePermissionRequest(request2.Id, PermissionDecisionEnum.Denied);
+		PermissionDecisionEnum result2 = await task2.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		result2.ShouldBe(PermissionDecisionEnum.Denied);
 	}
 
 	// Helper to access private field via reflection (for testing only)

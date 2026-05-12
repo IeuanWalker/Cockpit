@@ -1,6 +1,6 @@
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions;
-using Humanizer;
+using Cockpit.Features.Timestamp;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Logging;
@@ -16,14 +16,18 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	readonly SessionFeature _sessionFeature;
 	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<WorkingPanel> _logger;
+	readonly ITimestampFeature _timestampFeature;
+
 	public WorkingPanel(
 		SessionFeature sessionFeature,
 		IJSRuntime jsRuntime,
-		ILogger<WorkingPanel> logger)
+		ILogger<WorkingPanel> logger,
+		ITimestampFeature timestampFeature)
 	{
 		_sessionFeature = sessionFeature;
 		_jsRuntime = jsRuntime;
 		_logger = logger;
+		_timestampFeature = timestampFeature;
 	}
 
 	Timer? _timer;
@@ -151,11 +155,8 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 			return string.Empty;
 		}
 
-		TimeSpan elapsed = Group.Status == GroupStatusEnum.Running
-			? DateTime.Now - Group.StartTime
-			: (Group.EndTime ?? DateTime.Now) - Group.StartTime;
-
-		return elapsed.Humanize();
+		DateTime? end = Group.Status == GroupStatusEnum.Running ? null : Group.EndTime;
+		return _timestampFeature.FormatDuration(Group.StartTime, end);
 	}
 
 	string GenerateSummary()

@@ -6,7 +6,7 @@
     {
         <div class="fixed inset-0" style="z-index: 999;" @onclick="Close"></div>
     }
-    <button @onclick="Toggle"
+    <button type="button" @onclick="Toggle"
             class="p-1.5 hover:bg-app-hover rounded"
             title="@GetTitle()">
         @if(CurrentMode == MessageTurnModeEnum.Enqueue)
@@ -30,7 +30,7 @@
         <div class="absolute bottom-full mb-1 right-0 rounded border shadow-lg overflow-hidden"
              style="background-color: var(--input-bg); border-color: var(--input-border); z-index: 1000; min-width: 160px;">
             <div class="px-3 py-1.5 text-xs secondary-text border-b" style="border-color: var(--input-border);">Message mode</div>
-            <button @onclick="() => Select(MessageTurnModeEnum.Immediate)"
+            <button type="button" @onclick="() => Select(MessageTurnModeEnum.Immediate)"
                     class="w-full px-3 py-1.5 text-xs hover:bg-app-hover flex items-center justify-between"
                     style="color: var(--text-color);">
                 <span class="flex items-center gap-2">
@@ -46,7 +46,7 @@
                     </svg>
                 }
             </button>
-            <button @onclick="() => Select(MessageTurnModeEnum.Enqueue)"
+            <button type="button" @onclick="() => Select(MessageTurnModeEnum.Enqueue)"
                     class="w-full px-3 py-1.5 text-xs hover:bg-app-hover flex items-center justify-between"
                     style="color: var(--text-color);">
                 <span class="flex items-center gap-2">

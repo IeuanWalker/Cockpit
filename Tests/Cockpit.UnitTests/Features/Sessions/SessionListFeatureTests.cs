@@ -75,6 +75,22 @@ public class SessionListFeatureTests
 	}
 
 	[Fact]
+	public async Task RemoveSession_FiresStateChanged_WhenSessionRemoved()
+	{
+		SessionListFeature feature = CreateFeature();
+		SessionModel session = MakeSession("removed");
+		feature.AddSession(session);
+		int callCount = 0;
+		feature.OnStateChanged += () => callCount++;
+
+		feature.RemoveSession(session.Id);
+
+		await Task.Delay(50, TestContext.Current.CancellationToken);
+
+		callCount.ShouldBe(1);
+	}
+
+	[Fact]
 	public void RemoveSession_NoOp_WhenSessionNotFound()
 	{
 		SessionListFeature feature = CreateFeature();
@@ -148,14 +164,51 @@ public class SessionListFeatureTests
 	}
 
 	[Fact]
+	public async Task NotifyStateChanged_CanBeCalledMultipleTimes_WithoutThrowing()
+	{
+		SessionListFeature feature = CreateFeature();
+		int callCount = 0;
+		feature.OnStateChanged += () => callCount++;
+
+		Should.NotThrow(() =>
+		{
+			for(int i = 0; i < 10; i++)
+			{
+				feature.NotifyStateChanged();
+			}
+		});
+
+		await Task.Delay(100, TestContext.Current.CancellationToken);
+
+		callCount.ShouldBe(1);
+	}
+
+	[Fact]
 	public void ISessionStateProvider_GetSessions_ReturnsSessions()
 	{
 		SessionListFeature feature = CreateFeature();
 		feature.AddSession(MakeSession("a"));
 		feature.AddSession(MakeSession("b"));
 
-		SessionListFeature provider = feature;
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
+		ISessionStateProvider provider = feature;
+#pragma warning restore CA1859 // Use concrete types when possible for improved performance
 		provider.Sessions.Count.ShouldBe(2);
+	}
+
+	[Fact]
+	public void ISessionStateProvider_CurrentSession_ReflectsCurrentSession()
+	{
+		SessionListFeature feature = CreateFeature();
+		SessionModel session = MakeSession("current");
+		feature.AddSession(session);
+		feature.SetCurrentSession(session);
+
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
+		ISessionStateProvider provider = feature;
+#pragma warning restore CA1859 // Use concrete types when possible for improved performance
+
+		provider.CurrentSession.ShouldBe(session);
 	}
 
 	[Fact]
@@ -169,5 +222,77 @@ public class SessionListFeatureTests
 		feature.Sessions[0].Id.ShouldBe("3");
 		feature.Sessions[1].Id.ShouldBe("2");
 		feature.Sessions[2].Id.ShouldBe("1");
+	}
+
+	[Fact]
+	public async Task SetCurrentSession_ToNull_ClearsCurrentAndFiresEvent()
+	{
+		SessionListFeature feature = CreateFeature();
+		SessionModel session = MakeSession("x");
+		feature.AddSession(session);
+		feature.SetCurrentSession(session);
+		await Task.Delay(50, TestContext.Current.CancellationToken);
+
+		bool eventFired = false;
+		feature.OnStateChanged += () => eventFired = true;
+
+		feature.SetCurrentSession(null!);
+		await Task.Delay(50, TestContext.Current.CancellationToken);
+
+		feature.CurrentSession.ShouldBeNull();
+		eventFired.ShouldBeTrue();
+	}
+
+	[Fact]
+	public void RemoveSession_OfMultiple_PreservesOrder()
+	{
+		SessionListFeature feature = CreateFeature();
+		feature.AddSession(MakeSession("1", "First"));
+		feature.AddSession(MakeSession("2", "Second"));
+		feature.AddSession(MakeSession("3", "Third"));
+
+		feature.RemoveSession("2");
+
+		feature.Sessions.Count.ShouldBe(2);
+		feature.Sessions[0].Id.ShouldBe("3");
+		feature.Sessions[1].Id.ShouldBe("1");
+	}
+
+	[Fact]
+	public async Task NotifyStateChanged_RapidBurst_CoalescesIntoSingleEvent()
+	{
+		SessionListFeature feature = CreateFeature();
+		int callCount = 0;
+		feature.OnStateChanged += () => Interlocked.Increment(ref callCount);
+
+		for(int i = 0; i < 50; i++)
+		{
+			feature.NotifyStateChanged();
+		}
+
+		await Task.Delay(100, TestContext.Current.CancellationToken);
+
+		// Rapid burst should be coalesced — we get far fewer notifications than calls
+		callCount.ShouldBeLessThan(50);
+		callCount.ShouldBeGreaterThan(0);
+	}
+
+	[Fact]
+	public async Task NotifyStateChanged_AfterCoalesce_NewCallFiresAgain()
+	{
+		SessionListFeature feature = CreateFeature();
+		int callCount = 0;
+		feature.OnStateChanged += () => Interlocked.Increment(ref callCount);
+
+		feature.NotifyStateChanged();
+		await Task.Delay(50, TestContext.Current.CancellationToken);
+
+		int afterFirst = callCount;
+		afterFirst.ShouldBe(1);
+
+		feature.NotifyStateChanged();
+		await Task.Delay(50, TestContext.Current.CancellationToken);
+
+		callCount.ShouldBe(2);
 	}
 }

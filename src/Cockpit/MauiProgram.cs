@@ -83,15 +83,19 @@ public static class MauiProgram
 		// Speech and Text features
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
 		builder.Services.AddSingleton<ITextToSpeech>(TextToSpeech.Default);
-		builder.Services.AddSingleton<TextToSpeechFeature>();
+		builder.Services.AddSingleton<ITextToSpeechFeature, TextToSpeechFeature>();
+		builder.Services.AddSingleton<ISpeechToTextFeature, SpeechToTextFeature>();
 
 		// UI and App features
+		builder.Services.AddSingleton<IPreferencesStorage, MauiPreferencesStorage>();
+		builder.Services.AddSingleton<UserAppSettings>();
 		builder.Services.AddSingleton<IAppSettingsFeature, AppSettingsFeature>();
 		builder.Services.AddSingleton<ThemeStateFeature>();
-		builder.Services.AddScoped<ThemeFeature>();
-		builder.Services.AddScoped<MarkdownFeature>();
-		builder.Services.AddSingleton<UIStateFeature>();
-		builder.Services.AddSingleton<TimestampFeature>();
+		builder.Services.AddScoped<IThemeFeature, ThemeFeature>();
+		builder.Services.AddScoped<IMarkdownFeature, MarkdownFeature>();
+		builder.Services.AddSingleton<IUIStateFeature, UIStateFeature>();
+		builder.Services.AddSingleton(TimeProvider.System);
+		builder.Services.AddSingleton<ITimestampFeature, TimestampFeature>();
 		builder.Services.AddSingleton<TerminalFeature>();
 		builder.Services.AddSingleton<VsCodeFeature>();
 		builder.Services.AddSingleton<GitFeature>();
@@ -102,6 +106,7 @@ public static class MauiProgram
 
 		// Copilot SDK and Permissions
 		builder.Services.AddSingleton<CopilotClientFeature>();
+		builder.Services.AddSingleton<ICopilotPingService>(sp => sp.GetRequiredService<CopilotClientFeature>());
 		builder.Services.AddSingleton<ConnectionFeature>();
 		builder.Services.AddSingleton<GlobalPermissionFeature>();
 		builder.Services.AddSingleton<GlobalDenyFeature>();
@@ -118,18 +123,21 @@ public static class MauiProgram
 
 		builder.Services.AddSingleton<PermissionFeature>();
 		builder.Services.AddSingleton<IPermissionHandler>(sp => sp.GetRequiredService<PermissionFeature>());
+		builder.Services.AddSingleton<IPermissionEventSource>(sp => sp.GetRequiredService<PermissionFeature>());
 
 		// Register UserInputFeature
 		builder.Services.AddSingleton<UserInputFeature>();
 		builder.Services.AddSingleton<IUserInputHandler>(sp => sp.GetRequiredService<UserInputFeature>());
+		builder.Services.AddSingleton<IUserInputEventSource>(sp => sp.GetRequiredService<UserInputFeature>());
 
-		builder.Services.AddSingleton<ModelFeature>();
+		builder.Services.AddSingleton<IModelFeature, ModelFeature>();
 		builder.Services.AddSingleton(sp =>
 		{
 			// HttpClient is created exclusively for UpdateFeature, which takes ownership and disposes it.
 			HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
 			client.DefaultRequestHeaders.Add("User-Agent", "Cockpit");
-			return new UpdateFeature(client);
+			ILogger<UpdateFeature> logger = sp.GetRequiredService<ILogger<UpdateFeature>>();
+			return new UpdateFeature(client, logger);
 		});
 
 		builder.Services.AddSingleton<SoundFeature>();

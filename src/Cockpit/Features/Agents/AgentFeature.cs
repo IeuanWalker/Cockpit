@@ -56,7 +56,12 @@ public sealed class AgentFeature
 		};
 	}
 
-	static bool ReadUserInvocable(string filePath)
+	/// <summary>
+	/// Reads the YAML frontmatter of an agent file and returns the value of the
+	/// <c>user-invocable</c> key. Returns <see langword="true"/> when the key is absent or
+	/// the file cannot be read — safe default so agents are invocable unless explicitly opted out.
+	/// </summary>
+	internal static bool ReadUserInvocable(string filePath)
 	{
 		try
 		{

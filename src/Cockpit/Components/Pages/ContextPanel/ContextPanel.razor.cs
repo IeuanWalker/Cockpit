@@ -7,10 +7,10 @@ namespace Cockpit.Components.Pages.ContextPanel;
 
 public partial class ContextPanel : ComponentBase, IDisposable
 {
-	readonly UIStateFeature _uiStateFeature;
+	readonly IUIStateFeature _uiStateFeature;
 	readonly IJSRuntime _jsRuntime;
 
-	public ContextPanel(UIStateFeature uiStateFeature, IJSRuntime jsRuntime)
+	public ContextPanel(IUIStateFeature uiStateFeature, IJSRuntime jsRuntime)
 	{
 		_uiStateFeature = uiStateFeature;
 		_jsRuntime = jsRuntime;

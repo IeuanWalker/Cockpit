@@ -1,5 +1,5 @@
 using Cockpit.Features.SessionEvents.Models;
-using Humanizer;
+using Cockpit.Features.Timestamp;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
@@ -8,6 +8,13 @@ namespace Cockpit.Components.Controls;
 public sealed partial class Opperations : IDisposable
 {
 	[Parameter] public ActivityGroupModel Group { get; set; } = default!;
+
+	readonly ITimestampFeature _timestampFeature;
+
+	public Opperations(ITimestampFeature timestampFeature)
+	{
+		_timestampFeature = timestampFeature;
+	}
 
 	bool _isSelectingThinking = false;
 
@@ -36,7 +43,7 @@ public sealed partial class Opperations : IDisposable
 		oldCts?.Cancel();
 		oldCts?.Dispose();
 
-		if (elapsed < ThresholdMs)
+		if(elapsed < ThresholdMs)
 		{
 			return;
 		}
@@ -50,10 +57,10 @@ public sealed partial class Opperations : IDisposable
 			Group.IsExpanded = !Group.IsExpanded;
 			StateHasChanged();
 		}
-		catch (OperationCanceledException) { }
+		catch(OperationCanceledException) { }
 		finally
 		{
-			if (ReferenceEquals(_clickCts, cts))
+			if(ReferenceEquals(_clickCts, cts))
 			{
 				_clickCts = null;
 			}
@@ -132,9 +139,8 @@ public sealed partial class Opperations : IDisposable
 		}
 
 		// Get unique tool names
-		IEnumerable<string> toolNames = tools.Select(t => t.ToolName).Distinct().Take(3);
-		int more = tools.Select(t => t.ToolName).Distinct().Count() - 3;
-		string preview = string.Join(", ", toolNames) + (more > 0 ? $", +{more}" : string.Empty);
+		List<string> distinctNames = [.. tools.Select(t => t.ToolName).Distinct()];
+		string preview = string.Join(", ", distinctNames.Take(3)) + (distinctNames.Count > 3 ? $", +{distinctNames.Count - 3}" : string.Empty);
 
 		string result = $"{tools.Sum(t => CountAllTools(t))} operations ({preview})";
 
@@ -148,7 +154,7 @@ public sealed partial class Opperations : IDisposable
 
 		if(elapsedTime.HasValue)
 		{
-			result += $" - {elapsedTime.Value.Humanize()}";
+			result += $" - {_timestampFeature.FormatDuration(Group.StartTime, Group.EndTime)}";
 		}
 
 		return result;

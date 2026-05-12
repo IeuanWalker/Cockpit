@@ -24,6 +24,7 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 ///   falls back to LastOrDefault user message), working groups are placed after the message that
 ///   triggered them even when that message has IsPending=true.
 /// </summary>
+[Collection("SessionIdleEvent")]
 public class ImmediateModeReplayTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };

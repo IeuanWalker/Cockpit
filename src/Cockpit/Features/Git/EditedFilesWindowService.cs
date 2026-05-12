@@ -4,7 +4,7 @@ using Cockpit.Features.Theme;
 
 namespace Cockpit.Features.Git;
 
-public class EditedFilesWindowService
+public sealed class EditedFilesWindowService
 {
 	readonly ThemeStateFeature _themeStateFeature;
 	readonly EditedFilesSplashFeature _splashFeature;

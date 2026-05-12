@@ -13,7 +13,7 @@ public sealed partial class GlobalCommands : ComponentBase, IDisposable
 		_globalPermissionFeature = globalPermissionFeature;
 	}
 
-	public List<string> Commands { get; set; } = [];
+	List<string> Commands { get; set; } = [];
 
 	SettingsPopup _settingsPopup = default!;
 
@@ -25,8 +25,11 @@ public sealed partial class GlobalCommands : ComponentBase, IDisposable
 
 	void OnPermissionsChanged()
 	{
-		Commands = _globalPermissionFeature.GetAll();
-		InvokeAsync(StateHasChanged);
+		InvokeAsync(() =>
+		{
+			Commands = _globalPermissionFeature.GetAll();
+			StateHasChanged();
+		});
 	}
 
 	void OpenCommandsSettings()

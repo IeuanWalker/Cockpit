@@ -6,8 +6,8 @@ namespace Cockpit.Components.Popups.Settings;
 
 public partial class SettingsPopup : ComponentBase, IDisposable
 {
-	readonly UIStateFeature _uiStateFeature;
-	public SettingsPopup(UIStateFeature uiStateFeature)
+	readonly IUIStateFeature _uiStateFeature;
+	public SettingsPopup(IUIStateFeature uiStateFeature)
 	{
 		_uiStateFeature = uiStateFeature;
 	}

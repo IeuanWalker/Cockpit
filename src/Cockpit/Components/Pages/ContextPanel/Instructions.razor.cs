@@ -52,7 +52,7 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 
 	void Refresh()
 	{
-		_allInstructions = [.. _sessionListFeature.CurrentSession?.Context.Instructions ?? []];
+		_allInstructions = [.. _sessionListFeature.CurrentSession?.Context?.Instructions ?? []];
 	}
 
 	public void Dispose()

@@ -3,7 +3,7 @@ using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Controls;
 
-public partial class CodeBlock : ComponentBase
+public sealed partial class CodeBlock : ComponentBase
 {
 	[Parameter] public string Code { get; set; } = string.Empty;
 	[Parameter] public string Language { get; set; } = "plaintext";
@@ -17,30 +17,42 @@ public partial class CodeBlock : ComponentBase
 
 	readonly string _id = $"cb-{Guid.NewGuid():N}";
 	string _prevCode = string.Empty;
+	string _prevLanguage = "plaintext";
+	bool _renderPending;
 	bool _needsHighlight;
+
+	protected override bool ShouldRender() => _renderPending;
 
 	protected override void OnParametersSet()
 	{
-		if(Code != _prevCode)
+		if(Code == _prevCode && Language == _prevLanguage)
 		{
-			_prevCode = Code;
-			_needsHighlight = true;
+			return;
 		}
+
+		_prevCode = Code;
+		_prevLanguage = Language;
+		_renderPending = true;
+		_needsHighlight = true;
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
-		if(_needsHighlight)
+		_renderPending = false;
+
+		if(!firstRender && !_needsHighlight)
 		{
-			_needsHighlight = false;
-			try
-			{
-				await _jsRuntime.InvokeVoidAsync("cockpit.highlightBlock", _id);
-			}
-			catch
-			{
-				// Ignore if hljs unavailable
-			}
+			return;
+		}
+
+		_needsHighlight = false;
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("cockpit.highlightBlock", _id);
+		}
+		catch
+		{
+			// Ignore if hljs unavailable
 		}
 	}
 }

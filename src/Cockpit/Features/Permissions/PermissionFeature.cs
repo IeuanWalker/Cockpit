@@ -10,7 +10,7 @@ namespace Cockpit.Features.Permissions;
 /// <summary>
 /// Service for managing tool execution permissions
 /// </summary>
-public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
+public sealed partial class PermissionFeature : IPermissionHandler, IPermissionEventSource
 {
 	readonly GlobalPermissionFeature _globalPermissionFeature;
 	readonly GlobalDenyFeature _globalDenyFeature;
@@ -20,7 +20,6 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 	// In-memory cache of permissions
 	readonly ConcurrentDictionary<string, PermissionRequestModel> _pendingRequests = new(); // Key: request.Id
-	readonly ReaderWriterLockSlim _permissionsLock = new();
 
 	// Events for UI updates
 	public event Action<string, PermissionRequestModel>? OnPermissionRequested;
@@ -62,7 +61,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			PermissionDecisionEnum decision = await CheckPermissionAsync(permissionRequest, session.IsYolo);
 
 			// Convert our decision to SDK format
-			PermissionRequestResultKind resultKind = decision.Equals(PermissionDecisionEnum.Denied) ? PermissionRequestResultKind.Rejected : PermissionRequestResultKind.Approved;
+			PermissionRequestResultKind resultKind = decision == PermissionDecisionEnum.Denied ? PermissionRequestResultKind.Rejected : PermissionRequestResultKind.Approved;
 
 			_logger.LogInformation("Permission decision: {Decision} for {Commands}", resultKind, string.Join(", ", permissionRequest.Commands));
 
@@ -153,59 +152,42 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			return PermissionDecisionEnum.Once;
 		}
 
-		_permissionsLock.EnterReadLock();
-		bool needsFiltering = false;
-		List<string> unapprovedCommands = [];
-
-		try
+		// Priority 1: Check session allowlist - all commands must be allowed
+		if(_sessionPermissionFeature.HasPermissions(request.SessionId, request.Commands))
 		{
-			// Priority 1: Check session allowlist - all commands must be allowed
-			if(_sessionPermissionFeature.HasPermissions(request.SessionId, request.Commands))
-			{
-				_logger.LogDebug("Commands approved by session permission: {Commands}", string.Join(", ", request.Commands));
-				return PermissionDecisionEnum.Session;
-			}
-
-			// Priority 2: Check global allowlist - all commands must be allowed
-			if(_globalPermissionFeature.HasPermissions(request.Commands))
-			{
-				_logger.LogDebug("Commands approved by global permission: {Commands}", string.Join(", ", request.Commands));
-				return PermissionDecisionEnum.Global;
-			}
-
-			// Filter out already-approved commands; for destructive requests every command
-			// reaches the dialog regardless of the safe list, matching the pre-approval behaviour.
-			unapprovedCommands = [.. request.Commands
-				.Where(cmd => (request.IsDestructive || !CommandExtractor.IsCommandSafe(cmd)) &&
-							  !_sessionPermissionFeature.HasPermission(request.SessionId, cmd) &&
-							  !_globalPermissionFeature.HasPermission(cmd))];
-
-			// If all commands are approved, auto-approve
-			if(unapprovedCommands.Count == 0)
-			{
-				_logger.LogDebug("All commands already approved individually");
-				return PermissionDecisionEnum.Once;
-			}
-
-			// If some commands were filtered out, we need to update the request
-			needsFiltering = unapprovedCommands.Count < request.Commands.Count;
-		}
-		finally
-		{
-			_permissionsLock.ExitReadLock();
+			_logger.LogDebug("Commands approved by session permission: {Commands}", string.Join(", ", request.Commands));
+			return PermissionDecisionEnum.Session;
 		}
 
-		// Update request to only show unapproved commands (outside lock)
-		if(needsFiltering)
+		// Priority 2: Check global allowlist - all commands must be allowed
+		if(_globalPermissionFeature.HasPermissions(request.Commands))
+		{
+			_logger.LogDebug("Commands approved by global permission: {Commands}", string.Join(", ", request.Commands));
+			return PermissionDecisionEnum.Global;
+		}
+
+		// Filter out already-approved commands; for destructive requests every command
+		// reaches the dialog regardless of the safe list, matching the pre-approval behaviour.
+		List<string> unapprovedCommands = [.. request.Commands
+			.Where(cmd => (request.IsDestructive || !CommandExtractor.IsCommandSafe(cmd)) &&
+						  !_sessionPermissionFeature.HasPermission(request.SessionId, cmd) &&
+						  !_globalPermissionFeature.HasPermission(cmd))];
+
+		// If all commands are approved, auto-approve
+		if(unapprovedCommands.Count == 0)
+		{
+			_logger.LogDebug("All commands already approved individually");
+			return PermissionDecisionEnum.Once;
+		}
+
+		// Update request to only show unapproved commands
+		if(unapprovedCommands.Count < request.Commands.Count)
 		{
 			_logger.LogInformation("Filtered approved commands. Original: {Original}, Unapproved: {Unapproved}",
 				string.Join(", ", request.Commands), string.Join(", ", unapprovedCommands));
 
-			// Update request to only show unapproved commands
 			request.Commands.Clear();
 			request.Commands.AddRange(unapprovedCommands);
-
-			// Update title using the same format as original
 			string commandList = string.Join("`, `", unapprovedCommands);
 			request.RequestTitle = request.IsDestructive
 				? $"⚠️ Allow destructive command `{commandList}`"
@@ -231,19 +213,20 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 		// Store pending request using unique request ID
 		_pendingRequests[request.Id] = request;
 
-		// Notify UI
 		UpdateSessionOnPermissionRequested(request.SessionId, request);
-		OnPermissionRequested?.Invoke(request.SessionId, request);
 
 		// Wait for user decision
 		try
 		{
+			OnPermissionRequested?.Invoke(request.SessionId, request);
 			PermissionDecisionEnum decision = await request.GetDecisionAsync();
 			return decision;
 		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Error waiting for permission decision");
+			// Clean up session state so the UI doesn't stay stuck in NeedsPermission
+			UpdateSessionOnPermissionResolved(request.SessionId, request.Id);
 			return PermissionDecisionEnum.Denied;
 		}
 		finally
@@ -258,9 +241,9 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 	/// </summary>
 	public void ResolvePermissionRequest(string requestId, PermissionDecisionEnum decision)
 	{
-		_logger.LogInformation("ResolvePermissionRequest called with requestId: {RequestId}, IsApproved: {IsApproved}", requestId, !decision.Equals(PermissionDecisionEnum.Denied));
+		_logger.LogInformation("ResolvePermissionRequest called with requestId: {RequestId}, IsApproved: {IsApproved}", requestId, decision != PermissionDecisionEnum.Denied);
 
-		if(!_pendingRequests.TryGetValue(requestId, out PermissionRequestModel? request))
+		if(!_pendingRequests.TryRemove(requestId, out PermissionRequestModel? request))
 		{
 			_logger.LogWarning("No pending permission request found for request ID {RequestId}. Current pending count: {Count}", requestId, _pendingRequests.Count);
 			// Log all pending request IDs for debugging
@@ -273,21 +256,33 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 
 		_logger.LogInformation(
 			"Permission {Decision} for session {SessionId}: {Commands}",
-			decision.Equals(PermissionDecisionEnum.Denied) ? "denied" : "granted",
+			decision == PermissionDecisionEnum.Denied ? "denied" : "granted",
 			request.SessionId,
 			string.Join(", ", request.Commands));
 
 		// If approved, save permission based on scope
-		if(!decision.Equals(PermissionDecisionEnum.Denied))
+		if(decision != PermissionDecisionEnum.Denied)
 		{
 			_logger.LogDebug("Saving permission with scope: {Scope}, commands: {Commands}", decision, string.Join(", ", request.Commands));
+			bool skipDeniedRequests = false;
 
-			if(decision.Equals(PermissionDecisionEnum.Global))
+			if(decision == PermissionDecisionEnum.Global)
 			{
-				_globalPermissionFeature.Add(request.Commands);
-				_logger.LogDebug("Added global permission");
+				// Downgrade to Session if any command is on the deny list (defensive guard; UI should prevent this)
+				if(_globalDenyFeature.AnyDenied(request.Commands))
+				{
+					_logger.LogWarning("Global approval blocked by deny list for commands: {Commands} — downgrading to Session", string.Join(", ", request.Commands));
+					decision = PermissionDecisionEnum.Session;
+					skipDeniedRequests = true;
+				}
+				else
+				{
+					_globalPermissionFeature.Add(request.Commands);
+					_logger.LogDebug("Added global permission");
+				}
 			}
-			else if(decision.Equals(PermissionDecisionEnum.Session))
+
+			if(decision == PermissionDecisionEnum.Session)
 			{
 				_sessionPermissionFeature.Add(request.SessionId, request.Commands);
 				_logger.LogDebug("Added session permission");
@@ -295,9 +290,9 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 			// PermissionScope.Once doesn't save anything
 
 			// Check if other pending requests for this session can now be auto-approved
-			if(decision.Equals(PermissionDecisionEnum.Global) || decision.Equals(PermissionDecisionEnum.Session))
+			if(decision == PermissionDecisionEnum.Global || decision == PermissionDecisionEnum.Session)
 			{
-				AutoResolveMatchingRequests(request.SessionId, request.Id, request.Commands, decision);
+				AutoResolveMatchingRequests(request.SessionId, request.Id, decision, skipDeniedRequests);
 			}
 		}
 
@@ -311,16 +306,16 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 		OnPermissionResolved?.Invoke(request.SessionId, request.Id);
 	}
 
-	void AutoResolveMatchingRequests(string sessionId, string excludeRequestId, List<string> commands, PermissionDecisionEnum decision)
+	void AutoResolveMatchingRequests(string sessionId, string excludeRequestId, PermissionDecisionEnum decision, bool skipDeniedRequests = false)
 	{
-		if(decision.Equals(PermissionDecisionEnum.Denied))
+		if(decision == PermissionDecisionEnum.Denied)
 		{
 			return;
 		}
 
 		List<PermissionRequestModel> pendingForSession = [.. _pendingRequests.Values.OrderBy(r => r.Requested)];
 
-		_logger.LogInformation("Checking {Count} pending requests for auto-approval with patterns: {Patterns}", pendingForSession.Count, string.Join(", ", commands));
+		_logger.LogInformation("Checking {Count} pending requests for auto-approval (scope: {Scope})", pendingForSession.Count, decision);
 
 		foreach(PermissionRequestModel pendingRequest in pendingForSession)
 		{
@@ -330,14 +325,25 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 				continue;
 			}
 
-			// Check if ANY command in the pending request is in the newly granted commands
-			bool hasMatchingCommand = pendingRequest.Commands.Any(cmd => commands.Contains(cmd));
-			if(!hasMatchingCommand)
+			if(decision == PermissionDecisionEnum.Session && pendingRequest.SessionId != sessionId)
 			{
 				continue;
 			}
 
-			if(decision.Equals(PermissionDecisionEnum.Session) && pendingRequest.SessionId != sessionId)
+			if(skipDeniedRequests && _globalDenyFeature.AnyDenied(pendingRequest.Commands))
+			{
+				_logger.LogInformation("Skipping auto-approval for pending request {RequestId} because it contains denied commands: {Commands}",
+					pendingRequest.Id, string.Join(", ", pendingRequest.Commands));
+				continue;
+			}
+
+			// Only auto-approve if ALL commands in the pending request are now covered by the allowlist.
+			// Using Any() would fully approve requests that still need unapproved commands.
+			bool allCommandsNowApproved = decision == PermissionDecisionEnum.Global
+				? _globalPermissionFeature.HasPermissions(pendingRequest.Commands)
+				: _sessionPermissionFeature.HasPermissions(pendingRequest.SessionId, pendingRequest.Commands);
+
+			if(!allCommandsNowApproved)
 			{
 				continue;
 			}
@@ -351,9 +357,9 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 				// Complete the TaskCompletionSource to unblock the waiting permission check
 				pendingRequest.CompletionSource.TrySetResult(decision);
 
-				// Update session state and notify UI
-				UpdateSessionOnPermissionResolved(sessionId, pendingRequest.Id);
-				OnPermissionResolved?.Invoke(sessionId, pendingRequest.Id);
+				// Update session state and notify UI using the pending request's own session
+				UpdateSessionOnPermissionResolved(pendingRequest.SessionId, pendingRequest.Id);
+				OnPermissionResolved?.Invoke(pendingRequest.SessionId, pendingRequest.Id);
 			}
 		}
 	}
@@ -374,17 +380,4 @@ public sealed partial class PermissionFeature : IPermissionHandler, IDisposable
 		}
 	}
 
-	public void Dispose()
-	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
-	}
-
-	void Dispose(bool disposing)
-	{
-		if(disposing)
-		{
-			_permissionsLock.Dispose();
-		}
-	}
 }

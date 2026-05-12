@@ -12,7 +12,7 @@ static class SessionTaskCompleteHandler
 	/// </summary>
 	internal static void Handle(SessionModel session, SessionTaskCompleteEvent evt)
 	{
-		if(string.IsNullOrWhiteSpace(evt.Data?.Summary))
+		if(string.IsNullOrWhiteSpace(evt.Data.Summary))
 		{
 			return;
 		}

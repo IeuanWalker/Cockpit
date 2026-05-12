@@ -13,6 +13,11 @@ public interface ISessionStateProvider
 	IReadOnlyList<SessionModel> Sessions { get; }
 
 	/// <summary>
+	/// Get the currently selected session
+	/// </summary>
+	SessionModel? CurrentSession { get; }
+
+	/// <summary>
 	/// Notify that session state has changed
 	/// </summary>
 	void NotifyStateChanged();

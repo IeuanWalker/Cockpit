@@ -1,5 +1,6 @@
 using Blazor.Sonner.Services;
 using Cockpit.Features.Agents;
+using Cockpit.Features.AppSettings;
 using Cockpit.Features.Git;
 using Cockpit.Features.Instructions;
 using Cockpit.Features.Mcp;
@@ -23,12 +24,12 @@ public sealed partial class SessionFeature : IDisposable
 	readonly CopilotClientFeature _clientFeature;
 	readonly ILogger<SessionFeature> _logger;
 	readonly ToastService _toastService;
-	readonly ModelFeature _modelFeature;
+	readonly IModelFeature _modelFeature;
 	readonly SessionEventProcessor _processor;
 	readonly TerminalFeature _terminalFeature;
 	readonly SessionListFeature _sessionListFeature;
 	readonly IPermissionHandler _permissionHandler;
-	readonly UserInputFeature _userInputHandler;
+	readonly IUserInputHandler _userInputHandler;
 	readonly GitFeature _gitFeature;
 	readonly SdkSessionRegistry _sdkRegistry;
 	readonly AgentPersistence _agentPersistence;
@@ -38,17 +39,18 @@ public sealed partial class SessionFeature : IDisposable
 	readonly McpFeature _mcpFeature;
 	readonly SkillsFeature _skillsFeature;
 	readonly PluginsFeature _pluginsFeature;
+	readonly IAppSettingsFeature _appSettingsFeature;
 
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
 		ILogger<SessionFeature> logger,
 		ToastService toastService,
-		ModelFeature modelFeature,
+		IModelFeature modelFeature,
 		TerminalFeature terminalFeature,
 		SessionEventProcessor processor,
 		SessionListFeature sessionListFeature,
 		IPermissionHandler permissionHandler,
-		UserInputFeature userInputHandler,
+		IUserInputHandler userInputHandler,
 		GitFeature gitFeature,
 		SdkSessionRegistry sdkRegistry,
 		AgentPersistence agentPersistence,
@@ -57,7 +59,8 @@ public sealed partial class SessionFeature : IDisposable
 		InstructionsFeature instructionsFeature,
 		McpFeature mcpFeature,
 		SkillsFeature skillsFeature,
-		PluginsFeature pluginsFeature)
+		PluginsFeature pluginsFeature,
+		IAppSettingsFeature appSettingsFeature)
 	{
 		_clientFeature = clientFeature;
 		_logger = logger;
@@ -77,6 +80,7 @@ public sealed partial class SessionFeature : IDisposable
 		_mcpFeature = mcpFeature;
 		_skillsFeature = skillsFeature;
 		_pluginsFeature = pluginsFeature;
+		_appSettingsFeature = appSettingsFeature;
 	}
 
 	IDisposable? _currentWatcher;
@@ -119,6 +123,5 @@ public sealed partial class SessionFeature : IDisposable
 	public void Dispose()
 	{
 		_currentWatcher?.Dispose();
-		GC.SuppressFinalize(this);
 	}
 }

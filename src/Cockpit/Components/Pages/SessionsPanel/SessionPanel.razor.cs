@@ -3,7 +3,6 @@ using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
-using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
@@ -12,16 +11,16 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 
 public partial class SessionPanel : ComponentBase, IDisposable
 {
-	readonly UIStateFeature _uiStateFeature;
+	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionFeature _sessionFeature;
 	readonly IJSRuntime _jsRuntime;
-	readonly TimestampFeature _timestampFeature;
+	readonly ITimestampFeature _timestampFeature;
 
 	public SessionPanel(
-		UIStateFeature uiStateFeature,
+		IUIStateFeature uiStateFeature,
 		SessionFeature sessionFeature,
 		IJSRuntime jsRuntime,
-		TimestampFeature timestampFeature)
+		ITimestampFeature timestampFeature)
 	{
 		_uiStateFeature = uiStateFeature;
 		_sessionFeature = sessionFeature;
@@ -76,7 +75,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 			.OrderByDescending(s => s.LastActivity)];
 	}
 
-	static string GetTimeAgo(DateTime dateTime) => dateTime.Humanize();
+	string GetTimeAgo(DateTime dateTime) => _timestampFeature.FormatRelative(dateTime);
 
 	void ToggleSearch()
 	{
@@ -125,20 +124,12 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	void CreateNewSession()
 	{
-		try
-		{
-			_createSessionPopup?.Open();
-		}
-		catch(Exception ex)
-		{
-			Console.Error.WriteLine($"Failed to open directory dialog: {ex.Message}");
-		}
+		_createSessionPopup?.Open();
 	}
 
 	void ShowPastDeleteDialog(SessionModel session, MouseEventArgs _)
 	{
 		_deletePopup?.Open(session.Id);
-		StateHasChanged();
 	}
 
 	async Task SelectPastSession(SessionModel session)

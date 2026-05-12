@@ -35,7 +35,8 @@ static class SessionIdleHandler
 		if(activeGroup is not null && (activeGroup.Tools.Any() || hasThinkingMessages || groupStatus == GroupStatusEnum.Error))
 		{
 			ActivityGroupModel group = activeGroup;
-			Debug.WriteLine($"Finalizing thinking group. Has {group.Tools.Count()} tools");
+			List<ToolExecutionModel> tools = [.. group.Tools]; // Snapshot once — avoids repeated lock acquisitions
+			Debug.WriteLine($"Finalizing thinking group. Has {tools.Count} tools");
 
 			// Check if activity message already exists for this group
 			bool activityMessageExists = session.Messages.Any(m =>
@@ -51,7 +52,7 @@ static class SessionIdleHandler
 
 			// Mark any still-running tools as stopped (Error status), including children
 			bool hasStoppedTools = false;
-			foreach(ToolExecutionModel tool in group.Tools)
+			foreach(ToolExecutionModel tool in tools)
 			{
 				if(tool.Status == ToolStatusEnum.Running)
 				{
@@ -168,7 +169,7 @@ static class SessionIdleHandler
 
 			// Only insert an activity group into chat when there were actual tool operations
 			int activityInsertedAt = -1;
-			if(group.Tools.Any() || groupStatus == GroupStatusEnum.Error)
+			if(tools.Count > 0 || groupStatus == GroupStatusEnum.Error)
 			{
 				ChatMessageModel activityMessage = new()
 				{
@@ -176,7 +177,7 @@ static class SessionIdleHandler
 					Type = MessageTypeEnum.ActivityGroup,
 					ActivityGroup = group,
 					Timestamp = group.EndTime ?? DateTime.Now,
-					Content = group.Tools.Any() ? GenerateActivitySummary(group) : "Aborted",
+					Content = tools.Count > 0 ? GenerateActivitySummary(tools) : "Aborted",
 					EventJson = null
 				};
 
@@ -260,12 +261,14 @@ static class SessionIdleHandler
 		}
 	}
 
-	static string GenerateActivitySummary(ActivityGroupModel group)
+	static string GenerateActivitySummary(List<ToolExecutionModel> tools)
 	{
-		List<ToolExecutionModel> tools = [.. group.Tools];
-		IEnumerable<string> toolNames = tools.Select(t => t.ToolName).Distinct().Take(3);
-		int more = tools.Select(t => t.ToolName).Distinct().Count() - 3;
-		string preview = string.Join(", ", toolNames) + (more > 0 ? $", +{more}" : "");
+		List<string> distinctNames = [.. tools.Select(t => t.ToolName).Distinct()];
+		string preview = string.Join(", ", distinctNames.Take(3));
+		if(distinctNames.Count > 3)
+		{
+			preview += $", +{distinctNames.Count - 3}";
+		}
 
 		return $"{tools.Count} operations ({preview})";
 	}

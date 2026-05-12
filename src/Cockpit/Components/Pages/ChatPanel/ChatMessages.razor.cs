@@ -16,18 +16,18 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	readonly SessionListFeature _sessionListFeature;
 	readonly SessionFeature _sessionFeature;
 	readonly IJSRuntime _jsRuntime;
-	readonly TextToSpeechFeature _textToSpeechFeature;
-	readonly UIStateFeature _uiStateFeature;
+	readonly ITextToSpeechFeature _textToSpeechFeature;
+	readonly IUIStateFeature _uiStateFeature;
 	readonly ToastService _toastService;
-	readonly MarkdownFeature _markdownFeature;
+	readonly IMarkdownFeature _markdownFeature;
 	public ChatMessages(
 		SessionListFeature sessionListFeature,
 		SessionFeature sessionFeature,
 		IJSRuntime jsRuntime,
-		TextToSpeechFeature textToSpeechFeature,
-		UIStateFeature uiStateFeature,
+		ITextToSpeechFeature textToSpeechFeature,
+		IUIStateFeature uiStateFeature,
 		ToastService toastService,
-		MarkdownFeature markdownFeature)
+		IMarkdownFeature markdownFeature)
 	{
 		_sessionListFeature = sessionListFeature;
 		_sessionFeature = sessionFeature;

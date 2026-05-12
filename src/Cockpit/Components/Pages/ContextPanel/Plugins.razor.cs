@@ -15,6 +15,7 @@ public sealed partial class Plugins : ComponentBase, IDisposable
 	}
 
 	List<SdkPlugin> _allPlugins = [];
+	List<SdkPlugin>? _lastPluginSource;
 
 	int TotalCount => _allPlugins.Count;
 
@@ -24,23 +25,21 @@ public sealed partial class Plugins : ComponentBase, IDisposable
 		Refresh();
 	}
 
-	void OnStateChanged()
+	async void OnStateChanged()
 	{
-		InvokeAsync(() => { Refresh(); StateHasChanged(); });
+		await InvokeAsync(() => { Refresh(); StateHasChanged(); });
 	}
 
 	void ShowPluginInfo(SdkPlugin plugin) => _pluginInfoPopup?.Open(_allPlugins, plugin);
 
-	List<SdkPlugin> _renderedPlugins = [];
-
 	protected override bool ShouldRender()
 	{
-		if(ReferenceEquals(_allPlugins, _renderedPlugins))
+		List<SdkPlugin>? current = _sessionListFeature.CurrentSession?.Context.Plugins;
+		if(ReferenceEquals(current, _lastPluginSource))
 		{
 			return false;
 		}
-
-		_renderedPlugins = _allPlugins;
+		_lastPluginSource = current;
 		return true;
 	}
 
