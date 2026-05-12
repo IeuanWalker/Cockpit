@@ -55,8 +55,6 @@ public sealed partial class ConnectionFeature : IDisposable
 	/// </summary>
 	public async Task Initialize(CancellationToken cancellationToken = default)
 	{
-		// Use non-cancellable WaitAsync so the cancellationToken only controls the Ping call,
-		// not the queue position — this preserves correct retry semantics.
 		await _initializationLock.WaitAsync(CancellationToken.None);
 		try
 		{
