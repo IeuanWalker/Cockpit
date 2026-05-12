@@ -149,7 +149,6 @@ public static class MauiProgram
 
 		// File search
 		builder.Services.AddSingleton<IFileSearchFeature, FileSearchFeature>();
-		builder.Services.AddSingleton<TelemetryFileService>();
 
 		// Register agent services
 		builder.Services.AddSingleton<AgentPersistence>();

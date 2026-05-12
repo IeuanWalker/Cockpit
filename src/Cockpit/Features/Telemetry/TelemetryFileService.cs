@@ -121,7 +121,24 @@ sealed class TelemetryFileService
 			try
 			{
 				using JsonDocument document = JsonDocument.Parse(line);
-				ParseTraceBatch(document.RootElement, tracesById);
+				JsonElement root = document.RootElement;
+
+				// SDK flat format: each line is {"type":"span", "traceId":"…", …}
+				if(root.TryGetProperty("type", out JsonElement typeElement)
+					&& typeElement.ValueKind == JsonValueKind.String
+					&& string.Equals(typeElement.GetString(), "span", StringComparison.OrdinalIgnoreCase))
+				{
+					TelemetrySpan? span = ParseFlatSpan(root);
+					if(span is not null)
+					{
+						AddSpanToDict(span, tracesById);
+					}
+				}
+				// Standard OTLP batch format: {"resourceSpans":[…]}
+				else
+				{
+					ParseOtlpTraceBatch(root, tracesById);
+				}
 			}
 			catch(JsonException)
 			{
@@ -140,7 +157,202 @@ sealed class TelemetryFileService
 				.ThenBy(trace => trace.TraceId, StringComparer.Ordinal)];
 	}
 
-	static void ParseTraceBatch(JsonElement root, Dictionary<string, List<TelemetrySpan>> tracesById)
+	static void AddSpanToDict(TelemetrySpan span, Dictionary<string, List<TelemetrySpan>> tracesById)
+	{
+		if(!tracesById.TryGetValue(span.TraceId, out List<TelemetrySpan>? traceSpans))
+		{
+			traceSpans = [];
+			tracesById[span.TraceId] = traceSpans;
+		}
+
+		traceSpans.Add(span);
+	}
+
+	// --- SDK flat format: {"type":"span","traceId":"…","startTime":[sec,nanos],…} ---
+
+	static TelemetrySpan? ParseFlatSpan(JsonElement root)
+	{
+		string? traceId = GetString(root, "traceId");
+		string? spanId = GetString(root, "spanId");
+		string? name = GetString(root, "name");
+		if(string.IsNullOrWhiteSpace(traceId) || string.IsNullOrWhiteSpace(spanId) || string.IsNullOrWhiteSpace(name))
+		{
+			return null;
+		}
+
+		DateTime startTime = ParseTimestamp(root, "startTime");
+		DateTime endTime = ParseTimestamp(root, "endTime");
+		if(endTime < startTime)
+		{
+			endTime = startTime;
+		}
+
+		(JsonElement statusElement, bool hasStatus) = root.TryGetProperty("status", out JsonElement currentStatus)
+			? (currentStatus, true)
+			: (default, false);
+
+		return new TelemetrySpan
+		{
+			TraceId = traceId,
+			SpanId = spanId,
+			ParentSpanId = NormalizeParentSpanId(GetString(root, "parentSpanId")),
+			Name = name,
+			Kind = ParseSpanKind(GetInt32(root, "kind")),
+			StartTime = startTime,
+			EndTime = endTime,
+			Status = hasStatus ? ParseSpanStatus(GetInt32(statusElement, "code")) : SpanStatusEnum.Unset,
+			StatusMessage = hasStatus ? GetString(statusElement, "message") : null,
+			Attributes = ParseFlatAttributes(root, "attributes"),
+			Events = ParseFlatEvents(root)
+		};
+	}
+
+	/// <summary>
+	/// Parses the SDK timestamp format: either a [seconds, nanoseconds] array or a "startTimeUnixNano" string.
+	/// </summary>
+	static DateTime ParseTimestamp(JsonElement parent, string propertyName)
+	{
+		if(!parent.TryGetProperty(propertyName, out JsonElement element))
+		{
+			return DateTime.MinValue;
+		}
+
+		// SDK format: [seconds, nanoseconds] array
+		if(element.ValueKind == JsonValueKind.Array)
+		{
+			return ParseSecondsNanosArray(element);
+		}
+
+		// Fallback: raw nanosecond string/number (OTLP-style)
+		string? text = element.ValueKind switch
+		{
+			JsonValueKind.String => element.GetString(),
+			JsonValueKind.Number => element.GetRawText(),
+			_ => null
+		};
+
+		return ParseUnixNanoTimestamp(text);
+	}
+
+	/// <summary>
+	/// Converts a [seconds, nanoseconds] JSON array to a local DateTime.
+	/// </summary>
+	static DateTime ParseSecondsNanosArray(JsonElement array)
+	{
+		int index = 0;
+		long seconds = 0;
+		long nanos = 0;
+
+		foreach(JsonElement item in array.EnumerateArray())
+		{
+			long value = item.ValueKind == JsonValueKind.Number ? item.GetInt64() : 0;
+			if(index == 0)
+			{
+				seconds = value;
+			}
+			else if(index == 1)
+			{
+				nanos = value;
+			}
+
+			index++;
+		}
+
+		if(seconds == 0)
+		{
+			return DateTime.MinValue;
+		}
+
+		try
+		{
+			long totalMilliseconds = (seconds * 1000) + (nanos / 1_000_000);
+			return DateTimeOffset.FromUnixTimeMilliseconds(totalMilliseconds).LocalDateTime;
+		}
+		catch(ArgumentOutOfRangeException)
+		{
+			return DateTime.MinValue;
+		}
+	}
+
+	/// <summary>
+	/// Parses SDK flat attributes: {"key": value, …} where value is a string, number, or bool.
+	/// </summary>
+	static Dictionary<string, string> ParseFlatAttributes(JsonElement parent, string propertyName)
+	{
+		if(!parent.TryGetProperty(propertyName, out JsonElement attributesElement))
+		{
+			return [];
+		}
+
+		// SDK format: flat {"key": "stringValue", "key2": 42, …}
+		if(attributesElement.ValueKind == JsonValueKind.Object)
+		{
+			Dictionary<string, string> attributes = new(StringComparer.Ordinal);
+			foreach(JsonProperty property in attributesElement.EnumerateObject())
+			{
+				attributes[property.Name] = property.Value.ValueKind switch
+				{
+					JsonValueKind.String => property.Value.GetString() ?? string.Empty,
+					JsonValueKind.Number => property.Value.GetRawText(),
+					JsonValueKind.True => bool.TrueString,
+					JsonValueKind.False => bool.FalseString,
+					_ => property.Value.GetRawText()
+				};
+			}
+
+			return attributes;
+		}
+
+		// OTLP format: [{"key":"…","value":{"stringValue":"…"}}, …]
+		if(attributesElement.ValueKind == JsonValueKind.Array)
+		{
+			return ParseOtlpAttributes(attributesElement);
+		}
+
+		return [];
+	}
+
+	/// <summary>
+	/// Parses events from the SDK flat format where timestamps are [seconds, nanoseconds] arrays
+	/// and attributes are flat objects.
+	/// </summary>
+	static List<TelemetrySpanEvent> ParseFlatEvents(JsonElement spanElement)
+	{
+		if(!spanElement.TryGetProperty("events", out JsonElement eventsElement) || eventsElement.ValueKind != JsonValueKind.Array)
+		{
+			return [];
+		}
+
+		List<TelemetrySpanEvent> events = [];
+		foreach(JsonElement eventElement in eventsElement.EnumerateArray())
+		{
+			string? name = GetString(eventElement, "name");
+			if(string.IsNullOrWhiteSpace(name))
+			{
+				continue;
+			}
+
+			// SDK uses "time" as [sec, nanos]; OTLP uses "timeUnixNano"
+			DateTime timestamp = ParseTimestamp(eventElement, "time");
+			if(timestamp == DateTime.MinValue)
+			{
+				timestamp = ParseTimestamp(eventElement, "timeUnixNano");
+			}
+
+			events.Add(new TelemetrySpanEvent
+			{
+				Name = name,
+				Timestamp = timestamp,
+				Attributes = ParseFlatAttributes(eventElement, "attributes")
+			});
+		}
+
+		return events;
+	}
+
+	// --- Standard OTLP batch format: {"resourceSpans":[…]} ---
+
+	static void ParseOtlpTraceBatch(JsonElement root, Dictionary<string, List<TelemetrySpan>> tracesById)
 	{
 		if(!root.TryGetProperty("resourceSpans", out JsonElement resourceSpans) || resourceSpans.ValueKind != JsonValueKind.Array)
 		{
@@ -173,25 +385,17 @@ sealed class TelemetryFileService
 
 				foreach(JsonElement spanElement in spans.EnumerateArray())
 				{
-					TelemetrySpan? span = ParseSpan(spanElement);
-					if(span is null)
+					TelemetrySpan? span = ParseOtlpSpan(spanElement);
+					if(span is not null)
 					{
-						continue;
+						AddSpanToDict(span, tracesById);
 					}
-
-					if(!tracesById.TryGetValue(span.TraceId, out List<TelemetrySpan>? traceSpans))
-					{
-						traceSpans = [];
-						tracesById[span.TraceId] = traceSpans;
-					}
-
-					traceSpans.Add(span);
 				}
 			}
 		}
 	}
 
-	static TelemetrySpan? ParseSpan(JsonElement spanElement)
+	static TelemetrySpan? ParseOtlpSpan(JsonElement spanElement)
 	{
 		string? traceId = GetString(spanElement, "traceId");
 		string? spanId = GetString(spanElement, "spanId");
@@ -223,8 +427,8 @@ sealed class TelemetryFileService
 			EndTime = endTime,
 			Status = hasStatus ? ParseSpanStatus(GetInt32(statusElement, "code")) : SpanStatusEnum.Unset,
 			StatusMessage = hasStatus ? GetString(statusElement, "message") : null,
-			Attributes = ParseAttributes(spanElement, "attributes"),
-			Events = ParseEvents(spanElement)
+			Attributes = ParseFlatAttributes(spanElement, "attributes"),
+			Events = ParseOtlpEvents(spanElement)
 		};
 	}
 
@@ -246,7 +450,7 @@ sealed class TelemetryFileService
 		};
 	}
 
-	static List<TelemetrySpanEvent> ParseEvents(JsonElement spanElement)
+	static List<TelemetrySpanEvent> ParseOtlpEvents(JsonElement spanElement)
 	{
 		if(!spanElement.TryGetProperty("events", out JsonElement eventsElement) || eventsElement.ValueKind != JsonValueKind.Array)
 		{
@@ -266,16 +470,16 @@ sealed class TelemetryFileService
 			{
 				Name = name,
 				Timestamp = ParseUnixNanoTimestamp(GetString(eventElement, "timeUnixNano")),
-				Attributes = ParseAttributes(eventElement, "attributes")
+				Attributes = ParseFlatAttributes(eventElement, "attributes")
 			});
 		}
 
 		return events;
 	}
 
-	static Dictionary<string, string> ParseAttributes(JsonElement parent, string propertyName)
+	static Dictionary<string, string> ParseOtlpAttributes(JsonElement attributesElement)
 	{
-		if(!parent.TryGetProperty(propertyName, out JsonElement attributesElement) || attributesElement.ValueKind != JsonValueKind.Array)
+		if(attributesElement.ValueKind != JsonValueKind.Array)
 		{
 			return [];
 		}
