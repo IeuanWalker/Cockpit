@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;
 
-public sealed partial class SessionFeature
+public sealed partial class SessionFeature : IDisposable
 {
 	readonly CopilotClientFeature _clientFeature;
 	readonly ILogger<SessionFeature> _logger;
@@ -120,4 +120,8 @@ public sealed partial class SessionFeature
 		}
 	}
 
+	public void Dispose()
+	{
+		_currentWatcher?.Dispose();
+	}
 }

@@ -9,7 +9,7 @@ using Plugin.Maui.Audio;
 
 namespace Cockpit.Features.Sounds;
 
-public sealed class SoundFeature
+public sealed partial class SoundFeature : IDisposable
 {
 	readonly IAudioManager _audioManager;
 	readonly IPermissionEventSource _permissionEventSource;
@@ -256,4 +256,10 @@ public sealed class SoundFeature
 		return Task.CompletedTask;
 	}
 
+	public void Dispose()
+	{
+		_permissionEventSource.OnPermissionRequested -= OnPermissionRequested;
+		_userInputEventSource.OnUserInputRequested -= OnUserInputRequested;
+		SessionIdleHandler.OnSessionFinished -= OnSessionFinished;
+	}
 }

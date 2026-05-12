@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.RegularExpressions;
 using Markdig;
@@ -13,7 +14,7 @@ namespace Cockpit.Features.Markdown;
 public sealed partial class MarkdownFeature : IMarkdownFeature
 {
 	readonly MarkdownPipeline _pipeline;
-	readonly Dictionary<string, string> _cache = new(StringComparer.Ordinal);
+	readonly ConcurrentDictionary<string, string> _cache = new(StringComparer.Ordinal);
 	const int maxCacheEntries = 64;
 
 	public MarkdownFeature()
@@ -99,20 +100,12 @@ public sealed partial class MarkdownFeature : IMarkdownFeature
 			return string.Empty;
 		}
 
-		if(_cache.TryGetValue(markdown, out string? cached))
-		{
-			return cached;
-		}
-
-		string result = ComputeHtml(markdown);
-
 		if(_cache.Count >= maxCacheEntries)
 		{
 			_cache.Clear();
 		}
 
-		_cache[markdown] = result;
-		return result;
+		return _cache.GetOrAdd(markdown, ComputeHtml);
 	}
 
 	[GeneratedRegex(@"<pre(?:\s[^>]*)?>", RegexOptions.Compiled)]

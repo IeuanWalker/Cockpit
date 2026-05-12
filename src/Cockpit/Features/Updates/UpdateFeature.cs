@@ -1,6 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Cockpit.Features.Updates.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Cockpit.Features.Updates;
 
@@ -16,6 +18,7 @@ public sealed partial class UpdateFeature : IDisposable
 	};
 
 	readonly HttpClient _httpClient;
+	readonly ILogger<UpdateFeature> _logger;
 	readonly string _currentVersion;
 	readonly CancellationTokenSource _cts = new();
 	readonly SemaphoreSlim _checkLock = new(1, 1);
@@ -35,9 +38,10 @@ public sealed partial class UpdateFeature : IDisposable
 
 	public event Action? OnUpdateChecked;
 
-	public UpdateFeature(HttpClient httpClient)
+	public UpdateFeature(HttpClient httpClient, ILogger<UpdateFeature> logger)
 	{
 		_httpClient = httpClient;
+		_logger = logger;
 		_currentVersion = AppInfo.VersionString;
 
 		string key = $"installed_date_{_currentVersion}";
@@ -59,9 +63,10 @@ public sealed partial class UpdateFeature : IDisposable
 	/// <summary>
 	/// Test-only constructor. Skips MAUI runtime calls.
 	/// </summary>
-	internal UpdateFeature(HttpClient httpClient, string currentVersion)
+	internal UpdateFeature(HttpClient httpClient, string currentVersion, ILogger<UpdateFeature>? logger = null)
 	{
 		_httpClient = httpClient;
+		_logger = logger ?? NullLogger<UpdateFeature>.Instance;
 		_currentVersion = currentVersion;
 		InstalledDate = null;
 	}
@@ -92,9 +97,9 @@ public sealed partial class UpdateFeature : IDisposable
 				await CheckForUpdate(cancellationToken).ConfigureAwait(false);
 			}
 		}
-		catch(Exception)
+		catch(Exception ex)
 		{
-			// Intentionally swallow exceptions to avoid crashing the app. The next periodic check will try again.
+			_logger.LogWarning(ex, "Periodic update check failed, will retry");
 		}
 	}
 

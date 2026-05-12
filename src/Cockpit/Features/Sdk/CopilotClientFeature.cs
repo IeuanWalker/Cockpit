@@ -183,6 +183,11 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 			return;
 		}
 
+		await StopCoreAsync();
+	}
+
+	async Task StopCoreAsync()
+	{
 		bool notifyDisconnected = false;
 
 		await _clientLock.WaitAsync();
@@ -266,7 +271,7 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 
 		try
 		{
-			await StopAsync();
+			await StopCoreAsync();
 		}
 		catch(Exception ex)
 		{

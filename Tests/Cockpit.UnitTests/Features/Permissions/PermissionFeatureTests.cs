@@ -1003,6 +1003,85 @@ public class PermissionFeatureTests
 		sessionFeature.HasPermission(sessionId, "rm").ShouldBeTrue();
 	}
 
+	[Fact]
+	public async Task ResolvePermissionRequest_GlobalApprovalBlockedByDenyList_DoesNotAutoResolveOtherDeniedRequests()
+	{
+		// Arrange
+		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
+		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
+		TestSessionStateProvider stateProvider = new();
+		SessionPermissionFeature sessionFeature = new(stateProvider);
+		string denyTestFile = Path.Combine(Path.GetTempPath(), $"test-deny-{Guid.NewGuid()}.json");
+		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyTestFile);
+		PermissionFeature feature = new(globalFeature, denyFeature, sessionFeature, stateProvider, NullLogger<PermissionFeature>.Instance);
+
+		const string sessionId = "session1";
+		SessionModel session = new()
+		{
+			Id = sessionId,
+			Title = "Test Session",
+			CreatedAt = DateTime.UtcNow,
+			LastActivity = DateTime.UtcNow,
+			Model = testModel,
+			Status = SessionStatusEnum.Running,
+			Context = new()
+			{
+				CurrentWorkingDirectory = "",
+				WorkspacePath = null,
+				GitRoot = null,
+				Branch = null,
+				Repository = null
+			}
+		};
+		stateProvider.AddSession(session);
+		denyFeature.Add("rm");
+
+		PermissionRequestModel request1 = new()
+		{
+			SessionId = sessionId,
+			FullCommand = "rm -rf ./node_modules",
+			Commands = ["rm"],
+			RequestTitle = "Allow rm",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = true,
+			FullRequestJson = "{}"
+		};
+
+		PermissionRequestModel request2 = new()
+		{
+			SessionId = sessionId,
+			FullCommand = "rm -rf ./dist",
+			Commands = ["rm"],
+			RequestTitle = "Allow rm",
+			Intention = "test",
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			IsDestructive = true,
+			FullRequestJson = "{}"
+		};
+
+		Task<PermissionDecisionEnum> task1 = feature.CheckPermissionAsync(request1);
+		Task<PermissionDecisionEnum> task2 = feature.CheckPermissionAsync(request2);
+		await WaitForPendingRequest(feature, request1.Id);
+		await WaitForPendingRequest(feature, request2.Id);
+
+		// Act
+		feature.ResolvePermissionRequest(request1.Id, PermissionDecisionEnum.Global);
+
+		PermissionDecisionEnum result1 = await task1.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+
+		// Assert
+		result1.ShouldBe(PermissionDecisionEnum.Session);
+		await Task.Delay(200, TestContext.Current.CancellationToken);
+		task2.IsCompleted.ShouldBeFalse();
+
+		feature.ResolvePermissionRequest(request2.Id, PermissionDecisionEnum.Denied);
+		PermissionDecisionEnum result2 = await task2.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+		result2.ShouldBe(PermissionDecisionEnum.Denied);
+	}
+
 	// Helper to access private field via reflection (for testing only)
 	static List<PermissionRequestModel> GetPendingRequests(PermissionFeature feature)
 	{

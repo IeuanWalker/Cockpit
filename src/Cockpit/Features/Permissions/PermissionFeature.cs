@@ -264,6 +264,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 		if(decision != PermissionDecisionEnum.Denied)
 		{
 			_logger.LogDebug("Saving permission with scope: {Scope}, commands: {Commands}", decision, string.Join(", ", request.Commands));
+			bool skipDeniedRequests = false;
 
 			if(decision == PermissionDecisionEnum.Global)
 			{
@@ -272,6 +273,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 				{
 					_logger.LogWarning("Global approval blocked by deny list for commands: {Commands} — downgrading to Session", string.Join(", ", request.Commands));
 					decision = PermissionDecisionEnum.Session;
+					skipDeniedRequests = true;
 				}
 				else
 				{
@@ -290,7 +292,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 			// Check if other pending requests for this session can now be auto-approved
 			if(decision == PermissionDecisionEnum.Global || decision == PermissionDecisionEnum.Session)
 			{
-				AutoResolveMatchingRequests(request.SessionId, request.Id, decision);
+				AutoResolveMatchingRequests(request.SessionId, request.Id, decision, skipDeniedRequests);
 			}
 		}
 
@@ -304,7 +306,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 		OnPermissionResolved?.Invoke(request.SessionId, request.Id);
 	}
 
-	void AutoResolveMatchingRequests(string sessionId, string excludeRequestId, PermissionDecisionEnum decision)
+	void AutoResolveMatchingRequests(string sessionId, string excludeRequestId, PermissionDecisionEnum decision, bool skipDeniedRequests = false)
 	{
 		if(decision == PermissionDecisionEnum.Denied)
 		{
@@ -325,6 +327,13 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 
 			if(decision == PermissionDecisionEnum.Session && pendingRequest.SessionId != sessionId)
 			{
+				continue;
+			}
+
+			if(skipDeniedRequests && _globalDenyFeature.AnyDenied(pendingRequest.Commands))
+			{
+				_logger.LogInformation("Skipping auto-approval for pending request {RequestId} because it contains denied commands: {Commands}",
+					pendingRequest.Id, string.Join(", ", pendingRequest.Commands));
 				continue;
 			}
 

@@ -83,6 +83,12 @@ public sealed partial class SpeechToTextControl : ComponentBase, IAsyncDisposabl
 		_speechToTextFeature.FinalResultReceived -= OnFinalResultReceived;
 		_speechToTextFeature.ErrorReceived -= OnErrorReceived;
 
-		await _speechToTextFeature.StopListeningAsync();
+		try
+		{
+			await _speechToTextFeature.StopListeningAsync();
+		}
+		catch(Exception)
+		{
+		}
 	}
 }

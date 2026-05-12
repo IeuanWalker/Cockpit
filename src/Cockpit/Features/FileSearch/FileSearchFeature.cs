@@ -39,7 +39,7 @@ public sealed class FileSearchFeature : IFileSearchFeature
 		try
 		{
 			List<FileSearchResult> results = [];
-			EnumerateFiles(workingDirectory, workingDirectory, filter, results, cancellationToken);
+			EnumerateFiles(workingDirectory, workingDirectory, filter, results, maxResults, cancellationToken);
 			SortResults(results, filter);
 			if(results.Count > maxResults)
 			{
@@ -112,8 +112,13 @@ public sealed class FileSearchFeature : IFileSearchFeature
 		return count;
 	}
 
-	void EnumerateFiles(string root, string dir, string filter, List<FileSearchResult> results, CancellationToken cancellationToken)
+	void EnumerateFiles(string root, string dir, string filter, List<FileSearchResult> results, int maxResults, CancellationToken cancellationToken)
 	{
+		if(results.Count >= maxResults)
+		{
+			return;
+		}
+
 		cancellationToken.ThrowIfCancellationRequested();
 
 		try
@@ -127,11 +132,20 @@ public sealed class FileSearchFeature : IFileSearchFeature
 				{
 					string relativePath = Path.GetRelativePath(root, filePath);
 					results.Add(new FileSearchResult(fileName, relativePath, filePath));
+					if(results.Count >= maxResults)
+					{
+						return;
+					}
 				}
 			}
 
 			foreach(string subDir in Directory.EnumerateDirectories(dir))
 			{
+				if(results.Count >= maxResults)
+				{
+					return;
+				}
+
 				cancellationToken.ThrowIfCancellationRequested();
 
 				string dirName = Path.GetFileName(subDir);
@@ -140,7 +154,7 @@ public sealed class FileSearchFeature : IFileSearchFeature
 					continue;
 				}
 
-				EnumerateFiles(root, subDir, filter, results, cancellationToken);
+				EnumerateFiles(root, subDir, filter, results, maxResults, cancellationToken);
 			}
 		}
 		catch(OperationCanceledException)

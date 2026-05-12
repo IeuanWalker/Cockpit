@@ -8,7 +8,7 @@ namespace Cockpit.Features.Connection;
 /// <summary>
 /// Periodically pings the Copilot backend and exposes connection health state.
 /// </summary>
-public sealed partial class ConnectionFeature
+public sealed partial class ConnectionFeature : IDisposable
 {
 	readonly ICopilotPingService _pingService;
 	readonly ILogger<ConnectionFeature> _logger;
@@ -165,7 +165,11 @@ public sealed partial class ConnectionFeature
 		}
 	}
 
-
+	public void Dispose()
+	{
+		_timer?.Dispose();
+		_initializationLock?.Dispose();
+	}
 
 	void OnTimerTick(object? _)
 	{

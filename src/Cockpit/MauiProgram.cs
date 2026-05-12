@@ -136,7 +136,8 @@ public static class MauiProgram
 			// HttpClient is created exclusively for UpdateFeature, which takes ownership and disposes it.
 			HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
 			client.DefaultRequestHeaders.Add("User-Agent", "Cockpit");
-			return new UpdateFeature(client);
+			ILogger<UpdateFeature> logger = sp.GetRequiredService<ILogger<UpdateFeature>>();
+			return new UpdateFeature(client, logger);
 		});
 
 		builder.Services.AddSingleton<SoundFeature>();

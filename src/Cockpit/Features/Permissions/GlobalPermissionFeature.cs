@@ -1,9 +1,9 @@
-﻿using Cockpit.Extensions;
+using Cockpit.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Permissions;
 
-public sealed class GlobalPermissionFeature
+public sealed class GlobalPermissionFeature : IDisposable
 {
 	readonly ILogger<GlobalPermissionFeature> _logger;
 	readonly string _permissionsFilePath;
@@ -219,4 +219,9 @@ public sealed class GlobalPermissionFeature
 		}
 	}
 
+
+	public void Dispose()
+	{
+		_permissionsLock.Dispose();
+	}
 }
