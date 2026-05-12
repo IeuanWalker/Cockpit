@@ -29,7 +29,11 @@ public sealed partial class Agents : ComponentBase, IDisposable
 
 	void OnStateChanged()
 	{
-		InvokeAsync(() => { Refresh(); StateHasChanged(); });
+		InvokeAsync(() =>
+		{
+			Refresh();
+			StateHasChanged();
+		});
 	}
 
 	void ShowAgentInfo(AgentProfile agent) => _agentInfoPopup?.Open(_allAgents, agent);
