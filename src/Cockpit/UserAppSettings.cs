@@ -12,32 +12,31 @@ namespace Cockpit;
 /// </summary>
 public class UserAppSettings
 {
-	/// <summary>Stable preference keys. Never use raw strings at the call site.</summary>
 	static class Keys
 	{
-		internal const string Theme = "Theme";
-		internal const string AccentColor = "AccentColor";
-		internal const string AccentHoverColor = "AccentHoverColor";
-		internal const string MessageTurnMode = "MessageTurnMode";
-		internal const string SendOnEnter = "SendOnEnter";
-		internal const string LeftSidebarWidth = "LeftSidebarWidth";
-		internal const string RightSidebarWidth = "RightSidebarWidth";
-		internal const string TextToSpeechEnabled = "TextToSpeechEnabled";
-		internal const string VoiceVolume = "VoiceVolume";
-		internal const string VoicePitch = "VoicePitch";
-		internal const string VoiceRate = "VoiceRate";
-		internal const string VoiceLocale = "VoiceLocale";
-		internal const string DiffSplitView = "DiffSplitView";
-		internal const string DiffTreeView = "DiffTreeView";
-		internal const string SoundPermissionEnabled = "SoundPermissionEnabled";
-		internal const string SoundPermissionVolume = "SoundPermissionVolume";
-		internal const string SoundUserInputEnabled = "SoundUserInputEnabled";
-		internal const string SoundUserInputVolume = "SoundUserInputVolume";
-		internal const string SoundFinishedEnabled = "SoundFinishedEnabled";
-		internal const string SoundFinishedVolume = "SoundFinishedVolume";
-		internal const string SoundPermissionCustomFileName = "SoundPermissionCustomFileName";
-		internal const string SoundUserInputCustomFileName = "SoundUserInputCustomFileName";
-		internal const string SoundFinishedCustomFileName = "SoundFinishedCustomFileName";
+		internal const string theme = "Theme";
+		internal const string accentColor = "AccentColor";
+		internal const string accentHoverColor = "AccentHoverColor";
+		internal const string messageTurnMode = "MessageTurnMode";
+		internal const string sendOnEnter = "SendOnEnter";
+		internal const string leftSidebarWidth = "LeftSidebarWidth";
+		internal const string rightSidebarWidth = "RightSidebarWidth";
+		internal const string textToSpeechEnabled = "TextToSpeechEnabled";
+		internal const string voiceVolume = "VoiceVolume";
+		internal const string voicePitch = "VoicePitch";
+		internal const string voiceRate = "VoiceRate";
+		internal const string voiceLocale = "VoiceLocale";
+		internal const string diffSplitView = "DiffSplitView";
+		internal const string diffTreeView = "DiffTreeView";
+		internal const string soundPermissionEnabled = "SoundPermissionEnabled";
+		internal const string soundPermissionVolume = "SoundPermissionVolume";
+		internal const string soundUserInputEnabled = "SoundUserInputEnabled";
+		internal const string soundUserInputVolume = "SoundUserInputVolume";
+		internal const string soundFinishedEnabled = "SoundFinishedEnabled";
+		internal const string soundFinishedVolume = "SoundFinishedVolume";
+		internal const string soundPermissionCustomFileName = "SoundPermissionCustomFileName";
+		internal const string soundUserInputCustomFileName = "SoundUserInputCustomFileName";
+		internal const string soundFinishedCustomFileName = "SoundFinishedCustomFileName";
 	}
 
 	readonly IPreferencesStorage _preferences;
@@ -51,149 +50,149 @@ public class UserAppSettings
 	{
 		get
 		{
-			string? stored = _preferences.Get<string?>(Keys.Theme, null);
+			string? stored = _preferences.Get<string?>(Keys.theme, null);
 			return Enum.TryParse(stored, true, out ThemeEnum parsed) && Enum.IsDefined(parsed)
 				? parsed
 				: ThemeEnum.Dark;
 		}
-		set => _preferences.Set(Keys.Theme, value.ToString());
+		set => _preferences.Set(Keys.theme, value.ToString());
 	}
 
 	public string AccentColor
 	{
-		get => _preferences.Get(Keys.AccentColor, "#005FB8");
-		set => _preferences.Set(Keys.AccentColor, value);
+		get => _preferences.Get(Keys.accentColor, "#005FB8");
+		set => _preferences.Set(Keys.accentColor, value);
 	}
 
 	public string AccentHoverColor
 	{
-		get => _preferences.Get(Keys.AccentHoverColor, "#0050a0");
-		set => _preferences.Set(Keys.AccentHoverColor, value);
+		get => _preferences.Get(Keys.accentHoverColor, "#0050a0");
+		set => _preferences.Set(Keys.accentHoverColor, value);
 	}
 
 	public MessageTurnModeEnum MessageTurnMode
 	{
 		get
 		{
-			string? stored = _preferences.Get<string?>(Keys.MessageTurnMode, null);
+			string? stored = _preferences.Get<string?>(Keys.messageTurnMode, null);
 			return Enum.TryParse(stored, true, out MessageTurnModeEnum parsed) && Enum.IsDefined(parsed)
 				? parsed
 				: MessageTurnModeEnum.Immediate;
 		}
-		set => _preferences.Set(Keys.MessageTurnMode, value.ToString());
+		set => _preferences.Set(Keys.messageTurnMode, value.ToString());
 	}
 
 	public bool SendOnEnter
 	{
-		get => _preferences.Get(Keys.SendOnEnter, true);
-		set => _preferences.Set(Keys.SendOnEnter, value);
+		get => _preferences.Get(Keys.sendOnEnter, true);
+		set => _preferences.Set(Keys.sendOnEnter, value);
 	}
 
 	public int LeftSidebarWidth
 	{
-		get => _preferences.Get(Keys.LeftSidebarWidth, 224);
-		set => _preferences.Set(Keys.LeftSidebarWidth, value);
+		get => _preferences.Get(Keys.leftSidebarWidth, 224);
+		set => _preferences.Set(Keys.leftSidebarWidth, value);
 	}
 
 	public int RightSidebarWidth
 	{
-		get => _preferences.Get(Keys.RightSidebarWidth, 256);
-		set => _preferences.Set(Keys.RightSidebarWidth, value);
+		get => _preferences.Get(Keys.rightSidebarWidth, 256);
+		set => _preferences.Set(Keys.rightSidebarWidth, value);
 	}
 
 	public bool TextToSpeechEnabled
 	{
-		get => _preferences.Get(Keys.TextToSpeechEnabled, false);
-		set => _preferences.Set(Keys.TextToSpeechEnabled, value);
+		get => _preferences.Get(Keys.textToSpeechEnabled, false);
+		set => _preferences.Set(Keys.textToSpeechEnabled, value);
 	}
 
 	public float VoiceVolume
 	{
-		get => _preferences.Get(Keys.VoiceVolume, TextToSpeechFeature.DefaultVoiceVolume);
-		set => _preferences.Set(Keys.VoiceVolume, value);
+		get => _preferences.Get(Keys.voiceVolume, TextToSpeechFeature.DefaultVoiceVolume);
+		set => _preferences.Set(Keys.voiceVolume, value);
 	}
 
 	public float VoicePitch
 	{
-		get => _preferences.Get(Keys.VoicePitch, TextToSpeechFeature.DefaultVoicePitch);
-		set => _preferences.Set(Keys.VoicePitch, value);
+		get => _preferences.Get(Keys.voicePitch, TextToSpeechFeature.DefaultVoicePitch);
+		set => _preferences.Set(Keys.voicePitch, value);
 	}
 
 	public float VoiceRate
 	{
-		get => _preferences.Get(Keys.VoiceRate, TextToSpeechFeature.DefaultVoiceRate);
-		set => _preferences.Set(Keys.VoiceRate, value);
+		get => _preferences.Get(Keys.voiceRate, TextToSpeechFeature.DefaultVoiceRate);
+		set => _preferences.Set(Keys.voiceRate, value);
 	}
 
 	public string VoiceLocale
 	{
-		get => _preferences.Get(Keys.VoiceLocale, string.Empty);
-		set => _preferences.Set(Keys.VoiceLocale, value);
+		get => _preferences.Get(Keys.voiceLocale, string.Empty);
+		set => _preferences.Set(Keys.voiceLocale, value);
 	}
 
 	public bool DiffSplitView
 	{
-		get => _preferences.Get(Keys.DiffSplitView, false);
-		set => _preferences.Set(Keys.DiffSplitView, value);
+		get => _preferences.Get(Keys.diffSplitView, false);
+		set => _preferences.Set(Keys.diffSplitView, value);
 	}
 
 	public bool DiffTreeView
 	{
-		get => _preferences.Get(Keys.DiffTreeView, true);
-		set => _preferences.Set(Keys.DiffTreeView, value);
+		get => _preferences.Get(Keys.diffTreeView, true);
+		set => _preferences.Set(Keys.diffTreeView, value);
 	}
 
 	public bool SoundPermissionEnabled
 	{
-		get => _preferences.Get(Keys.SoundPermissionEnabled, true);
-		set => _preferences.Set(Keys.SoundPermissionEnabled, value);
+		get => _preferences.Get(Keys.soundPermissionEnabled, true);
+		set => _preferences.Set(Keys.soundPermissionEnabled, value);
 	}
 
 	public float SoundPermissionVolume
 	{
-		get => _preferences.Get(Keys.SoundPermissionVolume, 0.5f);
-		set => _preferences.Set(Keys.SoundPermissionVolume, value);
+		get => _preferences.Get(Keys.soundPermissionVolume, 0.5f);
+		set => _preferences.Set(Keys.soundPermissionVolume, value);
 	}
 
 	public bool SoundUserInputEnabled
 	{
-		get => _preferences.Get(Keys.SoundUserInputEnabled, true);
-		set => _preferences.Set(Keys.SoundUserInputEnabled, value);
+		get => _preferences.Get(Keys.soundUserInputEnabled, true);
+		set => _preferences.Set(Keys.soundUserInputEnabled, value);
 	}
 
 	public float SoundUserInputVolume
 	{
-		get => _preferences.Get(Keys.SoundUserInputVolume, 0.5f);
-		set => _preferences.Set(Keys.SoundUserInputVolume, value);
+		get => _preferences.Get(Keys.soundUserInputVolume, 0.5f);
+		set => _preferences.Set(Keys.soundUserInputVolume, value);
 	}
 
 	public bool SoundFinishedEnabled
 	{
-		get => _preferences.Get(Keys.SoundFinishedEnabled, true);
-		set => _preferences.Set(Keys.SoundFinishedEnabled, value);
+		get => _preferences.Get(Keys.soundFinishedEnabled, true);
+		set => _preferences.Set(Keys.soundFinishedEnabled, value);
 	}
 
 	public float SoundFinishedVolume
 	{
-		get => _preferences.Get(Keys.SoundFinishedVolume, 0.5f);
-		set => _preferences.Set(Keys.SoundFinishedVolume, value);
+		get => _preferences.Get(Keys.soundFinishedVolume, 0.5f);
+		set => _preferences.Set(Keys.soundFinishedVolume, value);
 	}
 
 	public string SoundPermissionCustomFileName
 	{
-		get => _preferences.Get(Keys.SoundPermissionCustomFileName, string.Empty);
-		set => _preferences.Set(Keys.SoundPermissionCustomFileName, value);
+		get => _preferences.Get(Keys.soundPermissionCustomFileName, string.Empty);
+		set => _preferences.Set(Keys.soundPermissionCustomFileName, value);
 	}
 
 	public string SoundUserInputCustomFileName
 	{
-		get => _preferences.Get(Keys.SoundUserInputCustomFileName, string.Empty);
-		set => _preferences.Set(Keys.SoundUserInputCustomFileName, value);
+		get => _preferences.Get(Keys.soundUserInputCustomFileName, string.Empty);
+		set => _preferences.Set(Keys.soundUserInputCustomFileName, value);
 	}
 
 	public string SoundFinishedCustomFileName
 	{
-		get => _preferences.Get(Keys.SoundFinishedCustomFileName, string.Empty);
-		set => _preferences.Set(Keys.SoundFinishedCustomFileName, value);
+		get => _preferences.Get(Keys.soundFinishedCustomFileName, string.Empty);
+		set => _preferences.Set(Keys.soundFinishedCustomFileName, value);
 	}
 }
