@@ -11,7 +11,7 @@ namespace Cockpit.Features.Sdk;
 public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 {
 	/// <summary>30-minute session idle timeout, in seconds.</summary>
-	const int SessionIdleTimeoutSeconds = 1800;
+	const int sessionIdleTimeoutSeconds = 1800;
 
 	readonly ILogger<CopilotClientFeature> _logger;
 	readonly SemaphoreSlim _clientLock = new(1, 1);
@@ -63,11 +63,10 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 			_client = new CopilotClient(new CopilotClientOptions
 			{
 				AutoStart = true,
-				AutoRestart = true,
 				LogLevel = "info",
 				UseStdio = true,
 				Logger = _logger,
-				SessionIdleTimeoutSeconds = SessionIdleTimeoutSeconds
+				SessionIdleTimeoutSeconds = sessionIdleTimeoutSeconds
 			});
 
 			await _client.StartAsync(cancellationToken);
