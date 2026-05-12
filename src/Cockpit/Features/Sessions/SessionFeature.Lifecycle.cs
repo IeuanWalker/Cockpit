@@ -153,7 +153,7 @@ public sealed partial class SessionFeature
 			_sessionListFeature.AddSession(chatSession);
 
 			await _modelFeature.SaveSessionModel(chatSession);
-			await _agentPersistence.SaveSessionAgentAsync(chatSession);
+			await _agentPersistence.SaveSessionAgent(chatSession);
 			await _sessionModePersistence.SaveSessionModeAsync(chatSession);
 
 			await SwitchCurrentSessionAsync(chatSession);
@@ -278,7 +278,7 @@ public sealed partial class SessionFeature
 				session.Context.WorkspacePath = sdkSession.WorkspacePath;
 				SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 				await _modelFeature.TryRestoreModelSettings(session);
-				await _agentPersistence.TryRestoreSessionAgentAsync(session);
+				await _agentPersistence.TryRestoreSessionAgent(session);
 				if(session.Context.SelectedAgent is not null)
 				{
 					await sdkSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Name);

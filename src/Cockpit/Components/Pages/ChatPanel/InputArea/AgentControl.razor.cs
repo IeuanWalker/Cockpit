@@ -65,7 +65,7 @@ public sealed partial class AgentControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.AgentChanged = true;
 
 		// Persist agent selection immediately
-		_ = _agentPersistence.SaveSessionAgentAsync(_sessionListFeature.CurrentSession);
+		_ = _agentPersistence.SaveSessionAgent(_sessionListFeature.CurrentSession);
 
 		_picker.Close();
 		_sessionListFeature.NotifyStateChanged();

@@ -30,10 +30,6 @@ public sealed class AgentFeature
 			_logger.LogInformation("Discovered {Count} agents for session", profiles.Count);
 			return profiles;
 		}
-		catch(OperationCanceledException)
-		{
-			throw;
-		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load agents from SDK");

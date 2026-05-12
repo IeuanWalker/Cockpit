@@ -266,13 +266,13 @@ public sealed class AgentFeatureTests : IDisposable
 		session.Context.Agents = [agent];
 		session.Context.SelectedAgent = agent;
 
-		await persistence.SaveSessionAgentAsync(session);
+		await persistence.SaveSessionAgent(session);
 
 		SessionModel restoreTarget = MakeSession(_tempDir);
 		AgentProfile available = new() { Name = "code-review", Source = AgentSource.Repo };
 		restoreTarget.Context.Agents = [available];
 
-		bool restored = await persistence.TryRestoreSessionAgentAsync(restoreTarget);
+		bool restored = await persistence.TryRestoreSessionAgent(restoreTarget);
 
 		restored.ShouldBeTrue();
 		restoreTarget.Context.SelectedAgent.ShouldNotBeNull();
@@ -287,12 +287,12 @@ public sealed class AgentFeatureTests : IDisposable
 		SessionModel session = MakeSession(_tempDir);
 		session.Context.SelectedAgent = null;
 
-		await persistence.SaveSessionAgentAsync(session);
+		await persistence.SaveSessionAgent(session);
 
 		SessionModel restoreTarget = MakeSession(_tempDir);
 
 		// Empty AgentName in the file → cannot restore → returns false
-		bool restored = await persistence.TryRestoreSessionAgentAsync(restoreTarget);
+		bool restored = await persistence.TryRestoreSessionAgent(restoreTarget);
 
 		restored.ShouldBeFalse();
 	}
@@ -303,7 +303,7 @@ public sealed class AgentFeatureTests : IDisposable
 		AgentPersistence persistence = new();
 		SessionModel session = MakeSession(_tempDir);
 
-		bool result = await persistence.TryRestoreSessionAgentAsync(session);
+		bool result = await persistence.TryRestoreSessionAgent(session);
 
 		result.ShouldBeFalse();
 	}
@@ -317,7 +317,7 @@ public sealed class AgentFeatureTests : IDisposable
 		Directory.CreateDirectory(Path.GetDirectoryName(agentFilePath)!);
 		await File.WriteAllTextAsync(agentFilePath, "not valid json {{{");
 
-		bool result = await persistence.TryRestoreSessionAgentAsync(session);
+		bool result = await persistence.TryRestoreSessionAgent(session);
 
 		result.ShouldBeFalse();
 	}
@@ -329,12 +329,12 @@ public sealed class AgentFeatureTests : IDisposable
 		SessionModel session = MakeSession(_tempDir);
 		session.Context.SelectedAgent = new() { Name = "missing-agent", Source = AgentSource.Repo };
 
-		await persistence.SaveSessionAgentAsync(session);
+		await persistence.SaveSessionAgent(session);
 
 		SessionModel restoreTarget = MakeSession(_tempDir);
 		restoreTarget.Context.Agents = []; // agent not in the available list
 
-		bool restored = await persistence.TryRestoreSessionAgentAsync(restoreTarget);
+		bool restored = await persistence.TryRestoreSessionAgent(restoreTarget);
 
 		restored.ShouldBeTrue();
 		restoreTarget.Context.SelectedAgent.ShouldBeNull();
@@ -347,14 +347,14 @@ public sealed class AgentFeatureTests : IDisposable
 		SessionModel session = MakeSession(_tempDir);
 		session.Context.SelectedAgent = new() { Name = "my-agent", Source = AgentSource.Repo };
 
-		await persistence.SaveSessionAgentAsync(session);
+		await persistence.SaveSessionAgent(session);
 
 		// Available agent has same name but different source
 		SessionModel restoreTarget = MakeSession(_tempDir);
 		AgentProfile globalAgent = new() { Name = "my-agent", Source = AgentSource.Global };
 		restoreTarget.Context.Agents = [globalAgent];
 
-		bool restored = await persistence.TryRestoreSessionAgentAsync(restoreTarget);
+		bool restored = await persistence.TryRestoreSessionAgent(restoreTarget);
 
 		restored.ShouldBeTrue();
 		restoreTarget.Context.SelectedAgent.ShouldNotBeNull();
@@ -368,7 +368,7 @@ public sealed class AgentFeatureTests : IDisposable
 		SessionModel session = MakeSession(_tempDir);
 		session.Context.SelectedAgent = new() { Name = "shared-agent", Source = AgentSource.Repo };
 
-		await persistence.SaveSessionAgentAsync(session);
+		await persistence.SaveSessionAgent(session);
 
 		AgentProfile globalAgent = new() { Name = "shared-agent", Source = AgentSource.Global };
 		AgentProfile repoAgent = new() { Name = "shared-agent", Source = AgentSource.Repo };
@@ -376,7 +376,7 @@ public sealed class AgentFeatureTests : IDisposable
 		SessionModel restoreTarget = MakeSession(_tempDir);
 		restoreTarget.Context.Agents = [globalAgent, repoAgent];
 
-		bool restored = await persistence.TryRestoreSessionAgentAsync(restoreTarget);
+		bool restored = await persistence.TryRestoreSessionAgent(restoreTarget);
 
 		restored.ShouldBeTrue();
 		restoreTarget.Context.SelectedAgent!.Source.ShouldBe(AgentSource.Repo);
@@ -389,7 +389,7 @@ public sealed class AgentFeatureTests : IDisposable
 		SessionModel session = MakeSession(null);
 
 		// Should silently return without writing anything
-		await persistence.SaveSessionAgentAsync(session);
+		await persistence.SaveSessionAgent(session);
 
 		// No file should have been written
 		persistence.GetAgentFilePath(session).ShouldBeNull();
