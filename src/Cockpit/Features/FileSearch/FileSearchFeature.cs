@@ -7,7 +7,7 @@ public sealed class FileSearchFeature : IFileSearchFeature
 	readonly ILogger<FileSearchFeature> _logger;
 
 	// Directories to skip entirely (never recurse into)
-	static readonly HashSet<string> _skipDirs = new(StringComparer.OrdinalIgnoreCase)
+	static readonly HashSet<string> skipDirs = new(StringComparer.OrdinalIgnoreCase)
 	{
 		".git", "node_modules", "bin", "obj", ".vs", ".vscode", ".idea",
 		"__pycache__", ".next", "dist", "build", "out", ".cache", "coverage",
@@ -135,7 +135,7 @@ public sealed class FileSearchFeature : IFileSearchFeature
 				cancellationToken.ThrowIfCancellationRequested();
 
 				string dirName = Path.GetFileName(subDir);
-				if(_skipDirs.Contains(dirName))
+				if(skipDirs.Contains(dirName))
 				{
 					continue;
 				}
