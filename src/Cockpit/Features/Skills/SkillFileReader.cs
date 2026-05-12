@@ -1,7 +1,7 @@
 namespace Cockpit.Features.Skills;
 
 /// <summary>Reads and parses skill definition files from disk.</summary>
-internal static class SkillFileReader
+static class SkillFileReader
 {
 	/// <summary>
 	/// Reads the Markdown content of the skill file at <paramref name="path"/>, stripping any
