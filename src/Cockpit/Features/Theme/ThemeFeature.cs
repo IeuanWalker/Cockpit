@@ -5,7 +5,7 @@ using Microsoft.JSInterop;
 
 namespace Cockpit.Features.Theme;
 
-public sealed class ThemeFeature : IThemeFeature, IDisposable
+public sealed partial class ThemeFeature : IThemeFeature, IDisposable
 {
 	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<ThemeFeature> _logger;
@@ -74,10 +74,7 @@ public sealed class ThemeFeature : IThemeFeature, IDisposable
 		// Keep the MAUI resource dictionary in sync so native controls always reflect the theme.
 		// This replaces the entire ResourceDictionary, which is safe because App.xaml contains
 		// no non-theme resources — LightTheme/DarkTheme are self-contained resource dictionaries.
-		if(Application.Current is not null)
-		{
-			Application.Current.Resources = isLight ? new LightTheme() : new DarkTheme();
-		}
+		Application.Current?.Resources = isLight ? new LightTheme() : new DarkTheme();
 
 		// Apply the CSS theme class to the Blazor web layer.
 		if(Application.Current?.Windows?.FirstOrDefault()?.Page is MainPage mainPage)
@@ -119,10 +116,7 @@ public sealed class ThemeFeature : IThemeFeature, IDisposable
 
 	public void Dispose()
 	{
-		if(Application.Current is not null)
-		{
-			Application.Current.RequestedThemeChanged -= OnRequestedThemeChanged;
-		}
+		Application.Current?.RequestedThemeChanged -= OnRequestedThemeChanged;
 	}
 
 	async void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e)

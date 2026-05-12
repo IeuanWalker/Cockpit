@@ -263,7 +263,7 @@ static class SessionIdleHandler
 
 	static string GenerateActivitySummary(List<ToolExecutionModel> tools)
 	{
-		List<string> distinctNames = tools.Select(t => t.ToolName).Distinct().ToList();
+		List<string> distinctNames = [.. tools.Select(t => t.ToolName).Distinct()];
 		string preview = string.Join(", ", distinctNames.Take(3));
 		if(distinctNames.Count > 3)
 		{

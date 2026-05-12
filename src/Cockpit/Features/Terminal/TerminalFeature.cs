@@ -82,7 +82,7 @@ public sealed partial class TerminalFeature : IDisposable, IAsyncDisposable
 						}
 
 						int charCount = decoder.GetChars(buffer, 0, bytesRead, charBuffer, 0);
-						string data = new string(charBuffer, 0, charCount);
+						string data = new(charBuffer, 0, charCount);
 						session.BufferOutput(data);
 						OnDataReceived?.Invoke(sessionId, data);
 					}

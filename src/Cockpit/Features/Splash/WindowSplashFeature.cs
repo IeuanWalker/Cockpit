@@ -8,13 +8,13 @@ namespace Cockpit.Features.Splash;
 /// </summary>
 public abstract class WindowSplashFeature
 {
-	readonly object _lock = new();
+	readonly Lock _lock = new();
 	Action? _onBlazorReady;
 
 	public event Action? OnBlazorReady
 	{
-		add { lock (_lock) { _onBlazorReady += value; } }
-		remove { lock (_lock) { _onBlazorReady -= value; } }
+		add { lock(_lock) { _onBlazorReady += value; } }
+		remove { lock(_lock) { _onBlazorReady -= value; } }
 	}
 
 	/// <summary>
@@ -25,7 +25,7 @@ public abstract class WindowSplashFeature
 	public void NotifyBlazorReady()
 	{
 		Action? handler;
-		lock (_lock)
+		lock(_lock)
 		{
 			handler = _onBlazorReady;
 			_onBlazorReady = null;
