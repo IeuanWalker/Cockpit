@@ -74,7 +74,7 @@ public class SessionErrorHandlerAdditionalTests
 
 		processor.Process(session, new SessionErrorEvent
 		{
-			Data = new SessionErrorData { ErrorType = "unknown", Message = null },
+			Data = new SessionErrorData { ErrorType = "unknown", Message = null! },
 			Timestamp = DateTimeOffset.UtcNow
 		});
 
