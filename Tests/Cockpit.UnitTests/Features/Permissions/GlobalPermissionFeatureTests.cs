@@ -34,7 +34,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void Add_SingleCommand_CommandIsAdded()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		const string command = "npm";
 
 		// Act
@@ -48,7 +48,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void Add_MultipleCommands_AllCommandsAreAdded()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		List<string> commands = ["npm", "yarn", "git"];
 
 		// Act
@@ -62,7 +62,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void Add_DuplicateCommand_NoDuplicatesCreated()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		const string command = "npm";
 
 		// Act
@@ -79,7 +79,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void HasPermissions_PartialMatch_ReturnsFalse()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		feature.Add("npm");
 
 		// Act & Assert
@@ -90,7 +90,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void Remove_ExistingCommand_CommandIsRemoved()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		const string command = "npm";
 		feature.Add(command);
 
@@ -105,7 +105,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void Remove_NonExistentCommand_DoesNotThrow()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 
 		// Act & Assert
 		Should.NotThrow(() => feature.Remove("nonexistent"));
@@ -115,7 +115,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void OnPermissionsChanged_Fired_WhenCommandAdded()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		bool eventFired = false;
 		feature.OnPermissionsChanged += () => eventFired = true;
 
@@ -130,7 +130,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void OnPermissionsChanged_Fired_WhenCommandRemoved()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		feature.Add("npm");
 		bool eventFired = false;
 		feature.OnPermissionsChanged += () => eventFired = true;
@@ -146,7 +146,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public async Task ConcurrentAdd_SameCommand_NoDuplicates()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		const string command = "npm";
 		const int threadCount = 100;
 
@@ -167,7 +167,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public async Task ConcurrentAdd_DifferentCommands_AllAdded()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		const int commandCount = 100;
 
 		// Act
@@ -192,7 +192,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public async Task ConcurrentReadWrite_NoRaceConditions()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		const int iterations = 1000;
 		List<string> commands = ["npm", "yarn", "git", "docker"];
 
@@ -238,7 +238,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public async Task ConcurrentAddRemove_NoExceptions()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		const int iterations = 500;
 		List<string> commands = ["npm", "yarn", "git", "docker"];
 
@@ -277,7 +277,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public async Task ConcurrentBulkAdd_NoRaceConditions()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		const int threadCount = 50;
 		List<string> commands = ["npm", "yarn", "git", "docker"];
 
@@ -302,12 +302,12 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void Persistence_SavesAndLoadsFromFile()
 	{
 		// Arrange - add commands to first instance (writes to file)
-		using GlobalPermissionFeature feature1 = CreateFeature();
+		GlobalPermissionFeature feature1 = CreateFeature();
 		feature1.Add("npm");
 		feature1.Add("yarn");
 
 		// Act - create new instance from the same file
-		using GlobalPermissionFeature feature2 = CreateFeature();
+		GlobalPermissionFeature feature2 = CreateFeature();
 
 		// Assert - commands loaded from disk
 		feature2.HasPermission("npm").ShouldBeTrue();
@@ -319,13 +319,13 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void Persistence_AfterRemove_RemovedCommandNotLoadedFromFile()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature1 = CreateFeature();
+		GlobalPermissionFeature feature1 = CreateFeature();
 		feature1.Add("npm");
 		feature1.Add("yarn");
 		feature1.Remove("npm");
 
 		// Act
-		using GlobalPermissionFeature feature2 = CreateFeature();
+		GlobalPermissionFeature feature2 = CreateFeature();
 
 		// Assert
 		feature2.HasPermission("npm").ShouldBeFalse();
@@ -341,7 +341,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 		// Act & Assert - starts empty without throwing
 		Should.NotThrow(() =>
 		{
-			using GlobalPermissionFeature feature = new(NullLogger<GlobalPermissionFeature>.Instance, nonExistentPath);
+			GlobalPermissionFeature feature = new(NullLogger<GlobalPermissionFeature>.Instance, nonExistentPath);
 			feature.GetAll().ShouldBeEmpty();
 		});
 	}
@@ -350,7 +350,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void GetAll_ReturnsCommandsInAlphabeticalOrder()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		feature.Add("yarn");
 		feature.Add("npm");
 		feature.Add("docker");
@@ -366,7 +366,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void OnPermissionsChanged_NotFired_WhenDuplicateAdded()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		feature.Add("npm");
 		int eventCount = 0;
 		feature.OnPermissionsChanged += () => eventCount++;
@@ -382,7 +382,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void HasPermission_SingleCommand_ReturnsCorrectly()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		feature.Add("npm");
 
 		// Act & Assert
@@ -394,7 +394,7 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 	public void Remove_NonExistentCommand_DoesNotFireEvent()
 	{
 		// Arrange
-		using GlobalPermissionFeature feature = CreateFeature();
+		GlobalPermissionFeature feature = CreateFeature();
 		int eventCount = 0;
 		feature.OnPermissionsChanged += () => eventCount++;
 
@@ -405,15 +405,4 @@ public sealed class GlobalPermissionFeatureTests : IDisposable
 		eventCount.ShouldBe(0);
 	}
 
-	[Fact]
-	public void Dispose_ReleasesResources()
-	{
-		// Arrange
-		GlobalPermissionFeature feature = CreateFeature();
-		feature.Add("npm");
-
-		// Act & Assert - Should not throw
-		Should.NotThrow(() => feature.Dispose());
-		Should.NotThrow(() => feature.Dispose()); // Double dispose should be safe
-	}
 }

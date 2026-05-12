@@ -58,8 +58,6 @@ public class PermissionFeatureTests
 
 		// Assert
 		result.ShouldBe(PermissionDecisionEnum.Once);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -93,8 +91,6 @@ public class PermissionFeatureTests
 
 		// Assert
 		result.ShouldBe(PermissionDecisionEnum.Global);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -145,8 +141,6 @@ public class PermissionFeatureTests
 
 		// Assert
 		result.ShouldBe(PermissionDecisionEnum.Session);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -198,8 +192,6 @@ public class PermissionFeatureTests
 
 		// Assert - Session takes priority
 		result.ShouldBe(PermissionDecisionEnum.Session);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -271,8 +263,6 @@ public class PermissionFeatureTests
 		feature.ResolvePermissionRequest(mixedRequest.Id, PermissionDecisionEnum.Denied);
 		PermissionDecisionEnum mixedResult = await mixedTask.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 		mixedResult.ShouldBe(PermissionDecisionEnum.Denied);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -325,8 +315,6 @@ public class PermissionFeatureTests
 		// Assert
 		globalFeature.HasPermissions(["npm"]).ShouldBeTrue();
 		sessionFeature.HasPermission("session1", "npm").ShouldBeFalse();
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -379,8 +367,6 @@ public class PermissionFeatureTests
 		// Assert
 		sessionFeature.HasPermission("session1", "npm").ShouldBeTrue();
 		globalFeature.HasPermissions(["npm"]).ShouldBeFalse();
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -433,8 +419,6 @@ public class PermissionFeatureTests
 		// Assert
 		sessionFeature.HasPermission("session1", "npm").ShouldBeFalse();
 		globalFeature.HasPermissions(["npm"]).ShouldBeFalse();
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -487,8 +471,6 @@ public class PermissionFeatureTests
 		// Assert
 		sessionFeature.HasPermission("session1", "npm").ShouldBeFalse();
 		globalFeature.HasPermissions(["npm"]).ShouldBeFalse();
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -575,8 +557,6 @@ public class PermissionFeatureTests
 		PermissionDecisionEnum result2 = await task2.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
 		result1.ShouldBe(PermissionDecisionEnum.Global);
 		result2.ShouldBe(PermissionDecisionEnum.Global);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -665,8 +645,6 @@ public class PermissionFeatureTests
 
 		// Clean up
 		feature.ResolvePermissionRequest(request2.Id, PermissionDecisionEnum.Denied);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -723,8 +701,6 @@ public class PermissionFeatureTests
 
 		// Assert - All should return Global decision
 		results.All(r => r == PermissionDecisionEnum.Global).ShouldBeTrue();
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -799,8 +775,6 @@ public class PermissionFeatureTests
 		resultA.ShouldBe(PermissionDecisionEnum.Session);
 		resultB.ShouldBe(PermissionDecisionEnum.Session);
 		session.Status.ShouldBe(SessionStatusEnum.Running);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -834,8 +808,6 @@ public class PermissionFeatureTests
 
 		// Assert - safe command auto-approved without user prompt (no OnPermissionRequested fired)
 		result.ShouldBe(PermissionDecisionEnum.Once);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -868,8 +840,6 @@ public class PermissionFeatureTests
 
 		// Assert
 		result.Kind.ShouldBe(PermissionRequestResultKind.UserNotAvailable);
-
-		globalFeature.Dispose();
 	}
 
 	[Fact]
@@ -946,8 +916,6 @@ public class PermissionFeatureTests
 
 		resultA.ShouldBe(PermissionDecisionEnum.Denied);
 		resultB.ShouldBe(PermissionDecisionEnum.Denied);
-
-		globalFeature.Dispose();
 	}
 
 	// Helper to access private field via reflection (for testing only)

@@ -33,7 +33,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void IsDenied_CommandNotAdded_ReturnsFalse()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 
 		// Act & Assert
 		feature.IsDenied("rm").ShouldBeFalse();
@@ -43,7 +43,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void IsDenied_CommandAdded_ReturnsTrue()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 
 		// Act
 		feature.Add("rm");
@@ -56,7 +56,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void IsDenied_CaseSensitive_ReturnsFalse()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 		feature.Add("rm");
 
 		// Act & Assert
@@ -68,7 +68,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void AnyDenied_EmptyList_ReturnsFalse()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 		feature.Add("rm");
 
 		// Act & Assert
@@ -79,7 +79,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void AnyDenied_NoCommandsDenied_ReturnsFalse()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 
 		// Act & Assert
 		feature.AnyDenied(["npm", "git"]).ShouldBeFalse();
@@ -89,7 +89,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void AnyDenied_OneCommandDenied_ReturnsTrue()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 		feature.Add("rm");
 
 		// Act & Assert
@@ -100,7 +100,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void AnyDenied_AllCommandsDenied_ReturnsTrue()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 		feature.Add("rm");
 		feature.Add("git push");
 
@@ -112,7 +112,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void Add_DuplicateCommand_NoDuplicatesCreated()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 
 		// Act
 		feature.Add("rm");
@@ -127,7 +127,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void Remove_ExistingCommand_CommandIsRemoved()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 		feature.Add("rm");
 
 		// Act
@@ -141,7 +141,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void Remove_NonExistentCommand_DoesNotThrow()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 
 		// Act & Assert
 		Should.NotThrow(() => feature.Remove("nonexistent"));
@@ -151,7 +151,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void GetAll_ReturnsCommandsInAlphabeticalOrder()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 		feature.Add("rm");
 		feature.Add("apt");
 		feature.Add("dd");
@@ -167,7 +167,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void GetAll_EmptyFeature_ReturnsEmptyList()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 
 		// Act & Assert
 		feature.GetAll().ShouldBeEmpty();
@@ -177,7 +177,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void Add_RaisesOnDenyListChangedEvent()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 		int eventCount = 0;
 		feature.OnDenyListChanged += () => eventCount++;
 
@@ -192,7 +192,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void Add_DuplicateCommand_DoesNotRaiseEvent()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 		int eventCount = 0;
 		feature.OnDenyListChanged += () => eventCount++;
 
@@ -208,7 +208,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void Remove_ExistingCommand_RaisesOnDenyListChangedEvent()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 		feature.Add("rm");
 		int eventCount = 0;
 		feature.OnDenyListChanged += () => eventCount++;
@@ -224,7 +224,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void Remove_NonExistentCommand_DoesNotRaiseEvent()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 		int eventCount = 0;
 		feature.OnDenyListChanged += () => eventCount++;
 
@@ -239,12 +239,12 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void Persistence_SavesAndLoadsFromFile()
 	{
 		// Arrange
-		using GlobalDenyFeature feature1 = CreateFeature();
+		GlobalDenyFeature feature1 = CreateFeature();
 		feature1.Add("rm");
 		feature1.Add("apt");
 
 		// Act - create a new instance from same file
-		using GlobalDenyFeature feature2 = CreateFeature();
+		GlobalDenyFeature feature2 = CreateFeature();
 
 		// Assert
 		feature2.IsDenied("rm").ShouldBeTrue();
@@ -256,13 +256,13 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void Persistence_AfterRemove_RemovedCommandNotLoadedFromFile()
 	{
 		// Arrange
-		using GlobalDenyFeature feature1 = CreateFeature();
+		GlobalDenyFeature feature1 = CreateFeature();
 		feature1.Add("rm");
 		feature1.Add("apt");
 		feature1.Remove("rm");
 
 		// Act
-		using GlobalDenyFeature feature2 = CreateFeature();
+		GlobalDenyFeature feature2 = CreateFeature();
 
 		// Assert
 		feature2.IsDenied("rm").ShouldBeFalse();
@@ -278,7 +278,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 		// Act & Assert
 		Should.NotThrow(() =>
 		{
-			using GlobalDenyFeature feature = new(NullLogger<GlobalDenyFeature>.Instance, nonExistentPath);
+			GlobalDenyFeature feature = new(NullLogger<GlobalDenyFeature>.Instance, nonExistentPath);
 			feature.GetAll().ShouldBeEmpty();
 		});
 	}
@@ -287,7 +287,7 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 	public void ConcurrentAccess_DoesNotThrow()
 	{
 		// Arrange
-		using GlobalDenyFeature feature = CreateFeature();
+		GlobalDenyFeature feature = CreateFeature();
 
 		// Act - Concurrent reads and writes
 		List<Task> tasks = [];

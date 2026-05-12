@@ -201,9 +201,6 @@ public class ConnectionFeatureTests
 		await feature.Initialize(TestContext.Current.CancellationToken);
 		await feature.Initialize(TestContext.Current.CancellationToken);
 
-		// Dispose stops the timer before it fires any additional ticks
-		feature.Dispose();
-
 		pingCount.ShouldBe(1);
 	}
 
@@ -228,7 +225,6 @@ public class ConnectionFeatureTests
 
 		// Second call on the same feature: state was reset, so initialization runs again
 		await feature.Initialize(TestContext.Current.CancellationToken);
-		feature.Dispose();
 
 		pingCount.ShouldBe(2);
 		feature.Status.ShouldBe(ConnectionStatusEnum.Connected);
