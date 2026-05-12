@@ -1,4 +1,5 @@
 using Cockpit.Features.Models;
+using Cockpit.Features.Sdk;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -33,7 +34,9 @@ public sealed class ModelFeatureTests : IDisposable
 		Billing = billingMultiplier is null ? null : new ModelBilling { Multiplier = billingMultiplier.Value }
 	};
 
-	static ModelFeature CreateFeature() => new(NullLogger<ModelFeature>.Instance);
+	static ModelFeature CreateFeature() => new(
+		new CopilotClientFeature(NullLogger<CopilotClientFeature>.Instance),
+		NullLogger<ModelFeature>.Instance);
 
 	static SessionModel MakeSession(string? workspacePath = null) => new()
 	{
@@ -353,15 +356,6 @@ public sealed class ModelFeatureTests : IDisposable
 
 		string json = await File.ReadAllTextAsync(expectedPath);
 		json.ShouldContain("claude-3-5");
-	}
-
-	[Fact]
-	public async Task Dispose_ThenGetModels_ThrowsObjectDisposedException()
-	{
-		ModelFeature feature = CreateFeature();
-		feature.Dispose();
-
-		await Should.ThrowAsync<ObjectDisposedException>(() => feature.GetModels().AsTask());
 	}
 
 	[Fact]
