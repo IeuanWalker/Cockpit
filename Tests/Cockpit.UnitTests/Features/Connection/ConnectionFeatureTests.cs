@@ -396,7 +396,7 @@ public class ConnectionFeatureTests
 		await Task.Delay(200, TestContext.Current.CancellationToken);
 
 		await slowCts.CancelAsync();
-		gate.TrySetCanceled();
+		gate.TrySetCanceled(TestContext.Current.CancellationToken);
 		await secondPing;
 
 		// Should restore to Connected (previous status), not stay on Checking

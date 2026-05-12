@@ -294,10 +294,10 @@ public sealed class GlobalDenyFeatureTests : IDisposable
 		for(int i = 0; i < 50; i++)
 		{
 			int idx = i;
-			tasks.Add(Task.Run(() => feature.Add($"cmd{idx}")));
-			tasks.Add(Task.Run(() => feature.IsDenied($"cmd{idx}")));
-			tasks.Add(Task.Run(() => feature.AnyDenied([$"cmd{idx}", $"cmd{idx + 1}"])));
-			tasks.Add(Task.Run(() => feature.GetAll()));
+			tasks.Add(Task.Run(() => feature.Add($"cmd{idx}"), TestContext.Current.CancellationToken));
+			tasks.Add(Task.Run(() => feature.IsDenied($"cmd{idx}"), TestContext.Current.CancellationToken));
+			tasks.Add(Task.Run(() => feature.AnyDenied([$"cmd{idx}", $"cmd{idx + 1}"]), TestContext.Current.CancellationToken));
+			tasks.Add(Task.Run(() => feature.GetAll(), TestContext.Current.CancellationToken));
 		}
 
 		// Assert

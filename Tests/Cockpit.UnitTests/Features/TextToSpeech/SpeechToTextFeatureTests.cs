@@ -102,7 +102,7 @@ public class SpeechToTextFeatureTests
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
 
-		bool result = await feature.StartListeningAsync();
+		bool result = await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		result.ShouldBeTrue();
 	}
@@ -113,7 +113,7 @@ public class SpeechToTextFeatureTests
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
 
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		feature.IsListening.ShouldBeTrue();
 	}
@@ -124,7 +124,7 @@ public class SpeechToTextFeatureTests
 		FakeSpeechToText fake = new() { PermissionGranted = false };
 		SpeechToTextFeature feature = CreateFeature(fake);
 
-		bool result = await feature.StartListeningAsync();
+		bool result = await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		result.ShouldBeFalse();
 	}
@@ -135,7 +135,7 @@ public class SpeechToTextFeatureTests
 		FakeSpeechToText fake = new() { PermissionGranted = false };
 		SpeechToTextFeature feature = CreateFeature(fake);
 
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		feature.IsListening.ShouldBeFalse();
 	}
@@ -149,7 +149,7 @@ public class SpeechToTextFeatureTests
 		string? receivedError = null;
 		feature.ErrorReceived += (_, msg) => receivedError = msg;
 
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		receivedError.ShouldNotBeNullOrEmpty();
 	}
@@ -160,8 +160,8 @@ public class SpeechToTextFeatureTests
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
 
-		await feature.StartListeningAsync();
-		bool secondResult = await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
+		bool secondResult = await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		secondResult.ShouldBeFalse();
 	}
@@ -175,7 +175,7 @@ public class SpeechToTextFeatureTests
 		int eventCount = 0;
 		feature.OnStateChanged += () => eventCount++;
 
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		eventCount.ShouldBe(1);
 	}
@@ -190,8 +190,8 @@ public class SpeechToTextFeatureTests
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
 
-		await feature.StartListeningAsync();
-		await feature.StopListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
+		await feature.StopListeningAsync(TestContext.Current.CancellationToken);
 
 		feature.IsListening.ShouldBeFalse();
 	}
@@ -202,12 +202,12 @@ public class SpeechToTextFeatureTests
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
 
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		int eventCount = 0;
 		feature.OnStateChanged += () => eventCount++;
 
-		await feature.StopListeningAsync();
+		await feature.StopListeningAsync(TestContext.Current.CancellationToken);
 
 		eventCount.ShouldBe(1);
 	}
@@ -218,7 +218,7 @@ public class SpeechToTextFeatureTests
 		FakeSpeechToText fake = new();
 		SpeechToTextFeature feature = CreateFeature(fake);
 
-		await feature.StopListeningAsync();
+		await feature.StopListeningAsync(TestContext.Current.CancellationToken);
 
 		feature.IsListening.ShouldBeFalse();
 	}
@@ -232,7 +232,7 @@ public class SpeechToTextFeatureTests
 		int eventCount = 0;
 		feature.OnStateChanged += () => eventCount++;
 
-		await feature.StopListeningAsync();
+		await feature.StopListeningAsync(TestContext.Current.CancellationToken);
 
 		eventCount.ShouldBe(0);
 	}
@@ -246,7 +246,7 @@ public class SpeechToTextFeatureTests
 	{
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		string? received = null;
 		feature.PartialResultReceived += (_, text) => received = text;
@@ -265,7 +265,7 @@ public class SpeechToTextFeatureTests
 	{
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		string? received = null;
 		feature.FinalResultReceived += (_, text) => received = text;
@@ -280,7 +280,7 @@ public class SpeechToTextFeatureTests
 	{
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		fake.SimulateCompletedSuccess("done");
 
@@ -292,7 +292,7 @@ public class SpeechToTextFeatureTests
 	{
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		int eventCount = 0;
 		feature.OnStateChanged += () => eventCount++;
@@ -311,7 +311,7 @@ public class SpeechToTextFeatureTests
 	{
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		string? receivedError = null;
 		feature.ErrorReceived += (_, msg) => receivedError = msg;
@@ -326,7 +326,7 @@ public class SpeechToTextFeatureTests
 	{
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		fake.SimulateCompletedError(new Exception("fail"));
 
@@ -342,7 +342,7 @@ public class SpeechToTextFeatureTests
 	{
 		FakeSpeechToText fake = new() { PermissionGranted = true };
 		SpeechToTextFeature feature = CreateFeature(fake);
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		await feature.DisposeAsync();
 
@@ -379,7 +379,7 @@ public class SpeechToTextFeatureTests
 		ThrowingSpeechToText fake = new();
 		SpeechToTextFeature feature = new(fake, NullLogger<SpeechToTextFeature>.Instance);
 
-		bool result = await feature.StartListeningAsync();
+		bool result = await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		result.ShouldBeFalse();
 		feature.IsListening.ShouldBeFalse();
@@ -394,7 +394,7 @@ public class SpeechToTextFeatureTests
 		int eventCount = 0;
 		feature.OnStateChanged += () => eventCount++;
 
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		// Once for IsListening = true, once for reset to false
 		eventCount.ShouldBe(2);
@@ -409,7 +409,7 @@ public class SpeechToTextFeatureTests
 		string? receivedError = null;
 		feature.ErrorReceived += (_, msg) => receivedError = msg;
 
-		await feature.StartListeningAsync();
+		await feature.StartListeningAsync(TestContext.Current.CancellationToken);
 
 		receivedError.ShouldNotBeNullOrEmpty();
 	}

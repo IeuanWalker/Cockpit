@@ -202,7 +202,7 @@ public sealed class TimestampFeatureTests
 		int tickCount = 0;
 		_sut.OnTick += () => Interlocked.Increment(ref tickCount);
 
-		await Task.Delay(1500);
+		await Task.Delay(1500, TestContext.Current.CancellationToken);
 
 		tickCount.ShouldBeGreaterThanOrEqualTo(1);
 	}

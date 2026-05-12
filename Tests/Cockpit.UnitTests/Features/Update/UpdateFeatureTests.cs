@@ -1,9 +1,8 @@
+using System.Net;
 using Cockpit.Extensions;
 using Cockpit.Features.Updates;
 using Cockpit.Features.Updates.Models;
 using Shouldly;
-using System.Net;
-using System.Text.Json;
 
 namespace Cockpit.UnitTests.Features.Update;
 
@@ -268,7 +267,7 @@ public class UpdateFeatureTests
 	{
 		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.7.0");
 
-		UpdateCheckResult result = await feature.CheckForUpdate();
+		UpdateCheckResult result = await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 
 		result.UpdateAvailable.ShouldBeTrue();
 		result.LatestRelease.ShouldNotBeNull();
@@ -281,7 +280,7 @@ public class UpdateFeatureTests
 	{
 		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.8.0");
 
-		UpdateCheckResult result = await feature.CheckForUpdate();
+		UpdateCheckResult result = await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 
 		result.UpdateAvailable.ShouldBeFalse();
 		result.CurrentVersion.ShouldBe("1.8.0");
@@ -292,7 +291,7 @@ public class UpdateFeatureTests
 	{
 		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.9.0");
 
-		UpdateCheckResult result = await feature.CheckForUpdate();
+		UpdateCheckResult result = await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 
 		result.UpdateAvailable.ShouldBeFalse();
 	}
@@ -303,7 +302,7 @@ public class UpdateFeatureTests
 		using HttpClient httpClient = new(new MockHttpMessageHandler(HttpStatusCode.ServiceUnavailable));
 		using UpdateFeature feature = new(httpClient, "1.7.0");
 
-		UpdateCheckResult result = await feature.CheckForUpdate();
+		UpdateCheckResult result = await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 
 		result.UpdateAvailable.ShouldBeFalse();
 	}
@@ -314,7 +313,7 @@ public class UpdateFeatureTests
 		string noAssetsJson = BuildReleaseJson("1.8.0", assets: []);
 		using UpdateFeature feature = MakeFeature(noAssetsJson, currentVersion: "1.7.0");
 
-		UpdateCheckResult result = await feature.CheckForUpdate();
+		UpdateCheckResult result = await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 
 		result.UpdateAvailable.ShouldBeFalse();
 	}
@@ -325,7 +324,7 @@ public class UpdateFeatureTests
 		string noAssetsJson = BuildReleaseJson("1.8.0", assets: []);
 		using UpdateFeature feature = MakeFeature(noAssetsJson, currentVersion: "1.7.0");
 
-		await feature.CheckForUpdate();
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 
 		feature.CachedResult.ShouldNotBeNull();
 		feature.CachedResult.UpdateAvailable.ShouldBeFalse();
@@ -336,7 +335,7 @@ public class UpdateFeatureTests
 	{
 		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.7.0");
 
-		await feature.CheckForUpdate();
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 
 		feature.CachedResult.ShouldNotBeNull();
 		feature.CachedResult.UpdateAvailable.ShouldBeTrue();
@@ -348,7 +347,7 @@ public class UpdateFeatureTests
 		DateTime before = DateTime.UtcNow;
 		using UpdateFeature feature = MakeFeature(sampleReleaseJson, currentVersion: "1.7.0");
 
-		await feature.CheckForUpdate();
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 
 		feature.LastChecked.ShouldNotBeNull();
 		feature.LastChecked.Value.ShouldBeGreaterThanOrEqualTo(before);
@@ -361,7 +360,7 @@ public class UpdateFeatureTests
 		using HttpClient httpClient = new(new MockHttpMessageHandler(HttpStatusCode.InternalServerError));
 		using UpdateFeature feature = new(httpClient, "1.7.0");
 
-		await feature.CheckForUpdate();
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 
 		feature.LastChecked.ShouldNotBeNull();
 		feature.LastChecked.Value.ShouldBeGreaterThanOrEqualTo(before);
@@ -374,7 +373,7 @@ public class UpdateFeatureTests
 		bool eventFired = false;
 		feature.OnUpdateChecked += () => eventFired = true;
 
-		await feature.CheckForUpdate();
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 
 		eventFired.ShouldBeTrue();
 	}
@@ -387,7 +386,7 @@ public class UpdateFeatureTests
 		bool eventFired = false;
 		feature.OnUpdateChecked += () => eventFired = true;
 
-		await feature.CheckForUpdate();
+		await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 
 		eventFired.ShouldBeTrue();
 	}

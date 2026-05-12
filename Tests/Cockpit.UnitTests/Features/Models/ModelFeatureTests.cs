@@ -164,7 +164,7 @@ public sealed class ModelFeatureTests : IDisposable
 
 		string settingsDir = Path.Combine(_tempDir, "Cockpit");
 		Directory.CreateDirectory(settingsDir);
-		await File.WriteAllTextAsync(Path.Combine(settingsDir, "session-model.json"), "not valid json {{{{");
+		await File.WriteAllTextAsync(Path.Combine(settingsDir, "session-model.json"), "not valid json {{{{", TestContext.Current.CancellationToken);
 
 		bool result = await feature.TryRestoreModelSettings(session);
 
@@ -180,7 +180,7 @@ public sealed class ModelFeatureTests : IDisposable
 		string settingsDir = Path.Combine(_tempDir, "Cockpit");
 		Directory.CreateDirectory(settingsDir);
 		// Valid JSON but no ModelId key
-		await File.WriteAllTextAsync(Path.Combine(settingsDir, "session-model.json"), """{"ReasoningEffort":"medium"}""");
+		await File.WriteAllTextAsync(Path.Combine(settingsDir, "session-model.json"), """{"ReasoningEffort":"medium"}""", TestContext.Current.CancellationToken);
 
 		bool result = await feature.TryRestoreModelSettings(session);
 
@@ -354,7 +354,7 @@ public sealed class ModelFeatureTests : IDisposable
 		string expectedPath = Path.Combine(_tempDir, "Cockpit", "session-model.json");
 		File.Exists(expectedPath).ShouldBeTrue();
 
-		string json = await File.ReadAllTextAsync(expectedPath);
+		string json = await File.ReadAllTextAsync(expectedPath, TestContext.Current.CancellationToken);
 		json.ShouldContain("claude-3-5");
 	}
 

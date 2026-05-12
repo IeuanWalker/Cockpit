@@ -60,7 +60,7 @@ public sealed class TerminalFeatureTests : IAsyncDisposable
 	[Fact]
 	public async Task WriteAsync_UnknownSession_ReturnsFalse()
 	{
-		bool result = await _feature.WriteAsync("no-such-session", "data");
+		bool result = await _feature.WriteAsync("no-such-session", "data", TestContext.Current.CancellationToken);
 		result.ShouldBeFalse();
 	}
 
@@ -69,7 +69,7 @@ public sealed class TerminalFeatureTests : IAsyncDisposable
 	{
 		await CreateSessionAsync("s2");
 
-		bool result = await _feature.WriteAsync("s2", "input");
+		bool result = await _feature.WriteAsync("s2", "input", TestContext.Current.CancellationToken);
 
 		result.ShouldBeTrue();
 	}
@@ -178,13 +178,13 @@ public sealed class TerminalFeatureTests : IAsyncDisposable
 			capturedData = data;
 		};
 
-		await featureWithData.CreateSession("stream-session", ".");
+		await featureWithData.CreateSession("stream-session", ".", TestContext.Current.CancellationToken);
 
 		// Wait for the read loop to drain the pre-loaded stream
 		Task? readTask = featureWithData.GetSession("stream-session")?.ReadTask;
 		if(readTask is not null)
 		{
-			await readTask.WaitAsync(TimeSpan.FromSeconds(5));
+			await readTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 		}
 
 		await featureWithData.DisposeAsync();
@@ -201,7 +201,7 @@ public sealed class TerminalFeatureTests : IAsyncDisposable
 		await CreateSessionAsync("r1");
 		InjectOutput("r1", "stale output");
 
-		await _feature.RestartSession("r1", ".");
+		await _feature.RestartSession("r1", ".", TestContext.Current.CancellationToken);
 
 		// A fresh session must exist with an empty buffer
 		_feature.GetSession("r1").ShouldNotBeNull();
@@ -211,7 +211,7 @@ public sealed class TerminalFeatureTests : IAsyncDisposable
 	[Fact]
 	public async Task RestartSession_WhenNoExistingSession_CreatesNewSession()
 	{
-		await _feature.RestartSession("r2", ".");
+		await _feature.RestartSession("r2", ".", TestContext.Current.CancellationToken);
 
 		_feature.GetSession("r2").ShouldNotBeNull();
 	}

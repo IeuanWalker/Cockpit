@@ -176,17 +176,16 @@ public sealed class TerminalSessionModelTests
 			{
 				model.BufferOutput("data");
 			}
-		});
+		}, TestContext.Current.CancellationToken);
 
-		Task[] readers = Enumerable.Range(0, 5)
+		Task[] readers = [.. Enumerable.Range(0, 5)
 			.Select(_ => Task.Run(() =>
 			{
 				for(int i = 0; i < 200; i++)
 				{
 					string ignored = model.GetBuffer();
 				}
-			}))
-			.ToArray();
+			}))];
 
 		await Should.NotThrowAsync(() => Task.WhenAll([writer, .. readers]));
 	}
