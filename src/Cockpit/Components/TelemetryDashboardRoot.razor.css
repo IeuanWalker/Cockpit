@@ -213,11 +213,24 @@
 	flex: 1;
 	min-height: 0;
 	overflow: hidden;
+	position: relative;
 }
 
 .td-table-body {
 	height: 100%;
 	overflow: auto;
+}
+
+.td-checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	cursor: pointer;
+	user-select: none;
+	font-size: 0.75rem;
+	color: var(--secondary-text);
+	white-space: nowrap;
+	margin-left: auto;
 }
 
 .td-table-head,
@@ -247,7 +260,7 @@
 
 .td-table-head--traces,
 .td-row--traces {
-	grid-template-columns: 150px minmax(220px, 1.4fr) 96px 110px 90px 190px;
+	grid-template-columns: 150px minmax(220px, 1.4fr) 96px 110px 190px;
 }
 
 .td-table-head--spans,

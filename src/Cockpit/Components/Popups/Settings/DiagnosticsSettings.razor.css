@@ -67,6 +67,14 @@
 	gap: 0.4rem;
 }
 
+.diag-subtitle {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--secondary-text);
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
 .diag-select {
 	width: 100%;
 	max-width: 220px;

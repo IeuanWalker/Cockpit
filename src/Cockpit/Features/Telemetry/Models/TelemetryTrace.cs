@@ -9,5 +9,4 @@ class TelemetryTrace
 	public TimeSpan Duration => EndTime - StartTime;
 	public string RootSpanName => Spans.FirstOrDefault(s => s.ParentSpanId is null)?.Name ?? Spans.FirstOrDefault()?.Name ?? "Unknown";
 	public int SpanCount => Spans.Count;
-	public bool HasErrors => Spans.Any(s => s.Status == SpanStatusEnum.Error);
 }

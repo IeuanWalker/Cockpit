@@ -1,4 +1,4 @@
-<div class="td-root">
+﻿<div class="td-root">
 	<div class="td-top-bar">
 		<div class="td-top-group">
 			<label class="td-label" for="td-file-select">Telemetry file</label>
@@ -27,11 +27,11 @@
 					class="td-select"
 					value="@(_selectedSessionId ?? string.Empty)"
 					@onchange="OnSessionFilterChanged"
-					disabled="@(_loadingFiles || _loadingData || _uniqueSessionIds.Count == 0)">
-				<option value="">All Sessions (@_uniqueSessionIds.Count)</option>
-				@foreach(string sessionId in _uniqueSessionIds)
+					disabled="@(_loadingFiles || _loadingData || _sessions.Count == 0)">
+				<option value="">All Sessions (@_sessions.Count)</option>
+				@foreach(TelemetrySessionInfo session in _sessions)
 				{
-					<option value="@sessionId">@ShortId(sessionId)</option>
+					<option value="@session.SessionId">@FormatSessionOption(session)</option>
 				}
 			</select>
 		</div>
@@ -47,7 +47,7 @@
 				}
 				else
 				{
-					<span>Auto</span>
+					<span>Live</span>
 				}
 			</button>
 			<button class="td-btn" @onclick="RefreshAsync" disabled="@(_loadingFiles || _loadingData)">
@@ -100,7 +100,6 @@
 					<div>Root Span</div>
 					<div>Span Count</div>
 					<div>Duration</div>
-					<div>Status</div>
 					<div>Start Time</div>
 				</div>
 
@@ -120,9 +119,6 @@
 									<div class="td-row-cell" title="@trace.RootSpanName">@DisplayText(trace.RootSpanName, "(root span unavailable)")</div>
 									<div class="td-row-cell">@trace.SpanCount</div>
 									<div class="td-row-cell td-row-cell--mono">@FormatDuration(trace.Duration)</div>
-									<div class="td-row-cell">
-										<span class="td-status td-status--@GetTraceStatusClass(trace)">@GetTraceStatusLabel(trace)</span>
-									</div>
 									<div class="td-row-cell td-row-cell--mono">@FormatTimestamp(trace.StartTime)</div>
 								</div>
 							</Virtualize>
@@ -175,6 +171,10 @@
 							   value="@_spanSearch"
 							   @oninput="OnSpanSearchChanged" />
 					</div>
+					<label class="td-checkbox-label">
+						<input type="checkbox" @bind="_autoScroll" style="accent-color: var(--accent-color);" />
+						<span>Auto-scroll</span>
+					</label>
 					<div class="td-toolbar-meta">@_filteredSpans.Count of @_sessionFilteredSpans.Count spans</div>
 				</div>
 
@@ -187,7 +187,7 @@
 				</div>
 
 				<div class="td-table-wrap">
-					<div class="td-table-body scrollbar-thin">
+					<div class="td-table-body scrollbar-thin" id="@_spansBodyId">
 						@if(_filteredSpans.Count == 0)
 						{
 							<div class="td-empty">No spans match the current filter.</div>
@@ -209,6 +209,14 @@
 							</Virtualize>
 						}
 					</div>
+					@if(_isScrolledUp)
+					{
+						<button class="scroll-to-bottom-btn" @onclick="ScrollToBottomAndResume" title="Scroll to latest">
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+							</svg>
+						</button>
+					}
 				</div>
 			</div>
 		}
@@ -226,6 +234,10 @@
 							<div class="td-summary-label">Selected Trace</div>
 							<div class="td-summary-value td-summary-value--mono">@_selectedTrace.TraceId</div>
 						</div>
+						<label class="td-checkbox-label">
+							<input type="checkbox" @bind="_autoScroll" style="accent-color: var(--accent-color);" />
+							<span>Auto-scroll</span>
+						</label>
 						<div class="td-toolbar-meta">@_timelineRows.Count timeline rows · @FormatDuration(_selectedTrace.Duration)</div>
 					</div>
 
@@ -235,7 +247,7 @@
 					</div>
 
 					<div class="td-table-wrap">
-						<div class="td-table-body scrollbar-thin">
+						<div class="td-table-body scrollbar-thin" id="@_timelineBodyId">
 							@if(_timelineRows.Count == 0)
 							{
 								<div class="td-empty">No spans are available for the selected trace.</div>
@@ -260,6 +272,14 @@
 								</Virtualize>
 							}
 						</div>
+					@if(_isScrolledUp)
+					{
+						<button class="scroll-to-bottom-btn" @onclick="ScrollToBottomAndResume" title="Scroll to latest">
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+							</svg>
+						</button>
+					}
 					</div>
 				}
 			</div>

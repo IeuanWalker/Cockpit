@@ -19,7 +19,7 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 	CancellationTokenSource? _autoRefreshCts;
 	bool _loadingFiles = true;
 	bool _loadingData = true;
-	bool _autoRefresh;
+	bool _autoRefresh = true;
 	string _spanSearch = string.Empty;
 	string _loadError = string.Empty;
 	string? _selectedFilePath;
@@ -32,10 +32,18 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 	List<TelemetrySpan> _allSpans = [];
 	List<TelemetrySpan> _sessionFilteredSpans = [];
 	List<TelemetrySpan> _filteredSpans = [];
-	List<string> _uniqueSessionIds = [];
+	List<TelemetrySessionInfo> _sessions = [];
 	List<TelemetryTimelineRow> _timelineRows = [];
 	TelemetryTrace? _selectedTrace;
 	TelemetrySpan? _selectedSpan;
+
+	readonly string _spansBodyId = $"td-spans-{Guid.NewGuid():N}";
+	readonly string _timelineBodyId = $"td-timeline-{Guid.NewGuid():N}";
+	bool _autoScroll = true;
+	bool _pendingScroll;
+	bool _isScrolledUp;
+	bool _scrollSetup;
+	DotNetObjectReference<TelemetryDashboardRoot>? _dotNetRef;
 
 	public TelemetryDashboardRoot(
 		IJSRuntime jsRuntime,
@@ -57,15 +65,54 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 	{
 		_themeStateFeature.OnThemeChanged += OnThemeChangedHandler;
 		_ = RefreshAsync();
+		StartAutoRefresh();
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		if(firstRender)
 		{
+			_dotNetRef = DotNetObjectReference.Create(this);
 			await ApplyThemeAsync();
 			_splashFeature.NotifyBlazorReady();
 		}
+
+		if(!_scrollSetup && !_loadingData && (_activeTab == TelemetryDashboardTab.Spans || _activeTab == TelemetryDashboardTab.Timeline))
+		{
+			_scrollSetup = true;
+			string scrollElementId = _activeTab == TelemetryDashboardTab.Spans ? _spansBodyId : _timelineBodyId;
+			try
+			{
+				await _jsRuntime.InvokeVoidAsync("cockpit.setupLogViewerScroll", scrollElementId, _dotNetRef, nameof(OnScrollPositionChanged));
+			}
+			catch { /* best-effort */ }
+		}
+
+		if(_pendingScroll && _autoScroll && !_isScrolledUp)
+		{
+			_pendingScroll = false;
+			string? scrollElementId = _activeTab switch
+			{
+				TelemetryDashboardTab.Spans => _spansBodyId,
+				TelemetryDashboardTab.Timeline => _timelineBodyId,
+				_ => null,
+			};
+			if(scrollElementId is not null)
+			{
+				try
+				{
+					await _jsRuntime.InvokeVoidAsync("cockpit.scrollToBottom", scrollElementId);
+				}
+				catch { /* best-effort */ }
+			}
+		}
+	}
+
+	[JSInvokable]
+	public void OnScrollPositionChanged(bool isNearBottom)
+	{
+		_isScrolledUp = !isNearBottom;
+		InvokeAsync(StateHasChanged);
 	}
 
 	async Task RefreshAsync()
@@ -177,15 +224,17 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 				.ThenBy(span => span.TraceId)
 				.ThenBy(span => span.SpanId)];
 
-		_uniqueSessionIds = [..
+		_sessions = [..
 			_allSpans
-				.Select(span => span.Attributes.TryGetValue("gen_ai.conversation.id", out string? sessionId) ? sessionId : null)
-				.Where(sessionId => !string.IsNullOrWhiteSpace(sessionId))
-				.Select(sessionId => sessionId!)
-				.Distinct(StringComparer.Ordinal)
-				.OrderBy(sessionId => sessionId, StringComparer.Ordinal)];
+				.Where(span => span.Attributes.TryGetValue("gen_ai.conversation.id", out string? sid) && !string.IsNullOrWhiteSpace(sid))
+				.GroupBy(span => span.Attributes["gen_ai.conversation.id"], StringComparer.Ordinal)
+				.Select(group => new TelemetrySessionInfo(
+					SessionId: group.Key,
+					StartTime: group.Min(s => s.StartTime),
+					EndTime: group.Max(s => s.EndTime)))
+				.OrderBy(s => s.StartTime)];
 
-		if(_selectedSessionId is not null && !_uniqueSessionIds.Contains(_selectedSessionId, StringComparer.Ordinal))
+		if(_selectedSessionId is not null && !_sessions.Any(s => StringComparer.Ordinal.Equals(s.SessionId, _selectedSessionId)))
 		{
 			_selectedSessionId = null;
 		}
@@ -200,7 +249,7 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 		_allSpans = [];
 		_sessionFilteredSpans = [];
 		_filteredSpans = [];
-		_uniqueSessionIds = [];
+		_sessions = [];
 		_timelineRows = [];
 		_selectedTrace = null;
 		_selectedSpan = null;
@@ -225,6 +274,12 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 
 		_loadingFiles = false;
 		_loadingData = false;
+		_scrollSetup = false;
+		if(_autoScroll && (_activeTab == TelemetryDashboardTab.Spans || _activeTab == TelemetryDashboardTab.Timeline))
+		{
+			_pendingScroll = true;
+		}
+
 		_ = InvokeAsync(StateHasChanged);
 	}
 
@@ -323,15 +378,17 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 					.ThenBy(span => span.TraceId)
 					.ThenBy(span => span.SpanId)];
 
-			_uniqueSessionIds = [..
+			_sessions = [..
 				_allSpans
-					.Select(span => span.Attributes.TryGetValue("gen_ai.conversation.id", out string? sessionId) ? sessionId : null)
-					.Where(sessionId => !string.IsNullOrWhiteSpace(sessionId))
-					.Select(sessionId => sessionId!)
-					.Distinct(StringComparer.Ordinal)
-					.OrderBy(sessionId => sessionId, StringComparer.Ordinal)];
+					.Where(span => span.Attributes.TryGetValue("gen_ai.conversation.id", out string? sid) && !string.IsNullOrWhiteSpace(sid))
+					.GroupBy(span => span.Attributes["gen_ai.conversation.id"], StringComparer.Ordinal)
+					.Select(group => new TelemetrySessionInfo(
+						SessionId: group.Key,
+						StartTime: group.Min(s => s.StartTime),
+						EndTime: group.Max(s => s.EndTime)))
+					.OrderBy(s => s.StartTime)];
 
-			if(_selectedSessionId is not null && !_uniqueSessionIds.Contains(_selectedSessionId, StringComparer.Ordinal))
+			if(_selectedSessionId is not null && !_sessions.Any(s => StringComparer.Ordinal.Equals(s.SessionId, _selectedSessionId)))
 			{
 				_selectedSessionId = null;
 			}
@@ -345,6 +402,12 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 				: _allSpans.FirstOrDefault(span => span.TraceId == previousSpan.Value.traceId && span.SpanId == previousSpan.Value.spanId);
 
 			ApplySessionFilter();
+
+			if(_autoScroll && !_isScrolledUp && (_activeTab == TelemetryDashboardTab.Spans || _activeTab == TelemetryDashboardTab.Timeline))
+			{
+				_pendingScroll = true;
+			}
+
 			await InvokeAsync(StateHasChanged);
 		}
 		catch(OperationCanceledException)
@@ -370,6 +433,25 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 		return _files.FirstOrDefault();
 	}
 
+	void SetActiveTab(TelemetryDashboardTab tab)
+	{
+		TelemetryDashboardTab previousTab = _activeTab;
+		_activeTab = tab;
+
+		if(previousTab == TelemetryDashboardTab.Spans || previousTab == TelemetryDashboardTab.Timeline)
+		{
+			string elementId = previousTab == TelemetryDashboardTab.Spans ? _spansBodyId : _timelineBodyId;
+			_ = CleanupScrollAsync(elementId);
+		}
+
+		_isScrolledUp = false;
+		_scrollSetup = false;
+		if(tab == TelemetryDashboardTab.Spans || tab == TelemetryDashboardTab.Timeline)
+		{
+			_pendingScroll = _autoScroll;
+		}
+	}
+
 	void SwitchTab(TelemetryDashboardTab tab)
 	{
 		if(tab == TelemetryDashboardTab.Timeline && _selectedTrace is null)
@@ -377,13 +459,21 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 			return;
 		}
 
-		_activeTab = tab;
+		SetActiveTab(tab);
+		_selectedSpan = null;
 	}
 
 	void SelectTrace(TelemetryTrace trace)
 	{
 		_selectedTrace = trace;
 		UpdateTimelineRows();
+
+		// If the span detail panel is open on the Traces tab (via "Inspect Root Span"),
+		// update it to reflect the newly selected trace's root span.
+		if(_activeTab == TelemetryDashboardTab.Traces && _selectedSpan is not null)
+		{
+			_selectedSpan = GetRootSpan(trace);
+		}
 	}
 
 	void OpenTimelineForSelectedTrace()
@@ -393,7 +483,7 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 			return;
 		}
 
-		_activeTab = TelemetryDashboardTab.Timeline;
+		SetActiveTab(TelemetryDashboardTab.Timeline);
 		UpdateTimelineRows();
 	}
 
@@ -682,10 +772,6 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 		FileUtil.RevealFolder(directory);
 	}
 
-	string GetTraceStatusClass(TelemetryTrace trace) => trace.HasErrors ? "error" : trace.SpanCount > 0 ? "ok" : "unset";
-
-	string GetTraceStatusLabel(TelemetryTrace trace) => trace.HasErrors ? "Error" : trace.SpanCount > 0 ? "Ok" : "Unset";
-
 	static string GetStatusClass(object? status) => status?.ToString()?.Trim().ToLowerInvariant() switch
 	{
 		"ok" => "ok",
@@ -791,9 +877,45 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 		return $"{DisplayText(span.Name, "(unnamed span)")} • {FormatDuration(span.Duration)} • {GetStatusLabel(span.Status)}";
 	}
 
+	static string FormatSessionOption(TelemetrySessionInfo session)
+	{
+		string id = ShortId(session.SessionId);
+		string start = session.StartTime == DateTime.MinValue ? "–" : session.StartTime.ToString("d MMM HH:mm");
+		string end = session.EndTime == DateTime.MinValue ? "–" : session.EndTime.ToString("HH:mm");
+		return $"{id} · {start} – {end}";
+	}
+
 	static bool Contains(string? value, string search)
 	{
 		return !string.IsNullOrWhiteSpace(value) && value.Contains(search, StringComparison.OrdinalIgnoreCase);
+	}
+
+	async Task CleanupScrollAsync(string elementId)
+	{
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupLogViewerScroll", elementId);
+		}
+		catch { /* best-effort */ }
+	}
+
+	async Task ScrollToBottomAndResume()
+	{
+		_isScrolledUp = false;
+		string? elementId = _activeTab switch
+		{
+			TelemetryDashboardTab.Spans => _spansBodyId,
+			TelemetryDashboardTab.Timeline => _timelineBodyId,
+			_ => null,
+		};
+		if(elementId is not null)
+		{
+			try
+			{
+				await _jsRuntime.InvokeVoidAsync("cockpit.scrollToBottom", elementId);
+			}
+			catch { /* best-effort */ }
+		}
 	}
 
 	void OnThemeChangedHandler()
@@ -846,14 +968,17 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 		};
 	}
 
-	public ValueTask DisposeAsync()
+	public async ValueTask DisposeAsync()
 	{
 		_themeStateFeature.OnThemeChanged -= OnThemeChangedHandler;
 		StopAutoRefresh();
 		CancellationTokenSource? cts = Interlocked.Exchange(ref _loadCts, null);
 		cts?.Cancel();
 		cts?.Dispose();
-		return ValueTask.CompletedTask;
+		await CleanupScrollAsync(_spansBodyId);
+		await CleanupScrollAsync(_timelineBodyId);
+		_dotNetRef?.Dispose();
+		_dotNetRef = null;
 	}
 }
 
@@ -864,5 +989,7 @@ enum TelemetryDashboardTab
 	Timeline,
 	Stats,
 }
+
+record TelemetrySessionInfo(string SessionId, DateTime StartTime, DateTime EndTime);
 
 sealed record TelemetryTimelineRow(TelemetrySpan Span, int Depth, double LeftPercent, double WidthPercent);

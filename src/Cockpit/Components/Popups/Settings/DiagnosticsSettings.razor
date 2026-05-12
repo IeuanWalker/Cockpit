@@ -66,7 +66,8 @@
 			</label>
 
 			<div class="diag-setting-row">
-				<label class="text-sm font-medium text-app-title" for="diag-sdk-log-level">SDK Log Level</label>
+				<label class="diag-subtitle" for="diag-sdk-log-level">SDK log level</label>
+				<div class="text-xs secondary-text">Controls Copilot SDK diagnostic verbosity.</div>
 				<select id="diag-sdk-log-level" class="diag-select" @bind="_userAppSettings.SdkLogLevel">
 					<option value="debug">debug</option>
 					<option value="info">info</option>
