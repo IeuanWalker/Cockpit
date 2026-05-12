@@ -35,16 +35,27 @@ public partial class PermissionFeature
 			SessionId = sessionId,
 			RequestTitle = "Allow run terminal command",
 			FullCommand = """
-							Get-ChildItem ".\tests\*.txt" | Sort-Object Name | ForEach-Object {
+							Get-ChildItem "D:\WS\Github-Mine\Cockpit\Tests\Cockpit.UnitTests\Features\Permissions\*.received.txt" | Sort-Object Name | ForEach-Object {
+								$id = $_.Name -replace '.*id=(\d+)\.received\.txt', '$1'
 								$content = Get-Content $_.FullName -Raw
-								"File: $($_.Name) — $content"
-							} | Select-Object -Last 10
+								"Test $id : $content"
+							} | Select-Object -Last 24
+							Get-ChildItem "D:\WS\Github-Mine\Cockpit\Tests\Cockpit.UnitTests\Features\Permissions\*.received.txt" | Sort-Object Name | ForEach-Object {
+								$id = $_.Name -replace '.*id=(\d+)\.received\.txt', '$1'
+								$content = Get-Content $_.FullName -Raw
+								"Test $id : $content"
+							} | Select-Object -Last 24
+							Get-ChildItem "D:\WS\Github-Mine\Cockpit\Tests\Cockpit.UnitTests\Features\Permissions\*.received.txt" | Sort-Object Name | ForEach-Object {
+								$id = $_.Name -replace '.*id=(\d+)\.received\.txt', '$1'
+								$content = Get-Content $_.FullName -Raw
+								"Test $id : $content"
+							} | Select-Object -Last 24
 							""",
-			Commands = ["Get-ChildItem", "Get-Content"],
-			Intention = "List and display test output files",
+			Commands = ["rm", "npm"],
+			Intention = "Clean and rebuild the project",
 			CanApproveGlobally = true,
 			CanApproveForSession = true,
-			IsDestructive = false,
+			IsDestructive = true,
 			FullRequestJson = "{\"debug\":true}"
 		};
 		return RequestUserApprovalAsync(request);
