@@ -15,7 +15,7 @@ public sealed partial class TokenUsagePanel : ComponentBase, IDisposable
 		_sessionFeature = sessionFeature;
 	}
 
-	readonly TokenUsageBreakdownPopup _breakdownPopup = default!; // assigned by @ref
+	TokenUsageBreakdownPopup _breakdownPopup = default!; // assigned by @ref
 
 	SessionModel? CurrentSession => _sessionListFeature.CurrentSession;
 

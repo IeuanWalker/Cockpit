@@ -90,6 +90,30 @@ public class SessionEventProcessorTests
 	}
 
 	[Fact]
+	public void Process_AgentContinuation_DoesNotUpdateLastActivity()
+	{
+		// Arrange — thinking-exhausted-continuation is an internal SDK signal, not real user activity
+		SessionModel session = CreateSession();
+		DateTime fixedTime = new(2020, 1, 1);
+		session.LastActivity = fixedTime;
+		SessionEventProcessor processor = CreateProcessor();
+
+		// Act
+		processor.Process(session, new UserMessageEvent
+		{
+			Data = new UserMessageData
+			{
+				Content = "Please continue from where you left off.",
+				Source = "thinking-exhausted-continuation"
+			},
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// Assert — LastActivity must not change for agent-synthesised continuations
+		session.LastActivity.ShouldBe(fixedTime);
+	}
+
+	[Fact]
 	public void Process_AssistantTurnEnd_DoesNotUpdateLastActivity()
 	{
 		// Arrange — AssistantTurnEnd is informational; only UserMessage and SessionIdle update LastActivity

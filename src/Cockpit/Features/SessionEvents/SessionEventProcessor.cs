@@ -30,6 +30,13 @@ public sealed class SessionEventProcessor
 		{
 			switch(evt)
 			{
+				// Agent-synthesised continuation: keep the working panel open and suppress
+				// the safety-net, completion sound, and chat-log entry.
+				case UserMessageEvent userMsg when userMsg.Data?.Source == "thinking-exhausted-continuation":
+					_logger.LogDebug("Session {SessionId} thinking-exhausted continuation", session.Id);
+					ThinkingExhaustedContinuationHandler.Handle(session, userMsg);
+					break;
+
 				case UserMessageEvent userMsg:
 					// Capture whether the agent was mid-turn before the safety-net finalises the group
 					bool wasAgentBusy = session.ActiveWorkingGroup is not null;
@@ -41,6 +48,7 @@ public sealed class SessionEventProcessor
 					string content = userMsg.Data?.Content ?? string.Empty;
 					_logger.LogDebug("Session {SessionId} user message: {Content}", session.Id, content[..Math.Min(50, content.Length)]);
 					UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
+					session.LastActivity = userMsg.Timestamp.LocalDateTime;
 					break;
 
 				case AssistantTurnStartEvent turnStart:
@@ -111,6 +119,7 @@ public sealed class SessionEventProcessor
 				case SessionIdleEvent idleEvt:
 					_logger.LogDebug("Session {SessionId} idle", session.Id);
 					SessionIdleHandler.Handle(session, idleEvt.Timestamp, onStreamSummary, logger: _logger);
+					session.LastActivity = idleEvt.Timestamp.LocalDateTime;
 					break;
 
 				case SessionErrorEvent error:
@@ -268,12 +277,6 @@ public sealed class SessionEventProcessor
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Error handling session event {EventType} for session {SessionId}", evt.Type, session.Id);
-		}
-
-		// Update LastActivity only when the user sends a message or the working panel finishes
-		if(evt is UserMessageEvent or SessionIdleEvent)
-		{
-			session.LastActivity = evt.Timestamp.LocalDateTime;
 		}
 	}
 
