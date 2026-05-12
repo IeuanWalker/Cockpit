@@ -1,6 +1,8 @@
+using Cockpit;
 using Cockpit.Features.Models;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.Sessions.Models;
+using Cockpit.UnitTests.Features.AppSettings;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
@@ -35,7 +37,7 @@ public sealed class ModelFeatureTests : IDisposable
 	};
 
 	static ModelFeature CreateFeature() => new(
-		new CopilotClientFeature(NullLogger<CopilotClientFeature>.Instance),
+		new CopilotClientFeature(NullLogger<CopilotClientFeature>.Instance, new UserAppSettings(new InMemoryPreferencesStorage())),
 		NullLogger<ModelFeature>.Instance);
 
 	static SessionModel MakeSession(string? workspacePath = null) => new()

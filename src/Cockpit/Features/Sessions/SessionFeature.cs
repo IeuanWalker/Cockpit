@@ -2,6 +2,7 @@ using Blazor.Sonner.Services;
 using Cockpit.Features.Agents;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Git;
+using Cockpit.Features.Hooks;
 using Cockpit.Features.Instructions;
 using Cockpit.Features.Mcp;
 using Cockpit.Features.Models;
@@ -40,6 +41,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly SkillsFeature _skillsFeature;
 	readonly PluginsFeature _pluginsFeature;
 	readonly IAppSettingsFeature _appSettingsFeature;
+	readonly SessionHooksFactory _hooksFactory;
 
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
@@ -60,7 +62,8 @@ public sealed partial class SessionFeature : IDisposable
 		McpFeature mcpFeature,
 		SkillsFeature skillsFeature,
 		PluginsFeature pluginsFeature,
-		IAppSettingsFeature appSettingsFeature)
+		IAppSettingsFeature appSettingsFeature,
+		SessionHooksFactory hooksFactory)
 	{
 		_clientFeature = clientFeature;
 		_logger = logger;
@@ -81,6 +84,7 @@ public sealed partial class SessionFeature : IDisposable
 		_skillsFeature = skillsFeature;
 		_pluginsFeature = pluginsFeature;
 		_appSettingsFeature = appSettingsFeature;
+		_hooksFactory = hooksFactory;
 	}
 
 	IDisposable? _currentWatcher;

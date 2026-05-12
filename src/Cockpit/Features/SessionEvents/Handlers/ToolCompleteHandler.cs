@@ -25,10 +25,13 @@ static class ToolCompleteHandler
 				return;
 			}
 
-			toolExec.Status = ToolStatusEnum.Success;
-			toolExec.IsSuccess = true;
+			bool success = evt.Data.Success;
+			toolExec.Status = success ? ToolStatusEnum.Success : ToolStatusEnum.Error;
+			toolExec.IsSuccess = success;
 			toolExec.EndTime = evt.Timestamp.LocalDateTime;
-			toolExec.Output = evt.Data.Result?.Content;
+			toolExec.Output = success
+				? evt.Data.Result?.Content
+				: evt.Data.Error?.Message ?? evt.Data.Result?.Content ?? "Tool execution failed";
 			toolExec.AddRawEvent(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));
 		}
 	}

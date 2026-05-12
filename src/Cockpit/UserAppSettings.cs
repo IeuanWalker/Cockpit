@@ -37,6 +37,8 @@ public class UserAppSettings
 		internal const string soundPermissionCustomFileName = "SoundPermissionCustomFileName";
 		internal const string soundUserInputCustomFileName = "SoundUserInputCustomFileName";
 		internal const string soundFinishedCustomFileName = "SoundFinishedCustomFileName";
+		internal const string sdkLogLevel = "SdkLogLevel";
+		internal const string telemetryEnabled = "TelemetryEnabled";
 	}
 
 	readonly IPreferencesStorage _preferences;
@@ -194,5 +196,26 @@ public class UserAppSettings
 	{
 		get => _preferences.Get(Keys.soundFinishedCustomFileName, string.Empty);
 		set => _preferences.Set(Keys.soundFinishedCustomFileName, value);
+	}
+
+	/// <summary>
+	/// SDK CLI log level passed to <see cref="GitHub.Copilot.SDK.CopilotClientOptions.LogLevel"/>.
+	/// Valid values: "error", "warn", "info", "debug". Default is "info".
+	/// Requires client restart to take effect.
+	/// </summary>
+	public string SdkLogLevel
+	{
+		get => _preferences.Get(Keys.sdkLogLevel, "info");
+		set => _preferences.Set(Keys.sdkLogLevel, value);
+	}
+
+	/// <summary>
+	/// When enabled, configures the SDK to export OpenTelemetry traces/metrics to a local
+	/// JSON-lines file for diagnostics. Requires client restart to take effect.
+	/// </summary>
+	public bool TelemetryEnabled
+	{
+		get => _preferences.Get(Keys.telemetryEnabled, false);
+		set => _preferences.Set(Keys.telemetryEnabled, value);
 	}
 }

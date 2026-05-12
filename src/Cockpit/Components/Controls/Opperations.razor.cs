@@ -87,24 +87,12 @@ public sealed partial class Opperations : IDisposable
 		};
 	}
 
-	string GetStatusIcon()
+	string GetStatusIcon() => Group.Status switch
 	{
-		List<ToolExecutionModel> tools = [.. Group.Tools]; // Create snapshot
-		bool hasRunning = tools.Any(t => t.Status == ToolStatusEnum.Running);
-		bool hasError = tools.Any(t => t.Status == ToolStatusEnum.Error);
-
-		if(hasRunning)
-		{
-			return "○";
-		}
-
-		if(hasError)
-		{
-			return "✗";
-		}
-
-		return "✓";
-	}
+		GroupStatusEnum.Running => "○",
+		GroupStatusEnum.Error => "✗",
+		_ => "✓"
+	};
 
 	readonly Dictionary<string, bool> _expandedEventJson = [];
 

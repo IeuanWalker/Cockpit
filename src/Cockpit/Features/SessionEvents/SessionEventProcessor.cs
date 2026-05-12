@@ -178,6 +178,25 @@ public sealed class SessionEventProcessor
 				case SessionContextChangedEvent ctxChanged:
 					_logger.LogInformation("Session {SessionId} context changed — cwd: {Cwd}, repo: {Repo}, branch: {Branch}",
 						session.Id, ctxChanged.Data?.Cwd, ctxChanged.Data?.Repository, ctxChanged.Data?.Branch);
+					if(ctxChanged.Data is not null)
+					{
+						if(ctxChanged.Data.Cwd is not null)
+						{
+							session.Context.CurrentWorkingDirectory = ctxChanged.Data.Cwd;
+						}
+						if(ctxChanged.Data.GitRoot is not null)
+						{
+							session.Context.GitRoot = ctxChanged.Data.GitRoot;
+						}
+						if(ctxChanged.Data.Repository is not null)
+						{
+							session.Context.Repository = ctxChanged.Data.Repository;
+						}
+						if(ctxChanged.Data.Branch is not null)
+						{
+							session.Context.Branch = ctxChanged.Data.Branch;
+						}
+					}
 					break;
 
 				case SessionModeChangedEvent modeChanged:
@@ -251,7 +270,9 @@ public sealed class SessionEventProcessor
 					break;
 
 				case PendingMessagesModifiedEvent:
-					_logger.LogDebug("Session {SessionId} pending messages modified", session.Id);
+					session.PendingMessageCount = session.Messages.Count(m => m.IsUser && m.IsPending);
+					_logger.LogDebug("Session {SessionId} pending messages modified — count: {PendingCount}",
+						session.Id, session.PendingMessageCount);
 					break;
 
 				default:

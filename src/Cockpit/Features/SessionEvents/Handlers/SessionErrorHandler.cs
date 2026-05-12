@@ -9,12 +9,18 @@ static class SessionErrorHandler
 {
 	internal static void Handle(SessionModel session, SessionErrorEvent evt)
 	{
+		// Finalize any active working group with error status before adding the error message
+		if(session.ActiveWorkingGroup is not null)
+		{
+			SessionIdleHandler.Handle(session, evt.Timestamp, groupStatus: GroupStatusEnum.Error);
+		}
+
 		ChatMessageModel message = new()
 		{
 			Id = Guid.NewGuid().ToString(),
 			Content = evt.Data.Message ?? "An error occurred",
 			IsUser = false,
-			Timestamp = DateTime.Now,
+			Timestamp = evt.Timestamp.LocalDateTime,
 			Type = MessageTypeEnum.Error,
 			EventType = evt.Type,
 			EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
@@ -22,6 +28,10 @@ static class SessionErrorHandler
 
 		session.Messages.Add(message);
 		session.Status = SessionStatusEnum.Error;
+
+		// Clear streaming state left over from the interrupted turn
+		session.StreamingMessages.Clear();
+		session.StreamingThinkingEvents.Clear();
 	}
 
 	internal static void HandleException(SessionModel session, Exception ex)

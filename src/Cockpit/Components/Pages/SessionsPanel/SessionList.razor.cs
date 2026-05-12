@@ -65,7 +65,7 @@ public partial class SessionList : ComponentBase, IDisposable
 
 			if(_filterCwds.Count > 0)
 			{
-				sessions = sessions.Where(s => _filterCwds.Contains(NormalizePath(s.Context.CurrentWorkingDirectory)));
+				sessions = sessions.Where(s => _filterCwds.Contains(NormalizePath(s.Context.CurrentWorkingDirectory ?? string.Empty)));
 			}
 
 			if(_filterRepos.Count > 0)
@@ -78,7 +78,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	}
 
 	IEnumerable<string> UniqueCwds => _sessionFeature.Sessions
-		.Select(s => NormalizePath(s.Context.CurrentWorkingDirectory))
+		.Select(s => NormalizePath(s.Context.CurrentWorkingDirectory ?? string.Empty))
 		.Where(s => !string.IsNullOrEmpty(s))
 		.Distinct(StringComparer.OrdinalIgnoreCase)
 		.OrderBy(s => s, StringComparer.OrdinalIgnoreCase);

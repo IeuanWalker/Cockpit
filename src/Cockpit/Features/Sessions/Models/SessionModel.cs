@@ -111,4 +111,10 @@ public class SessionModel
 	/// Synchronizes live session event/message mutations to preserve ordering.
 	/// </summary>
 	public readonly Lock SessionEventLock = new();
+
+	/// <summary>
+	/// Number of messages queued while the agent is busy (enqueue mode).
+	/// Updated by <c>PendingMessagesModifiedEvent</c> processing.
+	/// </summary>
+	public int PendingMessageCount { get; set; }
 }

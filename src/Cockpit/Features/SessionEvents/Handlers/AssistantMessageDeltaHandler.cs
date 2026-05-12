@@ -76,7 +76,7 @@ static class AssistantMessageDeltaHandler
 				Id = messageId,
 				Content = string.Empty,
 				IsUser = false,
-				Timestamp = DateTime.Now,
+				Timestamp = evt.Timestamp,
 				Type = MessageTypeEnum.Text,
 				IsStreaming = true,
 				IsComplete = false,

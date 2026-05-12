@@ -5,6 +5,7 @@ using Cockpit.Features.Agents;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Connection;
 using Cockpit.Features.Git;
+using Cockpit.Features.Hooks;
 using Cockpit.Features.Instructions;
 using Cockpit.Features.Markdown;
 using Cockpit.Features.Mcp;
@@ -20,6 +21,7 @@ using Cockpit.Features.Skills;
 using Cockpit.Features.Sounds;
 using Cockpit.Features.Splash;
 using Cockpit.Features.Terminal;
+using Cockpit.Features.Telemetry;
 using Cockpit.Features.TextToSpeech;
 using Cockpit.Features.Theme;
 using Cockpit.Features.Timestamp;
@@ -101,8 +103,10 @@ public static class MauiProgram
 		builder.Services.AddSingleton<GitFeature>();
 		builder.Services.AddSingleton<SplashFeature>();
 		builder.Services.AddSingleton<LogViewerSplashFeature>();
+		builder.Services.AddSingleton<TelemetryDashboardSplashFeature>();
 		builder.Services.AddSingleton<EditedFilesSplashFeature>();
 		builder.Services.AddSingleton<EditedFilesWindowService>();
+		builder.Services.AddSingleton<TelemetryFileService>();
 
 		// Copilot SDK and Permissions
 		builder.Services.AddSingleton<CopilotClientFeature>();
@@ -112,6 +116,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<GlobalDenyFeature>();
 		builder.Services.AddSingleton<SessionPermissionFeature>();
 		builder.Services.AddSingleton<SessionEventProcessor>();
+		builder.Services.AddSingleton<SessionHooksFactory>();
 
 		// Session management
 		builder.Services.AddSingleton<SdkSessionRegistry>();

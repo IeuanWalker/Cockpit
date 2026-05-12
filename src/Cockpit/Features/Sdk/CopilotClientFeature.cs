@@ -1,4 +1,5 @@
-﻿using GitHub.Copilot.SDK;
+﻿using Cockpit.Utilities.Logging;
+using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sdk;
@@ -14,6 +15,7 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 	const int sessionIdleTimeoutSeconds = 1800;
 
 	readonly ILogger<CopilotClientFeature> _logger;
+	readonly UserAppSettings _appSettings;
 	readonly SemaphoreSlim _clientLock = new(1, 1);
 	// Accessed only under _clientLock; volatile for the lock-free State property read.
 	volatile CopilotClient? _client;
@@ -32,9 +34,10 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 	/// </summary>
 	public ConnectionState State => _client?.State ?? ConnectionState.Disconnected;
 
-	public CopilotClientFeature(ILogger<CopilotClientFeature> logger)
+	public CopilotClientFeature(ILogger<CopilotClientFeature> logger, UserAppSettings appSettings)
 	{
 		_logger = logger;
+		_appSettings = appSettings;
 	}
 
 	/// <summary>
@@ -58,16 +61,34 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 				return _client;
 			}
 
-			_logger.LogInformation("Initializing CopilotClient");
+			_logger.LogInformation("Initializing CopilotClient (logLevel={LogLevel}, telemetry={TelemetryEnabled})",
+				_appSettings.SdkLogLevel, _appSettings.TelemetryEnabled);
 
-			_client = new CopilotClient(new CopilotClientOptions
+			CopilotClientOptions options = new()
 			{
 				AutoStart = true,
-				LogLevel = "info",
+				LogLevel = _appSettings.SdkLogLevel,
 				UseStdio = true,
 				Logger = _logger,
 				SessionIdleTimeoutSeconds = sessionIdleTimeoutSeconds
-			});
+			};
+
+			if(_appSettings.TelemetryEnabled)
+			{
+				string cockpitRoot = Path.GetDirectoryName(LogDirectoryHelper.LogDirectory)!;
+				string telemetryDir = Path.Combine(cockpitRoot, "telemetry");
+				Directory.CreateDirectory(telemetryDir);
+				string telemetryPath = Path.Combine(telemetryDir, $"otel-{DateTime.UtcNow:yyyyMMdd}.jsonl");
+
+				options.Telemetry = new TelemetryConfig
+				{
+					ExporterType = "file",
+					FilePath = telemetryPath
+				};
+				_logger.LogInformation("SDK telemetry exporting to {TelemetryPath}", telemetryPath);
+			}
+
+			_client = new CopilotClient(options);
 
 			await _client.StartAsync(cancellationToken);
 
@@ -111,7 +132,13 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 			}
 
 			_logger.LogError(ex, "Failed to initialize or start CopilotClient");
-			notifyError = $"Failed to connect to Copilot: {ex.Message}";
+			notifyError = ex switch
+			{
+				OperationCanceledException => "Connection to Copilot timed out. Check your network and try again.",
+				IOException ioEx => $"Copilot connection I/O error: {ioEx.Message}",
+				InvalidOperationException invEx => $"Copilot configuration error: {invEx.Message}",
+				_ => $"Failed to connect to Copilot ({ex.GetType().Name}): {ex.Message}"
+			};
 			throw;
 		}
 		finally
