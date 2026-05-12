@@ -163,4 +163,37 @@ feature.DisposeAsync().AsTask()
 
 		await Should.NotThrowAsync(() => Task.WhenAll(calls));
 	}
+
+	// ── Disposal cleans up lock ──────────────────────────────────────────────
+
+	[Fact]
+	public async Task DisposeAsync_DisposesClientLock()
+	{
+		CopilotClientFeature feature = CreateFeature();
+
+		await feature.DisposeAsync();
+
+		// After disposal, StopAsync should be a no-op (early return on _disposed check)
+		// rather than trying to use the disposed SemaphoreSlim
+		await Should.NotThrowAsync(() => feature.StopAsync());
+	}
+
+	// ── State readable after concurrent dispose + stop ────────────────────────
+
+	[Fact]
+	public async Task State_DuringConcurrentDisposeAndStop_AlwaysReturnsDisconnected()
+	{
+		CopilotClientFeature feature = CreateFeature();
+		CancellationToken ct = TestContext.Current.CancellationToken;
+
+		Task[] calls =
+		[
+			feature.DisposeAsync().AsTask(),
+			Task.Run(() => feature.StopAsync(), ct),
+			Task.Run(() => feature.StopAsync(), ct),
+		];
+
+		await Should.NotThrowAsync(() => Task.WhenAll(calls));
+		feature.State.ShouldBe(ConnectionState.Disconnected);
+	}
 }

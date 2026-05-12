@@ -49,20 +49,23 @@ sealed class SpeechToTextFeature : ISpeechToTextFeature
 				ShouldReportPartialResults = true,
 			};
 
-			await _speechToText.StartListenAsync(options, cancellationToken);
-
 			IsListening = true;
 			OnStateChanged?.Invoke();
+			await _speechToText.StartListenAsync(options, cancellationToken);
 			return true;
 		}
 		catch(FileNotFoundException ex) when((ex.FileName ?? string.Empty).EndsWith("AppxManifest.xml", StringComparison.OrdinalIgnoreCase))
 		{
+			IsListening = false;
+			OnStateChanged?.Invoke();
 			string msg = "Speech recognition requires the packaged MSIX app. Run using the 'MsixPackage' debug profile.";
 			ErrorReceived?.Invoke(this, msg);
 			return false;
 		}
 		catch(Exception ex)
 		{
+			IsListening = false;
+			OnStateChanged?.Invoke();
 			_logger.LogError(ex, "Error starting speech recognition");
 			ErrorReceived?.Invoke(this, $"Error starting recording: {ex.Message}");
 			return false;

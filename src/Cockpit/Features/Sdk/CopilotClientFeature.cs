@@ -178,6 +178,11 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 	/// </summary>
 	public async Task StopAsync()
 	{
+		if(_disposed)
+		{
+			return;
+		}
+
 		bool notifyDisconnected = false;
 
 		await _clientLock.WaitAsync();
@@ -197,7 +202,14 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 			catch(Exception ex)
 			{
 				_logger.LogWarning(ex, "Error during normal stop, attempting force stop");
-				await _client.ForceStopAsync();
+				try
+				{
+					await _client.ForceStopAsync();
+				}
+				catch(Exception forceEx)
+				{
+					_logger.LogWarning(forceEx, "Force stop also failed");
+				}
 			}
 			finally
 			{
@@ -206,7 +218,14 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 				CopilotClient disposing = _client;
 				_client = null;
 				notifyDisconnected = true;
-				await disposing.DisposeAsync();
+				try
+				{
+					await disposing.DisposeAsync();
+				}
+				catch(Exception disposeEx)
+				{
+					_logger.LogWarning(disposeEx, "Client dispose failed");
+				}
 			}
 		}
 		finally
@@ -245,6 +264,17 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 		_disposed = true;
 		_clientLock.Release();
 
-		await StopAsync();
+		try
+		{
+			await StopAsync();
+		}
+		catch(Exception ex)
+		{
+			_logger.LogWarning(ex, "Error during disposal stop");
+		}
+		finally
+		{
+			_clientLock.Dispose();
+		}
 	}
 }

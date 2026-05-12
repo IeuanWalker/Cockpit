@@ -59,6 +59,31 @@ sealed class FakeSpeechToText : ISpeechToText
 }
 
 // ---------------------------------------------------------------------------
+// ThrowingSpeechToText — throws on StartListenAsync to test error recovery
+// ---------------------------------------------------------------------------
+
+sealed class ThrowingSpeechToText : ISpeechToText
+{
+	public event EventHandler<SpeechToTextRecognitionResultUpdatedEventArgs>? RecognitionResultUpdated;
+	public event EventHandler<SpeechToTextRecognitionResultCompletedEventArgs>? RecognitionResultCompleted;
+	public event EventHandler<SpeechToTextStateChangedEventArgs>? StateChanged;
+
+	public SpeechToTextState CurrentState { get; private set; } = SpeechToTextState.Stopped;
+	public bool IsListening => CurrentState == SpeechToTextState.Listening;
+
+	public Task<bool> RequestPermissions(CancellationToken cancellationToken = default)
+		=> Task.FromResult(true);
+
+	public Task StartListenAsync(SpeechToTextOptions options, CancellationToken cancellationToken = default)
+		=> throw new InvalidOperationException("Simulated platform error");
+
+	public Task StopListenAsync(CancellationToken cancellationToken = default)
+		=> Task.CompletedTask;
+
+	public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+}
+
+// ---------------------------------------------------------------------------
 // SpeechToTextFeature tests
 // ---------------------------------------------------------------------------
 
@@ -349,11 +374,43 @@ public class SpeechToTextFeatureTests
 	// -----------------------------------------------------------------------
 
 	[Fact]
-	public void Feature_ImplementsInterface()
+	public async Task StartListeningAsync_WhenStartListenThrows_ResetsIsListeningToFalse()
 	{
-		FakeSpeechToText fake = new();
-		SpeechToTextFeature feature = CreateFeature(fake);
+		ThrowingSpeechToText fake = new();
+		SpeechToTextFeature feature = new(fake, NullLogger<SpeechToTextFeature>.Instance);
 
-		feature.ShouldBeAssignableTo<ISpeechToTextFeature>();
+		bool result = await feature.StartListeningAsync();
+
+		result.ShouldBeFalse();
+		feature.IsListening.ShouldBeFalse();
+	}
+
+	[Fact]
+	public async Task StartListeningAsync_WhenStartListenThrows_FiresOnStateChangedTwice()
+	{
+		ThrowingSpeechToText fake = new();
+		SpeechToTextFeature feature = new(fake, NullLogger<SpeechToTextFeature>.Instance);
+
+		int eventCount = 0;
+		feature.OnStateChanged += () => eventCount++;
+
+		await feature.StartListeningAsync();
+
+		// Once for IsListening = true, once for reset to false
+		eventCount.ShouldBe(2);
+	}
+
+	[Fact]
+	public async Task StartListeningAsync_WhenStartListenThrows_FiresErrorReceived()
+	{
+		ThrowingSpeechToText fake = new();
+		SpeechToTextFeature feature = new(fake, NullLogger<SpeechToTextFeature>.Instance);
+
+		string? receivedError = null;
+		feature.ErrorReceived += (_, msg) => receivedError = msg;
+
+		await feature.StartListeningAsync();
+
+		receivedError.ShouldNotBeNullOrEmpty();
 	}
 }

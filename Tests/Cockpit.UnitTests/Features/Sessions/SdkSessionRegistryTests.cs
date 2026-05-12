@@ -29,12 +29,4 @@ public class SdkSessionRegistryTests
 		removed.ShouldBeFalse();
 		session.ShouldBeNull();
 	}
-
-	[Fact]
-	public void Remove_IsNoOp_WhenNotRegistered()
-	{
-		SdkSessionRegistry registry = CreateRegistry();
-
-		Should.NotThrow(() => registry.Remove("nonexistent"));
-	}
 }

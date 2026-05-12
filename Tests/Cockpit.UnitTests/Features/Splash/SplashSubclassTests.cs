@@ -3,24 +3,11 @@ using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Splash;
 
+// EditedFilesSplashFeature and LogViewerSplashFeature are marker subclasses with no
+// additional logic. One representative test per subclass confirms the fire-once
+// contract inherited from WindowSplashFeature.
 public class SplashSubclassTests
 {
-	[Fact]
-	public void EditedFilesSplashFeature_IsWindowSplashFeature()
-	{
-		EditedFilesSplashFeature feature = new();
-
-		feature.ShouldBeAssignableTo<WindowSplashFeature>();
-	}
-
-	[Fact]
-	public void LogViewerSplashFeature_IsWindowSplashFeature()
-	{
-		LogViewerSplashFeature feature = new();
-
-		feature.ShouldBeAssignableTo<WindowSplashFeature>();
-	}
-
 	[Fact]
 	public void EditedFilesSplashFeature_NotifyBlazorReady_FiresOnce()
 	{

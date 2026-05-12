@@ -72,6 +72,8 @@ public sealed class ThemeFeature : IThemeFeature, IDisposable
 		bool isLight = IsLightTheme;
 
 		// Keep the MAUI resource dictionary in sync so native controls always reflect the theme.
+		// This replaces the entire ResourceDictionary, which is safe because App.xaml contains
+		// no non-theme resources — LightTheme/DarkTheme are self-contained resource dictionaries.
 		if(Application.Current is not null)
 		{
 			Application.Current.Resources = isLight ? new LightTheme() : new DarkTheme();

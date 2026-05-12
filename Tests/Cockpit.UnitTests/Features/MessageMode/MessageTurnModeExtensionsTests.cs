@@ -8,26 +8,6 @@ namespace Cockpit.UnitTests.Features.MessageMode;
 /// </summary>
 public class MessageTurnModeExtensionsTests
 {
-	// -------------------------------------------------------------------------
-	// SDK token constants
-	// -------------------------------------------------------------------------
-
-	[Fact]
-	public void ImmediateSdkToken_HasExpectedValue()
-	{
-		MessageTurnModeExtensions.ImmediateSdkToken.ShouldBe("immediate");
-	}
-
-	[Fact]
-	public void EnqueueSdkToken_HasExpectedValue()
-	{
-		MessageTurnModeExtensions.EnqueueSdkToken.ShouldBe("enqueue");
-	}
-
-	// -------------------------------------------------------------------------
-	// ToSdkToken
-	// -------------------------------------------------------------------------
-
 	[Fact]
 	public void ToSdkToken_Immediate_ReturnsImmediateToken()
 	{

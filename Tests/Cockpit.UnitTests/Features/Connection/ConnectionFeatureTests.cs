@@ -344,4 +344,80 @@ public class ConnectionFeatureTests
 
 		eventFired.ShouldBeTrue();
 	}
+
+	// ── Checking transient state ──────────────────────────────────────────────
+
+	[Fact]
+	public async Task Ping_SlowResponse_SetsCheckingStatusBeforeCompletion()
+	{
+		TaskCompletionSource<PingResponse?> gate = new();
+		List<ConnectionStatusEnum> observed = [];
+
+		ConnectionFeature feature = CreateFeature(_ => gate.Task);
+		feature.OnStatusChanged += () => observed.Add(feature.Status);
+
+		Task pingTask = feature.Ping(TestContext.Current.CancellationToken);
+
+		// Wait long enough for the 100ms delay to fire the Checking status
+		await Task.Delay(200, TestContext.Current.CancellationToken);
+
+		observed.ShouldContain(ConnectionStatusEnum.Checking);
+
+		gate.SetResult(new PingResponse());
+		await pingTask;
+
+		feature.Status.ShouldBe(ConnectionStatusEnum.Connected);
+	}
+
+	[Fact]
+	public async Task Ping_CancelledDuringChecking_RestoresPreviousStatus()
+	{
+		// First ping establishes Connected status
+		int callCount = 0;
+		CancellationTokenSource slowCts = new();
+		TaskCompletionSource<PingResponse?> gate = new();
+
+		ConnectionFeature feature = CreateFeature(ct =>
+		{
+			int count = Interlocked.Increment(ref callCount);
+			if(count == 1)
+			{
+				return Task.FromResult<PingResponse?>(new PingResponse());
+			}
+			// Second call: slow, will be cancelled
+			return gate.Task;
+		});
+
+		await feature.Ping(TestContext.Current.CancellationToken);
+		feature.Status.ShouldBe(ConnectionStatusEnum.Connected);
+
+		// Start second slow ping, wait for Checking state, then cancel
+		Task secondPing = feature.Ping(slowCts.Token);
+		await Task.Delay(200, TestContext.Current.CancellationToken);
+
+		await slowCts.CancelAsync();
+		gate.TrySetCanceled();
+		await secondPing;
+
+		// Should restore to Connected (previous status), not stay on Checking
+		feature.Status.ShouldBe(ConnectionStatusEnum.Connected);
+	}
+
+	// ── History defensive copy ────────────────────────────────────────────────
+
+	[Fact]
+	public async Task History_ReturnsCopy_NotLiveReference()
+	{
+		ConnectionFeature feature = CreateConnectedFeature();
+
+		await feature.Ping(TestContext.Current.CancellationToken);
+		IReadOnlyList<ConnectionCheckRecordModel> snapshot = feature.History;
+
+		await feature.Ping(TestContext.Current.CancellationToken);
+
+		// The snapshot should still have 1 entry (it's a copy)
+		snapshot.Count.ShouldBe(1);
+		// But the live history should now have 2
+		feature.History.Count.ShouldBe(2);
+	}
 }
