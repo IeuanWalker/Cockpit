@@ -28,10 +28,6 @@ public sealed class McpFeature
 			_logger.LogInformation("Discovered {Count} MCP servers for session", result.Servers.Count);
 			return [.. result.Servers];
 		}
-		catch(OperationCanceledException)
-		{
-			throw;
-		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load MCP servers from SDK");
@@ -80,10 +76,6 @@ public sealed class McpFeature
 		{
 			await sdkOperation(sdkSession, cancellationToken);
 			await RefreshSessionMcpAsync(sessionId, sdkSession, cancellationToken);
-		}
-		catch(OperationCanceledException)
-		{
-			throw;
 		}
 		catch(Exception ex)
 		{
