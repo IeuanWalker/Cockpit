@@ -13,7 +13,7 @@ sealed class FakePtyConnection : IPtyConnection, IDisposable
 	readonly MemoryStream _writerStream = new();
 
 	/// <summary>Creates a fake connection with an empty reader stream (EOF on first read).</summary>
-	public FakePtyConnection() : this(ReadOnlySpan<byte>.Empty) { }
+	public FakePtyConnection() : this([]) { }
 
 	/// <summary>
 	/// Creates a fake connection whose reader stream is pre-populated with <paramref name="readerData"/>.

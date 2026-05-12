@@ -111,7 +111,7 @@ public sealed class TimestampFeatureTests
 	public void FormatRelative_OlderThanOneYear_ReturneDateWithYear()
 	{
 		_time.SetUtcNow(new DateTimeOffset(2024, 6, 10, 12, 0, 0, TimeSpan.Zero));
-		DateTime input = new DateTime(2022, 3, 15, 0, 0, 0, DateTimeKind.Utc);
+		DateTime input = new(2022, 3, 15, 0, 0, 0, DateTimeKind.Utc);
 
 		string result = _sut.FormatRelative(input);
 
@@ -125,7 +125,7 @@ public sealed class TimestampFeatureTests
 	[Fact]
 	public void FormatDuration_LessThanOneSecond_ReturnsLessThan1s()
 	{
-		DateTime start = new DateTime(2024, 1, 1, 10, 0, 0, DateTimeKind.Local);
+		DateTime start = new(2024, 1, 1, 10, 0, 0, DateTimeKind.Local);
 		DateTime end = start.AddMilliseconds(500);
 
 		string result = _sut.FormatDuration(start, end);
@@ -136,7 +136,7 @@ public sealed class TimestampFeatureTests
 	[Fact]
 	public void FormatDuration_ExactlyOneSecond_ReturnsOneSecond()
 	{
-		DateTime start = new DateTime(2024, 1, 1, 10, 0, 0, DateTimeKind.Local);
+		DateTime start = new(2024, 1, 1, 10, 0, 0, DateTimeKind.Local);
 		DateTime end = start.AddSeconds(1);
 
 		string result = _sut.FormatDuration(start, end);
@@ -147,7 +147,7 @@ public sealed class TimestampFeatureTests
 	[Fact]
 	public void FormatDuration_TenPointFiveSeconds_ReturnsFormattedSeconds()
 	{
-		DateTime start = new DateTime(2024, 1, 1, 10, 0, 0, DateTimeKind.Local);
+		DateTime start = new(2024, 1, 1, 10, 0, 0, DateTimeKind.Local);
 		DateTime end = start.AddSeconds(10.5);
 
 		string result = _sut.FormatDuration(start, end);
@@ -158,7 +158,7 @@ public sealed class TimestampFeatureTests
 	[Fact]
 	public void FormatDuration_NinetySeconds_ReturnsMinutes()
 	{
-		DateTime start = new DateTime(2024, 1, 1, 10, 0, 0, DateTimeKind.Local);
+		DateTime start = new(2024, 1, 1, 10, 0, 0, DateTimeKind.Local);
 		DateTime end = start.AddSeconds(90);
 
 		string result = _sut.FormatDuration(start, end);
@@ -169,7 +169,7 @@ public sealed class TimestampFeatureTests
 	[Fact]
 	public void FormatDuration_SixtyMinutes_ReturnsHours()
 	{
-		DateTime start = new DateTime(2024, 1, 1, 10, 0, 0, DateTimeKind.Local);
+		DateTime start = new(2024, 1, 1, 10, 0, 0, DateTimeKind.Local);
 		DateTime end = start.AddMinutes(60);
 
 		string result = _sut.FormatDuration(start, end);
@@ -181,7 +181,7 @@ public sealed class TimestampFeatureTests
 	public void FormatDuration_NullEnd_UsesCurrentLocalTime()
 	{
 		// Arrange – set "now" so we can compute the expected value
-		DateTimeOffset frozenNow = new DateTimeOffset(2024, 6, 1, 12, 0, 30, TimeSpan.Zero);
+		DateTimeOffset frozenNow = new(2024, 6, 1, 12, 0, 30, TimeSpan.Zero);
 		_time.SetUtcNow(frozenNow);
 
 		// start is 10 seconds before "now" in local time
