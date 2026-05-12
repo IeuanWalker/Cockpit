@@ -338,9 +338,9 @@ public sealed class UserInputFeatureTests
 	{
 		(UserInputFeature feature, _, _) = CreateFeature();
 
-		(Task<UserInputResponse> taskA, UserInputRequestModel modelA) = await StartHandleAsync(
+		(Task<UserInputResponse> taskA, UserInputRequestModel _) = await StartHandleAsync(
 			feature, BuildRequest(question: "Question A"), BuildInvocation());
-		(Task<UserInputResponse> taskB, UserInputRequestModel modelB) = await StartHandleAsync(
+		(Task<UserInputResponse> taskB, UserInputRequestModel _) = await StartHandleAsync(
 			feature, BuildRequest(question: "Question B"), BuildInvocation());
 
 		feature.CancelPendingRequestsForSession(sessionId);

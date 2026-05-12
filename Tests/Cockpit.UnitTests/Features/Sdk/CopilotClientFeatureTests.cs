@@ -112,7 +112,9 @@ public sealed class CopilotClientFeatureTests
 		// disposed client lock) and returns null — this tests the ICopilotPingService
 		// contract is safe to call without first checking disposal state.
 		CopilotClientFeature feature = CreateFeature();
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
 		ICopilotPingService pingService = feature;
+#pragma warning restore CA1859 // Use concrete types when possible for improved performance
 		await feature.DisposeAsync();
 
 		PingResponse? result = await pingService.PingAsync(TestContext.Current.CancellationToken);
@@ -126,7 +128,9 @@ public sealed class CopilotClientFeatureTests
 		// PingAsync must swallow OperationCanceledException the same way it handles
 		// any other exception, returning null rather than propagating.
 		await using CopilotClientFeature feature = CreateFeature();
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
 		ICopilotPingService pingService = feature;
+#pragma warning restore CA1859 // Use concrete types when possible for improved performance
 
 		using CancellationTokenSource cts = new();
 		await cts.CancelAsync();
@@ -156,9 +160,9 @@ public sealed class CopilotClientFeatureTests
 
 		Task[] calls =
 		[
-		feature.DisposeAsync().AsTask(),
-feature.DisposeAsync().AsTask(),
-feature.DisposeAsync().AsTask()
+			feature.DisposeAsync().AsTask(),
+			feature.DisposeAsync().AsTask(),
+			feature.DisposeAsync().AsTask()
 		];
 
 		await Should.NotThrowAsync(() => Task.WhenAll(calls));

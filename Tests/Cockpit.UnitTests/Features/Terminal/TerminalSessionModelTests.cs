@@ -149,15 +149,14 @@ public sealed class TerminalSessionModelTests
 		const int writesPerThread = 50;
 
 		// Each thread appends a single known character; total length must be exact
-		Task[] tasks = Enumerable.Range(0, threadCount)
+		Task[] tasks = [.. Enumerable.Range(0, threadCount)
 			.Select(i => Task.Run(() =>
 			{
 				for(int j = 0; j < writesPerThread; j++)
 				{
 					model.BufferOutput("x");
 				}
-			}))
-			.ToArray();
+			}))];
 
 		await Task.WhenAll(tasks);
 

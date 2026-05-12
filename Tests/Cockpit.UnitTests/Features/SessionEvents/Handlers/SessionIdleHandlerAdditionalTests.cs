@@ -145,7 +145,7 @@ public class SessionIdleHandlerAdditionalTests
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		bool eventFired = false;
-		Action handler = () => eventFired = true;
+		void handler() => eventFired = true;
 		SessionIdleHandler.OnSessionFinished += handler;
 
 		try
@@ -173,7 +173,7 @@ public class SessionIdleHandlerAdditionalTests
 		session.SuppressFinishedNotification = true;
 		SessionEventProcessor processor = CreateProcessor();
 		bool eventFired = false;
-		Action handler = () => eventFired = true;
+		void handler() => eventFired = true;
 		SessionIdleHandler.OnSessionFinished += handler;
 
 		try

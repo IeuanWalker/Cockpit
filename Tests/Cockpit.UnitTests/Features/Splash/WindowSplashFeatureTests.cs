@@ -58,7 +58,7 @@ public class WindowSplashFeatureTests
 	public void UnsubscribeAfterFire_DoesNotThrow()
 	{
 		TestSplashFeature feature = new();
-		void Handler() { }
+		static void Handler() { }
 
 		feature.OnBlazorReady += Handler;
 		feature.NotifyBlazorReady(); // clears handlers

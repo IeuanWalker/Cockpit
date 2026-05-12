@@ -120,7 +120,7 @@ public class UIStateFeatureTests
 	{
 		MockAppSettings settings = new() { LeftSidebarWidth = 0 };
 
-		UIStateFeature feature = CreateFeature(settings);
+		UIStateFeature _ = CreateFeature(settings);
 
 		// Clamped value should be written back so settings and feature agree
 		settings.LeftSidebarWidth.ShouldBe(UIStateFeature.MinSidebarWidth);

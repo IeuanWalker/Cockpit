@@ -190,7 +190,9 @@ public class SessionListFeatureTests
 		feature.AddSession(MakeSession("a"));
 		feature.AddSession(MakeSession("b"));
 
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
 		ISessionStateProvider provider = feature;
+#pragma warning restore CA1859 // Use concrete types when possible for improved performance
 		provider.Sessions.Count.ShouldBe(2);
 	}
 
@@ -202,7 +204,9 @@ public class SessionListFeatureTests
 		feature.AddSession(session);
 		feature.SetCurrentSession(session);
 
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
 		ISessionStateProvider provider = feature;
+#pragma warning restore CA1859 // Use concrete types when possible for improved performance
 
 		provider.CurrentSession.ShouldBe(session);
 	}
