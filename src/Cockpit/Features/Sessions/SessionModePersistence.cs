@@ -6,8 +6,8 @@ namespace Cockpit.Features.Sessions;
 
 public class SessionModePersistence
 {
-	const string SettingsDirectoryName = "Cockpit";
-	const string SessionAgentModeFileName = "session-agentmode.json";
+	const string settingsDirectoryName = "Cockpit";
+	const string sessionAgentModeFileName = "session-agentmode.json";
 
 	readonly ILogger<SessionModePersistence> _logger;
 
@@ -16,7 +16,7 @@ public class SessionModePersistence
 		_logger = logger;
 	}
 
-	public async Task SaveSessionModeAsync(SessionModel session, CancellationToken cancellationToken = default)
+	public async Task SaveSessionMode(SessionModel session, CancellationToken cancellationToken = default)
 	{
 		string? filePath = GetFilePath(session);
 		if(string.IsNullOrWhiteSpace(filePath))
@@ -40,17 +40,13 @@ public class SessionModePersistence
 			string json = settings.SerializeJson()!;
 			await File.WriteAllTextAsync(filePath, json, cancellationToken);
 		}
-		catch(OperationCanceledException)
-		{
-			throw;
-		}
 		catch(Exception ex)
 		{
 			_logger.LogWarning(ex, "Failed to save agent mode for session {SessionId}", session.Id);
 		}
 	}
 
-	public async Task<bool> TryRestoreSessionModeAsync(SessionModel session, CancellationToken cancellationToken = default)
+	public async Task<bool> TryRestoreSessionMode(SessionModel session, CancellationToken cancellationToken = default)
 	{
 		string? filePath = GetFilePath(session);
 		if(string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
@@ -76,10 +72,6 @@ public class SessionModePersistence
 			session.Context.SelectedAgentMode = mode;
 			return true;
 		}
-		catch(OperationCanceledException)
-		{
-			throw;
-		}
 		catch(Exception ex)
 		{
 			_logger.LogWarning(ex, "Failed to restore agent mode for session {SessionId}", session.Id);
@@ -94,6 +86,6 @@ public class SessionModePersistence
 			return null;
 		}
 
-		return Path.Combine(session.Context.WorkspacePath, SettingsDirectoryName, SessionAgentModeFileName);
+		return Path.Combine(session.Context.WorkspacePath, settingsDirectoryName, sessionAgentModeFileName);
 	}
 }

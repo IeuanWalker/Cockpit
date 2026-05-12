@@ -57,10 +57,10 @@ public sealed class SessionModePersistenceTests : IDisposable
 		SessionModePersistence persistence = CreatePersistence();
 		SessionModel session = MakeSession("s1", SessionAgentModeEnum.Interactive);
 
-		await persistence.SaveSessionModeAsync(session, TestContext.Current.CancellationToken);
+		await persistence.SaveSessionMode(session, TestContext.Current.CancellationToken);
 
 		SessionModel restored = MakeSession("s1");
-		bool ok = await persistence.TryRestoreSessionModeAsync(restored, TestContext.Current.CancellationToken);
+		bool ok = await persistence.TryRestoreSessionMode(restored, TestContext.Current.CancellationToken);
 
 		ok.ShouldBeTrue();
 		restored.Context.SelectedAgentMode.ShouldBe(SessionAgentModeEnum.Interactive);
@@ -73,7 +73,7 @@ public sealed class SessionModePersistenceTests : IDisposable
 		SessionModel session = MakeSession("s-token", SessionAgentModeEnum.Plan);
 		using CancellationTokenSource cts = new();
 
-		await Should.NotThrowAsync(() => persistence.SaveSessionModeAsync(session, cts.Token));
+		await Should.NotThrowAsync(() => persistence.SaveSessionMode(session, cts.Token));
 	}
 
 	[Theory]
@@ -84,10 +84,10 @@ public sealed class SessionModePersistenceTests : IDisposable
 		SessionModePersistence persistence = CreatePersistence();
 		SessionModel session = MakeSession("s2", mode);
 
-		await persistence.SaveSessionModeAsync(session, TestContext.Current.CancellationToken);
+		await persistence.SaveSessionMode(session, TestContext.Current.CancellationToken);
 
 		SessionModel restored = MakeSession("s2");
-		bool ok = await persistence.TryRestoreSessionModeAsync(restored, TestContext.Current.CancellationToken);
+		bool ok = await persistence.TryRestoreSessionMode(restored, TestContext.Current.CancellationToken);
 
 		ok.ShouldBeTrue();
 		restored.Context.SelectedAgentMode.ShouldBe(mode);
@@ -99,7 +99,7 @@ public sealed class SessionModePersistenceTests : IDisposable
 		SessionModePersistence persistence = CreatePersistence();
 		SessionModel session = MakeSession("s3");
 
-		bool ok = await persistence.TryRestoreSessionModeAsync(session, TestContext.Current.CancellationToken);
+		bool ok = await persistence.TryRestoreSessionMode(session, TestContext.Current.CancellationToken);
 
 		ok.ShouldBeFalse();
 	}
@@ -114,7 +114,7 @@ public sealed class SessionModePersistenceTests : IDisposable
 		Directory.CreateDirectory(dir);
 		await File.WriteAllTextAsync(Path.Combine(dir, "session-agentmode.json"), "not-valid-json{{{{", TestContext.Current.CancellationToken);
 
-		bool ok = await persistence.TryRestoreSessionModeAsync(session, TestContext.Current.CancellationToken);
+		bool ok = await persistence.TryRestoreSessionMode(session, TestContext.Current.CancellationToken);
 
 		ok.ShouldBeFalse();
 	}
@@ -129,7 +129,7 @@ public sealed class SessionModePersistenceTests : IDisposable
 		Directory.CreateDirectory(dir);
 		await File.WriteAllTextAsync(Path.Combine(dir, "session-agentmode.json"), "{}", TestContext.Current.CancellationToken);
 
-		bool ok = await persistence.TryRestoreSessionModeAsync(session, TestContext.Current.CancellationToken);
+		bool ok = await persistence.TryRestoreSessionMode(session, TestContext.Current.CancellationToken);
 
 		ok.ShouldBeFalse();
 	}
@@ -155,7 +155,7 @@ public sealed class SessionModePersistenceTests : IDisposable
 			}
 		};
 
-		await Should.NotThrowAsync(() => persistence.SaveSessionModeAsync(session, TestContext.Current.CancellationToken));
+		await Should.NotThrowAsync(() => persistence.SaveSessionMode(session, TestContext.Current.CancellationToken));
 	}
 
 	[Fact]
@@ -179,7 +179,7 @@ public sealed class SessionModePersistenceTests : IDisposable
 			}
 		};
 
-		bool ok = await persistence.TryRestoreSessionModeAsync(session, TestContext.Current.CancellationToken);
+		bool ok = await persistence.TryRestoreSessionMode(session, TestContext.Current.CancellationToken);
 
 		ok.ShouldBeFalse();
 	}
@@ -189,13 +189,13 @@ public sealed class SessionModePersistenceTests : IDisposable
 	{
 		SessionModePersistence persistence = CreatePersistence();
 		SessionModel session = MakeSession("s7", SessionAgentModeEnum.Plan);
-		await persistence.SaveSessionModeAsync(session, TestContext.Current.CancellationToken);
+		await persistence.SaveSessionMode(session, TestContext.Current.CancellationToken);
 
 		session.Context.SelectedAgentMode = SessionAgentModeEnum.Autopilot;
-		await persistence.SaveSessionModeAsync(session, TestContext.Current.CancellationToken);
+		await persistence.SaveSessionMode(session, TestContext.Current.CancellationToken);
 
 		SessionModel restored = MakeSession("s7");
-		bool ok = await persistence.TryRestoreSessionModeAsync(restored, TestContext.Current.CancellationToken);
+		bool ok = await persistence.TryRestoreSessionMode(restored, TestContext.Current.CancellationToken);
 
 		ok.ShouldBeTrue();
 		restored.Context.SelectedAgentMode.ShouldBe(SessionAgentModeEnum.Autopilot);
