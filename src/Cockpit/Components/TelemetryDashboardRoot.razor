@@ -21,7 +21,35 @@
 			</select>
 		</div>
 
+		<div class="td-top-group td-top-group--narrow">
+			<label class="td-label" for="td-session-select">Session</label>
+			<select id="td-session-select"
+					class="td-select"
+					value="@(_selectedSessionId ?? string.Empty)"
+					@onchange="OnSessionFilterChanged"
+					disabled="@(_loadingFiles || _loadingData || _uniqueSessionIds.Count == 0)">
+				<option value="">All Sessions (@_uniqueSessionIds.Count)</option>
+				@foreach(string sessionId in _uniqueSessionIds)
+				{
+					<option value="@sessionId">@ShortId(sessionId)</option>
+				}
+			</select>
+		</div>
+
 		<div class="td-top-actions">
+			<button class="td-btn @(_autoRefresh ? "td-btn--live" : string.Empty)"
+					@onclick="ToggleAutoRefresh"
+					disabled="@(_loadingFiles || _loadingData)">
+				@if(_autoRefresh)
+				{
+					<span class="td-live-dot"></span>
+					<span>LIVE</span>
+				}
+				else
+				{
+					<span>Auto</span>
+				}
+			</button>
 			<button class="td-btn" @onclick="RefreshAsync" disabled="@(_loadingFiles || _loadingData)">
 				Refresh
 			</button>
@@ -44,6 +72,10 @@
 				@onclick='() => SwitchTab(TelemetryDashboardTab.Timeline)'
 				disabled="@(_selectedTrace is null)">
 			Timeline
+		</button>
+		<button class="td-tab @(_activeTab == TelemetryDashboardTab.Stats ? "td-tab--active" : string.Empty)"
+				@onclick='() => SwitchTab(TelemetryDashboardTab.Stats)'>
+			Stats
 		</button>
 	</div>
 
@@ -74,13 +106,13 @@
 
 				<div class="td-table-wrap">
 					<div class="td-table-body scrollbar-thin">
-						@if(_traces.Count == 0)
+						@if(_filteredTraces.Count == 0)
 						{
 							<div class="td-empty">No traces were found in the selected file.</div>
 						}
 						else
 						{
-							<Virtualize Items="_traces" Context="trace" ItemSize="40" OverscanCount="10">
+							<Virtualize Items="_filteredTraces" Context="trace" ItemSize="40" OverscanCount="10">
 								<div @key="trace.TraceId"
 									 class="td-row td-row--traces @(_selectedTrace?.TraceId == trace.TraceId ? "td-row--active" : string.Empty)"
 									 @onclick="() => SelectTrace(trace)">
@@ -143,7 +175,7 @@
 							   value="@_spanSearch"
 							   @oninput="OnSpanSearchChanged" />
 					</div>
-					<div class="td-toolbar-meta">@_filteredSpans.Count of @_allSpans.Count spans</div>
+					<div class="td-toolbar-meta">@_filteredSpans.Count of @_sessionFilteredSpans.Count spans</div>
 				</div>
 
 				<div class="td-table-head td-table-head--spans">
@@ -180,7 +212,7 @@
 				</div>
 			</div>
 		}
-		else
+		else if(_activeTab == TelemetryDashboardTab.Timeline)
 		{
 			<div class="td-panel">
 				@if(_selectedTrace is null)
@@ -232,6 +264,107 @@
 				}
 			</div>
 		}
+		else if(_activeTab == TelemetryDashboardTab.Stats)
+		{
+			var stats = GetAggregateStats();
+			var toolUsage = GetToolUsageRanking();
+			var modelBreakdown = GetModelBreakdown();
+
+			<div class="td-panel td-stats-panel scrollbar-thin">
+				<div class="td-stats-cards">
+					<div class="td-stat-card">
+						<div class="td-stat-value">@FormatTokenCount(stats.TotalInputTokens + stats.TotalOutputTokens)</div>
+						<div class="td-stat-label">Total Tokens</div>
+					</div>
+					<div class="td-stat-card">
+						<div class="td-stat-value">@FormatTokenCount(stats.TotalInputTokens)</div>
+						<div class="td-stat-label">Input Tokens</div>
+					</div>
+					<div class="td-stat-card">
+						<div class="td-stat-value">@FormatTokenCount(stats.TotalOutputTokens)</div>
+						<div class="td-stat-label">Output Tokens</div>
+					</div>
+					<div class="td-stat-card">
+						<div class="td-stat-value">@FormatTokenCount(stats.TotalReasoningTokens)</div>
+						<div class="td-stat-label">Reasoning Tokens</div>
+					</div>
+					<div class="td-stat-card">
+						<div class="td-stat-value">@FormatTokenCount(stats.TotalCacheReadTokens)</div>
+						<div class="td-stat-label">Cache Read Tokens</div>
+					</div>
+					<div class="td-stat-card">
+						<div class="td-stat-value">@stats.TotalCost</div>
+						<div class="td-stat-label">Total Cost (PRU)</div>
+					</div>
+					<div class="td-stat-card">
+						<div class="td-stat-value">@stats.TotalTurns</div>
+						<div class="td-stat-label">Turns</div>
+					</div>
+					<div class="td-stat-card">
+						<div class="td-stat-value td-stat-value--@(stats.TotalErrors > 0 ? "error" : "ok")">@stats.TotalErrors</div>
+						<div class="td-stat-label">Errors</div>
+					</div>
+				</div>
+
+				<div class="td-stats-sections">
+					<div class="td-stats-section">
+						<div class="td-section-title">Tool Usage</div>
+						@if(toolUsage.Count == 0)
+						{
+							<div class="td-empty td-empty--inline">No tool calls found</div>
+						}
+						else
+						{
+							<div class="td-tool-list">
+								@{ int maxToolCount = toolUsage.Max(t => t.Count); }
+								@foreach(var tool in toolUsage)
+								{
+									<div class="td-tool-row">
+										<div class="td-tool-name" title="@tool.ToolName">@tool.ToolName</div>
+										<div class="td-tool-bar-wrap">
+											<div class="td-tool-bar" style="width:@(maxToolCount > 0 ? (tool.Count * 100.0 / maxToolCount).ToString("0.#") : "0")%"></div>
+										</div>
+										<div class="td-tool-count">@tool.Count</div>
+									</div>
+								}
+							</div>
+						}
+					</div>
+
+					<div class="td-stats-section">
+						<div class="td-section-title">Model Breakdown</div>
+						@if(modelBreakdown.Count == 0)
+						{
+							<div class="td-empty td-empty--inline">No model data found</div>
+						}
+						else
+						{
+							<div class="td-model-table">
+								<div class="td-model-head">
+									<div>Model</div>
+									<div>Calls</div>
+									<div>Input</div>
+									<div>Output</div>
+									<div>Reasoning</div>
+									<div>Cache Read</div>
+								</div>
+								@foreach(var model in modelBreakdown)
+								{
+									<div class="td-model-row">
+										<div class="td-model-name" title="@model.Model">@model.Model</div>
+										<div>@model.Calls</div>
+										<div>@FormatTokenCount(model.InputTokens)</div>
+										<div>@FormatTokenCount(model.OutputTokens)</div>
+										<div>@FormatTokenCount(model.ReasoningTokens)</div>
+										<div>@FormatTokenCount(model.CacheReadTokens)</div>
+									</div>
+								}
+							</div>
+						}
+					</div>
+				</div>
+			</div>
+		}
 	</div>
 
 	<div class="td-status-bar">
@@ -248,9 +381,9 @@
 			<span>No file selected</span>
 		}
 		<span class="td-status-sep">•</span>
-		<span>@_traces.Count traces</span>
+		<span>@_filteredTraces.Count traces</span>
 		<span class="td-status-sep">•</span>
-		<span>@_allSpans.Count spans</span>
+		<span>@_sessionFilteredSpans.Count spans</span>
 	</div>
 
 	@if(_selectedSpan is not null)

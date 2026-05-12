@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Cockpit.Features.Telemetry.Models;
+using Cockpit.Utilities.Logging;
 
 namespace Cockpit.Features.Telemetry;
 
@@ -11,7 +12,16 @@ sealed class TelemetryFileService
 	long _cachedFileSize;
 	List<TelemetryTrace> _cachedTraces = [];
 
-	public string TelemetryDirectory { get; } = Path.Combine(FileSystem.AppDataDirectory, "telemetry");
+	public string TelemetryDirectory { get; } = ResolveTelemetryDirectory();
+
+	static string ResolveTelemetryDirectory()
+	{
+		string logDir = LogDirectoryHelper.LogDirectory;
+		string cockpitRoot = Path.GetDirectoryName(logDir)!;
+		string dir = Path.Combine(cockpitRoot, "telemetry");
+		Directory.CreateDirectory(dir);
+		return dir;
+	}
 
 	public List<TelemetryFileInfo> GetAvailableFiles()
 	{

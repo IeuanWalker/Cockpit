@@ -16,17 +16,23 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 	readonly TelemetryFileService _telemetryFileService;
 
 	CancellationTokenSource? _loadCts;
+	CancellationTokenSource? _autoRefreshCts;
 	bool _loadingFiles = true;
 	bool _loadingData = true;
+	bool _autoRefresh;
 	string _spanSearch = string.Empty;
 	string _loadError = string.Empty;
 	string? _selectedFilePath;
+	string? _selectedSessionId;
 	TelemetryDashboardTab _activeTab = TelemetryDashboardTab.Traces;
 
 	List<TelemetryFileInfo> _files = [];
 	List<TelemetryTrace> _traces = [];
+	List<TelemetryTrace> _filteredTraces = [];
 	List<TelemetrySpan> _allSpans = [];
+	List<TelemetrySpan> _sessionFilteredSpans = [];
 	List<TelemetrySpan> _filteredSpans = [];
+	List<string> _uniqueSessionIds = [];
 	List<TelemetryTimelineRow> _timelineRows = [];
 	TelemetryTrace? _selectedTrace;
 	TelemetrySpan? _selectedSpan;
@@ -160,9 +166,6 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 			return;
 		}
 
-		string? previousTraceId = _selectedTrace?.TraceId;
-		(string traceId, string spanId)? previousSpan = _selectedSpan is null ? null : (_selectedSpan.TraceId, _selectedSpan.SpanId);
-
 		_traces = [..
 			readTracesTask.Result
 				.OrderByDescending(trace => ToDateTimeOffset(trace.StartTime) ?? DateTimeOffset.MinValue)
@@ -174,23 +177,30 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 				.ThenBy(span => span.TraceId)
 				.ThenBy(span => span.SpanId)];
 
-		_selectedTrace = previousTraceId is null
-			? _traces.FirstOrDefault()
-			: _traces.FirstOrDefault(trace => trace.TraceId == previousTraceId) ?? _traces.FirstOrDefault();
+		_uniqueSessionIds = [..
+			_allSpans
+				.Select(span => span.Attributes.TryGetValue("gen_ai.conversation.id", out string? sessionId) ? sessionId : null)
+				.Where(sessionId => !string.IsNullOrWhiteSpace(sessionId))
+				.Select(sessionId => sessionId!)
+				.Distinct(StringComparer.Ordinal)
+				.OrderBy(sessionId => sessionId, StringComparer.Ordinal)];
 
-		_selectedSpan = previousSpan is null
-			? null
-			: _allSpans.FirstOrDefault(span => span.TraceId == previousSpan.Value.traceId && span.SpanId == previousSpan.Value.spanId);
+		if(_selectedSessionId is not null && !_uniqueSessionIds.Contains(_selectedSessionId, StringComparer.Ordinal))
+		{
+			_selectedSessionId = null;
+		}
 
-		ApplySpanFilter();
-		UpdateTimelineRows();
+		ApplySessionFilter();
 	}
 
 	void ClearData()
 	{
 		_traces = [];
+		_filteredTraces = [];
 		_allSpans = [];
+		_sessionFilteredSpans = [];
 		_filteredSpans = [];
+		_uniqueSessionIds = [];
 		_timelineRows = [];
 		_selectedTrace = null;
 		_selectedSpan = null;
@@ -216,6 +226,134 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 		_loadingFiles = false;
 		_loadingData = false;
 		_ = InvokeAsync(StateHasChanged);
+	}
+
+	void ToggleAutoRefresh()
+	{
+		_autoRefresh = !_autoRefresh;
+		if(_autoRefresh)
+		{
+			StartAutoRefresh();
+		}
+		else
+		{
+			StopAutoRefresh();
+		}
+	}
+
+	void StartAutoRefresh()
+	{
+		StopAutoRefresh();
+		CancellationTokenSource cts = new();
+		_autoRefreshCts = cts;
+		_ = AutoRefreshLoopAsync(cts.Token);
+	}
+
+	void StopAutoRefresh()
+	{
+		CancellationTokenSource? previous = Interlocked.Exchange(ref _autoRefreshCts, null);
+		previous?.Cancel();
+		previous?.Dispose();
+	}
+
+	async Task AutoRefreshLoopAsync(CancellationToken ct)
+	{
+		using PeriodicTimer timer = new(TimeSpan.FromSeconds(3));
+		try
+		{
+			while(await timer.WaitForNextTickAsync(ct))
+			{
+				if(_loadingFiles || _loadingData)
+				{
+					continue;
+				}
+
+				await SilentReloadAsync(ct);
+			}
+		}
+		catch(OperationCanceledException)
+		{
+		}
+	}
+
+	/// <summary>
+	/// Reloads the current file without showing loading spinners.
+	/// The TelemetryFileService cache checks file size + last write time,
+	/// so unchanged files return instantly with no re-parse.
+	/// </summary>
+	async Task SilentReloadAsync(CancellationToken ct)
+	{
+		TelemetryFileInfo? selectedFile = ResolveSelectedFile(_selectedFilePath);
+		if(selectedFile is null)
+		{
+			return;
+		}
+
+		try
+		{
+			Task<List<TelemetryTrace>> readTracesTask = _telemetryFileService.ReadTracesAsync(selectedFile.FullPath, ct);
+			Task<List<TelemetrySpan>> readSpansTask = _telemetryFileService.ReadAllSpansAsync(selectedFile.FullPath, ct);
+			await Task.WhenAll(readTracesTask, readSpansTask);
+
+			if(ct.IsCancellationRequested)
+			{
+				return;
+			}
+
+			List<TelemetryTrace> newTraces = readTracesTask.Result;
+			List<TelemetrySpan> newSpans = readSpansTask.Result;
+
+			// Skip UI update if data hasn't changed
+			if(newTraces.Count == _traces.Count && newSpans.Count == _allSpans.Count)
+			{
+				return;
+			}
+
+			string? previousTraceId = _selectedTrace?.TraceId;
+			(string traceId, string spanId)? previousSpan = _selectedSpan is null ? null : (_selectedSpan.TraceId, _selectedSpan.SpanId);
+
+			_traces = [..
+				newTraces
+					.OrderByDescending(trace => ToDateTimeOffset(trace.StartTime) ?? DateTimeOffset.MinValue)
+					.ThenBy(trace => trace.TraceId)];
+
+			_allSpans = [..
+				newSpans
+					.OrderByDescending(span => ToDateTimeOffset(span.StartTime) ?? DateTimeOffset.MinValue)
+					.ThenBy(span => span.TraceId)
+					.ThenBy(span => span.SpanId)];
+
+			_uniqueSessionIds = [..
+				_allSpans
+					.Select(span => span.Attributes.TryGetValue("gen_ai.conversation.id", out string? sessionId) ? sessionId : null)
+					.Where(sessionId => !string.IsNullOrWhiteSpace(sessionId))
+					.Select(sessionId => sessionId!)
+					.Distinct(StringComparer.Ordinal)
+					.OrderBy(sessionId => sessionId, StringComparer.Ordinal)];
+
+			if(_selectedSessionId is not null && !_uniqueSessionIds.Contains(_selectedSessionId, StringComparer.Ordinal))
+			{
+				_selectedSessionId = null;
+			}
+
+			_selectedTrace = previousTraceId is null
+				? _traces.FirstOrDefault()
+				: _traces.FirstOrDefault(trace => trace.TraceId == previousTraceId) ?? _traces.FirstOrDefault();
+
+			_selectedSpan = previousSpan is null
+				? null
+				: _allSpans.FirstOrDefault(span => span.TraceId == previousSpan.Value.traceId && span.SpanId == previousSpan.Value.spanId);
+
+			ApplySessionFilter();
+			await InvokeAsync(StateHasChanged);
+		}
+		catch(OperationCanceledException)
+		{
+		}
+		catch
+		{
+			// Silently ignore errors during auto-refresh
+		}
 	}
 
 	TelemetryFileInfo? ResolveSelectedFile(string? filePath)
@@ -262,7 +400,7 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 	void SelectSpan(TelemetrySpan span)
 	{
 		_selectedSpan = _selectedSpan?.TraceId == span.TraceId && _selectedSpan.SpanId == span.SpanId ? null : span;
-		_selectedTrace = _traces.FirstOrDefault(trace => trace.TraceId == span.TraceId) ?? _selectedTrace;
+		_selectedTrace = _filteredTraces.FirstOrDefault(trace => trace.TraceId == span.TraceId) ?? _selectedTrace;
 		UpdateTimelineRows();
 	}
 
@@ -271,16 +409,62 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 		_selectedSpan = null;
 	}
 
+	void OnSessionFilterChanged(ChangeEventArgs args)
+	{
+		string? sessionId = args.Value?.ToString();
+		_selectedSessionId = string.IsNullOrWhiteSpace(sessionId) ? null : sessionId;
+		ApplySessionFilter();
+	}
+
 	void OnSpanSearchChanged(ChangeEventArgs args)
 	{
 		_spanSearch = args.Value?.ToString() ?? string.Empty;
 		ApplySpanFilter();
 	}
 
+	void ApplySessionFilter()
+	{
+		string? previousTraceId = _selectedTrace?.TraceId;
+		(string traceId, string spanId)? previousSpan = _selectedSpan is null ? null : (_selectedSpan.TraceId, _selectedSpan.SpanId);
+
+		if(_selectedSessionId is null)
+		{
+			_filteredTraces = _traces;
+			_sessionFilteredSpans = _allSpans;
+		}
+		else
+		{
+			HashSet<string> matchingTraceIds = new(
+				_allSpans
+					.Where(span => span.Attributes.TryGetValue("gen_ai.conversation.id", out string? sessionId)
+						&& StringComparer.Ordinal.Equals(sessionId, _selectedSessionId))
+					.Select(span => span.TraceId),
+				StringComparer.Ordinal);
+
+			_filteredTraces = [..
+				_traces.Where(trace => matchingTraceIds.Contains(trace.TraceId))];
+
+			_sessionFilteredSpans = [..
+				_allSpans.Where(span => matchingTraceIds.Contains(span.TraceId))];
+		}
+
+		ApplySpanFilter();
+
+		_selectedTrace = previousTraceId is null
+			? _filteredTraces.FirstOrDefault()
+			: _filteredTraces.FirstOrDefault(trace => trace.TraceId == previousTraceId) ?? _filteredTraces.FirstOrDefault();
+
+		_selectedSpan = previousSpan is null
+			? null
+			: _sessionFilteredSpans.FirstOrDefault(span => span.TraceId == previousSpan.Value.traceId && span.SpanId == previousSpan.Value.spanId);
+
+		UpdateTimelineRows();
+	}
+
 	void ApplySpanFilter()
 	{
 		string search = _spanSearch.Trim();
-		IEnumerable<TelemetrySpan> spans = _allSpans;
+		IEnumerable<TelemetrySpan> spans = _sessionFilteredSpans;
 
 		if(search.Length > 0)
 		{
@@ -420,6 +604,75 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 	{
 		return trace.Spans.FirstOrDefault(span => string.IsNullOrWhiteSpace(span.ParentSpanId))
 			?? trace.Spans.OrderBy(span => ToDateTimeOffset(span.StartTime) ?? DateTimeOffset.MinValue).FirstOrDefault();
+	}
+
+	List<(string ToolName, int Count)> GetToolUsageRanking()
+	{
+		return _sessionFilteredSpans
+			.Where(span => span.Attributes.TryGetValue("gen_ai.operation.name", out string? operationName) && operationName == "execute_tool")
+			.Select(span => span.Attributes.TryGetValue("gen_ai.tool.name", out string? toolName) ? toolName : "(unknown)")
+			.GroupBy(toolName => toolName)
+			.Select(group => (ToolName: group.Key, Count: group.Count()))
+			.OrderByDescending(item => item.Count)
+			.ToList();
+	}
+
+	List<(string Model, int Calls, long InputTokens, long OutputTokens, long ReasoningTokens, long CacheReadTokens)> GetModelBreakdown()
+	{
+		return _sessionFilteredSpans
+			.Where(span => span.Attributes.TryGetValue("gen_ai.operation.name", out string? operationName) && operationName == "chat")
+			.GroupBy(span => span.Attributes.TryGetValue("gen_ai.response.model", out string? model)
+				? model
+				: span.Attributes.TryGetValue("gen_ai.request.model", out string? requestModel)
+					? requestModel
+					: "(unknown)")
+			.Select(group => (
+				Model: group.Key,
+				Calls: group.Count(),
+				InputTokens: group.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("gen_ai.usage.input_tokens"))),
+				OutputTokens: group.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("gen_ai.usage.output_tokens"))),
+				ReasoningTokens: group.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("gen_ai.usage.reasoning.output_tokens"))),
+				CacheReadTokens: group.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("gen_ai.usage.cache_read.input_tokens")))))
+			.OrderByDescending(item => item.Calls)
+			.ToList();
+	}
+
+	(long TotalInputTokens, long TotalOutputTokens, long TotalReasoningTokens, long TotalCacheReadTokens, long TotalCost, int TotalErrors, int TotalTurns) GetAggregateStats()
+	{
+		List<TelemetrySpan> chatSpans = [..
+			_sessionFilteredSpans
+				.Where(span => span.Attributes.TryGetValue("gen_ai.operation.name", out string? operationName) && operationName == "chat")];
+
+		long inputTokens = chatSpans.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("gen_ai.usage.input_tokens")));
+		long outputTokens = chatSpans.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("gen_ai.usage.output_tokens")));
+		long reasoningTokens = chatSpans.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("gen_ai.usage.reasoning.output_tokens")));
+		long cacheReadTokens = chatSpans.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("gen_ai.usage.cache_read.input_tokens")));
+		long totalCost = chatSpans.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("github.copilot.cost")));
+		int errors = _sessionFilteredSpans.Count(span => span.Status == SpanStatusEnum.Error);
+		int turns = chatSpans
+			.Select(span => span.Attributes.GetValueOrDefault("github.copilot.turn_id"))
+			.Where(turn => turn is not null)
+			.Distinct()
+			.Count();
+
+		return (inputTokens, outputTokens, reasoningTokens, cacheReadTokens, totalCost, errors, turns);
+	}
+
+	static long ParseLong(string? value) => long.TryParse(value, out long result) ? result : 0;
+
+	static string FormatTokenCount(long tokens)
+	{
+		if(tokens >= 1_000_000)
+		{
+			return $"{tokens / 1_000_000d:0.##}M";
+		}
+
+		if(tokens >= 1_000)
+		{
+			return $"{tokens / 1_000d:0.#}K";
+		}
+
+		return tokens.ToString("N0");
 	}
 
 	void OpenFolder()
@@ -596,6 +849,7 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 	public ValueTask DisposeAsync()
 	{
 		_themeStateFeature.OnThemeChanged -= OnThemeChangedHandler;
+		StopAutoRefresh();
 		CancellationTokenSource? cts = Interlocked.Exchange(ref _loadCts, null);
 		cts?.Cancel();
 		cts?.Dispose();
@@ -608,6 +862,7 @@ enum TelemetryDashboardTab
 	Traces,
 	Spans,
 	Timeline,
+	Stats,
 }
 
 sealed record TelemetryTimelineRow(TelemetrySpan Span, int Depth, double LeftPercent, double WidthPercent);

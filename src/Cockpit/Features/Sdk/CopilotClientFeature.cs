@@ -1,4 +1,5 @@
-﻿using GitHub.Copilot.SDK;
+﻿using Cockpit.Utilities.Logging;
+using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sdk;
@@ -74,7 +75,8 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 
 			if(_appSettings.TelemetryEnabled)
 			{
-				string telemetryDir = Path.Combine(FileSystem.AppDataDirectory, "telemetry");
+				string cockpitRoot = Path.GetDirectoryName(LogDirectoryHelper.LogDirectory)!;
+				string telemetryDir = Path.Combine(cockpitRoot, "telemetry");
 				Directory.CreateDirectory(telemetryDir);
 				string telemetryPath = Path.Combine(telemetryDir, $"otel-{DateTime.UtcNow:yyyyMMdd}.jsonl");
 

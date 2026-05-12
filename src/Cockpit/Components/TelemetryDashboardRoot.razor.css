@@ -27,6 +27,11 @@
 	flex: 1;
 }
 
+.td-top-group--narrow {
+	min-width: min(240px, 100%);
+	flex: 0 1 280px;
+}
+
 .td-label,
 .td-summary-label,
 .td-section-title,
@@ -90,6 +95,30 @@
 .td-btn--accent {
 	border-color: var(--accent-color);
 	color: var(--accent-color);
+}
+
+.td-btn--live {
+	border-color: #22c55e;
+	color: #22c55e;
+	background: rgba(34, 197, 94, 0.08);
+}
+
+.td-btn--live:hover:not(:disabled) {
+	background: rgba(34, 197, 94, 0.16);
+}
+
+.td-live-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: #22c55e;
+	animation: td-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes td-pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.35; }
 }
 
 .td-tab-bar {
@@ -494,6 +523,152 @@
 	font-size: 0.76rem;
 	font-weight: 600;
 	color: var(--text-color);
+}
+
+/* Stats tab */
+.td-stats-panel {
+	overflow: auto;
+	padding: 1rem;
+}
+
+.td-stats-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	gap: 0.75rem;
+	margin-bottom: 1.25rem;
+}
+
+.td-stat-card {
+	padding: 0.85rem;
+	border: 1px solid var(--border-color);
+	border-radius: 0.55rem;
+	background-color: var(--sidebar-color);
+	text-align: center;
+}
+
+.td-stat-value {
+	font-size: 1.35rem;
+	font-weight: 700;
+	font-family: "Cascadia Code", "Consolas", "Menlo", monospace;
+	color: var(--text-color);
+	line-height: 1.3;
+}
+
+.td-stat-value--error {
+	color: #ef4444;
+}
+
+.td-stat-value--ok {
+	color: var(--text-color);
+}
+
+.td-stat-label {
+	font-size: 0.68rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--secondary-text);
+	margin-top: 0.3rem;
+}
+
+.td-stats-sections {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+	gap: 1.25rem;
+}
+
+.td-stats-section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.65rem;
+	padding: 0.85rem;
+	border: 1px solid var(--border-color);
+	border-radius: 0.55rem;
+	background-color: var(--sidebar-color);
+}
+
+/* Tool usage bar chart */
+.td-tool-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.td-tool-row {
+	display: grid;
+	grid-template-columns: 140px 1fr 48px;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.td-tool-name {
+	font-size: 0.74rem;
+	font-family: "Cascadia Code", "Consolas", "Menlo", monospace;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: var(--text-color);
+}
+
+.td-tool-bar-wrap {
+	height: 16px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--hover-color) 70%, var(--bg-color));
+	overflow: hidden;
+}
+
+.td-tool-bar {
+	height: 100%;
+	border-radius: 999px;
+	background-color: var(--accent-color);
+	min-width: 2px;
+	transition: width 0.2s ease;
+}
+
+.td-tool-count {
+	font-size: 0.72rem;
+	font-weight: 600;
+	font-family: "Cascadia Code", "Consolas", "Menlo", monospace;
+	color: var(--secondary-text);
+	text-align: right;
+}
+
+/* Model breakdown table */
+.td-model-table {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.td-model-head,
+.td-model-row {
+	display: grid;
+	grid-template-columns: minmax(120px, 1.5fr) repeat(5, 1fr);
+	gap: 0.5rem;
+	padding: 0.45rem 0.5rem;
+	align-items: center;
+	font-size: 0.72rem;
+}
+
+.td-model-head {
+	font-size: 0.68rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--secondary-text);
+	border-bottom: 1px solid var(--border-color);
+}
+
+.td-model-row {
+	border-bottom: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
+	font-family: "Cascadia Code", "Consolas", "Menlo", monospace;
+	color: var(--text-color);
+}
+
+.td-model-name {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 @media (max-width: 900px) {
