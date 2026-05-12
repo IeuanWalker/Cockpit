@@ -159,5 +159,4 @@ public sealed class GlobalDenyFeature
 			_logger.LogError(ex, "Failed to save deny list to {Path}", _denyFilePath);
 		}
 	}
-
 }
