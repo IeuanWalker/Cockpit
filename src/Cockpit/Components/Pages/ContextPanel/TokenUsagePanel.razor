@@ -1,0 +1,58 @@
+<div class="token-usage-panel border-t border-app-border">
+    @if(CurrentSession is not null && CurrentSession.TokenUsageInfo is not null)
+    {
+        <div class="token-usage-header">
+            <span class="token-usage-label">CONTEXT WINDOW</span>
+            <button type="button"
+                    class="token-usage-info-btn"
+                    title="View token breakdown"
+                    @onclick="OpenBreakdown">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="token-usage-bar-row">
+            <div class="token-usage-bar-track">
+                <div class="token-usage-bar-fill"
+                     style="width: @(UsagePercent.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%; background-color: @BarColor;"></div>
+            </div>
+            <span class="token-usage-counts">@FormatTokens(CurrentSession.TokenUsageInfo.CurrentTokens) / @FormatTokens(CurrentSession.TokenUsageInfo.TokenLimit)</span>
+        </div>
+
+        <div class="token-usage-actions">
+            <button type="button"
+                    class="token-compact-btn @(IsCompactDisabled ? "disabled" : string.Empty)"
+                    disabled="@IsCompactDisabled"
+                    title="@CompactTooltip"
+                    @onclick="RunCompact">
+                @if(CurrentSession.IsCompacting)
+                {
+                    <svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Compacting…</span>
+                }
+                else
+                {
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                    <span>Compact</span>
+                }
+            </button>
+        </div>
+    }
+    else if(CurrentSession is not null)
+    {
+        <div class="token-usage-header">
+            <span class="token-usage-label">CONTEXT WINDOW</span>
+        </div>
+        <div class="token-usage-waiting">
+            <span>Waiting for usage data…</span>
+        </div>
+    }
+</div>
+
+<TokenUsageBreakdownPopup @ref="_breakdownPopup" />

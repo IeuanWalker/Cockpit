@@ -117,4 +117,17 @@ public class SessionModel
 	/// Updated by <c>PendingMessagesModifiedEvent</c> processing.
 	/// </summary>
 	public int PendingMessageCount { get; set; }
+
+	/// <summary>
+	/// Latest token usage info received from <c>session.usage_info</c> events.
+	/// <see langword="null"/> until the first usage event is received.
+	/// </summary>
+	public TokenUsageInfoModel? TokenUsageInfo { get; set; }
+
+	/// <summary>
+	/// <see langword="true"/> while a context compaction operation is in progress.
+	/// Set to <see langword="true"/> on <c>session.compaction_start</c> and cleared on
+	/// <c>session.compaction_complete</c>.
+	/// </summary>
+	public bool IsCompacting { get; set; }
 }

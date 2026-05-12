@@ -140,11 +140,13 @@ public sealed class SessionEventProcessor
 
 				case SessionCompactionStartEvent:
 					_logger.LogInformation("Session {SessionId} started context compaction", session.Id);
+					session.IsCompacting = true;
 					break;
 
 				case SessionCompactionCompleteEvent compaction:
 					_logger.LogInformation("Session {SessionId} completed compaction: {TokensRemoved} tokens removed",
 						session.Id, compaction.Data?.TokensRemoved);
+					session.IsCompacting = false;
 					break;
 
 				case AssistantIntentEvent intent:
@@ -178,25 +180,7 @@ public sealed class SessionEventProcessor
 				case SessionContextChangedEvent ctxChanged:
 					_logger.LogInformation("Session {SessionId} context changed — cwd: {Cwd}, repo: {Repo}, branch: {Branch}",
 						session.Id, ctxChanged.Data?.Cwd, ctxChanged.Data?.Repository, ctxChanged.Data?.Branch);
-					if(ctxChanged.Data is not null)
-					{
-						if(ctxChanged.Data.Cwd is not null)
-						{
-							session.Context.CurrentWorkingDirectory = ctxChanged.Data.Cwd;
-						}
-						if(ctxChanged.Data.GitRoot is not null)
-						{
-							session.Context.GitRoot = ctxChanged.Data.GitRoot;
-						}
-						if(ctxChanged.Data.Repository is not null)
-						{
-							session.Context.Repository = ctxChanged.Data.Repository;
-						}
-						if(ctxChanged.Data.Branch is not null)
-						{
-							session.Context.Branch = ctxChanged.Data.Branch;
-						}
-					}
+					SessionContextChangedHandler.Handle(session, ctxChanged);
 					break;
 
 				case SessionModeChangedEvent modeChanged:
@@ -222,6 +206,7 @@ public sealed class SessionEventProcessor
 				case SessionUsageInfoEvent usageInfo:
 					_logger.LogDebug("Session {SessionId} usage info — {Current}/{Limit} tokens, {Messages} messages",
 						session.Id, usageInfo.Data?.CurrentTokens, usageInfo.Data?.TokenLimit, usageInfo.Data?.MessagesLength);
+					SessionUsageInfoHandler.Handle(session, usageInfo);
 					break;
 
 				case SessionPlanChangedEvent planChanged:
