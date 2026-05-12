@@ -14,7 +14,6 @@ public sealed partial class GitBranch : ComponentBase, IDisposable
 
 	string CurrentBranch => _sessionListFeature.CurrentSession?.Context?.Branch ?? string.Empty;
 
-	// Null acts as "not yet rendered" sentinel; empty string is a valid branch value.
 	string? _renderedBranch;
 
 	protected override bool ShouldRender()
@@ -32,8 +31,6 @@ public sealed partial class GitBranch : ComponentBase, IDisposable
 	protected override void OnInitialized()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;
-		// Seed the sentinel so the first StateHasChanged after initial render doesn't
-		// unconditionally re-render when nothing has actually changed.
 		_renderedBranch = CurrentBranch;
 	}
 
