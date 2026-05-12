@@ -17,11 +17,4 @@ public static class MessageTurnModeExtensions
 	/// </summary>
 	public static string ToSdkToken(this MessageTurnModeEnum mode) =>
 		mode == MessageTurnModeEnum.Enqueue ? EnqueueSdkToken : ImmediateSdkToken;
-
-	/// <summary>
-	/// Parses an SDK token string back to a <see cref="MessageTurnModeEnum"/>.
-	/// Unrecognised or <see langword="null"/> tokens fall back to <see cref="MessageTurnModeEnum.Immediate"/>.
-	/// </summary>
-	public static MessageTurnModeEnum FromSdkToken(string? token) =>
-		token == EnqueueSdkToken ? MessageTurnModeEnum.Enqueue : MessageTurnModeEnum.Immediate;
 }
