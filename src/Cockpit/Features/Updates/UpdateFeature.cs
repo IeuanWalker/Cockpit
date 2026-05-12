@@ -4,12 +4,12 @@ using Cockpit.Features.Updates.Models;
 
 namespace Cockpit.Features.Updates;
 
-public sealed class UpdateFeature : IDisposable
+public sealed partial class UpdateFeature : IDisposable
 {
 	static readonly TimeSpan checkInterval = TimeSpan.FromHours(1);
 	const string latestReleaseUrl = "https://api.github.com/repos/IeuanWalker/Cockpit/releases/latest";
 
-	static readonly JsonSerializerOptions _releaseJsonOptions = new()
+	static readonly JsonSerializerOptions releaseJsonOptions = new()
 	{
 		PropertyNameCaseInsensitive = true,
 		PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
@@ -92,9 +92,9 @@ public sealed class UpdateFeature : IDisposable
 				await CheckForUpdate(cancellationToken).ConfigureAwait(false);
 			}
 		}
-		catch(OperationCanceledException)
+		catch(Exception)
 		{
-			// Disposal requested; exit cleanly.
+			// Intentionally swallow exceptions to avoid crashing the app. The next periodic check will try again.
 		}
 	}
 
@@ -116,17 +116,12 @@ public sealed class UpdateFeature : IDisposable
 		{
 			GitHubReleaseModel? latest = await GetLatestRelease(cancellationToken);
 
-			if(latest?.TagName is null || !HasRequiredAssets(latest))
-			{
-				result = new UpdateCheckResult(false, _currentVersion, null);
-			}
-			else
-			{
-				result = new UpdateCheckResult(
+			result = latest?.TagName is null || !HasRequiredAssets(latest)
+				? new UpdateCheckResult(false, _currentVersion, null)
+				: new UpdateCheckResult(
 					IsNewerVersion(latest.TagName, _currentVersion),
 					_currentVersion,
 					latest);
-			}
 		}
 		catch
 		{
@@ -145,7 +140,7 @@ public sealed class UpdateFeature : IDisposable
 
 	async Task<GitHubReleaseModel?> GetLatestRelease(CancellationToken cancellationToken)
 	{
-		return await _httpClient.GetFromJsonAsync<GitHubReleaseModel>(latestReleaseUrl, _releaseJsonOptions, cancellationToken);
+		return await _httpClient.GetFromJsonAsync<GitHubReleaseModel>(latestReleaseUrl, releaseJsonOptions, cancellationToken);
 	}
 
 	internal static bool IsNewerVersion(string remoteVersion, string currentVersion)
