@@ -9,6 +9,7 @@ namespace Cockpit.UnitTests.Features.Terminal;
 /// </summary>
 sealed class FakePtyConnection : IPtyConnection, IDisposable
 {
+#pragma warning disable CS0067 // Events are never used; required to satisfy interface
 	readonly MemoryStream _readerStream;
 	readonly MemoryStream _writerStream = new();
 
@@ -41,4 +42,5 @@ sealed class FakePtyConnection : IPtyConnection, IDisposable
 		_readerStream.Dispose();
 		_writerStream.Dispose();
 	}
+#pragma warning restore CS0067
 }
