@@ -45,7 +45,6 @@ public sealed partial class GitFeature
 			}
 
 			using Process process = Process.Start(psi)!;
-			// Read stdout and stderr concurrently to prevent deadlock on large output.
 			Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
 			Task<string> stderrTask = process.StandardError.ReadToEndAsync();
 			await Task.WhenAll(stdoutTask, stderrTask, process.WaitForExitAsync());
@@ -66,7 +65,6 @@ public sealed partial class GitFeature
 	{
 		try
 		{
-			// Run all three git queries in parallel to minimise latency.
 			Task<string?> rootTask = RunCommand(workingDirectory, "rev-parse", "--show-toplevel");
 			Task<string?> branchTask = RunCommand(workingDirectory, "rev-parse", "--abbrev-ref", "HEAD");
 			Task<string?> remoteTask = RunCommand(workingDirectory, "remote", "get-url", "origin");
@@ -79,7 +77,6 @@ public sealed partial class GitFeature
 			string? repository = null;
 			if(!string.IsNullOrEmpty(remoteUrl))
 			{
-				// Handle both HTTPS (https://github.com/owner/repo.git) and SSH (git@github.com:owner/repo.git)
 				string lastSegment = remoteUrl.TrimEnd('/').Split('/').Last().Split(':').Last();
 				repository = Path.GetFileNameWithoutExtension(lastSegment);
 			}
@@ -230,9 +227,9 @@ public sealed partial class GitFeature
 			char esc = inner[++i];
 			switch(esc)
 			{
-				case 'n':  sb.Append('\n'); i++; break;
-				case 't':  sb.Append('\t'); i++; break;
-				case '"':  sb.Append('"');  i++; break;
+				case 'n': sb.Append('\n'); i++; break;
+				case 't': sb.Append('\t'); i++; break;
+				case '"': sb.Append('"'); i++; break;
 				case '\\': sb.Append('\\'); i++; break;
 				default:
 					// Octal escape: \NNN
@@ -407,7 +404,7 @@ public sealed partial class GitFeature
 		}
 	}
 
-	sealed class GitWatcher : IDisposable
+	sealed partial class GitWatcher : IDisposable
 	{
 		readonly FileSystemWatcher _watcher;
 		readonly System.Timers.Timer _debounce;

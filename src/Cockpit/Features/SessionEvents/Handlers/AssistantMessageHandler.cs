@@ -9,11 +9,6 @@ static class AssistantMessageHandler
 {
 	internal static void Handle(SessionModel session, AssistantMessageEvent evt)
 	{
-		if(evt.Data is null)
-		{
-			return;
-		}
-
 		string messageId = evt.Data.MessageId ?? Guid.NewGuid().ToString();
 		string content = evt.Data.Content ?? string.Empty;
 

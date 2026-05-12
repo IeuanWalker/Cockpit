@@ -2,7 +2,7 @@ using System.Timers;
 
 namespace Cockpit.Features.Timestamp;
 
-sealed class TimestampFeature : ITimestampFeature, IDisposable
+sealed class TimestampFeature : ITimestampFeature
 {
 	readonly System.Timers.Timer _timer;
 	readonly TimeProvider _timeProvider;
@@ -87,9 +87,4 @@ sealed class TimestampFeature : ITimestampFeature, IDisposable
 		return $"{duration.TotalHours:F1}h";
 	}
 
-	public void Dispose()
-	{
-		_timer?.Stop();
-		_timer?.Dispose();
-	}
 }

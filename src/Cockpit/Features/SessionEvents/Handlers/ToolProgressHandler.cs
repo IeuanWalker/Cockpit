@@ -8,7 +8,7 @@ static class ToolProgressHandler
 {
 	internal static void Handle(SessionModel session, ToolExecutionProgressEvent evt)
 	{
-		if(evt.Data is null || session.ActiveWorkingGroup is null)
+		if(session.ActiveWorkingGroup is null)
 		{
 			return;
 		}

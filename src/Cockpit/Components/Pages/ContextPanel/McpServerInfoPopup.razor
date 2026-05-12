@@ -3,9 +3,9 @@
 @using GitHub.Copilot.SDK.Rpc
 
 <PopupBase @ref="_popup"
-           Title="@($"MCP Servers ({_servers.Count})")"
-           PopupStyle="width: 1100px; height: 700px;"
-           ContentClass="flex-1 min-h-0 overflow-hidden">
+		   Title="@($"MCP Servers ({_servers.Count})")"
+		   PopupStyle="width: 1100px; height: 700px;"
+		   ContentClass="flex-1 min-h-0 overflow-hidden">
 	<HeaderRight>
 		<button class="ef-action-btn @(_isBusy ? string.Empty : "hover:bg-app-hover")" style="@(_isBusy ? "background-color: var(--accent-color);" : string.Empty)" @onclick="ReloadServers" disabled="@_isBusy" title="Reload MCP servers">
 			<svg class="w-3.5 h-3.5 @(_isBusy ? "animate-spin-reverse" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,13 +28,13 @@
 					bool isSelected = _selectedServer?.Name == server.Name;
 					<div class="ai-file-item @(isSelected ? "selected" : "")" @onclick="() => SelectServer(server)">
 						<input type="checkbox"
-						       class="mr-2 flex-shrink-0"
-						       style="accent-color: var(--accent-color);"
-						       checked="@(server.Status != McpServerStatus.Disabled)"
-						       disabled="@_isBusy"
-						       aria-label="@($"Enable {server.Name}")"
-						       @onclick:stopPropagation="true"
-						       @onchange="() => ToggleServer(server)" />
+							   class="mr-2 flex-shrink-0"
+							   style="accent-color: var(--accent-color);"
+							   checked="@(server.Status != McpServerStatus.Disabled)"
+							   disabled="@_isBusy"
+							   aria-label="@($"Enable {server.Name}")"
+							   @onclick:stopPropagation="true"
+							   @onchange="() => ToggleServer(server)" />
 						<span class="@GetStatusColor(server.Status) text-xs flex-shrink-0 mr-1">&#x25CF;</span>
 						<span class="text-xs truncate flex-1 min-w-0">@server.Name</span>
 					</div>
@@ -48,16 +48,16 @@
 				@if(_selectedServer is not null)
 				{
 					<div class="flex items-center justify-between px-4 py-2 flex-shrink-0 border-b text-xs"
-					     style="border-color: var(--input-border);">
+						 style="border-color: var(--input-border);">
 						<span class="font-mono font-medium" style="color: var(--text-color);">@_selectedServer.Name</span>
 						<span class="@GetStatusColor(_selectedServer.Status) px-2 py-0.5 rounded text-xs"
-						      style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
+							  style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
 							@McpFeature.GetStatusDisplayString(_selectedServer.Status)
 						</span>
 					</div>
 					<div class="flex-1 overflow-y-auto scrollbar-thin p-4 flex flex-col gap-4">
 						<div class="rounded p-3 text-xs"
-						     style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
+							 style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
 							<div class="font-semibold secondary-text uppercase tracking-widest mb-1" style="font-size: 10px;">Frontmatter</div>
 							<div class="grid gap-x-4 gap-y-0.5" style="grid-template-columns: auto 1fr;">
 								@if(_selectedServer.Source.HasValue)

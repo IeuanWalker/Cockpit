@@ -7,16 +7,14 @@ namespace Cockpit.Features.Markdown;
 /// <summary>
 /// Converts raw markdown to sanitised HTML using Markdig.
 /// Handles zero-width spaces, lone surrogate sanitisation, and code-block wrapping.
-/// Results are cached per instance (up to <see cref="MaxCacheEntries"/> entries) to avoid
+/// Results are cached per instance (up to <see cref="maxCacheEntries"/> entries) to avoid
 /// repeated parsing of the same content — useful when components re-render without new messages.
 /// </summary>
 public sealed partial class MarkdownFeature : IMarkdownFeature
 {
 	readonly MarkdownPipeline _pipeline;
-	// Dictionary is intentionally non-thread-safe: MarkdownFeature is registered as Scoped
-	// (per Blazor circuit), and each circuit runs on a single synchronization context.
 	readonly Dictionary<string, string> _cache = new(StringComparer.Ordinal);
-	const int MaxCacheEntries = 64;
+	const int maxCacheEntries = 64;
 
 	public MarkdownFeature()
 	{
@@ -63,7 +61,7 @@ public sealed partial class MarkdownFeature : IMarkdownFeature
 		return sb.ToString();
 	}
 
-	const string CopyButton = "<button type=\"button\" class=\"code-copy-button\">Copy</button>";
+	const string copyButton = "<button type=\"button\" class=\"code-copy-button\">Copy</button>";
 
 	static string WrapCodeBlocks(string html)
 	{
@@ -72,7 +70,7 @@ public sealed partial class MarkdownFeature : IMarkdownFeature
 			return html;
 		}
 
-		html = PreOpenTagRegex().Replace(html, m => $"<div class=\"code-block\">{CopyButton}{m.Value}");
+		html = PreOpenTagRegex().Replace(html, m => $"<div class=\"code-block\">{copyButton}{m.Value}");
 		html = html.Replace("</pre>", "</pre></div>");
 		return html;
 	}
@@ -108,7 +106,7 @@ public sealed partial class MarkdownFeature : IMarkdownFeature
 
 		string result = ComputeHtml(markdown);
 
-		if(_cache.Count >= MaxCacheEntries)
+		if(_cache.Count >= maxCacheEntries)
 		{
 			_cache.Clear();
 		}

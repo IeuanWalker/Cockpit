@@ -154,7 +154,7 @@ public sealed partial class SessionFeature
 
 			await _modelFeature.SaveSessionModel(chatSession);
 			await _agentPersistence.SaveSessionAgent(chatSession);
-			await _sessionModePersistence.SaveSessionModeAsync(chatSession);
+			await _sessionModePersistence.SaveSessionMode(chatSession);
 
 			await SwitchCurrentSessionAsync(chatSession);
 
@@ -284,7 +284,7 @@ public sealed partial class SessionFeature
 					await sdkSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Name);
 				}
 
-				await _sessionModePersistence.TryRestoreSessionModeAsync(session);
+				await _sessionModePersistence.TryRestoreSessionMode(session);
 				if(session.Context.SelectedAgentMode != Models.SessionAgentModeEnum.Interactive)
 				{
 					await sdkSession.Rpc.Mode.SetAsync(session.Context.SelectedAgentMode.ToSdkSessionMode());

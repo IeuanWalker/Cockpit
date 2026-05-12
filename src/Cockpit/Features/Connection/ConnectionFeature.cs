@@ -8,7 +8,7 @@ namespace Cockpit.Features.Connection;
 /// <summary>
 /// Periodically pings the Copilot backend and exposes connection health state.
 /// </summary>
-public sealed partial class ConnectionFeature : IDisposable
+public sealed partial class ConnectionFeature
 {
 	readonly ICopilotPingService _pingService;
 	readonly ILogger<ConnectionFeature> _logger;
@@ -55,8 +55,6 @@ public sealed partial class ConnectionFeature : IDisposable
 	/// </summary>
 	public async Task Initialize(CancellationToken cancellationToken = default)
 	{
-		// Use non-cancellable WaitAsync so the cancellationToken only controls the Ping call,
-		// not the queue position — this preserves correct retry semantics.
 		await _initializationLock.WaitAsync(CancellationToken.None);
 		try
 		{
@@ -167,12 +165,7 @@ public sealed partial class ConnectionFeature : IDisposable
 		}
 	}
 
-	public void Dispose()
-	{
-		_timer?.Dispose();
-		_initializationLock.Dispose();
-		GC.SuppressFinalize(this);
-	}
+
 
 	void OnTimerTick(object? _)
 	{

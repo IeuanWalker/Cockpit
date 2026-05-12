@@ -18,8 +18,6 @@ public sealed partial class EditedFiles : ComponentBase, IDisposable
 
 	List<GitChangedFileModel> Files => _sessionListFeature.CurrentSession?.Context?.EditedFiles ?? [];
 
-	// Track the raw list reference (before ??) to avoid spurious re-renders when the
-	// property getter creates a new empty list for a null EditedFiles each call.
 	List<GitChangedFileModel>? _renderedFilesList;
 	int _renderedFilesCount = -1;
 
@@ -41,8 +39,6 @@ public sealed partial class EditedFiles : ComponentBase, IDisposable
 	protected override void OnInitialized()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;
-		// Seed the sentinel so the first StateHasChanged after initial render doesn't
-		// unconditionally re-render when nothing has actually changed.
 		List<GitChangedFileModel>? list = _sessionListFeature.CurrentSession?.Context?.EditedFiles;
 		_renderedFilesList = list;
 		_renderedFilesCount = list?.Count ?? 0;

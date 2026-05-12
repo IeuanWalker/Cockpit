@@ -13,11 +13,6 @@ static class AssistantReasoningDeltaHandler
 	/// </summary>
 	internal static void Handle(SessionModel session, AssistantReasoningDeltaEvent evt)
 	{
-		if(evt.Data is null)
-		{
-			return;
-		}
-
 		string deltaContent = evt.Data.DeltaContent ?? string.Empty;
 		if(string.IsNullOrEmpty(deltaContent))
 		{

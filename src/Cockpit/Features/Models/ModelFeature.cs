@@ -1,28 +1,28 @@
+using Cockpit.Features.Sdk;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Models;
 
-public sealed partial class ModelFeature : IModelFeature, IDisposable
+public sealed partial class ModelFeature : IModelFeature
 {
+	readonly CopilotClientFeature _clientFeature;
 	readonly ILogger<ModelFeature> _logger;
-	public ModelFeature(ILogger<ModelFeature> logger)
+
+	public ModelFeature(CopilotClientFeature clientFeature, ILogger<ModelFeature> logger)
 	{
+		_clientFeature = clientFeature;
 		_logger = logger;
 	}
 
-	// volatile ensures the un-guarded early-exit read on line ~23 sees the latest value
+	// volatile ensures the un-guarded early-exit read sees the latest value
 	// written under the semaphore without requiring a full lock acquire.
 	volatile IReadOnlyList<ModelInfo>? _models;
 	readonly SemaphoreSlim _fetchLock = new(1, 1);
-	// volatile so cross-thread disposal checks see the latest write immediately.
-	volatile bool _disposed;
 
 	/// <inheritdoc />
 	public async ValueTask<IReadOnlyList<ModelInfo>> GetModels(CancellationToken cancellationToken = default)
 	{
-		ObjectDisposedException.ThrowIf(_disposed, this);
-
 		if(_models is not null)
 		{
 			return _models;
@@ -37,9 +37,7 @@ public sealed partial class ModelFeature : IModelFeature, IDisposable
 				return _models;
 			}
 
-			// A short-lived client is used here so model listing does not depend on the
-			// singleton CopilotClientFeature being initialised first (e.g. during splash).
-			await using CopilotClient client = new();
+			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
 			IList<ModelInfo> fetched = await client.ListModelsAsync(cancellationToken);
 			_models = [.. fetched]; // snapshot to IReadOnlyList to prevent external mutation
 		}
@@ -59,7 +57,6 @@ public sealed partial class ModelFeature : IModelFeature, IDisposable
 	/// <inheritdoc />
 	public async ValueTask<ModelInfo> GetDefaultModel(CancellationToken cancellationToken = default)
 	{
-		ObjectDisposedException.ThrowIf(_disposed, this);
 		IReadOnlyList<ModelInfo> models = _models ?? await GetModels(cancellationToken);
 		return SelectDefaultModel(models);
 	}
@@ -104,16 +101,4 @@ public sealed partial class ModelFeature : IModelFeature, IDisposable
 		return secondFree ?? firstFree ?? models[0];
 	}
 
-	public void Dispose()
-	{
-		if(_disposed)
-		{
-			return;
-		}
-
-		_disposed = true;
-		_fetchLock.Dispose();
-		_persistLock.Dispose();
-		GC.SuppressFinalize(this);
-	}
 }

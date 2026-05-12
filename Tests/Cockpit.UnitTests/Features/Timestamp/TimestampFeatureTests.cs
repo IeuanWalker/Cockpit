@@ -3,7 +3,7 @@ using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Timestamp;
 
-public sealed class TimestampFeatureTests : IDisposable
+public sealed class TimestampFeatureTests
 {
 	/// <summary>Frozen provider whose "now" can be set per-test.</summary>
 	readonly ManualTimeProvider _time = new();
@@ -13,8 +13,6 @@ public sealed class TimestampFeatureTests : IDisposable
 	{
 		_sut = new TimestampFeature(_time);
 	}
-
-	public void Dispose() => _sut.Dispose();
 
 	// -----------------------------------------------------------------------
 	// FormatRelative – happy-path rules

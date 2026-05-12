@@ -28,10 +28,6 @@ public sealed class SkillsFeature
 			_logger.LogInformation("Discovered {Count} skills for session", result.Skills.Count);
 			return [.. result.Skills];
 		}
-		catch(OperationCanceledException)
-		{
-			throw;
-		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load skills from SDK");

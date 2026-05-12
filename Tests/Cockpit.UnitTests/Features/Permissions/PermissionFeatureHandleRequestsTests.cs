@@ -19,8 +19,7 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 	const string sessionId = "session1";
 	const string workingDirectory = @"C:\projects\my-app";
 
-	// Disposables and temp files created by helpers; xUnit will call Dispose on the test class instance.
-	readonly List<IDisposable> _disposables = [];
+	// Temp files created by helpers; xUnit will call Dispose on the test class instance.
 	readonly List<string> _tempFiles = [];
 
 	// ── Helpers ──────────────────────────────────────────────────────────────
@@ -36,9 +35,7 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyFile);
 		configureDeny?.Invoke(denyFeature);
 
-		// Track created disposables and temp files so xUnit can clean them up via Dispose.
-		_disposables.Add(globalPermissions);
-		_disposables.Add(denyFeature);
+		// Track created temp files so xUnit can clean them up via Dispose.
 		_tempFiles.Add(globalFile);
 		_tempFiles.Add(denyFile);
 
@@ -620,15 +617,6 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 			return;
 		}
 
-		// Dispose in reverse creation order to avoid depending on disposed objects.
-		for(int i = _disposables.Count - 1; i >= 0; i--)
-		{
-			try
-			{
-				_disposables[i].Dispose();
-			}
-			catch { }
-		}
 
 		foreach(string f in _tempFiles)
 		{

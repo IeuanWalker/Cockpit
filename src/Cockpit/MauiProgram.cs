@@ -83,24 +83,19 @@ public static class MauiProgram
 		// Speech and Text features
 		builder.Services.AddSingleton<ISpeechToText, OfflineSpeechToTextImplementation>();
 		builder.Services.AddSingleton<ITextToSpeech>(TextToSpeech.Default);
-		builder.Services.AddSingleton<TextToSpeechFeature>();
-		builder.Services.AddSingleton<ITextToSpeechFeature>(sp => sp.GetRequiredService<TextToSpeechFeature>());
-		builder.Services.AddSingleton<SpeechToTextFeature>();
-		builder.Services.AddSingleton<ISpeechToTextFeature>(sp => sp.GetRequiredService<SpeechToTextFeature>());
+		builder.Services.AddSingleton<ITextToSpeechFeature, TextToSpeechFeature>();
+		builder.Services.AddSingleton<ISpeechToTextFeature, SpeechToTextFeature>();
 
 		// UI and App features
 		builder.Services.AddSingleton<IPreferencesStorage, MauiPreferencesStorage>();
 		builder.Services.AddSingleton<UserAppSettings>();
 		builder.Services.AddSingleton<IAppSettingsFeature, AppSettingsFeature>();
 		builder.Services.AddSingleton<ThemeStateFeature>();
-		builder.Services.AddScoped<ThemeFeature>();
-		builder.Services.AddScoped<IThemeFeature>(sp => sp.GetRequiredService<ThemeFeature>());
+		builder.Services.AddScoped<IThemeFeature, ThemeFeature>();
 		builder.Services.AddScoped<IMarkdownFeature, MarkdownFeature>();
-		builder.Services.AddSingleton<UIStateFeature>();
-		builder.Services.AddSingleton<IUIStateFeature>(sp => sp.GetRequiredService<UIStateFeature>());
+		builder.Services.AddSingleton<IUIStateFeature, UIStateFeature>();
 		builder.Services.AddSingleton(TimeProvider.System);
-		builder.Services.AddSingleton<TimestampFeature>();
-		builder.Services.AddSingleton<ITimestampFeature>(sp => sp.GetRequiredService<TimestampFeature>());
+		builder.Services.AddSingleton<ITimestampFeature, TimestampFeature>();
 		builder.Services.AddSingleton<TerminalFeature>();
 		builder.Services.AddSingleton<VsCodeFeature>();
 		builder.Services.AddSingleton<GitFeature>();
@@ -135,8 +130,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IUserInputHandler>(sp => sp.GetRequiredService<UserInputFeature>());
 		builder.Services.AddSingleton<IUserInputEventSource>(sp => sp.GetRequiredService<UserInputFeature>());
 
-		builder.Services.AddSingleton<ModelFeature>();
-		builder.Services.AddSingleton<IModelFeature>(sp => sp.GetRequiredService<ModelFeature>());
+		builder.Services.AddSingleton<IModelFeature, ModelFeature>();
 		builder.Services.AddSingleton(sp =>
 		{
 			// HttpClient is created exclusively for UpdateFeature, which takes ownership and disposes it.

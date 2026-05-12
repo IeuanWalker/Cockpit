@@ -2,7 +2,7 @@ using Cockpit.Features.Permissions;
 
 namespace Cockpit.Components.Popups.Settings;
 
-public sealed partial class PermissionSettings
+public sealed partial class PermissionSettings : IDisposable
 {
 	readonly GlobalPermissionFeature _globalPermissionFeature;
 	readonly GlobalDenyFeature _globalDenyFeature;

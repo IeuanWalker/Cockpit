@@ -15,11 +15,6 @@ static class UserMessageHandler
 
 	internal static void Handle(SessionModel session, UserMessageEvent evt, bool wasAgentBusy = false)
 	{
-		if(evt.Data is null)
-		{
-			return;
-		}
-
 		List<AttachmentModel>? attachments = ConvertAttachments(evt.Data.Attachments);
 
 		// Agent-synthesised messages (e.g. thinking-exhausted-continuation) are immediately

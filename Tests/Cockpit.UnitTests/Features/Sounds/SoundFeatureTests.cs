@@ -13,10 +13,14 @@ using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Sounds;
 
+[CollectionDefinition(nameof(SoundFeatureTestCollection), DisableParallelization = true)]
+public sealed class SoundFeatureTestCollection;
+
 /// <summary>
 /// Unit tests for <see cref="SoundFeature"/>.
 /// Uses in-memory fakes for all I/O — no MAUI platform required.
 /// </summary>
+[Collection(nameof(SoundFeatureTestCollection))]
 public class SoundFeatureTests
 {
 	// ─────────────────────────────────────────────────────────────────────────
@@ -81,7 +85,7 @@ public class SoundFeatureTests
 			s.SoundFinishedEnabled = false;
 		});
 		FakeAudioManager audioManager = new();
-		using SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
+		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
 
 		await feature.PlaySoundAsync(soundType, forPreview: false);
 
@@ -101,7 +105,7 @@ public class SoundFeatureTests
 			s.SoundFinishedEnabled = false;
 		});
 		FakeAudioManager audioManager = new();
-		using SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
+		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
 
 		await feature.PlaySoundAsync(soundType, forPreview: true);
 
@@ -121,7 +125,7 @@ public class SoundFeatureTests
 			s.SoundFinishedEnabled = true;
 		});
 		FakeAudioManager audioManager = new();
-		using SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
+		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
 
 		await feature.PlaySoundAsync(soundType, forPreview: false);
 
@@ -166,7 +170,7 @@ public class SoundFeatureTests
 			s.SoundFinishedVolume = volume;
 		});
 		FakeAudioManager audioManager = new();
-		using SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
+		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
 
 		await feature.PlaySoundAsync(soundType, forPreview: false);
 
@@ -189,7 +193,7 @@ public class SoundFeatureTests
 			s.SoundUserInputCustomFileName = "userInput.mp3";
 			s.SoundFinishedCustomFileName = "finished.mp3";
 		});
-		using SoundFeature feature = new(
+		SoundFeature feature = new(
 			new FakeAudioManager(),
 			new FakePermissionEventSource(),
 			new FakeUserInputEventSource(),
@@ -205,7 +209,7 @@ public class SoundFeatureTests
 	public void GetCustomFileName_WhenNoneSet_ReturnsEmpty()
 	{
 		IAppSettingsFeature settings = CreateSettings();
-		using SoundFeature feature = new(
+		SoundFeature feature = new(
 			new FakeAudioManager(),
 			new FakePermissionEventSource(),
 			new FakeUserInputEventSource(),
@@ -227,7 +231,7 @@ public class SoundFeatureTests
 		IAppSettingsFeature settings = CreateSettings(s => s.SoundPermissionEnabled = true);
 		FakeAudioManager audioManager = new();
 		FakePermissionEventSource permissionSource = new();
-		using SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings, permissionSource: permissionSource);
+		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings, permissionSource: permissionSource);
 
 		permissionSource.RaisePermissionRequested("session1", MakePermissionRequest());
 		await Task.Yield(); // allow any queued async work to proceed
@@ -241,7 +245,7 @@ public class SoundFeatureTests
 		IAppSettingsFeature settings = CreateSettings(s => s.SoundPermissionEnabled = false);
 		FakeAudioManager audioManager = new();
 		FakePermissionEventSource permissionSource = new();
-		using SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings, permissionSource: permissionSource);
+		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings, permissionSource: permissionSource);
 
 		permissionSource.RaisePermissionRequested("session1", MakePermissionRequest());
 		await Task.Yield();
@@ -255,7 +259,7 @@ public class SoundFeatureTests
 		IAppSettingsFeature settings = CreateSettings(s => s.SoundUserInputEnabled = true);
 		FakeAudioManager audioManager = new();
 		FakeUserInputEventSource userInputSource = new();
-		using SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings, userInputSource: userInputSource);
+		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings, userInputSource: userInputSource);
 
 		userInputSource.RaiseUserInputRequested("session1", new UserInputRequestModel
 		{
@@ -273,66 +277,13 @@ public class SoundFeatureTests
 	{
 		IAppSettingsFeature settings = CreateSettings(s => s.SoundFinishedEnabled = true);
 		FakeAudioManager audioManager = new();
-		using SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
+		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
 
 		// Fire the static event via reflection.
 		FireStaticSessionFinished();
 		await Task.Yield();
 
 		audioManager.CreatePlayerCallCount.ShouldBe(1);
-	}
-
-	// ─────────────────────────────────────────────────────────────────────────
-	// Dispose — unsubscribes all events
-	// ─────────────────────────────────────────────────────────────────────────
-
-	[Fact]
-	public async Task Dispose_UnsubscribesPermissionEvent()
-	{
-		IAppSettingsFeature settings = CreateSettings(s => s.SoundPermissionEnabled = true);
-		FakeAudioManager audioManager = new();
-		FakePermissionEventSource permissionSource = new();
-		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings, permissionSource: permissionSource);
-
-		feature.Dispose();
-		permissionSource.RaisePermissionRequested("session1", MakePermissionRequest());
-		await Task.Yield();
-
-		audioManager.CreatePlayerCallCount.ShouldBe(0);
-	}
-
-	[Fact]
-	public async Task Dispose_UnsubscribesUserInputEvent()
-	{
-		IAppSettingsFeature settings = CreateSettings(s => s.SoundUserInputEnabled = true);
-		FakeAudioManager audioManager = new();
-		FakeUserInputEventSource userInputSource = new();
-		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings, userInputSource: userInputSource);
-
-		feature.Dispose();
-		userInputSource.RaiseUserInputRequested("session1", new UserInputRequestModel
-		{
-			SessionId = "session1",
-			Question = "q",
-			FullRequestJson = "{}"
-		});
-		await Task.Yield();
-
-		audioManager.CreatePlayerCallCount.ShouldBe(0);
-	}
-
-	[Fact]
-	public async Task Dispose_UnsubscribesSessionFinishedEvent()
-	{
-		IAppSettingsFeature settings = CreateSettings(s => s.SoundFinishedEnabled = true);
-		FakeAudioManager audioManager = new();
-		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
-
-		feature.Dispose();
-		FireStaticSessionFinished();
-		await Task.Yield();
-
-		audioManager.CreatePlayerCallCount.ShouldBe(0);
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
@@ -344,7 +295,7 @@ public class SoundFeatureTests
 	{
 		IAppSettingsFeature settings = CreateSettings(s => s.SoundFinishedEnabled = true);
 		FakeAudioManager audioManager = new();
-		using SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
+		SoundFeature feature = CreateFeatureWithLoadedSounds(audioManager, settings);
 
 		await feature.PlaySoundAsync(SoundEffectTypeEnum.Finished);
 

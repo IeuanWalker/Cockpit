@@ -10,7 +10,7 @@ namespace Cockpit.Features.Permissions;
 /// <summary>
 /// Service for managing tool execution permissions
 /// </summary>
-public sealed partial class PermissionFeature : IPermissionHandler, IPermissionEventSource, IDisposable
+public sealed partial class PermissionFeature : IPermissionHandler, IPermissionEventSource
 {
 	readonly GlobalPermissionFeature _globalPermissionFeature;
 	readonly GlobalDenyFeature _globalDenyFeature;
@@ -371,18 +371,4 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 		}
 	}
 
-	public void Dispose()
-	{
-		// Deny any requests still awaiting user input so callers don't hang on app shutdown.
-		// TryRemove per-entry (vs enumeration + Clear) avoids losing requests added concurrently.
-		foreach(string key in _pendingRequests.Keys.ToList())
-		{
-			if(_pendingRequests.TryRemove(key, out PermissionRequestModel? request))
-			{
-				request.CompletionSource.TrySetResult(PermissionDecisionEnum.Denied);
-			}
-		}
-
-		GC.SuppressFinalize(this);
-	}
 }
