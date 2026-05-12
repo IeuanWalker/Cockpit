@@ -7,7 +7,7 @@ namespace Cockpit.Features.Sessions.Models;
 
 public class SessionContext
 {
-	public required string CurrentWorkingDirectory { get; set; }
+	public required string? CurrentWorkingDirectory { get; set; }
 	public required string? WorkspacePath { get; set; }
 	public required string? GitRoot { get; set; }
 	public required string? Repository { get; set; }

@@ -193,6 +193,11 @@ public sealed partial class SessionFeature
 
 			_logger.LogInformation("Loading session {SessionId}", sessionId);
 
+			if(string.IsNullOrWhiteSpace(session.Context.CurrentWorkingDirectory) || !Directory.Exists(session.Context.CurrentWorkingDirectory))
+			{
+				session.Context.CurrentWorkingDirectory = null;
+			}
+
 			ResumeSessionConfig config = new()
 			{
 				ClientName = "Cockpit",
