@@ -1,0 +1,80 @@
+@using Cockpit.Components.Controls
+
+<PopupBase @ref="_popup" Title="Context Usage Breakdown" ContentClass="p-4 flex flex-col gap-4 overflow-y-auto scrollbar-thin min-h-0">
+    <Content>
+        @if(_usageInfo is null)
+        {
+            <p class="text-xs secondary-text">No usage data available yet.</p>
+        }
+        else
+        {
+            @* Usage bar *@
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs font-semibold">Total Usage</span>
+                    <span class="text-xs secondary-text font-mono">@FormatTokens(_usageInfo.CurrentTokens) / @FormatTokens(_usageInfo.TokenLimit)</span>
+                </div>
+                <div class="w-full rounded-full h-2 bg-app-hover overflow-hidden">
+                    <div class="h-2 rounded-full transition-all duration-300"
+                         style="width: @(UsagePercent.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%; background-color: @BarColor;"></div>
+                </div>
+                <div class="text-right text-xs secondary-text mt-0.5">@UsagePercent.ToString("F1")% used</div>
+            </div>
+
+            @* Breakdown table *@
+            <div class="rounded text-xs" style="background-color: var(--input-bg); border: 1px solid var(--input-border);">
+                <div class="px-3 py-2 font-semibold secondary-text uppercase tracking-widest border-b" style="font-size: 10px; border-color: var(--input-border);">
+                    Breakdown
+                </div>
+                @if(_usageInfo.SystemTokens.HasValue)
+                {
+                    <div class="px-3 py-2 flex items-center justify-between border-b" style="border-color: var(--input-border);">
+                        <span class="secondary-text">System</span>
+                        <div class="flex items-center gap-3">
+                            <div class="w-24 rounded-full h-1.5 bg-app-hover overflow-hidden">
+                                <div class="h-1.5 rounded-full bg-blue-400" style="width: @(GetPercent(_usageInfo.SystemTokens.Value, _usageInfo.TokenLimit).ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%;"></div>
+                            </div>
+                            <span class="font-mono text-right w-16">@FormatTokens(_usageInfo.SystemTokens.Value)</span>
+                        </div>
+                    </div>
+                }
+                @if(_usageInfo.ConversationTokens.HasValue)
+                {
+                    <div class="px-3 py-2 flex items-center justify-between border-b" style="border-color: var(--input-border);">
+                        <span class="secondary-text">Conversation</span>
+                        <div class="flex items-center gap-3">
+                            <div class="w-24 rounded-full h-1.5 bg-app-hover overflow-hidden">
+                                <div class="h-1.5 rounded-full bg-green-400" style="width: @(GetPercent(_usageInfo.ConversationTokens.Value, _usageInfo.TokenLimit).ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%;"></div>
+                            </div>
+                            <span class="font-mono text-right w-16">@FormatTokens(_usageInfo.ConversationTokens.Value)</span>
+                        </div>
+                    </div>
+                }
+                @if(_usageInfo.ToolDefinitionsTokens.HasValue)
+                {
+                    <div class="px-3 py-2 flex items-center justify-between border-b" style="border-color: var(--input-border);">
+                        <span class="secondary-text">Tool Definitions</span>
+                        <div class="flex items-center gap-3">
+                            <div class="w-24 rounded-full h-1.5 bg-app-hover overflow-hidden">
+                                <div class="h-1.5 rounded-full bg-yellow-400" style="width: @(GetPercent(_usageInfo.ToolDefinitionsTokens.Value, _usageInfo.TokenLimit).ToString("F1", System.Globalization.CultureInfo.InvariantCulture))%;"></div>
+                            </div>
+                            <span class="font-mono text-right w-16">@FormatTokens(_usageInfo.ToolDefinitionsTokens.Value)</span>
+                        </div>
+                    </div>
+                }
+                <div class="px-3 py-2 flex items-center justify-between border-b font-semibold" style="border-color: var(--input-border);">
+                    <span>Total Current</span>
+                    <span class="font-mono">@FormatTokens(_usageInfo.CurrentTokens)</span>
+                </div>
+                <div class="px-3 py-2 flex items-center justify-between border-b secondary-text" style="border-color: var(--input-border);">
+                    <span>Context Window Limit</span>
+                    <span class="font-mono">@FormatTokens(_usageInfo.TokenLimit)</span>
+                </div>
+                <div class="px-3 py-2 flex items-center justify-between secondary-text">
+                    <span>Messages</span>
+                    <span class="font-mono">@((int)_usageInfo.MessagesLength)</span>
+                </div>
+            </div>
+        }
+    </Content>
+</PopupBase>

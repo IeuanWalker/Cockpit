@@ -217,4 +217,64 @@ public sealed partial class SessionFeature
 
 		await SendMessageAsync(content, attachments);
 	}
+
+	/// <summary>
+	/// Triggers context compaction for the current session via <c>session.Rpc.History.CompactAsync()</c>.
+	/// No-op when there is no current session, no live SDK session, or the session is already compacting.
+	/// </summary>
+	public async Task CompactContextAsync()
+	{
+		if(CurrentSession is null)
+		{
+			return;
+		}
+
+		SessionModel session = CurrentSession;
+
+		// Claim the compaction slot atomically to prevent duplicate requests from racing callers.
+		// The SDK will also set IsCompacting via SessionCompactionStartEvent; our optimistic set here
+		// is the guard. We reset it ourselves only if the SDK call throws before that event arrives.
+		lock(session.SessionEventLock)
+		{
+			if(session.IsCompacting)
+			{
+				return;
+			}
+
+			session.IsCompacting = true;
+		}
+
+		if(!_sdkRegistry.TryGet(session.Id, out CopilotSession? sdkSession))
+		{
+			_logger.LogWarning("CompactContextAsync: no live SDK session for {SessionId}", session.Id);
+			lock(session.SessionEventLock)
+			{
+				session.IsCompacting = false;
+			}
+			return;
+		}
+
+		try
+		{
+			_logger.LogInformation("Requesting context compaction for session {SessionId}", session.Id);
+#pragma warning disable GHCP001
+			GitHub.Copilot.SDK.Rpc.HistoryCompactResult result = await sdkSession.Rpc.History.CompactAsync();
+#pragma warning restore GHCP001
+			if(!result.Success)
+			{
+				_logger.LogWarning("Context compaction did not succeed for session {SessionId}", session.Id);
+				_toastService.Warning("Context compaction did not complete successfully.");
+			}
+		}
+		catch(Exception ex)
+		{
+			// SDK call failed before SessionCompactionStartEvent — reset the flag we set optimistically.
+			lock(session.SessionEventLock)
+			{
+				session.IsCompacting = false;
+			}
+			_logger.LogError(ex, "Failed to compact context for session {SessionId}", session.Id);
+			_toastService.Error($"Failed to compact context: {ex.Message}");
+		}
+	}
 }
