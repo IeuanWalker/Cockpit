@@ -636,6 +636,7 @@ public class UIStateFeatureTests
 
 sealed class MockTextToSpeech : ITextToSpeechFeature
 {
+#pragma warning disable CS0067 // Events are never used; required to satisfy interface
 	public event Action? OnStateChanged;
 	public string? ActiveMessageId => null;
 	public bool IsSpeaking => false;
@@ -651,6 +652,7 @@ sealed class MockTextToSpeech : ITextToSpeechFeature
 	}
 
 	public void Dispose() { }
+#pragma warning restore CS0067
 }
 
 sealed class MockAppSettings : IAppSettingsFeature

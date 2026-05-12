@@ -11,6 +11,7 @@ namespace Cockpit.UnitTests.Features.TextToSpeech;
 
 sealed class FakeSpeechToText : ISpeechToText
 {
+#pragma warning disable CS0067 // Events are never used; required to satisfy interface
 	public event EventHandler<SpeechToTextRecognitionResultUpdatedEventArgs>? RecognitionResultUpdated;
 	public event EventHandler<SpeechToTextRecognitionResultCompletedEventArgs>? RecognitionResultCompleted;
 	public event EventHandler<SpeechToTextStateChangedEventArgs>? StateChanged;
@@ -56,6 +57,7 @@ sealed class FakeSpeechToText : ISpeechToText
 	}
 
 	public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+#pragma warning restore CS0067
 }
 
 // ---------------------------------------------------------------------------
