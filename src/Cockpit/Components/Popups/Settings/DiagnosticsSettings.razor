@@ -1,50 +1,100 @@
 ﻿<div class="settings-section">
-    <ReportIssuePopup @ref="_reportIssuePopup" />
+	<ReportIssuePopup @ref="_reportIssuePopup" />
 
-    <h4 class="text-sm font-semibold text-app-title mb-3">Diagnostics</h4>
+	<h4 class="text-sm font-semibold text-app-title mb-3">Diagnostics</h4>
 
-    <div class="diag-card">
-        <h5 class="text-sm font-semibold text-app-title mb-2">Log Files</h5>
-        <p class="text-xs secondary-text mb-3">
-            Cockpit writes diagnostic logs to <code class="diag-path">@LogDirectory</code>. Open the folder to find them.
-        </p>
+	<div class="diag-card">
+		<h5 class="text-sm font-semibold text-app-title mb-2">Log Files</h5>
+		<p class="text-xs secondary-text mb-3">
+			Cockpit writes diagnostic logs to <code class="diag-path">@LogDirectory</code>. Open the folder to find them.
+		</p>
 
-        <div class="flex gap-2 mb-3">
-            <button @onclick="OpenLogFolder" class="diag-open-btn">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                </svg>
-                <span class="text-sm">Open Log Folder</span>
-            </button>
+		<div class="flex gap-2 mb-3">
+			<button @onclick="OpenLogFolder" class="diag-open-btn">
+				<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+						  d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+				</svg>
+				<span class="text-sm">Open Log Folder</span>
+			</button>
 
-            <button @onclick="OpenLogViewer" class="diag-open-btn">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span class="text-sm">View Logs</span>
-            </button>
+			<button @onclick="OpenLogViewer" class="diag-open-btn">
+				<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+						  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+				</svg>
+				<span class="text-sm">View Logs</span>
+			</button>
 
-            <button @onclick="OpenReportIssue" class="diag-open-btn">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span class="text-sm">Report an Issue</span>
-            </button>
-        </div>
+			<button @onclick="OpenReportIssue" class="diag-open-btn">
+				<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+						  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+				</svg>
+				<span class="text-sm">Report an Issue</span>
+			</button>
+		</div>
 
-        <div class="diag-file-list">
-            <div class="diag-file-row">
-                <code class="diag-filename">app.log</code>
-                <span class="text-xs secondary-text">All application logs — general output from the running app</span>
-            </div>
-            <div class="diag-file-row">
-                <code class="diag-filename">crash.log</code>
-                <span class="text-xs secondary-text">Unhandled exceptions — look here if the app crashed or behaved unexpectedly</span>
-            </div>
-        </div>
-    </div>
+		<div class="diag-file-list">
+			<div class="diag-file-row">
+				<code class="diag-filename">app.log</code>
+				<span class="text-xs secondary-text">All application logs — general output from the running app</span>
+			</div>
+			<div class="diag-file-row">
+				<code class="diag-filename">crash.log</code>
+				<span class="text-xs secondary-text">Unhandled exceptions — look here if the app crashed or behaved unexpectedly</span>
+			</div>
+		</div>
+	</div>
+
+	<div class="diag-card">
+		<h5 class="text-sm font-semibold text-app-title mb-2">Telemetry</h5>
+		<p class="text-xs secondary-text mb-3">
+			OpenTelemetry exports are written to <code class="diag-path">@TelemetryDirectory</code> when enabled.
+		</p>
+
+		<div class="diag-settings-grid mb-3">
+			<label class="diag-toggle-row">
+				<div>
+					<div class="text-sm font-medium text-app-title">Enable telemetry</div>
+					<div class="text-xs secondary-text">Export Copilot SDK telemetry to JSONL files for diagnostics.</div>
+				</div>
+				<span class="diag-toggle-control">
+					<input type="checkbox" @bind="_userAppSettings.TelemetryEnabled" />
+					<span class="diag-toggle-track"></span>
+				</span>
+			</label>
+
+			<div class="diag-setting-row">
+				<label class="text-sm font-medium text-app-title" for="diag-sdk-log-level">SDK Log Level</label>
+				<select id="diag-sdk-log-level" class="diag-select" @bind="_userAppSettings.SdkLogLevel">
+					<option value="debug">debug</option>
+					<option value="info">info</option>
+					<option value="warn">warn</option>
+					<option value="error">error</option>
+				</select>
+			</div>
+		</div>
+
+		<div class="flex gap-2 mb-2">
+			<button @onclick="OpenTelemetryFolder" class="diag-open-btn">
+				<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+						  d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+				</svg>
+				<span class="text-sm">Open Folder</span>
+			</button>
+
+			<button @onclick="OpenTelemetryDashboard" class="diag-open-btn">
+				<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+						  d="M3 3v18h18M7 14l3-3 3 2 4-5" />
+				</svg>
+				<span class="text-sm">Open Dashboard</span>
+			</button>
+		</div>
+
+		<p class="diag-note">Changes require client restart to take effect.</p>
+	</div>
 </div>
 

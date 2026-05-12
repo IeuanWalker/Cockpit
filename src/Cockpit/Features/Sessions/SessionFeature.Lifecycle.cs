@@ -115,6 +115,7 @@ public sealed partial class SessionFeature
 				WorkingDirectory = workingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+				Hooks = _hooksFactory.CreateHooks(defaultModel.Id, defaultModel.DefaultReasoningEffort, workingDirectory),
 				EnableConfigDiscovery = true
 			};
 
@@ -208,7 +209,8 @@ public sealed partial class SessionFeature
 				DisableResume = true,
 				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
-				OnUserInputRequest = _userInputHandler.HandleUserInputRequest
+				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+				Hooks = _hooksFactory.CreateHooks(session.Model.Id, session.ReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true)
 			};
 
 			session.SdkState = SdkSessionStateEnum.Loading;
@@ -398,7 +400,8 @@ public sealed partial class SessionFeature
 					Streaming = true,
 					EnableConfigDiscovery = true,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
-					OnUserInputRequest = _userInputHandler.HandleUserInputRequest
+					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+					Hooks = _hooksFactory.CreateHooks(newModelId, newReasoningEffort, chatSession?.Context.CurrentWorkingDirectory)
 				};
 				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
 			}
@@ -416,7 +419,8 @@ public sealed partial class SessionFeature
 					},
 					WorkingDirectory = chatSession?.Context.CurrentWorkingDirectory,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
-					OnUserInputRequest = _userInputHandler.HandleUserInputRequest
+					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+					Hooks = _hooksFactory.CreateHooks(newModelId, newReasoningEffort, chatSession?.Context.CurrentWorkingDirectory)
 				};
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
 

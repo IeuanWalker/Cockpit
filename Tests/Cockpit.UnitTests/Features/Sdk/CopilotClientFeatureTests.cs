@@ -1,4 +1,6 @@
-﻿using Cockpit.Features.Sdk;
+﻿using Cockpit;
+using Cockpit.Features.Sdk;
+using Cockpit.UnitTests.Features.AppSettings;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
@@ -7,7 +9,7 @@ namespace Cockpit.UnitTests.Features.Sdk;
 
 public sealed class CopilotClientFeatureTests
 {
-	static CopilotClientFeature CreateFeature() => new(NullLogger<CopilotClientFeature>.Instance);
+	static CopilotClientFeature CreateFeature() => new(NullLogger<CopilotClientFeature>.Instance, new UserAppSettings(new InMemoryPreferencesStorage()));
 
 	// ── State ─────────────────────────────────────────────────────────────────
 

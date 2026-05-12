@@ -50,27 +50,11 @@ static class SessionIdleHandler
 				return;
 			}
 
-			// Mark any still-running tools as stopped (Error status), including children
+			// Mark any still-running tools as stopped (Error status), recursively including all descendants
 			bool hasStoppedTools = false;
 			foreach(ToolExecutionModel tool in tools)
 			{
-				if(tool.Status == ToolStatusEnum.Running)
-				{
-					tool.Status = ToolStatusEnum.Error;
-					tool.EndTime = eventTimestamp.LocalDateTime;
-					tool.IsSuccess = false;
-					hasStoppedTools = true;
-				}
-
-				foreach(ToolExecutionModel child in tool.GetChildrenSnapshot())
-				{
-					if(child.Status == ToolStatusEnum.Running)
-					{
-						child.Status = ToolStatusEnum.Error;
-						child.EndTime = eventTimestamp.LocalDateTime;
-						child.IsSuccess = false;
-					}
-				}
+				hasStoppedTools |= MarkStoppedRecursively(tool, eventTimestamp);
 			}
 
 			group.Status = groupStatus;
@@ -271,5 +255,24 @@ static class SessionIdleHandler
 		}
 
 		return $"{tools.Count} operations ({preview})";
+	}
+
+	static bool MarkStoppedRecursively(ToolExecutionModel tool, DateTimeOffset timestamp)
+	{
+		bool stopped = false;
+		if(tool.Status == ToolStatusEnum.Running)
+		{
+			tool.Status = ToolStatusEnum.Error;
+			tool.EndTime = timestamp.LocalDateTime;
+			tool.IsSuccess = false;
+			stopped = true;
+		}
+
+		foreach(ToolExecutionModel child in tool.GetChildrenSnapshot())
+		{
+			stopped |= MarkStoppedRecursively(child, timestamp);
+		}
+
+		return stopped;
 	}
 }

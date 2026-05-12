@@ -105,10 +105,10 @@ public class AppSettingsFeatureTests
 	// -------------------------------------------------------------------------
 
 	[Fact]
-	public void MessageTurnMode_DefaultsTo_Immediate()
+	public void MessageTurnMode_DefaultsTo_Enqueue()
 	{
 		UserAppSettings settings = CreateSettings();
-		settings.MessageTurnMode.ShouldBe(MessageTurnModeEnum.Immediate);
+		settings.MessageTurnMode.ShouldBe(MessageTurnModeEnum.Enqueue);
 	}
 
 	[Theory]
@@ -122,23 +122,23 @@ public class AppSettingsFeatureTests
 	}
 
 	[Fact]
-	public void MessageTurnMode_InvalidStoredString_FallsBackTo_Immediate()
+	public void MessageTurnMode_InvalidStoredString_FallsBackTo_Enqueue()
 	{
 		InMemoryPreferencesStorage store = new();
 		store.Set("MessageTurnMode", "WarpSpeed");
 
 		UserAppSettings settings = CreateSettings(store);
-		settings.MessageTurnMode.ShouldBe(MessageTurnModeEnum.Immediate);
+		settings.MessageTurnMode.ShouldBe(MessageTurnModeEnum.Enqueue);
 	}
 
 	[Fact]
-	public void MessageTurnMode_NullStoredString_FallsBackTo_Immediate()
+	public void MessageTurnMode_NullStoredString_FallsBackTo_Enqueue()
 	{
 		InMemoryPreferencesStorage store = new();
 		store.Set<string?>("MessageTurnMode", null);
 
 		UserAppSettings settings = CreateSettings(store);
-		settings.MessageTurnMode.ShouldBe(MessageTurnModeEnum.Immediate);
+		settings.MessageTurnMode.ShouldBe(MessageTurnModeEnum.Enqueue);
 	}
 
 	[Fact]

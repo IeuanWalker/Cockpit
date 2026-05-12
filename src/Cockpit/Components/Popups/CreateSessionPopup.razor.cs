@@ -29,7 +29,7 @@ public partial class CreateSessionPopup : ComponentBase
 		RecentDirectories = [.. _sessionFeature.Sessions
 			.OrderByDescending(s => s.LastActivity)
 			.Where(x => !string.IsNullOrWhiteSpace(x.Context.CurrentWorkingDirectory))
-			.Select(s => s.Context.CurrentWorkingDirectory)
+			.Select(s => s.Context.CurrentWorkingDirectory!)
 			.Distinct()
 			.Take(5)];
 

@@ -1,0 +1,369 @@
+<div class="td-root">
+	<div class="td-top-bar">
+		<div class="td-top-group">
+			<label class="td-label" for="td-file-select">Telemetry file</label>
+			<select id="td-file-select"
+					class="td-select"
+					value="@_selectedFilePath"
+					@onchange="OnSelectedFileChanged"
+					disabled="@(_loadingFiles || _loadingData || _files.Count == 0)">
+				@if(_files.Count == 0)
+				{
+					<option value="">No telemetry files found</option>
+				}
+				else
+				{
+					@foreach(var file in _files)
+					{
+						<option value="@file.FullPath">@FormatFileOption(file)</option>
+					}
+				}
+			</select>
+		</div>
+
+		<div class="td-top-actions">
+			<button class="td-btn" @onclick="RefreshAsync" disabled="@(_loadingFiles || _loadingData)">
+				Refresh
+			</button>
+			<button class="td-btn" @onclick="OpenFolder">
+				Open Folder
+			</button>
+		</div>
+	</div>
+
+	<div class="td-tab-bar">
+		<button class="td-tab @(_activeTab == TelemetryDashboardTab.Traces ? "td-tab--active" : string.Empty)"
+				@onclick='() => SwitchTab(TelemetryDashboardTab.Traces)'>
+			Traces
+		</button>
+		<button class="td-tab @(_activeTab == TelemetryDashboardTab.Spans ? "td-tab--active" : string.Empty)"
+				@onclick='() => SwitchTab(TelemetryDashboardTab.Spans)'>
+			Spans
+		</button>
+		<button class="td-tab @(_activeTab == TelemetryDashboardTab.Timeline ? "td-tab--active" : string.Empty)"
+				@onclick='() => SwitchTab(TelemetryDashboardTab.Timeline)'
+				disabled="@(_selectedTrace is null)">
+			Timeline
+		</button>
+	</div>
+
+	<div class="td-content">
+		@if(_loadingFiles || _loadingData)
+		{
+			<div class="td-empty">Loading telemetry data…</div>
+		}
+		else if(!string.IsNullOrWhiteSpace(_loadError))
+		{
+			<div class="td-empty td-empty--error">@_loadError</div>
+		}
+		else if(_files.Count == 0)
+		{
+			<div class="td-empty">No telemetry JSONL files were found. Enable telemetry, restart the client, then refresh.</div>
+		}
+		else if(_activeTab == TelemetryDashboardTab.Traces)
+		{
+			<div class="td-panel">
+				<div class="td-table-head td-table-head--traces">
+					<div>Trace ID</div>
+					<div>Root Span</div>
+					<div>Span Count</div>
+					<div>Duration</div>
+					<div>Status</div>
+					<div>Start Time</div>
+				</div>
+
+				<div class="td-table-wrap">
+					<div class="td-table-body scrollbar-thin">
+						@if(_traces.Count == 0)
+						{
+							<div class="td-empty">No traces were found in the selected file.</div>
+						}
+						else
+						{
+							<Virtualize Items="_traces" Context="trace" ItemSize="40" OverscanCount="10">
+								<div @key="trace.TraceId"
+									 class="td-row td-row--traces @(_selectedTrace?.TraceId == trace.TraceId ? "td-row--active" : string.Empty)"
+									 @onclick="() => SelectTrace(trace)">
+									<div class="td-row-cell td-row-cell--mono" title="@trace.TraceId">@ShortId(trace.TraceId)</div>
+									<div class="td-row-cell" title="@trace.RootSpanName">@DisplayText(trace.RootSpanName, "(root span unavailable)")</div>
+									<div class="td-row-cell">@trace.SpanCount</div>
+									<div class="td-row-cell td-row-cell--mono">@FormatDuration(trace.Duration)</div>
+									<div class="td-row-cell">
+										<span class="td-status td-status--@GetTraceStatusClass(trace)">@GetTraceStatusLabel(trace)</span>
+									</div>
+									<div class="td-row-cell td-row-cell--mono">@FormatTimestamp(trace.StartTime)</div>
+								</div>
+							</Virtualize>
+						}
+					</div>
+				</div>
+
+				@if(_selectedTrace is not null)
+				{
+					var rootSpan = GetRootSpan(_selectedTrace);
+					<div class="td-trace-summary">
+						<div class="td-summary-grid">
+							<div>
+								<div class="td-summary-label">Trace ID</div>
+								<div class="td-summary-value td-summary-value--mono">@_selectedTrace.TraceId</div>
+							</div>
+							<div>
+								<div class="td-summary-label">Window</div>
+								<div class="td-summary-value">@FormatTimestamp(_selectedTrace.StartTime) → @FormatTimestamp(_selectedTrace.EndTime)</div>
+							</div>
+							<div>
+								<div class="td-summary-label">Span Count</div>
+								<div class="td-summary-value">@_selectedTrace.SpanCount spans</div>
+							</div>
+							<div>
+								<div class="td-summary-label">Duration</div>
+								<div class="td-summary-value">@FormatDuration(_selectedTrace.Duration)</div>
+							</div>
+						</div>
+
+						<div class="td-summary-actions">
+							<button class="td-btn td-btn--accent" @onclick="OpenTimelineForSelectedTrace">View Timeline</button>
+							@if(rootSpan is not null)
+							{
+								<button class="td-btn" @onclick="() => SelectSpan(rootSpan!)">Inspect Root Span</button>
+							}
+						</div>
+					</div>
+				}
+			</div>
+		}
+		else if(_activeTab == TelemetryDashboardTab.Spans)
+		{
+			<div class="td-panel">
+				<div class="td-toolbar">
+					<div class="td-search-wrap">
+						<input class="td-search-input"
+							   type="text"
+							   placeholder="Search spans, IDs, attributes..."
+							   value="@_spanSearch"
+							   @oninput="OnSpanSearchChanged" />
+					</div>
+					<div class="td-toolbar-meta">@_filteredSpans.Count of @_allSpans.Count spans</div>
+				</div>
+
+				<div class="td-table-head td-table-head--spans">
+					<div>Span Name</div>
+					<div>Kind</div>
+					<div>Duration</div>
+					<div>Status</div>
+					<div>Trace ID</div>
+				</div>
+
+				<div class="td-table-wrap">
+					<div class="td-table-body scrollbar-thin">
+						@if(_filteredSpans.Count == 0)
+						{
+							<div class="td-empty">No spans match the current filter.</div>
+						}
+						else
+						{
+							<Virtualize Items="_filteredSpans" Context="span" ItemSize="40" OverscanCount="12">
+								<div @key="@($"{span.TraceId}:{span.SpanId}")"
+									 class="td-row td-row--spans @(_selectedSpan?.SpanId == span.SpanId && _selectedSpan.TraceId == span.TraceId ? "td-row--active" : string.Empty)"
+									 @onclick="() => SelectSpan(span)">
+									<div class="td-row-cell" title="@span.Name">@DisplayText(span.Name, "(unnamed span)")</div>
+									<div class="td-row-cell td-row-cell--mono">@DisplayText(span.Kind.ToString(), "Unknown")</div>
+									<div class="td-row-cell td-row-cell--mono">@FormatDuration(span.Duration)</div>
+									<div class="td-row-cell">
+										<span class="td-status td-status--@GetStatusClass(span.Status)">@GetStatusLabel(span.Status)</span>
+									</div>
+									<div class="td-row-cell td-row-cell--mono" title="@span.TraceId">@ShortId(span.TraceId)</div>
+								</div>
+							</Virtualize>
+						}
+					</div>
+				</div>
+			</div>
+		}
+		else
+		{
+			<div class="td-panel">
+				@if(_selectedTrace is null)
+				{
+					<div class="td-empty">Select a trace to inspect its span timeline.</div>
+				}
+				else
+				{
+					<div class="td-toolbar td-toolbar--stacked">
+						<div>
+							<div class="td-summary-label">Selected Trace</div>
+							<div class="td-summary-value td-summary-value--mono">@_selectedTrace.TraceId</div>
+						</div>
+						<div class="td-toolbar-meta">@_timelineRows.Count timeline rows · @FormatDuration(_selectedTrace.Duration)</div>
+					</div>
+
+					<div class="td-timeline-head">
+						<div>Span</div>
+						<div>Timeline</div>
+					</div>
+
+					<div class="td-table-wrap">
+						<div class="td-table-body scrollbar-thin">
+							@if(_timelineRows.Count == 0)
+							{
+								<div class="td-empty">No spans are available for the selected trace.</div>
+							}
+							else
+							{
+								<Virtualize Items="_timelineRows" Context="row" ItemSize="42" OverscanCount="12">
+									<div @key="@($"{row.Span.TraceId}:{row.Span.SpanId}")"
+										 class="td-timeline-row @(_selectedSpan?.SpanId == row.Span.SpanId && _selectedSpan.TraceId == row.Span.TraceId ? "td-row--active" : string.Empty)"
+										 @onclick="() => SelectSpan(row.Span)">
+										<div class="td-timeline-name" style="@($"--td-depth:{row.Depth};")" title="@row.Span.Name">
+											@DisplayText(row.Span.Name, "(unnamed span)")
+										</div>
+										<div class="td-timeline-track-wrap">
+											<div class="td-timeline-track">
+												<div class="td-timeline-bar td-timeline-bar--@GetStatusClass(row.Span.Status)"
+													 style="@GetTimelineBarStyle(row)"
+													 title="@GetTimelineBarTitle(row.Span)"></div>
+											</div>
+										</div>
+									</div>
+								</Virtualize>
+							}
+						</div>
+					</div>
+				}
+			</div>
+		}
+	</div>
+
+	<div class="td-status-bar">
+		@if(CurrentFile is not null)
+		{
+			<span>@CurrentFile.FileName</span>
+			<span class="td-status-sep">•</span>
+			<span>@FormatBytes(CurrentFile.SizeBytes)</span>
+			<span class="td-status-sep">•</span>
+			<span>@FormatTimestamp(CurrentFile.Date)</span>
+		}
+		else
+		{
+			<span>No file selected</span>
+		}
+		<span class="td-status-sep">•</span>
+		<span>@_traces.Count traces</span>
+		<span class="td-status-sep">•</span>
+		<span>@_allSpans.Count spans</span>
+	</div>
+
+	@if(_selectedSpan is not null)
+	{
+		<div class="td-detail">
+			<div class="td-detail-header">
+				<div>
+					<div class="td-detail-title">Span Detail</div>
+					<div class="td-detail-subtitle">@DisplayText(_selectedSpan.Name, "(unnamed span)")</div>
+				</div>
+				<button class="td-btn" @onclick="CloseSelectedSpan">Close</button>
+			</div>
+
+			<div class="td-detail-content scrollbar-thin">
+				<div class="td-detail-section">
+					<div class="td-section-title">Metadata</div>
+					<div class="td-meta-grid">
+						<div class="td-key-value">
+							<span class="td-key">Trace ID</span>
+							<span class="td-value td-value--mono">@_selectedSpan.TraceId</span>
+						</div>
+						<div class="td-key-value">
+							<span class="td-key">Span ID</span>
+							<span class="td-value td-value--mono">@_selectedSpan.SpanId</span>
+						</div>
+						<div class="td-key-value">
+							<span class="td-key">Parent Span</span>
+							<span class="td-value td-value--mono">@DisplayText(_selectedSpan.ParentSpanId, "(root span)")</span>
+						</div>
+						<div class="td-key-value">
+							<span class="td-key">Kind</span>
+							<span class="td-value">@DisplayText(_selectedSpan.Kind.ToString(), "Unknown")</span>
+						</div>
+						<div class="td-key-value">
+							<span class="td-key">Status</span>
+							<span class="td-value">
+								<span class="td-status td-status--@GetStatusClass(_selectedSpan.Status)">@GetStatusLabel(_selectedSpan.Status)</span>
+							</span>
+						</div>
+						<div class="td-key-value">
+							<span class="td-key">Duration</span>
+							<span class="td-value td-value--mono">@FormatDuration(_selectedSpan.Duration)</span>
+						</div>
+						<div class="td-key-value">
+							<span class="td-key">Start</span>
+							<span class="td-value td-value--mono">@FormatTimestamp(_selectedSpan.StartTime)</span>
+						</div>
+						<div class="td-key-value">
+							<span class="td-key">End</span>
+							<span class="td-value td-value--mono">@FormatTimestamp(_selectedSpan.EndTime)</span>
+						</div>
+						@if(!string.IsNullOrWhiteSpace(_selectedSpan.StatusMessage))
+						{
+							<div class="td-key-value td-key-value--full">
+								<span class="td-key">Status Message</span>
+								<span class="td-value">@_selectedSpan.StatusMessage</span>
+							</div>
+						}
+					</div>
+				</div>
+
+				<div class="td-detail-section">
+					<div class="td-section-title">Attributes</div>
+					@if(_selectedSpan.Attributes.Count == 0)
+					{
+						<div class="td-empty td-empty--inline">No attributes</div>
+					}
+					else
+					{
+						<div class="td-list scrollbar-thin">
+							@foreach(var attr in _selectedSpan.Attributes.OrderBy(a => a.Key))
+							{
+								<div class="td-key-value td-key-value--stacked">
+									<span class="td-key">@attr.Key</span>
+									<span class="td-value td-value--mono">@FormatValue(attr.Value)</span>
+								</div>
+							}
+						</div>
+					}
+				</div>
+
+				<div class="td-detail-section">
+					<div class="td-section-title">Events</div>
+					@if(_selectedSpan.Events.Count == 0)
+					{
+						<div class="td-empty td-empty--inline">No events</div>
+					}
+					else
+					{
+						<div class="td-list scrollbar-thin">
+							@foreach(var spanEvent in _selectedSpan.Events.OrderBy(e => ToDateTimeOffset(e.Timestamp) ?? DateTimeOffset.MinValue))
+							{
+								<div class="td-event-card">
+									<div class="td-event-header">
+										<span class="td-event-name">@DisplayText(spanEvent.Name, "(unnamed event)")</span>
+										<span class="td-event-time td-value--mono">@FormatTimestamp(spanEvent.Timestamp)</span>
+									</div>
+									@if(spanEvent.Attributes.Count > 0)
+									{
+										@foreach(var attr in spanEvent.Attributes.OrderBy(a => a.Key))
+										{
+											<div class="td-key-value td-key-value--stacked">
+												<span class="td-key">@attr.Key</span>
+												<span class="td-value td-value--mono">@FormatValue(attr.Value)</span>
+											</div>
+										}
+									}
+								</div>
+							}
+						</div>
+					}
+				</div>
+			</div>
+		</div>
+	}
+</div>

@@ -39,5 +39,6 @@ public enum MessageTypeEnum
 {
 	Text,
 	Error,
+	Warning,
 	ActivityGroup
 }

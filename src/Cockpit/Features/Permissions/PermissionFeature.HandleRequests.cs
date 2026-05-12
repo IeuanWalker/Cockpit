@@ -92,7 +92,7 @@ public sealed partial class PermissionFeature
 			return FallbackModel(request, session, intention);
 		}
 
-		FilePathCategory category = ClassifyFilePath(path, session.Context.CurrentWorkingDirectory);
+		FilePathCategory category = ClassifyFilePath(path, session.Context.CurrentWorkingDirectory ?? string.Empty);
 		(string title, bool canApproveForSession, bool canApproveGlobally) = FilePathPermissionInfo("write", category);
 
 		return new PermissionRequestModel
@@ -118,7 +118,7 @@ public sealed partial class PermissionFeature
 			return FallbackModel(request, session, intention);
 		}
 
-		FilePathCategory category = ClassifyFilePath(path, session.Context.CurrentWorkingDirectory);
+		FilePathCategory category = ClassifyFilePath(path, session.Context.CurrentWorkingDirectory ?? string.Empty);
 		(string title, bool canApproveForSession, bool canApproveGlobally) = FilePathPermissionInfo("read", category);
 
 		return new PermissionRequestModel

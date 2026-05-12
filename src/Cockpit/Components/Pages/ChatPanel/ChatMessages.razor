@@ -13,10 +13,28 @@
                     <Opperations Group="message.ActivityGroup" />
                 }
                 @* Typing indicator removed - using thinking panel instead *@
-                else if(message.Type == MessageTypeEnum.Error)
+                else if(message.Type == MessageTypeEnum.Error || message.Type == MessageTypeEnum.Warning)
                 {
-                    <div class="error-message cursor-pointer" @onclick="() => ShowEventJson(message)">
-                        <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                    bool isWarning = message.Type == MessageTypeEnum.Warning;
+
+                    <div class="@(isWarning ? "warning-message" : "error-message") cursor-pointer" @onclick="() => ShowEventJson(message)">
+                        <div class="status-message">
+                            @if(isWarning)
+                            {
+                                <svg class="status-message-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86l-7.5 13A1 1 0 003.65 18h16.7a1 1 0 00.86-1.5l-7.5-13a1 1 0 00-1.72 0z" />
+                                </svg>
+                            }
+                            else
+                            {
+                                <svg class="status-message-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M7.86 7.86a6 6 0 118.48 8.48 6 6 0 01-8.48-8.48z" />
+                                </svg>
+                            }
+                            <div class="min-w-0 flex-1">
+                                <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                            </div>
+                        </div>
                     </div>
                 }
                 else if(message.IsUser)
