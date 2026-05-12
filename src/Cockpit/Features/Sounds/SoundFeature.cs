@@ -16,12 +16,12 @@ public sealed class SoundFeature
 	readonly IUserInputEventSource _userInputEventSource;
 	readonly IAppSettingsFeature _appSettings;
 	readonly ILogger<SoundFeature> _logger;
-	const long MaxSoundFileSizeBytes = 10 * 1024 * 1024; // 10 MB
+	const long maxSoundFileSizeBytes = 10 * 1024 * 1024; // 10 MB
 
 	readonly ConcurrentDictionary<string, byte[]> _soundBytes = new();
 
 	// Default raw asset per sound name. Both "permission" and "userInput" share request.mp3.
-	static readonly Dictionary<string, string> DefaultSoundAssets = new()
+	static readonly Dictionary<string, string> defaultSoundAssets = new()
 	{
 		["permission"] = "Sounds/request.mp3",
 		["userInput"] = "Sounds/request.mp3",
@@ -77,7 +77,7 @@ public sealed class SoundFeature
 
 	async Task LoadAllSoundsAsync()
 	{
-		await Task.WhenAll(DefaultSoundAssets.Keys.Select(LoadSingleSoundAsync));
+		await Task.WhenAll(defaultSoundAssets.Keys.Select(LoadSingleSoundAsync));
 	}
 
 	async Task LoadSingleSoundAsync(string soundName)
@@ -92,7 +92,7 @@ public sealed class SoundFeature
 			}
 			else
 			{
-				using Stream stream = await FileSystem.OpenAppPackageFileAsync(DefaultSoundAssets[soundName]);
+				using Stream stream = await FileSystem.OpenAppPackageFileAsync(defaultSoundAssets[soundName]);
 				using MemoryStream ms = new();
 				await stream.CopyToAsync(ms);
 				_soundBytes[soundName] = ms.ToArray();
@@ -110,7 +110,7 @@ public sealed class SoundFeature
 	/// </summary>
 	public async Task SetCustomSoundAsync(SoundEffectTypeEnum soundType, Stream stream, string displayFileName)
 	{
-		if(stream.CanSeek && stream.Length > MaxSoundFileSizeBytes)
+		if(stream.CanSeek && stream.Length > maxSoundFileSizeBytes)
 		{
 			throw new InvalidOperationException("The selected audio file exceeds the 10 MB size limit.");
 		}
@@ -122,7 +122,7 @@ public sealed class SoundFeature
 		try
 		{
 			await using FileStream fs = File.Create(customPath);
-			await CopyToAsyncWithSizeLimit(stream, fs, MaxSoundFileSizeBytes);
+			await CopyToAsyncWithSizeLimit(stream, fs, maxSoundFileSizeBytes);
 		}
 		catch
 		{
