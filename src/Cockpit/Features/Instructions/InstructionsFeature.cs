@@ -6,7 +6,7 @@ namespace Cockpit.Features.Instructions;
 
 public sealed class InstructionsFeature
 {
-	static readonly string GitHubPrefix = ".github/";
+	static readonly string gitHubPrefix = ".github/";
 
 	readonly ILogger<InstructionsFeature> _logger;
 
@@ -23,11 +23,11 @@ public sealed class InstructionsFeature
 			_logger.LogInformation("Discovered {Count} instruction sources for session", result.Sources.Count);
 			return [.. result.Sources];
 		}
-		catch (OperationCanceledException)
+		catch(OperationCanceledException)
 		{
 			throw;
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load instructions from SDK");
 			return [];
@@ -38,8 +38,8 @@ public sealed class InstructionsFeature
 	/// Returns a display-friendly label, stripping the leading <c>.github/</c> prefix when present.
 	/// </summary>
 	public static string GetDisplayLabel(string label)
-		=> label.StartsWith(GitHubPrefix, StringComparison.OrdinalIgnoreCase)
-			? label[GitHubPrefix.Length..]
+		=> label.StartsWith(gitHubPrefix, StringComparison.OrdinalIgnoreCase)
+			? label[gitHubPrefix.Length..]
 			: label;
 
 	/// <summary>Groups instruction sources by their location for display purposes.</summary>
