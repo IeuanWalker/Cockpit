@@ -8,7 +8,7 @@ static class SubagentFailedHandler
 {
 	internal static void Handle(SessionModel session, SubagentFailedEvent evt)
 	{
-		if(evt.Data is null || session.ActiveWorkingGroup is null)
+		if(session.ActiveWorkingGroup is null)
 		{
 			return;
 		}

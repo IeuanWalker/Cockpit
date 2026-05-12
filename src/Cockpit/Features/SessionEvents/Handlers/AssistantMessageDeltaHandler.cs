@@ -8,11 +8,6 @@ static class AssistantMessageDeltaHandler
 {
 	internal static void Handle(SessionModel session, AssistantMessageDeltaEvent evt)
 	{
-		if(evt.Data is null)
-		{
-			return;
-		}
-
 		string messageId = evt.Data.MessageId ?? "streaming";
 		string delta = evt.Data.DeltaContent ?? string.Empty;
 

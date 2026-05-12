@@ -9,11 +9,6 @@ static class ToolStartHandler
 {
 	internal static void Handle(SessionModel session, ToolExecutionStartEvent evt)
 	{
-		if(evt.Data is null)
-		{
-			return;
-		}
-
 		session.ActiveWorkingGroup ??= new ActivityGroupModel
 		{
 			StartTime = evt.Timestamp.LocalDateTime,

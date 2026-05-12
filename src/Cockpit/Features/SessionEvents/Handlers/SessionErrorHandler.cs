@@ -9,11 +9,6 @@ static class SessionErrorHandler
 {
 	internal static void Handle(SessionModel session, SessionErrorEvent evt)
 	{
-		if(evt.Data is null)
-		{
-			return;
-		}
-
 		ChatMessageModel message = new()
 		{
 			Id = Guid.NewGuid().ToString(),
