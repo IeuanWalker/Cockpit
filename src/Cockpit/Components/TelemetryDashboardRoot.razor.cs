@@ -698,18 +698,17 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 
 	List<(string ToolName, int Count)> GetToolUsageRanking()
 	{
-		return _sessionFilteredSpans
+		return [.. _sessionFilteredSpans
 			.Where(span => span.Attributes.TryGetValue("gen_ai.operation.name", out string? operationName) && operationName == "execute_tool")
 			.Select(span => span.Attributes.TryGetValue("gen_ai.tool.name", out string? toolName) ? toolName : "(unknown)")
 			.GroupBy(toolName => toolName)
 			.Select(group => (ToolName: group.Key, Count: group.Count()))
-			.OrderByDescending(item => item.Count)
-			.ToList();
+			.OrderByDescending(item => item.Count)];
 	}
 
 	List<(string Model, int Calls, long InputTokens, long OutputTokens, long ReasoningTokens, long CacheReadTokens)> GetModelBreakdown()
 	{
-		return _sessionFilteredSpans
+		return [.. _sessionFilteredSpans
 			.Where(span => span.Attributes.TryGetValue("gen_ai.operation.name", out string? operationName) && operationName == "chat")
 			.GroupBy(span => span.Attributes.TryGetValue("gen_ai.response.model", out string? model)
 				? model
@@ -723,8 +722,7 @@ public sealed partial class TelemetryDashboardRoot : ComponentBase, IAsyncDispos
 				OutputTokens: group.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("gen_ai.usage.output_tokens"))),
 				ReasoningTokens: group.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("gen_ai.usage.reasoning.output_tokens"))),
 				CacheReadTokens: group.Sum(span => ParseLong(span.Attributes.GetValueOrDefault("gen_ai.usage.cache_read.input_tokens")))))
-			.OrderByDescending(item => item.Calls)
-			.ToList();
+			.OrderByDescending(item => item.Calls)];
 	}
 
 	(long TotalInputTokens, long TotalOutputTokens, long TotalReasoningTokens, long TotalCacheReadTokens, long TotalCost, int TotalErrors, int TotalTurns) GetAggregateStats()

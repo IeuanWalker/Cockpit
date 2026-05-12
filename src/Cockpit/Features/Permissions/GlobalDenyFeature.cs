@@ -7,7 +7,7 @@ namespace Cockpit.Features.Permissions;
 /// Manages the global deny list — commands that are never allowed to be globally approved.
 /// When a command is on this list the "Allow globally" option is suppressed in the UI.
 /// </summary>
-public sealed class GlobalDenyFeature : IDisposable
+public sealed partial class GlobalDenyFeature : IDisposable
 {
 	readonly ILogger<GlobalDenyFeature> _logger;
 	readonly string _denyFilePath;
