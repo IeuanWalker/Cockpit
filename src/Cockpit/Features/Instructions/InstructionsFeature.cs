@@ -23,10 +23,6 @@ public sealed class InstructionsFeature
 			_logger.LogInformation("Discovered {Count} instruction sources for session", result.Sources.Count);
 			return [.. result.Sources];
 		}
-		catch(OperationCanceledException)
-		{
-			throw;
-		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load instructions from SDK");
