@@ -97,7 +97,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "workingContent", _dotNetRef, "OnWorkingPanelScrollPositionChanged");
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "workingContent", _dotNetRef, "OnWorkingPanelScrollPositionChanged", nameof(WorkingPanel));
 		}
 		catch(Exception ex)
 		{
@@ -128,7 +128,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "workingContent");
+			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "workingContent", nameof(WorkingPanel));
 		}
 		catch(Exception ex)
 		{

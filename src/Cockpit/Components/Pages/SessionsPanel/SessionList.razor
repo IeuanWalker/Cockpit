@@ -7,6 +7,7 @@
         <div class="flex items-center gap-1">
             <div class="flex-1 relative">
                 <input type="text"
+                       @ref="_sessionSearch"
                        @bind="_searchText"
                        @bind:event="oninput"
                        placeholder="Search sessions..."

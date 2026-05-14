@@ -18,6 +18,7 @@
             <div class="flex items-stretch">
                 <div class="flex-1 py-2" style="align-content: center">
                     <div id="chatInput"
+                         @ref="_chatInput"
                          contenteditable="@(!IsInputDisabled ? "true" : "false")"
                          spellcheck="true"
                          data-placeholder="Ask Copilot anything... (type # to mention files)"

@@ -4,7 +4,6 @@ using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
 
@@ -16,21 +15,20 @@ public partial class SessionList : ComponentBase, IDisposable
 	readonly ITimestampFeature _timestampFeature;
 	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionFeature _sessionFeature;
-	readonly IJSRuntime _jsRuntime;
 
 	public SessionList(
 		ITimestampFeature timestampFeature,
 		IUIStateFeature uiStateFeature,
-		SessionFeature sessionFeature,
-		IJSRuntime jsRuntime)
+		SessionFeature sessionFeature)
 	{
 		_timestampFeature = timestampFeature;
 		_uiStateFeature = uiStateFeature;
 		_sessionFeature = sessionFeature;
-		_jsRuntime = jsRuntime;
 	}
 
 	string _searchText = string.Empty;
+	ElementReference _sessionSearch;
+	bool _focusSearchRequested;
 	bool _showFilterPanel = false;
 	readonly HashSet<string> _filterCwds = new(StringComparer.OrdinalIgnoreCase);
 	readonly HashSet<string> _filterRepos = new(StringComparer.OrdinalIgnoreCase);
@@ -41,9 +39,19 @@ public partial class SessionList : ComponentBase, IDisposable
 		if(!ShowSearch)
 		{
 			_searchText = string.Empty;
+			_focusSearchRequested = false;
 			_filterCwds.Clear();
 			_filterRepos.Clear();
 			_showFilterPanel = false;
+		}
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if(_focusSearchRequested && ShowSearch)
+		{
+			_focusSearchRequested = false;
+			await _sessionSearch.FocusAsync();
 		}
 	}
 
@@ -106,17 +114,17 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	void ToggleFilterPanel() => _showFilterPanel = !_showFilterPanel;
 
-	public async Task FocusSearchAsync()
+	public Task FocusSearchAsync()
 	{
-		// Ensure the search input is rendered (it only exists when ShowSearch=true) before trying to focus it.
-		await InvokeAsync(StateHasChanged);
-		await _jsRuntime.InvokeVoidAsync("cockpit.focusElement", "sessionSearch");
+		_focusSearchRequested = true;
+		return InvokeAsync(StateHasChanged);
 	}
 
-	async Task ClearAndFocusSearch()
+	Task ClearAndFocusSearch()
 	{
 		_searchText = string.Empty;
-		await _jsRuntime.InvokeVoidAsync("cockpit.focusElement", "sessionSearch");
+		_focusSearchRequested = true;
+		return InvokeAsync(StateHasChanged);
 	}
 
 	void ToggleCwdFilter(string cwd)
