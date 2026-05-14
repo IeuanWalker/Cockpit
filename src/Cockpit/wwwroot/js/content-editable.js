@@ -23,9 +23,6 @@ const mentionNavigationKeys = new Set(['Enter', 'ArrowDown', 'ArrowUp', 'Escape'
 const contentEditableStates = new WeakMap();
 const chipIconTemplate = createChipIconTemplate();
 
-function noop() {
-}
-
 function getContentEditableElement(id) {
     return document.getElementById(id);
 }
