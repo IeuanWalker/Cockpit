@@ -48,7 +48,7 @@ public sealed class SessionEventProcessor
 					string content = userMsg.Data?.Content ?? string.Empty;
 					_logger.LogDebug("Session {SessionId} user message: {Content}", session.Id, content[..Math.Min(50, content.Length)]);
 					UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
-					session.LastActivity = userMsg.Timestamp.LocalDateTime;
+					session.LastActivity = userMsg.Timestamp.UtcDateTime;
 					break;
 
 				case AssistantTurnStartEvent turnStart:
@@ -119,7 +119,7 @@ public sealed class SessionEventProcessor
 				case SessionIdleEvent idleEvt:
 					_logger.LogDebug("Session {SessionId} idle", session.Id);
 					SessionIdleHandler.Handle(session, idleEvt.Timestamp, onStreamSummary, logger: _logger);
-					session.LastActivity = idleEvt.Timestamp.LocalDateTime;
+					session.LastActivity = idleEvt.Timestamp.UtcDateTime;
 					break;
 
 				case SessionErrorEvent error:

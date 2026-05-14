@@ -23,7 +23,7 @@ public sealed partial class SessionFeature
 			{
 				try
 				{
-					await EvictIdleSessionsAsync();
+					await EvictIdleSessionsAsync(ct);
 				}
 				catch(Exception ex)
 				{
@@ -37,10 +37,11 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	async Task EvictIdleSessionsAsync()
+	async Task EvictIdleSessionsAsync(CancellationToken ct)
 	{
 		List<SessionModel> candidates = [.. _sessionListFeature.Sessions.Where(IsEvictionCandidate)];
 
+		int evictedCount = 0;
 		foreach(SessionModel session in candidates)
 		{
 			_logger.LogInformation(
@@ -48,12 +49,17 @@ public sealed partial class SessionFeature
 				session.Id,
 				session.LastActivity);
 
-			await UnloadSessionAsync(session);
+			bool evicted = await UnloadSessionAsync(session, ct);
+			if(evicted)
+			{
+				evictedCount++;
+			}
 		}
 
-		if(candidates.Count > 0)
+		if(evictedCount > 0)
 		{
-			_logger.LogInformation("Evicted {Count} idle session(s) to free memory", candidates.Count);
+			_logger.LogInformation("Evicted {Count} idle session(s) to free memory", evictedCount);
+			_sessionListFeature.NotifyStateChanged();
 		}
 	}
 
@@ -79,8 +85,10 @@ public sealed partial class SessionFeature
 			return false;
 		}
 
-		return (DateTime.UtcNow - session.LastActivity.ToUniversalTime()).TotalMinutes > idleEvictionMinutes;
+		return (DateTime.UtcNow - session.LastActivity).TotalMinutes > idleEvictionMinutes;
 	}
+
+	const int disposeTimeoutSeconds = 10;
 
 	/// <summary>
 	/// Disposes the live SDK session and clears all in-memory data back to the minimal state
@@ -89,7 +97,7 @@ public sealed partial class SessionFeature
 	/// All eligibility checks are re-validated inside <see cref="SessionModel.SessionEventLock"/>
 	/// to guard against races with <see cref="LoadSession"/>.
 	/// </summary>
-	async Task UnloadSessionAsync(SessionModel session)
+	async Task<bool> UnloadSessionAsync(SessionModel session, CancellationToken ct)
 	{
 		CopilotSession? sdkSession;
 		lock(session.SessionEventLock)
@@ -98,7 +106,7 @@ public sealed partial class SessionFeature
 			// state between candidate selection and now (e.g. user clicked it, compaction started).
 			if(!IsEvictionCandidate(session))
 			{
-				return;
+				return false;
 			}
 
 			// Transition to NotLoaded first so LoadSession performs a full reload instead of
@@ -112,6 +120,12 @@ public sealed partial class SessionFeature
 			session.StreamingThinkingEvents.Clear();
 			session.TokenUsageInfo = null;
 			session.PendingMessageCount = 0;
+			session.PendingTaskSummary = null;
+
+			// Clear pending model/agent change flags so reload doesn't make redundant SDK calls
+			session.ModelChanged = false;
+			session.AgentChanged = false;
+			session.AgentModeChanged = false;
 
 			// Clear context panel data (populated by LoadContextPanelDataAsync)
 			session.Context.Agents = [];
@@ -144,9 +158,26 @@ public sealed partial class SessionFeature
 		session.PendingPermissionRequests.Clear();
 		session.PendingUserInputRequests.Clear();
 
+		// Cancel any awaiting TCS-based handlers so SDK threads don't hang indefinitely.
+		_permissionHandler.CancelPendingRequestsForSession(session.Id);
+		_userInputHandler.CancelPendingRequestsForSession(session.Id);
+
 		if(sdkSession is not null)
 		{
-			await sdkSession.DisposeAsync();
+			try
+			{
+				await sdkSession.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(disposeTimeoutSeconds), ct);
+			}
+			catch(TimeoutException)
+			{
+				_logger.LogWarning("Timed out disposing SDK session {SessionId}; continuing eviction", session.Id);
+			}
+			catch(OperationCanceledException)
+			{
+				// Shutdown requested — abandon waiting for dispose
+			}
 		}
+
+		return true;
 	}
 }
