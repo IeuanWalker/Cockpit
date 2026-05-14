@@ -1,9 +1,3 @@
-/*
- * DOM helpers that still need direct browser access.
- *
- * `focusElement` and `setupChatInputBehavior` previously lived here, but those behaviors
- * now run in native Blazor/C# and no longer need JavaScript interop.
- */
 (() => {
     const cockpit = window.cockpit ??= {};
     const pendingAutoResizeFrames = new WeakMap();

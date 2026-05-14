@@ -1,17 +1,3 @@
-/*
- * C# conversion plan:
- * 1. Keep these interop functions in JavaScript for now: syntax highlighting depends on the browser-loaded
- *    highlight.js instance (`window.hljs`), and copy support depends on the browser-only Clipboard API.
- * 2. If server-side highlighting is pursued, prototype a Markdown/C# pipeline that renders highlighted HTML
- *    for both MarkdownRenderer and CodeBlock, then compare output, startup cost, and rerender behavior with
- *    the current highlight.js path before switching callers away from JS interop.
- * 3. Introduce any future C# highlighter behind the existing component/service boundaries so the Blazor
- *    components can choose pre-highlighted HTML or the current JS fallback without changing call sites.
- * 4. Keep a minimal JS bridge for copy-to-clipboard even if highlighting moves to C#, because `navigator.clipboard`
- *    remains browser-specific inside the WebView.
- * 5. Validate fenced code blocks, large snippets, repeated renders, theme changes, and `hljs`-missing fallback
- *    before removing this file or the highlight.js dependency.
- */
 window.cockpit = window.cockpit || {};
 
 (() => {

@@ -1,25 +1,3 @@
-/*
- * Why this stays in JavaScript:
- * 1. Click isolation must intercept native DOM click bubbling for links and buttons that can be
- *    produced by rendered markdown or other dynamic HTML inside Blazor containers. Blazor's
- *    @onclick:stopPropagation only helps when every interactive child is authored in Razor, which
- *    is not practical for markdown content and would be easy to miss as templates evolve.
- * 2. The double-click guard must run in the capture phase and use mousedown timing because MAUI
- *    WebView does not reliably populate click.detail for double-click detection. Blazor event
- *    bindings do not expose capture-phase interception, so the parent @onclick handlers would run
- *    before C# could cancel the second click.
- * 3. Both behaviors are browser plumbing rather than app state. Keeping them here avoids pushing
- *    DOM-specific quirks into Razor components or duplicating the same defensive logic across many
- *    templates.
- *
- * Low-risk Blazor-side improvements to consider later:
- * - Keep data-cockpit-id stable on clickable wrappers so the JS guard can continue surviving Blazor
- *   re-renders without element identity.
- * - Apply @onclick:stopPropagation to purely Razor-owned buttons/links when convenient to reduce
- *   how often the isolation observer needs to attach listeners.
- * - Revisit a C# migration only if Blazor/MAUI gains reliable capture-phase event hooks or a more
- *   dependable double-click signal in WebView.
- */
 (function () {
     if (window.__cockpitClickGuardsInitialized) {
         return;

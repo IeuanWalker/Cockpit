@@ -1,17 +1,3 @@
-/*
-Diff helpers for GitDiffViewer.
-
-Character-level highlighting uses a tiny marker protocol that survives highlight.js tokenization:
-- U+E000: escape prefix for any reserved marker character that already exists in the source text
-- U+E001: start of a character-diff span
-- U+E002: end of a character-diff span
-
-Pipeline:
-1. Normalize incoming [start, length] spans into sorted, clamped, non-overlapping ranges.
-2. Rebuild the raw cell text with reserved characters escaped and diff ranges wrapped in PUA markers.
-3. Run highlight.js on that marker-decorated text.
-4. Translate the markers back into diff <span> elements without disturbing highlight.js markup.
-*/
 (function () {
     'use strict';
 

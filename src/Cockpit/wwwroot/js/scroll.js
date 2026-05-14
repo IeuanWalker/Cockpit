@@ -1,19 +1,3 @@
-/*
- * Scroll helpers used by the MAUI Blazor UI.
- *
- * Why this logic stays in JavaScript:
- * - scrollTop/scrollHeight/clientHeight are browser-only DOM primitives
- * - ResizeObserver and MutationObserver are also DOM-only APIs
- * - C# coordinates setup/cleanup, while JavaScript owns the live scroll state
- *
- * Smart scroll intentionally has a few rules:
- * 1. User-driven scrolling updates the "near bottom" state.
- * 2. Passive content/layout changes are batched into requestAnimationFrame work.
- * 3. If the view was pinned to the bottom, passive growth keeps it pinned.
- * 4. If a recent click likely caused the layout change (for example expanding a tool row),
- *    we respect that interaction instead of forcing the view back to the bottom.
- * 5. Multiple .NET callers can subscribe to the same smart-scroll controller.
- */
 const cockpit = window.cockpit = window.cockpit || {};
 
 const logViewerStateByElement = new WeakMap();
