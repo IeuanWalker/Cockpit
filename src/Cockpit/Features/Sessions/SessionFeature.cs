@@ -85,7 +85,11 @@ public sealed partial class SessionFeature : IDisposable
 		_pluginsFeature = pluginsFeature;
 		_appSettingsFeature = appSettingsFeature;
 		_hooksFactory = hooksFactory;
+
+		StartEvictionLoop();
 	}
+
+	readonly CancellationTokenSource _evictionCts = new();
 
 	IDisposable? _currentWatcher;
 
@@ -127,5 +131,7 @@ public sealed partial class SessionFeature : IDisposable
 	public void Dispose()
 	{
 		_currentWatcher?.Dispose();
+		_evictionCts.Cancel();
+		_evictionCts.Dispose();
 	}
 }

@@ -12,7 +12,7 @@ public class SessionModel
 	public required string Title { get; set; }
 	public required DateTime CreatedAt { get; set; }
 	public required DateTime LastActivity { get; set; }
-	public SessionStatusEnum Status { get; set; } = SessionStatusEnum.Active;
+	public SessionStatusEnum Status { get; set; } = SessionStatusEnum.Idle;
 	List<ChatMessageModel> _messages = [];
 	public List<ChatMessageModel> Messages
 	{

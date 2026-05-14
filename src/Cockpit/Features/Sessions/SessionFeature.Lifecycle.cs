@@ -62,8 +62,8 @@ public sealed partial class SessionFeature
 					{
 						Id = metadata.SessionId,
 						Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
-						CreatedAt = metadata.StartTime,
-						LastActivity = metadata.ModifiedTime,
+						CreatedAt = metadata.StartTime.ToUniversalTime(),
+						LastActivity = metadata.ModifiedTime.ToUniversalTime(),
 						Status = SessionStatusEnum.Idle,
 						Model = defaultModel,
 						ReasoningEffort = defaultModel.DefaultReasoningEffort,
@@ -189,7 +189,15 @@ public sealed partial class SessionFeature
 			{
 				_logger.LogInformation("Session {SessionId} already loaded or loading, switching to it", sessionId);
 				await SwitchCurrentSessionAsync(session);
-				return true;
+
+				// Guard: eviction may have cleared the session between the state check and SwitchCurrentSessionAsync.
+				// If state is now NotLoaded, fall through to perform a full reload.
+				if(session.SdkState != SdkSessionStateEnum.NotLoaded)
+				{
+					return true;
+				}
+
+				_logger.LogInformation("Session {SessionId} was evicted during switch; performing full load", sessionId);
 			}
 
 			_logger.LogInformation("Loading session {SessionId}", sessionId);
