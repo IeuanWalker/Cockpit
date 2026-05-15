@@ -115,7 +115,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged");
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged", nameof(ChatPanel));
 		}
 		catch(Exception ex)
 		{
@@ -147,7 +147,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		// Cleanup smart scroll
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
+			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages", nameof(ChatPanel));
 		}
 		catch(Exception ex)
 		{

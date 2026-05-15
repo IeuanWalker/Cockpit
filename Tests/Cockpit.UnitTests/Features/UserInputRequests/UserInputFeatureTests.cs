@@ -31,7 +31,7 @@ public sealed class UserInputFeatureTests
 		CreatedAt = DateTime.UtcNow,
 		LastActivity = DateTime.UtcNow,
 		Model = testModel,
-		Status = SessionStatusEnum.Active,
+		Status = SessionStatusEnum.Idle,
 		Context = new()
 		{
 			CurrentWorkingDirectory = "",

@@ -61,7 +61,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		{
 			_dotNetRef = DotNetObjectReference.Create(this);
 			await _jsRuntime.InvokeVoidAsync("cockpit.setupScrollAnchor", "chatMessages");
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged");
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged", nameof(ChatMessages));
 
 			// If the app loaded an existing session before this component initialized,
 			// ensure the initial view is pinned to the bottom so history shows latest messages.
@@ -235,7 +235,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		try
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupScrollAnchor", "chatMessages");
-			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
+			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages", nameof(ChatMessages));
 		}
 		catch { /* component may be gone */ }
 		_dotNetRef?.Dispose();

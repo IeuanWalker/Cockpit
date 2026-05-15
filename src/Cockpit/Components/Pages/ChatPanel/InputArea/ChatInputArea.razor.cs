@@ -40,6 +40,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	// Brief yield to allow Blazor to flush the binding update before resizing
 	const int textareaResizeYieldMs = 10;
 	const long maxImagePreviewBytes = 10 * 1024 * 1024; // 10 MB
+	ElementReference _chatInput;
 	bool _subscribedToUIState;
 	DotNetObjectReference<ChatInputArea>? _dotNetRef;
 	bool _ceSetup;
@@ -203,7 +204,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.focusElement", "chatInput");
+			await _chatInput.FocusAsync();
 		}
 		catch(Exception ex)
 		{
@@ -390,7 +391,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		// Re-focus the input
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.focusElement", "chatInput");
+			await _chatInput.FocusAsync();
 		}
 		catch { }
 
