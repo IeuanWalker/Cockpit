@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    window.cockpit = window.cockpit || {};
+    window.cockpit ??= {};
 
     const cockpit = window.cockpit;
     const DIFF_MARKERS = Object.freeze({
@@ -10,8 +10,8 @@
         end: '\uE002'
     });
     const RESERVED_DIFF_MARKER_PATTERN = /[\uE000\uE001\uE002]/g;
-    const SPLIT_SCROLL_HANDLER_KEY = '_cockpitSplitScrollHandler';
-    const SPLIT_SCROLL_STATE_KEY = '_cockpitSplitScrollState';
+    const splitScrollHandlerByElement = new WeakMap();
+    const splitScrollStateByElement = new WeakMap();
 
     function logDiffWarning(message, error, details) {
         if (!window.console?.warn) {
@@ -261,8 +261,6 @@
         }
     };
 
-    cockpit._insertDiffMarkers = insertDiffMarkers;
-
     function clearPendingSplitScrollSync(state) {
         if (!state || state.frameId === null) {
             return;
@@ -275,24 +273,28 @@
     }
 
     function removeSplitScrollHandler(element) {
-        const existingHandler = element[SPLIT_SCROLL_HANDLER_KEY];
+        const existingHandler = splitScrollHandlerByElement.get(element);
         if (!existingHandler) {
             return;
         }
 
         element.removeEventListener('scroll', existingHandler);
-        delete element[SPLIT_SCROLL_HANDLER_KEY];
+        splitScrollHandlerByElement.delete(element);
     }
 
     function clearSplitScrollState(element) {
-        const state = element[SPLIT_SCROLL_STATE_KEY];
+        const state = splitScrollStateByElement.get(element);
         if (!state) {
             return;
         }
 
         clearPendingSplitScrollSync(state);
-        delete state.left?.[SPLIT_SCROLL_STATE_KEY];
-        delete state.right?.[SPLIT_SCROLL_STATE_KEY];
+        if (state.left) {
+            splitScrollStateByElement.delete(state.left);
+        }
+        if (state.right) {
+            splitScrollStateByElement.delete(state.right);
+        }
         state.ignoredElement = null;
     }
 
@@ -342,8 +344,8 @@
         removeSplitScrollHandler(source);
 
         const handler = () => queueSplitScrollSync(source, target, state);
-        source[SPLIT_SCROLL_HANDLER_KEY] = handler;
-        source[SPLIT_SCROLL_STATE_KEY] = state;
+        splitScrollHandlerByElement.set(source, handler);
+        splitScrollStateByElement.set(source, state);
         source.addEventListener('scroll', handler, { passive: true });
     }
 

@@ -1,4 +1,4 @@
-window.cockpit = window.cockpit || {};
+window.cockpit ??= {};
 
 /*
  * ContentEditable bridge for the chat input.
@@ -86,7 +86,9 @@ function invokeDotNet(state, methodName, ...args) {
         return;
     }
 
-    state.dotnetRef.invokeMethodAsync(methodName, ...args).catch(noop);
+    state.dotnetRef.invokeMethodAsync(methodName, ...args).catch(() => {
+        // Ignore errors when the Blazor component has already been disposed.
+    });
 }
 
 function addTrackedEventListener(element, state, eventName, handler) {

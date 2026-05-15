@@ -1,4 +1,4 @@
-window.cockpit = window.cockpit || {};
+window.cockpit ??= {};
 
 (() => {
     const INPUT_EVENT_NAME = 'input';

@@ -1,4 +1,6 @@
-const cockpit = window.cockpit = window.cockpit || {};
+window.cockpit ??= {};
+
+const cockpit = window.cockpit;
 
 const logViewerStateByElement = new WeakMap();
 const smartScrollStateByElement = new WeakMap();
@@ -21,6 +23,7 @@ const recentInteractionWindowMs = 500;
  * @typedef {object} SmartScrollSubscriber
  * @property {any} dotNetRef
  * @property {string} methodName
+ * @property {boolean | undefined} lastReportedNearBottom
  */
 
 /**
@@ -133,6 +136,9 @@ function getSmartScrollSubscriberId(subscriptionKey, methodName) {
 
 function notifySmartScrollSubscribers(state, nearBottom) {
     for (const subscriber of state.subscribers.values()) {
+        // Track the last-reported value so that re-registrations (e.g. new
+        // DotNetObjectReference on re-render) don't fire a redundant callback.
+        subscriber.lastReportedNearBottom = nearBottom;
         invokeDotNetSafely(subscriber.dotNetRef, subscriber.methodName, nearBottom);
     }
 }
@@ -286,8 +292,14 @@ function upsertSmartScrollSubscriber(state, subscriptionKey, dotNetRef, methodNa
         return;
     }
 
-    state.subscribers.set(subscriberId, { dotNetRef, methodName });
-    invokeDotNetSafely(dotNetRef, methodName, state.nearBottom);
+    const lastReportedNearBottom = existingSubscriber?.lastReportedNearBottom;
+    const subscriber = { dotNetRef, methodName, lastReportedNearBottom };
+    state.subscribers.set(subscriberId, subscriber);
+
+    if (lastReportedNearBottom !== state.nearBottom) {
+        subscriber.lastReportedNearBottom = state.nearBottom;
+        invokeDotNetSafely(dotNetRef, methodName, state.nearBottom);
+    }
 }
 
 function disposeSmartScrollSubscriber(element, subscriptionKey) {

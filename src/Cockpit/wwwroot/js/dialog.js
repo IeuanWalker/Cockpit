@@ -1,5 +1,5 @@
 (function () {
-    window.cockpit = window.cockpit || {};
+    window.cockpit ??= {};
     const cockpit = window.cockpit;
 
     /**

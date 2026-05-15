@@ -4,7 +4,7 @@
  * .NET owns persisted UI state through optional OnResize notifications.
  */
 (function () {
-    window.cockpit = window.cockpit || {};
+    window.cockpit ??= {};
     const cockpit = window.cockpit;
 
     const resizeCursor = 'col-resize';

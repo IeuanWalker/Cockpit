@@ -1,4 +1,4 @@
-window.cockpit = window.cockpit || {};
+window.cockpit ??= {};
 
 (() => {
     const copyFeedbackDurationMs = 1500;
