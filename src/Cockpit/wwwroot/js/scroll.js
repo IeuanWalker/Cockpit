@@ -353,11 +353,12 @@ cockpit.cleanupLogViewerScroll = function cleanupLogViewerScroll(elementId) {
 cockpit.setupSmartScroll = function setupSmartScroll(elementId, dotNetRef, methodName, subscriptionKey) {
     const element = getElementById(elementId);
     if (!element) {
-        return;
+        return false;
     }
 
     const state = smartScrollStateByElement.get(element) ?? createSmartScrollState(element);
     upsertSmartScrollSubscriber(state, subscriptionKey, dotNetRef, methodName);
+    return true;
 };
 
 cockpit.cleanupSmartScroll = function cleanupSmartScroll(elementId, subscriptionKey) {

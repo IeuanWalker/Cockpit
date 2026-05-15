@@ -79,11 +79,22 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 			return;
 		}
 
-		// Always re-setup scroll tracking when panel becomes visible or session/working group changes
-		if(IsVisible && _dotNetRef is not null)
+		// Setup scroll tracking when the panel becomes visible (but not on every subsequent render —
+		// re-registering on every render caused a render loop because the new JS implementation
+		// immediately fires the scroll-position callback on each registration).
+		// Only mark as set up if the element was found — the element is conditionally rendered
+		// and may not exist yet on the first render (when events are still empty). When that
+		// happens, leave _scrollTrackingSetup = false so the next render retries.
+		if(IsVisible && _dotNetRef is not null && !_scrollTrackingSetup)
 		{
-			await SetupSmartScroll();
-			_scrollTrackingSetup = true;
+			_scrollTrackingSetup = await SetupSmartScroll();
+			if(_scrollTrackingSetup)
+			{
+				// Ensure we start at bottom after the first successful setup, because the
+				// pending scroll-to-bottom from OnParametersSet may have been a no-op if
+				// the element didn't exist yet on that render.
+				_pendingScrollToBottom = true;
+			}
 		}
 
 		if(_pendingScrollToBottom && IsVisible)
@@ -93,15 +104,16 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 		}
 	}
 
-	async Task SetupSmartScroll()
+	async Task<bool> SetupSmartScroll()
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "workingContent", _dotNetRef, "OnWorkingPanelScrollPositionChanged", nameof(WorkingPanel));
+			return await _jsRuntime.InvokeAsync<bool>("cockpit.setupSmartScroll", "workingContent", _dotNetRef, "OnWorkingPanelScrollPositionChanged", nameof(WorkingPanel));
 		}
 		catch(Exception ex)
 		{
 			_logger.LogDebug(ex, "Failed to setup smart scroll for working panel");
+			return false;
 		}
 	}
 
