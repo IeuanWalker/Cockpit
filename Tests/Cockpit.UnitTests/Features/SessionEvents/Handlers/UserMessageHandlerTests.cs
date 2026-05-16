@@ -73,10 +73,23 @@ public class UserMessageHandlerTests
 	[Fact]
 	public void Handle_MarksMessagePending_WhenAgentWasBusy()
 	{
-		// Arrange: session has an active working group (agent is mid-turn)
+		// Arrange: session has an active working group with substantive work (agent is mid-turn)
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.ActiveWorkingGroup = new ActivityGroupModel { Status = GroupStatusEnum.Running };
+		ActivityGroupModel group = new() { Status = GroupStatusEnum.Running };
+		group.AddEvent(new ThinkingEventModel
+		{
+			Type = ThinkingEventTypeEnum.Tool,
+			Tool = new ToolExecutionModel
+			{
+				ToolName = "read_file",
+				ToolCallId = "tc1",
+				Status = ToolStatusEnum.Running,
+				StartTime = DateTime.Now
+			},
+			EventJson = null
+		});
+		session.ActiveWorkingGroup = group;
 
 		UserMessageEvent evt = new()
 		{

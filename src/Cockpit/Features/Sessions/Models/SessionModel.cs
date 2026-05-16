@@ -130,24 +130,4 @@ public class SessionModel
 	/// <c>session.compaction_complete</c>.
 	/// </summary>
 	public bool IsCompacting { get; set; }
-
-	/// <summary>
-	/// Activity group completed by <c>session.idle</c> but not yet inserted into Messages.
-	/// Held for a short debounce window: if <c>assistant.turn_start</c> arrives (multi-turn
-	/// continuation), the group is recovered. Otherwise, a timer finalizes it into chat.
-	/// </summary>
-	public ActivityGroupModel? PendingFinalizationGroup { get; set; }
-
-	/// <summary>
-	/// Original <c>session.idle</c> timestamp, preserved for accurate end-time when the
-	/// pending finalization eventually fires.
-	/// </summary>
-	public DateTimeOffset? PendingFinalizationTimestamp { get; set; }
-
-	/// <summary>
-	/// Monotonically increasing counter that guards debounced finalization callbacks.
-	/// Incremented on each <c>session.idle</c> and on each recovery; the callback only
-	/// finalizes if its captured generation still matches.
-	/// </summary>
-	public int IdleFinalizationGeneration { get; set; }
 }

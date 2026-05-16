@@ -32,69 +32,11 @@ public sealed class SessionEventProcessor
 	/// Processes a session event, mutating <paramref name="session"/> state.
 	/// Pass <paramref name="onStreamSummary"/> to stream the idle-event summary progressively;
 	/// pass <c>null</c> for background (non-visible) sessions.
-	/// When <paramref name="deferIdle"/> is <c>true</c> (live mode), <c>session.idle</c> moves
-	/// the active group to <see cref="SessionModel.PendingFinalizationGroup"/> instead of
-	/// finalizing immediately. A subsequent <c>assistant.turn_start</c> recovers it (multi-turn
-	/// continuation), any other event finalizes it, and a timer in the feature layer handles
-	/// the "no more events" case.
 	/// </summary>
-	public void Process(SessionModel session, SessionEvent evt, Func<ChatMessageModel, string, Task>? onStreamSummary = null, bool deferIdle = false)
+	public void Process(SessionModel session, SessionEvent evt, Func<ChatMessageModel, string, Task>? onStreamSummary = null)
 	{
 		try
 		{
-			// Multi-turn recovery / deferred finalization:
-			// If a previous session.idle deferred its group, resolve it based on the incoming event.
-			// Only "significant" events force immediate finalization — metadata events (usage, intent,
-			// info, etc.) pass through so the debounce timer can handle them.
-			if(session.PendingFinalizationGroup is not null)
-			{
-				switch(evt)
-				{
-					case AssistantTurnStartEvent:
-						// Continuation turn — recover the group so tools keep appending to the same panel.
-						// During the debounce window, no new pending messages can be created (SendMessageAsync
-						// acquires the same lock), so this is always a continuation of the same user prompt.
-						_logger.LogDebug("Session {SessionId}: recovering deferred group for multi-turn continuation", session.Id);
-						session.ActiveWorkingGroup = session.PendingFinalizationGroup;
-						session.ActiveWorkingGroup.Status = GroupStatusEnum.Running;
-						session.ActiveWorkingGroup.IsExpanded = true;
-						session.PendingFinalizationGroup = null;
-						session.PendingFinalizationTimestamp = null;
-						session.IdleFinalizationGeneration++;
-						session.Status = SessionStatusEnum.Running;
-						break; // Fall through to let AssistantTurnStartHandler handle turn activation
-
-					case UserMessageEvent:
-						// New user message while debounce was pending — finalize the old group first.
-						_logger.LogDebug("Session {SessionId}: finalizing deferred group before user message", session.Id);
-						FinalizePendingGroup(session, onStreamSummary);
-						break;
-
-					case AbortEvent:
-					case SessionErrorEvent:
-						// Error/abort — finalize with Error status.
-						_logger.LogDebug("Session {SessionId}: finalizing deferred group as error before {EventType}", session.Id, evt.GetType().Name);
-						FinalizePendingGroup(session, onStreamSummary, GroupStatusEnum.Error);
-						break;
-
-					case SessionShutdownEvent shut when shut.Data.ShutdownType != ShutdownType.Routine:
-						// Non-routine (fatal) shutdown — finalize with Error status.
-						_logger.LogDebug("Session {SessionId}: finalizing deferred group as error before non-routine shutdown", session.Id);
-						FinalizePendingGroup(session, onStreamSummary, GroupStatusEnum.Error);
-						break;
-
-					case SessionShutdownEvent:
-						// Routine shutdown — session will restart, discard the pending group.
-						_logger.LogDebug("Session {SessionId}: discarding deferred group on routine shutdown", session.Id);
-						session.PendingFinalizationGroup = null;
-						session.PendingFinalizationTimestamp = null;
-						break;
-
-					// All other events (metadata: usage, intent, info, turn_end, etc.):
-					// Leave the pending group alone — the debounce timer will finalize it.
-				}
-			}
-
 			switch(evt)
 			{
 				// Agent-synthesised continuation: keep the working panel open and suppress
@@ -241,33 +183,8 @@ public sealed class SessionEventProcessor
 					break;
 
 				case SessionIdleEvent idleEvt:
-					_logger.LogDebug("Session {SessionId} idle (deferIdle={DeferIdle})", session.Id, deferIdle);
-					if(deferIdle && session.ActiveWorkingGroup is not null)
-					{
-						// Live mode: defer finalization to allow multi-turn continuations to reuse the group.
-						// The feature layer starts a timer; if no turn_start arrives, it calls FinalizeIfPending.
-						bool hasPendingMessages = session.Messages.Any(m => m.IsUser && m.IsPending);
-						if(hasPendingMessages)
-						{
-							// Enqueue mode: keep running — next turn_start will activate the pending message.
-							session.Status = SessionStatusEnum.Running;
-						}
-						else
-						{
-							session.PendingFinalizationGroup = session.ActiveWorkingGroup;
-							session.PendingFinalizationTimestamp = idleEvt.Timestamp;
-							session.ActiveWorkingGroup = null;
-							// Keep Status = Running during the debounce window so the session
-							// appears "busy" (prevents new messages from being treated as immediate,
-							// keeps IsWorking true). The timer or next finalization event will set Idle.
-							session.IdleFinalizationGeneration++;
-						}
-					}
-					else
-					{
-						// Immediate finalization (test mode / replay / no active group).
-						SessionIdleHandler.Handle(session, idleEvt.Timestamp, onStreamSummary, logger: _logger);
-					}
+					_logger.LogDebug("Session {SessionId} idle", session.Id);
+					SessionIdleHandler.Handle(session, idleEvt.Timestamp, onStreamSummary, logger: _logger);
 					session.LastActivity = idleEvt.Timestamp.UtcDateTime;
 					break;
 
@@ -433,35 +350,4 @@ public sealed class SessionEventProcessor
 	/// Finalizes any open <see cref="ActivityGroup"/> on the session (e.g. after abrupt termination during replay).
 	/// </summary>
 	public void FinalizeOpenGroup(SessionModel session) => SessionIdleHandler.Handle(session, logger: _logger);
-
-	/// <summary>
-	/// Finalizes the deferred <see cref="SessionModel.PendingFinalizationGroup"/> if one exists.
-	/// Called by the feature-layer timer when no continuation arrives within the debounce window,
-	/// and on session shutdown/eviction/error.
-	/// </summary>
-	/// <returns><c>true</c> if a group was finalized; <c>false</c> if nothing was pending.</returns>
-	public bool FinalizeIfPending(SessionModel session, Func<ChatMessageModel, string, Task>? onStreamSummary = null)
-	{
-		if(session.PendingFinalizationGroup is null)
-		{
-			return false;
-		}
-
-		FinalizePendingGroup(session, onStreamSummary);
-		return true;
-	}
-
-	/// <summary>
-	/// Internal helper — moves <see cref="SessionModel.PendingFinalizationGroup"/> back to
-	/// <see cref="SessionModel.ActiveWorkingGroup"/> and calls <see cref="SessionIdleHandler.Handle"/>.
-	/// </summary>
-	void FinalizePendingGroup(SessionModel session, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete)
-	{
-		session.ActiveWorkingGroup = session.PendingFinalizationGroup;
-		DateTimeOffset ts = session.PendingFinalizationTimestamp ?? DateTimeOffset.UtcNow;
-		session.PendingFinalizationGroup = null;
-		session.PendingFinalizationTimestamp = null;
-		SessionIdleHandler.Handle(session, ts, onStreamSummary, groupStatus, _logger);
-		session.LastActivity = ts.UtcDateTime;
-	}
 }
