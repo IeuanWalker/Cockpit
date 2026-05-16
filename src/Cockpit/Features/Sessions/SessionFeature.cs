@@ -10,6 +10,7 @@ using Cockpit.Features.Permissions;
 using Cockpit.Features.Plugins;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
+using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Skills;
@@ -118,15 +119,65 @@ public sealed partial class SessionFeature : IDisposable
 			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged)
 			: null;
 
+		bool justDeferred = false;
+
 		lock(session.SessionEventLock)
 		{
-			_processor.Process(session, evt, streamCallback);
+			_processor.Process(session, evt, streamCallback, deferIdle: true);
+
+			// Detect if this session.idle was deferred (group moved to PendingFinalizationGroup).
+			// The processor only sets PendingFinalizationGroup on SessionIdleEvent with deferIdle=true.
+			justDeferred = session.PendingFinalizationGroup is not null
+				&& evt is SessionIdleEvent;
+
 			session.MessagesSnapshot = [.. session.Messages];
 		}
 
 		if(session == _sessionListFeature.CurrentSession)
 		{
 			_sessionListFeature.NotifyStateChanged();
+		}
+
+		// Start debounce timer for deferred idle finalization.
+		// If no turn_start arrives within 75ms, the timer fires and finalizes the group.
+		if(justDeferred)
+		{
+			int capturedGeneration = session.IdleFinalizationGeneration;
+			_ = Task.Run(async () =>
+			{
+				await Task.Delay(75);
+
+				// Generation check: bail if another event arrived (incremented the generation).
+				if(session.IdleFinalizationGeneration != capturedGeneration)
+				{
+					return;
+				}
+
+				Func<ChatMessageModel, string, Task>? timerStreamCallback = session == _sessionListFeature.CurrentSession
+					? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged)
+					: null;
+
+				lock(session.SessionEventLock)
+				{
+					// Double-check generation under lock (another event may have just arrived).
+					if(session.IdleFinalizationGeneration != capturedGeneration)
+					{
+						return;
+					}
+
+					// FinalizeIfPending calls SessionIdleHandler.Handle, which fires the completion
+					// sound internally if appropriate — no need to raise it externally.
+					if(_processor.FinalizeIfPending(session, timerStreamCallback))
+					{
+						session.MessagesSnapshot = [.. session.Messages];
+					}
+				}
+
+				if(session == _sessionListFeature.CurrentSession)
+				{
+					_sessionListFeature.NotifyStateChanged();
+				}
+			});
 		}
 	}
 

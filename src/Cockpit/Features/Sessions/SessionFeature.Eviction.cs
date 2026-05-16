@@ -116,6 +116,8 @@ public sealed partial class SessionFeature
 			// Clear message history
 			session.Messages = []; // setter also clears MessagesSnapshot
 			session.ActiveWorkingGroup = null;
+			session.PendingFinalizationGroup = null;
+			session.PendingFinalizationTimestamp = null;
 			session.StreamingMessages.Clear();
 			session.StreamingThinkingEvents.Clear();
 			session.TokenUsageInfo = null;

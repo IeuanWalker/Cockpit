@@ -294,6 +294,12 @@ static class SessionIdleHandler
 		}
 	}
 
+	/// <summary>
+	/// Raises the <see cref="OnSessionFinished"/> event externally (e.g. from the debounce timer
+	/// in <see cref="Sessions.SessionFeature"/>).
+	/// </summary>
+	internal static void RaiseSessionFinished() => OnSessionFinished?.Invoke();
+
 	static string GenerateActivitySummary(List<ToolExecutionModel> tools)
 	{
 		List<string> distinctNames = [.. tools.Select(t => t.ToolName).Distinct()];
