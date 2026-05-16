@@ -317,10 +317,11 @@ public class UserMessageHandlerTests
 
 		secondMsg.IsPending.ShouldBeFalse();
 
-		// Activity group for first turn inserted BEFORE second message
+		// Second (enqueued) message grouped with first — appears BEFORE operations
 		int activityGroupIndex = session.Messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup);
 		int secondMsgIndex = session.Messages.IndexOf(secondMsg);
-		activityGroupIndex.ShouldBeLessThan(secondMsgIndex);
+		secondMsgIndex.ShouldBeLessThan(activityGroupIndex,
+			"enqueued user message should appear before the activity group");
 	}
 
 	[Fact]

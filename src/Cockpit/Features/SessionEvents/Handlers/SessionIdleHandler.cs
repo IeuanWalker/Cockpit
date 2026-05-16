@@ -160,6 +160,33 @@ static class SessionIdleHandler
 				}
 			}
 
+			// Extend anchor past consecutive user messages that were enqueued during this turn
+			// (pending), AND past any already-inserted non-user items (activity groups, summaries)
+			// so subsequent activity groups are placed in chronological order.
+			// Stop only when we hit a non-pending user message (a new turn's trigger).
+			if(anchorIndex >= 0)
+			{
+				for(int i = anchorIndex + 1; i < session.Messages.Count; i++)
+				{
+					if(session.Messages[i].IsUser)
+					{
+						if(session.Messages[i].IsPending)
+						{
+							anchorIndex = i;
+						}
+						else
+						{
+							break;
+						}
+					}
+					else
+					{
+						// Skip past non-user items (activity groups, summaries from prior finalizations)
+						anchorIndex = i;
+					}
+				}
+			}
+
 			// Only insert an activity group into chat when there were actual tool operations
 			int activityInsertedAt = -1;
 			if(tools.Count > 0 || groupStatus == GroupStatusEnum.Error)

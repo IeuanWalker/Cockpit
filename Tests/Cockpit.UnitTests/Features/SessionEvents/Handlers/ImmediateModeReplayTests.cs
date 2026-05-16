@@ -137,10 +137,10 @@ public class ImmediateModeReplayTests
 
 		group1Idx.ShouldBeGreaterThan(deepDiveIdx,
 			"activity group 1 must come after 'Deep dive'");
-		actuallyFocusIdx.ShouldBeGreaterThan(group1Idx,
-			"'Actually focus' must appear after the first activity group");
-		group2Idx.ShouldBeGreaterThan(actuallyFocusIdx,
-			"activity group 2 must come after 'Actually focus'");
+		actuallyFocusIdx.ShouldBeLessThan(group1Idx,
+			"'Actually focus' (enqueued) must be grouped before the first activity group");
+		group2Idx.ShouldBeGreaterThan(group1Idx,
+			"activity group 2 must come after activity group 1");
 	}
 
 	/// <summary>
@@ -290,7 +290,7 @@ public class ImmediateModeReplayTests
 			Timestamp = DateTimeOffset.UtcNow
 		});
 
-		// Expected order: "First task" → group1 → "Second task" → group2
+		// Expected order: "First task" → "Second task" (grouped) → group1 → group2
 		int firstTaskIdx = session.Messages.FindIndex(m => m.IsUser && m.Content == "First task");
 		int secondTaskIdx = session.Messages.IndexOf(secondMsg);
 		int group1Idx = session.Messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup
@@ -298,8 +298,8 @@ public class ImmediateModeReplayTests
 		int group2Idx = session.Messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup
 			&& m.ActivityGroup?.Tools.Any(t => t.ToolCallId == "tc2") == true);
 
-		group1Idx.ShouldBeGreaterThan(firstTaskIdx, "group 1 after 'First task'");
-		secondTaskIdx.ShouldBeGreaterThan(group1Idx, "'Second task' after group 1");
-		group2Idx.ShouldBeGreaterThan(secondTaskIdx, "group 2 after 'Second task'");
+		secondTaskIdx.ShouldBeGreaterThan(firstTaskIdx, "'Second task' after 'First task'");
+		group1Idx.ShouldBeGreaterThan(secondTaskIdx, "group 1 after enqueued 'Second task'");
+		group2Idx.ShouldBeGreaterThan(group1Idx, "group 2 after group 1");
 	}
 }

@@ -132,10 +132,18 @@ public sealed partial class SessionFeature
 				{
 					if(session.Messages.Contains(optimisticMessage) && !optimisticMessage.IsComplete)
 					{
-						optimisticMessage.Id = sentMessageId;
+							string oldId = optimisticMessage.Id;
+							optimisticMessage.Id = sentMessageId;
+
+							// Keep the working group anchor in sync with the updated message ID.
+							// assistant.turn_start may have captured the old GUID before SendAsync returned.
+							if(session.ActiveWorkingGroup?.TriggeredByUserMessageId == oldId)
+							{
+								session.ActiveWorkingGroup.TriggeredByUserMessageId = sentMessageId;
+							}
+						}
 					}
 				}
-			}
 		}
 		catch(IOException ex) when(ex.Message.Contains("Session not found", StringComparison.OrdinalIgnoreCase))
 		{

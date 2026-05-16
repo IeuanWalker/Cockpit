@@ -87,12 +87,7 @@ public sealed class SessionEventProcessor
 							(e.Type == ThinkingEventTypeEnum.Tool && e.Tool is not null)
 							|| ((e.Type == ThinkingEventTypeEnum.Message || e.Type == ThinkingEventTypeEnum.Reasoning)
 								&& !string.IsNullOrWhiteSpace(e.Message)));
-						if(wasAgentBusy)
-						{
-							// Safety net: finalize any prior group not yet closed by SessionIdleEvent
-							SessionIdleHandler.Handle(session, logger: _logger);
-						}
-						else
+						if(!wasAgentBusy)
 						{
 							// Empty spurious group — keep it alive; re-anchor after the user message is added
 							isSpuriousEmptyGroup = true;
@@ -100,7 +95,16 @@ public sealed class SessionEventProcessor
 					}
 					string content = userMsg.Data?.Content ?? string.Empty;
 					_logger.LogDebug("Session {SessionId} user message: {Content}", session.Id, content[..Math.Min(50, content.Length)]);
+					// Add the user message FIRST so it appears before operations in the message list.
+					// The safety-net finalization below will anchor past it when extending over
+					// consecutive user messages, producing the desired grouping:
+					// [user msg 1] [user msg 2 (enqueued)] [operations] [agent response]
 					UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
+					if(wasAgentBusy)
+					{
+						// Safety net: finalize the prior group now that the user message is positioned
+						SessionIdleHandler.Handle(session, logger: _logger);
+					}
 					if(isSpuriousEmptyGroup && session.ActiveWorkingGroup == priorGroup)
 					{
 						// Re-anchor the group to the user message just added to session.Messages
