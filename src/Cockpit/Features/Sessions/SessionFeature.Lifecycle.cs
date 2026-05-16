@@ -13,7 +13,7 @@ namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
-	const int immediateModeReplayOrderingThresholdMs = 100;
+	const int immediateModeReplayOrderingThresholdMs = 500;
 
 	Task? _loadExistingSessionsTask;
 	readonly Lock _loadGate = new();
@@ -653,8 +653,9 @@ public sealed partial class SessionFeature
 		List<SessionEvent> orderedEvents = [.. events];
 		for(int i = 0; i < orderedEvents.Count - 1; i++)
 		{
-			if(orderedEvents[i] is AssistantTurnStartEvent
+			if(orderedEvents[i] is AssistantTurnStartEvent turnStart
 				&& orderedEvents[i + 1] is UserMessageEvent userMsgEvt
+				&& (string.IsNullOrEmpty(turnStart.Data?.TurnId) || turnStart.Data.TurnId == "0")
 				&& (userMsgEvt.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds is >= 0 and <= immediateModeReplayOrderingThresholdMs)
 			{
 				(orderedEvents[i], orderedEvents[i + 1]) = (orderedEvents[i + 1], orderedEvents[i]);

@@ -93,6 +93,11 @@
     line-height: 1.5;
 }
 
+.working-user-message {
+    border-left: 2px solid var(--accent-color);
+    opacity: 0.8;
+}
+
     .working-message p:last-child {
         margin-bottom: 0;
     }

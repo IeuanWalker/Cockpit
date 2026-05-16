@@ -127,15 +127,24 @@ static class SessionIdleHandler
 			}
 
 			// Determine anchor index: the position we'll insert after
-			// Priority: InitialMessageId (assistant first msg) > TriggeredByUserMessageId > last non-pending user msg
+			// Priority: TriggeredByUserMessageId (user prompt) > InitialMessageId (assistant first msg) > last non-pending user msg
+			// The activity group must never appear before the user message that triggered it.
 			int anchorIndex = -1;
+			int triggerIndex = -1;
+			if(!string.IsNullOrEmpty(group.TriggeredByUserMessageId))
+			{
+				triggerIndex = session.Messages.FindIndex(m => m.Id == group.TriggeredByUserMessageId);
+				anchorIndex = triggerIndex;
+			}
+
 			if(!string.IsNullOrEmpty(group.InitialMessageId))
 			{
-				anchorIndex = session.Messages.FindIndex(m => m.Id == group.InitialMessageId);
-			}
-			else if(!string.IsNullOrEmpty(group.TriggeredByUserMessageId))
-			{
-				anchorIndex = session.Messages.FindIndex(m => m.Id == group.TriggeredByUserMessageId);
+				int initialIndex = session.Messages.FindIndex(m => m.Id == group.InitialMessageId);
+				// Only use InitialMessageId if it's after the triggering user message (or no trigger exists)
+				if(initialIndex >= 0 && initialIndex > anchorIndex)
+				{
+					anchorIndex = initialIndex;
+				}
 			}
 
 			if(anchorIndex < 0)
@@ -237,11 +246,24 @@ static class SessionIdleHandler
 			Debug.WriteLine("No active thinking group to finalize");
 		}
 
-		session.Status = SessionStatusEnum.Idle;
-
-		if(groupStatus == GroupStatusEnum.Complete && !session.SuppressFinishedNotification)
+		// When pending user messages exist and the session completed normally, keep the session
+		// running so the working panel stays visible and the completion sound is suppressed —
+		// the next queued prompt will be activated momentarily by AssistantTurnStartHandler.
+		// For error/abort, always transition to Idle and fire the event.
+		bool hasPendingMessages = groupStatus == GroupStatusEnum.Complete
+			&& session.Messages.Any(m => m.IsUser && m.IsPending);
+		if(hasPendingMessages)
 		{
-			OnSessionFinished?.Invoke();
+			session.Status = SessionStatusEnum.Running;
+		}
+		else
+		{
+			session.Status = SessionStatusEnum.Idle;
+
+			if(groupStatus == GroupStatusEnum.Complete && !session.SuppressFinishedNotification)
+			{
+				OnSessionFinished?.Invoke();
+			}
 		}
 	}
 

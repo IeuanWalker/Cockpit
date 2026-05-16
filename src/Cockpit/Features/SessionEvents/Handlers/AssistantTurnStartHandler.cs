@@ -18,7 +18,10 @@ static class AssistantTurnStartHandler
 		if(shouldActivatePendingMessage)
 		{
 			activatedPendingMsg = session.Messages.FirstOrDefault(m => m.IsUser && m.IsPending);
-			activatedPendingMsg?.IsPending = false;
+			if(activatedPendingMsg is not null)
+			{
+				activatedPendingMsg.IsPending = false;
+			}
 		}
 
 		// Create working group immediately so the panel shows while the model thinks
@@ -32,12 +35,28 @@ static class AssistantTurnStartHandler
 		string? triggeredById = activatedPendingMsg?.Id
 			?? session.Messages.LastOrDefault(m => m.IsUser)?.Id;
 
-		session.ActiveWorkingGroup ??= new ActivityGroupModel
+		if(session.ActiveWorkingGroup is null)
 		{
-			StartTime = evt.Timestamp.LocalDateTime,
-			Status = GroupStatusEnum.Running,
-			IsExpanded = true,
-			TriggeredByUserMessageId = triggeredById
-		};
+			session.ActiveWorkingGroup = new ActivityGroupModel
+			{
+				StartTime = evt.Timestamp.LocalDateTime,
+				Status = GroupStatusEnum.Running,
+				IsExpanded = true,
+				TriggeredByUserMessageId = triggeredById
+			};
+
+			// When an enqueued/pending message triggers a new working group, embed it in the
+			// group so the working panel shows what the user asked.
+			if(activatedPendingMsg is not null)
+			{
+				session.ActiveWorkingGroup.AddEvent(new ThinkingEventModel
+				{
+					Type = ThinkingEventTypeEnum.UserMessage,
+					Message = activatedPendingMsg.Content,
+					Timestamp = activatedPendingMsg.Timestamp.LocalDateTime,
+					EventJson = null
+				});
+			}
+		}
 	}
 }
