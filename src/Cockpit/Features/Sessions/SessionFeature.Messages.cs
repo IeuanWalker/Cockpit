@@ -98,12 +98,26 @@ public sealed partial class SessionFeature
 			List<UserMessageAttachment>? sdkAttachments = null;
 			if(attachments?.Count > 0)
 			{
-				sdkAttachments = [.. attachments
-					.Select(a => (UserMessageAttachmentFile)new UserMessageAttachmentFile
+				sdkAttachments = [];
+				foreach(AttachmentModel attachment in attachments)
+				{
+					if(attachment.IsDirectory)
 					{
-						Path = a.FilePath,
-						DisplayName = a.FileName
-					})];
+						sdkAttachments.Add(new UserMessageAttachmentDirectory
+						{
+							DisplayName = attachment.FileName,
+							Path = attachment.FilePath
+						});
+					}
+					else
+					{
+						sdkAttachments.Add(new UserMessageAttachmentFile
+						{
+							DisplayName = attachment.FileName,
+							Path = attachment.FilePath
+						});
+					}
+				}
 			}
 			string sentMessageId = await existingSession.SendAsync(new MessageOptions
 			{

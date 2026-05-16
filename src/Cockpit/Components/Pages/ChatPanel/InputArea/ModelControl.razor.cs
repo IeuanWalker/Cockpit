@@ -20,6 +20,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 	double _maxMultiplier;
 	PickerControl _modelPicker = default!;
 	PickerControl? _reasoningPicker;
+	Cockpit.Components.Popups.ModelInfoPopup _modelInfoPopup = default!;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -34,6 +35,16 @@ public partial class ModelControl : ComponentBase, IDisposable
 	void OnStateChanged()
 	{
 		_ = InvokeAsync(StateHasChanged);
+	}
+
+	void OpenModelInfoPopup()
+	{
+		_modelInfoPopup.Open();
+	}
+
+	async Task HandleModelSelectedFromPopup(ModelInfo model)
+	{
+		await SelectModel(model);
 	}
 
 	async Task SelectModel(ModelInfo model)

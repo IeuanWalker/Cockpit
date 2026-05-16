@@ -20,6 +20,15 @@ public sealed class SessionEventProcessor
 	}
 
 	/// <summary>
+	/// Prefix that identifies an internal reconnect-continuation prompt sent by Cockpit after
+	/// a client disconnect. Events whose content starts with this marker are suppressed at the
+	/// processor level — they never appear in the chat log and never trigger the safety-net.
+	/// The constant lives here so it is shared between <see cref="SessionEventProcessor"/>
+	/// and <see cref="Sessions.SessionFeature"/>.
+	/// </summary>
+	internal const string ReconnectContinuationPrefix = "##COCKPIT-RECONNECT##";
+
+	/// <summary>
 	/// Processes a session event, mutating <paramref name="session"/> state.
 	/// Pass <paramref name="onStreamSummary"/> to stream the idle-event summary progressively;
 	/// pass <c>null</c> for background (non-visible) sessions.
@@ -37,17 +46,70 @@ public sealed class SessionEventProcessor
 					ThinkingExhaustedContinuationHandler.Handle(session, userMsg);
 					break;
 
+				// Cockpit-internal reconnect continuation: silently re-triggers the AI after a
+				// client disconnect. Must not appear in chat, not close the working panel, and
+				// not trigger the safety-net — handled identically to thinking-exhausted-continuation.
+				case UserMessageEvent reconnectMsg when reconnectMsg.Data?.Content?.StartsWith(ReconnectContinuationPrefix, StringComparison.Ordinal) == true:
+					_logger.LogDebug("Session {SessionId} reconnect-continuation suppressed", session.Id);
+					session.Status = SessionStatusEnum.Running;
+					break;
+
 				case UserMessageEvent userMsg:
-					// Capture whether the agent was mid-turn before the safety-net finalises the group
-					bool wasAgentBusy = session.ActiveWorkingGroup is not null;
-					// Safety net: finalize any prior group not yet closed by SessionIdleEvent
-					if(wasAgentBusy)
+					// Determine whether the agent was genuinely mid-turn before the safety-net runs.
+					//
+					// Background: in immediate-mode, the SDK writes assistant.turn_start to the event log
+					// *before* the user.message echo. The 100 ms swap heuristic in ReorderImmediateModeReplayEvents
+					// corrects this for most cases, but can fail when there is a larger gap. When it fails,
+					// AssistantTurnStartHandler creates a working group *before* the user message is in
+					// session.Messages. That group is empty at the point the user.message event is processed.
+					//
+					// Old behaviour: fire the safety-net unconditionally → empty group cleared → subsequent
+					// assistant messages (turn 0) go to chat → tools anchor to that chat message → ops group
+					// appears *between* two assistant messages instead of below the user prompt.
+					//
+					// Fix: if the open group is empty (no tools, no non-empty thinking messages) it was
+					// spuriously created by the premature turn_start. Keep it alive and re-anchor it to
+					// this user message so that all subsequent assistant messages and tool calls are
+					// correctly attributed to this prompt.
+					//
+					// Safety for live mode: user.message echoes are not emitted in the live SDK event
+					// stream — only written to disk for replay. ThinkingExhausted/reconnect continuations
+					// are handled by the earlier case guards above and never reach this branch.
+					// wasAgentBusy only affects the non-optimistic (replay) code path inside
+					// UserMessageHandler; live sends set IsPending at send time and it is preserved.
+					ActivityGroupModel? priorGroup = session.ActiveWorkingGroup;
+					bool wasAgentBusy = false;
+					bool isSpuriousEmptyGroup = false;
+					if(priorGroup is not null)
 					{
-						SessionIdleHandler.Handle(session, logger: _logger);
+						List<ThinkingEventModel> priorEvents = priorGroup.GetEventsSnapshot();
+						wasAgentBusy = priorEvents.Any(e =>
+							(e.Type == ThinkingEventTypeEnum.Tool && e.Tool is not null)
+							|| ((e.Type == ThinkingEventTypeEnum.Message || e.Type == ThinkingEventTypeEnum.Reasoning)
+								&& !string.IsNullOrWhiteSpace(e.Message)));
+						if(wasAgentBusy)
+						{
+							// Safety net: finalize any prior group not yet closed by SessionIdleEvent
+							SessionIdleHandler.Handle(session, logger: _logger);
+						}
+						else
+						{
+							// Empty spurious group — keep it alive; re-anchor after the user message is added
+							isSpuriousEmptyGroup = true;
+						}
 					}
 					string content = userMsg.Data?.Content ?? string.Empty;
 					_logger.LogDebug("Session {SessionId} user message: {Content}", session.Id, content[..Math.Min(50, content.Length)]);
 					UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
+					if(isSpuriousEmptyGroup && session.ActiveWorkingGroup == priorGroup)
+					{
+						// Re-anchor the group to the user message just added to session.Messages
+						ChatMessageModel? addedMsg = session.Messages.LastOrDefault(m => m.IsUser && m.IsComplete && !m.IsPending);
+						if(addedMsg is not null)
+						{
+							priorGroup!.TriggeredByUserMessageId = addedMsg.Id;
+						}
+					}
 					session.LastActivity = userMsg.Timestamp.UtcDateTime;
 					break;
 

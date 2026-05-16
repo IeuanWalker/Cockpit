@@ -23,6 +23,8 @@ public class ConnectionFeatureTests
 
 		public Task<PingResponse?> PingAsync(CancellationToken cancellationToken = default)
 			=> _handler(cancellationToken);
+
+		public event Action<ConnectionState>? OnConnectionStateChanged;
 	}
 
 	static ConnectionFeature CreateFeature(Func<CancellationToken, Task<PingResponse?>> handler)

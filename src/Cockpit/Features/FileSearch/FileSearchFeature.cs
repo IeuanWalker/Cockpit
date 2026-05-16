@@ -154,6 +154,16 @@ public sealed class FileSearchFeature : IFileSearchFeature
 					continue;
 				}
 
+				if(string.IsNullOrEmpty(filter) || dirName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+				{
+					string relativeDirPath = Path.GetRelativePath(root, subDir);
+					results.Add(new FileSearchResult(dirName, relativeDirPath, subDir, IsDirectory: true));
+					if(results.Count >= maxResults)
+					{
+						return;
+					}
+				}
+
 				EnumerateFiles(root, subDir, filter, results, maxResults, cancellationToken);
 			}
 		}

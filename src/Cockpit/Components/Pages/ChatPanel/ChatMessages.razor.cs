@@ -224,6 +224,35 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		await _sessionFeature.RetryMessageAsync(message);
 	}
 
+	static string HumanizeTimestamp(DateTimeOffset timestamp)
+	{
+		TimeSpan elapsed = DateTimeOffset.UtcNow - timestamp;
+
+		if(elapsed.TotalSeconds < 60)
+		{
+			return "just now";
+		}
+
+		if(elapsed.TotalMinutes < 60)
+		{
+			int minutes = (int)elapsed.TotalMinutes;
+			return $"{minutes} minute{(minutes == 1 ? "" : "s")} ago";
+		}
+
+		if(elapsed.TotalHours < 24)
+		{
+			int hours = (int)elapsed.TotalHours;
+			return $"{hours} hour{(hours == 1 ? "" : "s")} ago";
+		}
+
+		if(elapsed.TotalDays < 2)
+		{
+			return $"yesterday at {timestamp.LocalDateTime.ToString("h:mm tt")}";
+		}
+
+		return timestamp.LocalDateTime.ToString("MMM d, h:mm tt");
+	}
+
 	public async ValueTask DisposeAsync()
 	{
 		_sessionListFeature.OnStateChanged -= OnStateChanged;

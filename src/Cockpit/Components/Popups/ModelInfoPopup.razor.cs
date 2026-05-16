@@ -13,12 +13,10 @@ public partial class ModelInfoPopup : ComponentBase
 	[Parameter] public double MaxMultiplier { get; set; }
 
 	PopupBase _popup = default!;
-	PopupBase _policyPopup = default!;
 	PopupBase _jsonPopup = default!;
 	string _searchFilter = string.Empty;
 	string _filterOption = "All";
 	bool _filterDropdownOpen = false;
-	ModelInfo? _policyModel;
 	ModelInfo? _jsonModel;
 
 	public void Open()
@@ -43,7 +41,6 @@ public partial class ModelInfoPopup : ComponentBase
 		{
 			"Vision" => result.Where(m => m.Capabilities?.Supports?.Vision == true),
 			"Reasoning" => result.Where(m => m.Capabilities?.Supports?.ReasoningEffort == true),
-			"Free" => result.Where(m => m.Billing?.Multiplier == 0),
 			_ => result,
 		};
 		return [.. result];
@@ -100,12 +97,6 @@ public partial class ModelInfoPopup : ComponentBase
 	{
 		_popup.Close();
 		await OnModelSelected.InvokeAsync(model);
-	}
-
-	void ShowPolicyPopup(ModelInfo model)
-	{
-		_policyModel = model;
-		_policyPopup.Open();
 	}
 
 	void ShowJsonPopup(ModelInfo model)

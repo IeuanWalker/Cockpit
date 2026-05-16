@@ -1,0 +1,18 @@
+<div class="settings-section">
+	<h4 class="text-sm font-semibold text-app-title mb-3">System</h4>
+
+	<div class="diag-card">
+		<div class="diag-settings-grid">
+			<label class="diag-toggle-row">
+				<div>
+					<div class="text-sm font-medium text-app-title">Keep alive</div>
+					<div class="text-xs secondary-text">Prevent the system from sleeping while an agent session is active.</div>
+				</div>
+				<span class="diag-toggle-control">
+					<input type="checkbox" @bind="_keepAliveEnabled" @bind:after="OnKeepAliveChanged" />
+					<span class="diag-toggle-track"></span>
+				</span>
+			</label>
+		</div>
+	</div>
+</div>

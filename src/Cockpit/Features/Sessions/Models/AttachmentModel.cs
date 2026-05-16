@@ -21,12 +21,17 @@ public class AttachmentModel
 	/// </summary>
 	public string? ChipId { get; init; }
 
+	/// <summary>
+	/// True when the attachment points to a directory rather than a file.
+	/// </summary>
+	public bool IsDirectory { get; init; }
+
 	// Cached data URI — set immediately for new attachments, lazily on first GetPreviewSrc() for replayed ones
 	string? _dataUri;
 
 	public string? DataUri => _dataUri;
 
-	public AttachmentModel(string fileName, string filePath, string? dataUri, string mimeType, bool isMention = false, string? chipId = null)
+	public AttachmentModel(string fileName, string filePath, string? dataUri, string mimeType, bool isMention = false, string? chipId = null, bool isDirectory = false)
 	{
 		FileName = fileName;
 		FilePath = filePath;
@@ -34,6 +39,7 @@ public class AttachmentModel
 		_dataUri = dataUri;
 		IsMention = isMention;
 		ChipId = chipId;
+		IsDirectory = isDirectory;
 	}
 
 	public bool IsImage =>

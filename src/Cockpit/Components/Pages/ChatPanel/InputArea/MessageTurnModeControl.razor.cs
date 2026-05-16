@@ -32,4 +32,17 @@ public partial class MessageTurnModeControl : ComponentBase
 		MessageTurnModeEnum.Enqueue => "Message mode: Enqueue — messages are queued behind any in-flight turn",
 		_ => "Message mode: Immediate — messages are sent immediately"
 	};
+
+	async Task OpenMoreInfoAsync()
+	{
+		_isOpen = false;
+		try
+		{
+			await Microsoft.Maui.ApplicationModel.Launcher.OpenAsync(new Uri("https://github.com/github/copilot-sdk/blob/main/docs/features/steering-and-queueing.md"));
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"[MessageTurnModeControl] Failed to open more info URL: {ex.Message}");
+		}
+	}
 }

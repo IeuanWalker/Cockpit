@@ -1,4 +1,5 @@
-﻿using Cockpit.Utilities.Logging;
+﻿using System.Net.Sockets;
+using Cockpit.Utilities.Logging;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
 
@@ -23,6 +24,8 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 	bool _disposed;
 	// Separate CAS guard so concurrent DisposeAsync calls are idempotent without a lock.
 	int _disposeGuard;
+	// Cancels in-progress AutoReconnectAsync when a new reconnect cycle starts or on disposal.
+	CancellationTokenSource? _reconnectCts;
 
 	public event Action<ConnectionState>? OnConnectionStateChanged;
 	public event Action<string>? OnError;
@@ -175,16 +178,202 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 	/// <inheritdoc/>
 	public async Task<PingResponse?> PingAsync(CancellationToken cancellationToken = default)
 	{
+		CopilotClient? client = null;
 		try
 		{
-			CopilotClient client = await GetClientAsync(cancellationToken);
+			client = await GetClientAsync(cancellationToken);
 			return await client.PingAsync("health check", cancellationToken);
+		}
+		catch(OperationCanceledException)
+		{
+			return null;
+		}
+		catch(Exception ex) when (client is not null && IsConnectionError(ex))
+		{
+			_logger.LogWarning(ex, "Ping failed — connection broken, invalidating client for reconnect");
+			await InvalidateClientAsync(client);
+			return null;
 		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Ping failed");
 			return null;
 		}
+	}
+
+	/// <summary>
+	/// Clears and disposes the client only when it still matches <paramref name="expected"/>.
+	/// Prevents a race where a stale ping failure stops a freshly-created replacement client.
+	/// Fires <see cref="OnConnectionStateChanged"/> with <see cref="ConnectionState.Disconnected"/>
+	/// after releasing <see cref="_clientLock"/>, matching the pattern used by <see cref="StopCoreAsync"/>.
+	/// </summary>
+	async Task InvalidateClientAsync(CopilotClient expected)
+	{
+		bool notifyDisconnected = false;
+
+		await _clientLock.WaitAsync();
+		try
+		{
+			if(!ReferenceEquals(_client, expected))
+			{
+				_logger.LogDebug("Client already replaced; skipping invalidation of stale instance");
+				return;
+			}
+
+			_logger.LogInformation("Invalidating broken client after connection error");
+
+			// Null out first so State returns Disconnected immediately and GetClientAsync
+			// callers that acquire the lock next will create a fresh instance.
+			CopilotClient disposing = _client;
+			_client = null;
+			notifyDisconnected = true;
+
+			try
+			{
+				await disposing.StopAsync();
+			}
+			catch(Exception ex)
+			{
+				_logger.LogWarning(ex, "Error stopping broken client during invalidation, attempting force stop");
+				try
+				{
+					await disposing.ForceStopAsync();
+				}
+				catch(Exception forceEx)
+				{
+					_logger.LogWarning(forceEx, "Force stop also failed during invalidation");
+				}
+			}
+
+			try
+			{
+				await disposing.DisposeAsync();
+			}
+			catch(Exception ex)
+			{
+				_logger.LogWarning(ex, "Error disposing broken client during invalidation");
+			}
+		}
+		finally
+		{
+			_clientLock.Release();
+			if(notifyDisconnected)
+			{
+				try
+				{
+					OnConnectionStateChanged?.Invoke(ConnectionState.Disconnected);
+				}
+				catch(Exception handlerEx)
+				{
+					_logger.LogWarning(handlerEx, "OnConnectionStateChanged handler threw");
+				}
+
+				StartAutoReconnect();
+			}
+		}
+	}
+
+	/// <summary>
+	/// Starts a background reconnect loop. Cancels any previous attempt first so rapid
+	/// invalidations don't stack multiple concurrent reconnect loops.
+	/// </summary>
+	void StartAutoReconnect()
+	{
+		if(_disposed)
+		{
+			return;
+		}
+
+		CancellationTokenSource cts = new();
+		CancellationTokenSource? prev = Interlocked.Exchange(ref _reconnectCts, cts);
+		try
+		{
+			prev?.Cancel();
+		}
+		catch { }
+		prev?.Dispose();
+
+		_ = Task.Run(() => AutoReconnectAsync(cts.Token));
+	}
+
+	/// <summary>
+	/// Retries <see cref="GetClientAsync"/> with exponential backoff until the client is
+	/// recreated or cancellation is requested. <see cref="GetClientAsync"/> fires
+	/// <see cref="OnConnectionStateChanged"/> on success, notifying subscribers that the
+	/// connection is restored.
+	/// </summary>
+	async Task AutoReconnectAsync(CancellationToken ct)
+	{
+		int[] delaysSeconds = [1, 2, 5, 10, 15, 30];
+		foreach(int delay in delaysSeconds)
+		{
+			try
+			{
+				await Task.Delay(TimeSpan.FromSeconds(delay), ct);
+			}
+			catch(OperationCanceledException)
+			{
+				return;
+			}
+
+			if(_disposed || _client is not null)
+			{
+				return;
+			}
+
+			try
+			{
+				await GetClientAsync(ct);
+				_logger.LogInformation("Auto-reconnect succeeded");
+				return;
+			}
+			catch(OperationCanceledException)
+			{
+				return;
+			}
+			catch(Exception ex)
+			{
+				_logger.LogWarning(ex, "Auto-reconnect attempt failed; next retry in {Delay}s",
+					delaysSeconds[Array.IndexOf(delaysSeconds, delay) + 1 < delaysSeconds.Length
+						? Array.IndexOf(delaysSeconds, delay) + 1
+						: delaysSeconds.Length - 1]);
+			}
+		}
+
+		_logger.LogWarning("Auto-reconnect exhausted all retry attempts");
+	}
+
+	/// <summary>
+	/// Returns <see langword="true"/> when <paramref name="ex"/> indicates the underlying
+	/// SDK transport is dead and the client instance should be invalidated.
+	/// Walks the full exception chain including <see cref="AggregateException"/> inner exceptions.
+	/// </summary>
+	static bool IsConnectionError(Exception ex)
+	{
+		if(ex is IOException or ObjectDisposedException or SocketException)
+		{
+			return true;
+		}
+
+		string msg = ex.Message;
+		if(msg.Contains("pipe", StringComparison.OrdinalIgnoreCase)
+			|| msg.Contains("connection refused", StringComparison.OrdinalIgnoreCase)
+			|| msg.Contains("connection reset", StringComparison.OrdinalIgnoreCase)
+			|| msg.Contains("connection was closed", StringComparison.OrdinalIgnoreCase)
+			|| msg.Contains("connection lost", StringComparison.OrdinalIgnoreCase)
+			|| msg.Contains("transport connection", StringComparison.OrdinalIgnoreCase)
+			|| msg.Contains("transport is closed", StringComparison.OrdinalIgnoreCase)
+			|| msg.Contains("not connected", StringComparison.OrdinalIgnoreCase))
+		{
+			return true;
+		}
+
+		if(ex is AggregateException agg)
+		{
+			return agg.InnerExceptions.Any(IsConnectionError);
+		}
+
+		return ex.InnerException != null && IsConnectionError(ex.InnerException);
 	}
 
 	/// <summary>
@@ -290,6 +479,15 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 		{
 			return;
 		}
+
+		// Cancel any in-flight auto-reconnect before stopping the client.
+		CancellationTokenSource? reconnect = Interlocked.Exchange(ref _reconnectCts, null);
+		try
+		{
+			reconnect?.Cancel();
+		}
+		catch { }
+		reconnect?.Dispose();
 
 		// Signal to GetClientAsync callers that are waiting on the lock.
 		await _clientLock.WaitAsync();

@@ -8,4 +8,9 @@ namespace Cockpit.Features.Sdk;
 public interface ICopilotPingService
 {
 	Task<PingResponse?> PingAsync(CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Raised when the underlying client connection state changes (e.g. disconnect or reconnect).
+	/// </summary>
+	event Action<ConnectionState>? OnConnectionStateChanged;
 }

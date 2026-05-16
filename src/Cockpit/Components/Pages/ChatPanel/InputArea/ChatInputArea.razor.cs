@@ -184,9 +184,10 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 							string fileName = Path.GetFileName(chip.FilePath);
 							string ext = Path.GetExtension(chip.FilePath);
 							string mimeType = FileUtil.GetMimeType(ext);
+							bool isDirectory = Directory.Exists(chip.FilePath);
 							session.PendingAttachments.Add(new AttachmentModel(
 								fileName, chip.FilePath, null, mimeType,
-								isMention: true, chipId: chip.ChipId));
+								isMention: true, chipId: chip.ChipId, isDirectory: isDirectory));
 						}
 					}
 				}
@@ -240,11 +241,14 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			// Sync text to session
-			await SyncUserInputFromDom();
+			bool prevCanSend = CanSend;
+			bool prevShowMentionPicker = _showMentionPicker;
 
-			// Check for active mention trigger
-			string? filter = await _jsRuntime.InvokeAsync<string?>("cockpit.getActiveMentionFilter", "chatInput");
+			// Single JS round-trip: get both the plain text and the active mention filter together
+			ContentInputState inputState = await _jsRuntime.InvokeAsync<ContentInputState>("cockpit.getContentInputState", "chatInput");
+			UserInput = inputState.Text;
+
+			string? filter = inputState.MentionFilter;
 
 			if(filter is not null)
 			{
@@ -322,8 +326,15 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 				_showMentionPicker = false;
 			}
 
-			await InvokeAsync(StateHasChanged);
-			await OnTextareaInput();
+			// Only re-render when something visible actually changed — skips redundant renders
+			// while the user is typing regular text mid-message
+			bool canSendChanged = CanSend != prevCanSend;
+			bool mentionStateChanged = _showMentionPicker != prevShowMentionPicker || _showMentionPicker;
+
+			if(canSendChanged || mentionStateChanged)
+			{
+				await InvokeAsync(StateHasChanged);
+			}
 		}
 		catch(Exception ex)
 		{
@@ -359,7 +370,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		// Insert chip into DOM
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.insertFileChip", "chatInput", chipId, file.FullPath, file.FileName);
+			await _jsRuntime.InvokeVoidAsync("cockpit.insertFileChip", "chatInput", chipId, file.FullPath, file.FileName, file.IsDirectory);
 		}
 		catch(Exception ex)
 		{
@@ -379,7 +390,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			{
 				session.PendingAttachments.Add(new AttachmentModel(
 					file.FileName, file.FullPath, null, mimeType,
-					isMention: true, chipId: chipId));
+					isMention: true, chipId: chipId, isDirectory: file.IsDirectory));
 			}
 		}
 
@@ -666,4 +677,9 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 record ChipInfo(
 	[property: JsonPropertyName("chipId")] string ChipId,
 	[property: JsonPropertyName("filePath")] string FilePath
+);
+
+record ContentInputState(
+	[property: JsonPropertyName("text")] string Text,
+	[property: JsonPropertyName("mentionFilter")] string? MentionFilter
 );

@@ -1,3 +1,4 @@
+using Blazor.Sonner.Services;
 using Cockpit.Components.Controls;
 using Cockpit.Features.Sessions;
 using CommunityToolkit.Maui.Storage;
@@ -11,15 +12,18 @@ public partial class CreateSessionPopup : ComponentBase
 {
 	readonly SessionFeature _sessionFeature;
 	readonly ILogger<CreateSessionPopup> _logger;
-	public CreateSessionPopup(SessionFeature sessionFeature, ILogger<CreateSessionPopup> logger)
+	readonly ToastService _toastService;
+	public CreateSessionPopup(SessionFeature sessionFeature, ILogger<CreateSessionPopup> logger, ToastService toastService)
 	{
 		_sessionFeature = sessionFeature;
 		_logger = logger;
+		_toastService = toastService;
 	}
 
 	public string SelectedPath { get; set; } = string.Empty;
 	public string ErrorMessage { get; set; } = string.Empty;
 	public List<string> RecentDirectories { get; set; } = [];
+	bool _isCreating;
 	PopupBase _popup = default!;
 
 	public void Open()
@@ -66,6 +70,10 @@ public partial class CreateSessionPopup : ComponentBase
 
 			StateHasChanged();
 		}
+		catch(OperationCanceledException)
+		{
+			// User cancelled the picker — no error to show
+		}
 		catch(Exception ex)
 		{
 			ErrorMessage = $"Failed to open directory picker: {ex.Message}";
@@ -94,21 +102,36 @@ public partial class CreateSessionPopup : ComponentBase
 
 	async Task Confirm()
 	{
+		if(_isCreating)
+		{
+			return;
+		}
+
 		if(!IsValidDirectory())
 		{
 			ErrorMessage = "Please select a valid directory";
 			return;
 		}
 
+		_isCreating = true;
+		ErrorMessage = string.Empty;
+		StateHasChanged();
+
+		string pathToCreate = SelectedPath;
 		try
 		{
-			await _sessionFeature.CreateSession(SelectedPath);
+			await _sessionFeature.CreateSession(pathToCreate);
 			_popup.Close();
 		}
 		catch(Exception ex)
 		{
-			ErrorMessage = $"Error creating session: {ex.Message}";
-			_logger.LogError(ex, "Error creating session for directory {Directory}", SelectedPath);
+			_toastService.Error("Failed to create session", opts => opts.Description = ex.Message);
+			_logger.LogError(ex, "Error creating session for directory {Directory}", pathToCreate);
+		}
+		finally
+		{
+			_isCreating = false;
+			StateHasChanged();
 		}
 	}
 

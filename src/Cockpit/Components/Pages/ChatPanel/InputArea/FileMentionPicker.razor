@@ -1,4 +1,5 @@
-@namespace Cockpit.Components.Pages.ChatPanel.InputArea
+﻿@namespace Cockpit.Components.Pages.ChatPanel.InputArea
+@using Cockpit.Features.FileSearch
 
 @if(Visible && Files.Count > 0)
 {
@@ -6,16 +7,26 @@
         <div class="file-mention-picker-list">
             @for(int i = 0; i < Files.Count; i++)
             {
-                var file = Files[i];
+                FileSearchResult file = Files[i];
                 int idx = i;
                 <div class="file-mention-picker-item @(i == SelectedIndex ? "active" : "")"
                      id="picker-item-@i"
                      @onclick="() => SelectFile(file)"
                      @onmouseenter="@(() => SelectedIndexChanged.InvokeAsync(idx))">
-                    <svg class="icon-xs flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                    @if(file.IsDirectory)
+                    {
+                        <svg class="icon-xs flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #f59e0b;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                        </svg>
+                    }
+                    else
+                    {
+                        <svg class="icon-xs flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #60a5fa;">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    }
                     <span class="file-mention-picker-filename">@file.FileName</span>
                     <span class="file-mention-picker-path" title="@file.RelativePath">@GetDisplayPath(file)</span>
                 </div>
@@ -26,6 +37,6 @@
 else if(Visible && Files.Count == 0 && !string.IsNullOrEmpty(Filter))
 {
     <div class="file-mention-picker">
-        <div class="file-mention-picker-empty">No files found</div>
+        <div class="file-mention-picker-empty">No files or folders found</div>
     </div>
 }

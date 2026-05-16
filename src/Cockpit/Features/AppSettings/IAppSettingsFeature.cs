@@ -28,4 +28,5 @@ public interface IAppSettingsFeature
 	float VoicePitch { get; set; }
 	float VoiceRate { get; set; }
 	string VoiceLocale { get; set; }
+	bool KeepAlive { get; set; }
 }

@@ -5,221 +5,179 @@
 <PopupBase @ref="_popup"
            Title="Models"
            PopupStyle="width: 52rem; max-width: calc(100vw - 2.5rem);">
-	<Content>
-		<div class="sticky top-0 px-4 py-2 border-b border-app-border z-10 flex-shrink-0 flex gap-2"
-		     style="background-color: var(--sidebar-bg);">
-			<input type="text"
-			       @bind="_searchFilter"
-			       @bind:event="oninput"
-			       placeholder="Search models..."
-			       class="flex-1 px-3 py-1.5 text-sm rounded focus:outline-none"
-			       style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);" />
-			<div class="relative">
-				<button @onclick="() => _filterDropdownOpen = !_filterDropdownOpen"
-				        class="px-3 py-1.5 text-sm rounded flex items-center gap-1 hover:bg-app-hover"
-				        style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);">
-					<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-					</svg>
-					@_filterOption
-				</button>
-				@if(_filterDropdownOpen)
-				{
-					<div class="absolute right-0 top-full mt-1 rounded border shadow-lg z-50"
-					     style="background-color: var(--input-bg); border-color: var(--input-border); min-width: 120px;">
-						@foreach(string opt in new[]{ "All", "Vision", "Reasoning", "Free" })
-						{
-							<button @onclick="() => { _filterOption = opt; _filterDropdownOpen = false; }"
-							        class="w-full px-3 py-1.5 text-sm text-left hover:bg-app-hover @(_filterOption == opt ? "font-semibold" : "")"
-							        style="color: var(--text-color);">
-								@opt
-							</button>
-						}
-					</div>
-				}
-			</div>
-		</div>
-		@{
-			IReadOnlyList<ModelInfo> filteredModels = GetFilteredModels();
-		}
-		<div class="p-4 grid grid-cols-2 gap-3">
-			@foreach(ModelInfo model in filteredModels)
-			{
-				bool isSelected = SelectedModel?.Id == model.Id;
-				string multiplierDisplay = GetMultiplierDisplay(model);
-				<div class="rounded-lg border p-4"
-				     style="@(isSelected ? "border-color: var(--accent-color);" : "border-color: var(--app-border, var(--input-border));")">
-					<div class="flex items-start justify-between gap-4">
-						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-2 flex-wrap">
-								@if(isSelected)
-								{
-									<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-									     style="color: var(--accent-color);">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-									</svg>
-								}
-								<h3 class="text-sm font-semibold text-app-title">@model.Name</h3>
-								@if(!string.IsNullOrEmpty(multiplierDisplay) && !model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
-								{
-									<span class="text-xs font-medium" style="color: @GetMultiplierColor(model);">@multiplierDisplay</span>
-								}
-							</div>
-							<p class="text-xs text-app-secondary mt-0.5 font-mono truncate">@model.Id</p>
-						</div>
-						<div class="flex items-center gap-2 flex-shrink-0">
-							<button @onclick="() => ShowJsonPopup(model)"
-							        class="px-2 py-1 text-xs rounded hover:opacity-80 underline"
-							        style="color: var(--text-secondary, var(--text-color));"
-							        title="View raw JSON">
-								more info
-							</button>
-							@if(isSelected)
-							{
-								<span class="px-3 py-1 text-xs rounded"
-								      style="border: 1px solid var(--input-border); color: var(--text-secondary, var(--text-color));">
-									Selected
-								</span>
-							}
-							else
-							{
-								<button @onclick="() => SelectModelFromPopup(model)"
-								        class="px-3 py-1 text-xs rounded font-medium"
-								        style="background-color: var(--accent-color); color: white;">
-									Select
-								</button>
-							}
-						</div>
-					</div>
+<Content>
+<div class="sticky top-0 px-4 py-2 border-b border-app-border z-10 flex-shrink-0 flex gap-2"
+     style="background-color: var(--hover-color);">
+<input type="text"
+       @bind="_searchFilter"
+       @bind:event="oninput"
+       placeholder="Search models..."
+       class="flex-1 px-3 py-1.5 text-sm rounded focus:outline-none"
+       style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);" />
+<div class="relative">
+<button @onclick="() => _filterDropdownOpen = !_filterDropdownOpen"
+        class="px-3 py-1.5 text-sm rounded flex items-center gap-1 hover:bg-app-hover"
+        style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+</svg>
+@_filterOption
+</button>
+@if(_filterDropdownOpen)
+{
+<div class="absolute right-0 top-full mt-1 rounded border shadow-lg z-50"
+     style="background-color: var(--input-bg); border-color: var(--input-border); min-width: 120px;">
+@foreach(string opt in new[]{ "All", "Vision", "Reasoning" })
+{
+<button @onclick="() => { _filterOption = opt; _filterDropdownOpen = false; }"
+        class="w-full px-3 py-1.5 text-sm text-left hover:bg-app-hover @(_filterOption == opt ? "font-semibold" : "")"
+        style="color: var(--text-color);">
+@opt
+</button>
+}
+</div>
+}
+</div>
+</div>
+@{
+IReadOnlyList<ModelInfo> filteredModels = GetFilteredModels();
+}
+<div class="p-4 grid grid-cols-2 gap-3">
+@foreach(ModelInfo model in filteredModels)
+{
+bool isSelected = SelectedModel?.Id == model.Id;
+string multiplierDisplay = GetMultiplierDisplay(model);
+<div class="rounded-lg border p-4"
+     style="@(isSelected ? "border-color: var(--accent-color);" : "border-color: var(--app-border, var(--input-border));")">
+<div class="flex items-start justify-between gap-4">
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 flex-wrap">
+@if(isSelected)
+{
+<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+     style="color: var(--accent-color);">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+</svg>
+}
+<h3 class="text-sm font-semibold text-app-title">@model.Name</h3>
+@if(!string.IsNullOrEmpty(multiplierDisplay) && !model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
+{
+<span class="text-xs font-medium" style="color: @GetMultiplierColor(model);">@multiplierDisplay</span>
+}
+</div>
+<div class="flex items-center gap-1.5 flex-wrap mt-0.5">
+<p class="text-xs text-app-secondary font-mono">@model.Id</p>
+@if(!model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
+{
+@if(model.Capabilities?.Supports?.Vision == true)
+{
+<span class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-xs"
+      style="background-color: rgba(59,130,246,0.1); color: rgb(96,165,250); border-color: rgba(59,130,246,0.3);">
+<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+</svg>
+Vision
+</span>
+}
+@if(model.Capabilities?.Supports?.ReasoningEffort == true)
+{
+<span class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-xs"
+      style="background-color: rgba(168,85,247,0.1); color: rgb(192,132,252); border-color: rgba(168,85,247,0.3);">
+<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+</svg>
+Reasoning
+</span>
+}
+}
+</div>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<button @onclick="() => ShowJsonPopup(model)"
+        class="px-2 py-1 text-xs rounded hover:opacity-80 underline"
+        style="color: var(--text-secondary, var(--text-color));"
+        title="View raw JSON">
+more info
+</button>
+@if(isSelected)
+{
+<span class="px-3 py-1 text-xs rounded"
+      style="border: 1px solid var(--input-border); color: var(--text-secondary, var(--text-color));">
+Selected
+</span>
+}
+else
+{
+<button @onclick="() => SelectModelFromPopup(model)"
+        class="px-3 py-1 text-xs rounded font-medium"
+        style="background-color: var(--accent-color); color: white;">
+Select
+</button>
+}
+</div>
+</div>
 
-					@if(!model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
-					{
-						<div class="mt-3 grid grid-cols-2 gap-4 text-xs">
-							<div>
-							<p class="text-app-secondary font-medium mb-1.5">Capabilities</p>
-							<div class="flex flex-wrap gap-1.5">
-								@if(model.Capabilities?.Supports?.Vision == true)
-								{
-									<span class="flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs"
-									      style="background-color: rgba(59,130,246,0.1); color: rgb(96,165,250); border-color: rgba(59,130,246,0.3);">
-										<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-										</svg>
-										Vision
-									</span>
-								}
-								@if(model.Capabilities?.Supports?.ReasoningEffort == true)
-								{
-									<span class="flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs"
-									      style="background-color: rgba(168,85,247,0.1); color: rgb(192,132,252); border-color: rgba(168,85,247,0.3);">
-										<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-										</svg>
-										Reasoning
-									</span>
-								}
-								@if(model.Capabilities?.Supports?.Vision != true && model.Capabilities?.Supports?.ReasoningEffort != true)
-								{
-									<span class="text-app-secondary italic">None specified</span>
-								}
-							</div>
-							</div>
-							<div>
-							<p class="text-app-secondary font-medium mb-1.5">Limits</p>
-							<div class="space-y-0.5">
-								@if(model.Capabilities?.Limits?.MaxPromptTokens is { } maxPrompt)
-								{
-									<p class="text-app-secondary">Max prompt: <span class="text-app-title">@maxPrompt.ToString("N0") tokens</span></p>
-								}
-								@if(model.Capabilities?.Limits is { } limits)
-								{
-									<p class="text-app-secondary">Context: <span class="text-app-title">@limits.MaxContextWindowTokens.ToString("N0") tokens</span></p>
-								}
-								@if(model.Capabilities?.Limits?.Vision is { } visionLimits)
-								{
-									<p class="text-app-secondary">Max images: <span class="text-app-title">@visionLimits.MaxPromptImages</span></p>
-									@if(visionLimits.SupportedMediaTypes?.Count > 0)
-									{
-										<p class="text-app-secondary">Media: <span class="text-app-title">@string.Join(", ", visionLimits.SupportedMediaTypes)</span></p>
-									}
-								}
-							</div>
-							</div>
-						</div>
-					}
+@if(!model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
+{
+<div class="mt-3 text-xs">
+<p class="text-app-secondary font-medium mb-1.5">Limits</p>
+<div class="space-y-0.5">
+@if(model.Capabilities?.Limits?.MaxPromptTokens is { } maxPrompt)
+{
+<p class="text-app-secondary">Max prompt: <span class="text-app-title">@maxPrompt.ToString("N0") tokens</span></p>
+}
+@if(model.Capabilities?.Limits is { } limits)
+{
+<p class="text-app-secondary">Context: <span class="text-app-title">@limits.MaxContextWindowTokens.ToString("N0") tokens</span></p>
+}
+@if(model.Capabilities?.Limits?.Vision is { } visionLimits)
+{
+<p class="text-app-secondary">Max images: <span class="text-app-title">@visionLimits.MaxPromptImages</span></p>
+@if(visionLimits.SupportedMediaTypes?.Count > 0)
+{
+<p class="text-app-secondary">Media: <span class="text-app-title">@string.Join(", ", visionLimits.SupportedMediaTypes)</span></p>
+}
+}
+</div>
+</div>
+}
 
-					@if(model.Policy is not null || model.SupportedReasoningEfforts is { Count: > 0 })
-					{
-						<div class="mt-3 flex flex-wrap items-start gap-4 text-xs">
-							@if(model.Policy is not null)
-							{
-								<div>
-									<p class="text-app-secondary font-medium mb-1">Policy</p>
-									<button @onclick="() => ShowPolicyPopup(model)"
-									        class="px-2 py-0.5 rounded text-xs hover:opacity-80"
-									        style="background-color: rgba(59,130,246,0.1); color: rgb(96,165,250); border: 1px solid rgba(59,130,246,0.3);">
-										View policy
-									</button>
-								</div>
-							}
-							@if(model.SupportedReasoningEfforts is { Count: > 0 })
-							{
-								<div>
-									<p class="text-app-secondary font-medium mb-1">Reasoning efforts</p>
-									<div class="flex flex-wrap gap-1">
-										@foreach(string effort in model.SupportedReasoningEfforts)
-										{
-											bool isDefaultEffort = effort == model.DefaultReasoningEffort;
-											<span class="px-2 py-0.5 rounded text-app-title">
-												@effort@(isDefaultEffort ? " (default)" : "")
-											</span>
-										}
-									</div>
-								</div>
-							}
-						</div>
-					}
-				</div>
-			}
-			@if(filteredModels.Count == 0)
-			{
-				<div class="text-center py-8 text-app-secondary text-sm col-span-2">
-					No models match your search.
-				</div>
-			}
-		</div>
-	</Content>
-</PopupBase>
-<PopupBase @ref="_policyPopup" Title="Policy" PopupStyle="width: 28rem; max-width: calc(100vw - 2.5rem);">
-	<Content>
-		@if(_policyModel?.Policy is { } policy)
-		{
-			<div class="p-4 space-y-3 text-sm">
-				<div>
-					<p class="text-app-secondary text-xs font-medium mb-1">State</p>
-					<p class="text-app-title">@policy.State</p>
-				</div>
-				@if(!string.IsNullOrEmpty(policy.Terms))
-				{
-					<div>
-						<p class="text-app-secondary text-xs font-medium mb-1">Terms</p>
-						<p class="text-app-secondary">@policy.Terms</p>
-					</div>
-				}
-			</div>
-		}
-	</Content>
+@if(model.SupportedReasoningEfforts is { Count: > 0 })
+{
+<div class="mt-3 text-xs">
+<p class="text-app-secondary font-medium mb-1">Reasoning efforts</p>
+<div class="flex flex-wrap gap-1">
+@foreach(string effort in model.SupportedReasoningEfforts)
+{
+<span class="px-2 py-0.5 rounded text-app-title">
+@effort@(effort == model.DefaultReasoningEffort ? " (default)" : "")
+</span>
+}
+</div>
+</div>
+}
+</div>
+}
+@if(filteredModels.Count == 0)
+{
+<div class="text-center py-8 text-app-secondary text-sm col-span-2">
+No models match your search.
+</div>
+}
+</div>
+</Content>
 </PopupBase>
 
 <PopupBase @ref="_jsonPopup" Title="Raw JSON" PopupStyle="width: 36rem; max-width: calc(100vw - 2.5rem);">
-	<Content>
-		@if(_jsonModel is not null)
-		{
-			<div class="p-4">
-				<pre class="text-xs rounded p-3 overflow-x-auto font-mono text-app-secondary scrollbar-thin"
-				     style="background-color: var(--input-bg);">@GetRawJson(_jsonModel)</pre>
-			</div>
-		}
-	</Content>
+<Content>
+@if(_jsonModel is not null)
+{
+<div class="p-4">
+<div class="code-block-borderless">
+<CodeBlock Code="@GetRawJson(_jsonModel)" Language="json" />
+</div>
+</div>
+}
+</Content>
 </PopupBase>

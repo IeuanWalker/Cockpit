@@ -17,7 +17,7 @@ const chipDeleteSelector = '.chip-delete';
 const maxContentEditableHeight = 300;
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const chipIconPathData = 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z';
-const fileChipTokenPattern = /#file:("(?:[^"\\]|\\.)*")/g;
+const fileChipTokenPattern = /#(file|folder):("(?:[^"\\]|\\.)*")/g;
 const blockContainerTags = new Set(['DIV', 'P']);
 const mentionNavigationKeys = new Set(['Enter', 'ArrowDown', 'ArrowUp', 'Escape']);
 const contentEditableStates = new WeakMap();
@@ -171,12 +171,15 @@ function createChipSpacerNode() {
     return document.createTextNode(chipSpacerText);
 }
 
-function createFileChipElement(chipId, filePath, fileName) {
+function createFileChipElement(chipId, filePath, fileName, isDirectory) {
     const chip = document.createElement('span');
     chip.className = 'file-mention-chip';
     chip.contentEditable = 'false';
     chip.dataset.chipId = chipId;
     chip.dataset.filePath = filePath;
+    if (isDirectory) {
+        chip.dataset.isDirectory = 'true';
+    }
     chip.title = filePath;
 
     const nameSpan = document.createElement('span');
@@ -584,6 +587,23 @@ function handleContentEditableKeydown(element, state, event) {
         return;
     }
 
+    if (event.key === 'Tab') {
+        event.preventDefault();
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            const tabNode = document.createTextNode('\t');
+            range.insertNode(tabNode);
+            range.setStartAfter(tabNode);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            resizeContentEditable(element);
+        }
+        return;
+    }
+
     if (event.key === 'Enter') {
         handleEnterKey(element, state, event);
         return;
@@ -611,7 +631,8 @@ function appendSerializedNode(node, siblingIndex, parts) {
     }
 
     if (isFileChipNode(node)) {
-        parts.push(`#file:${JSON.stringify(node.dataset.filePath || '')}`);
+        const prefix = node.dataset.isDirectory === 'true' ? 'folder' : 'file';
+        parts.push(`#${prefix}:${JSON.stringify(node.dataset.filePath || '')}`);
         return;
     }
 
@@ -668,7 +689,8 @@ function buildContentFragmentFromPlainText(text) {
     fileChipTokenPattern.lastIndex = 0;
 
     while ((match = fileChipTokenPattern.exec(text)) !== null) {
-        const filePath = tryParseFileChipPath(match[1]);
+        const chipType = match[1]; // 'file' or 'folder'
+        const filePath = tryParseFileChipPath(match[2]);
         if (filePath === null) {
             continue;
         }
@@ -676,7 +698,8 @@ function buildContentFragmentFromPlainText(text) {
         appendTextNodeIfNotEmpty(fragment, text.substring(lastIndex, match.index));
 
         const chipId = generateChipId();
-        fragment.appendChild(createFileChipElement(chipId, filePath, getFileNameFromPath(filePath)));
+        const isDirectory = chipType === 'folder';
+        fragment.appendChild(createFileChipElement(chipId, filePath, getFileNameFromPath(filePath), isDirectory));
         fragment.appendChild(createChipSpacerNode());
         chips.push({
             chipId: chipId,
@@ -749,6 +772,7 @@ window.cockpit.setupContentEditable = function (id, dotnetRef) {
     disconnectTrackedObserver(state);
     removeTrackedEventListener(element, state, 'input');
     removeTrackedEventListener(element, state, 'click');
+    removeTrackedEventListener(element, state, 'copy');
 
     state.dotnetRef = dotnetRef;
     state.chipRemovalNotificationDepth = 0;
@@ -775,7 +799,27 @@ window.cockpit.setupContentEditable = function (id, dotnetRef) {
 
     addTrackedEventListener(element, state, 'input', function () {
         normalizeBrowserPlaceholderMarkup(element);
+        resizeContentEditable(element);
         invokeDotNet(state, 'OnContentInput');
+    });
+
+    addTrackedEventListener(element, state, 'copy', function (event) {
+        const range = getCurrentSelectionRange();
+        if (!range || range.collapsed) {
+            return;
+        }
+
+        if (!element.contains(range.startContainer) || !element.contains(range.endContainer)) {
+            return;
+        }
+
+        const fragment = range.cloneContents();
+        const parts = [];
+        appendSerializedChildren(fragment, parts);
+        const text = finalizePlainText(parts.join(''));
+
+        event.clipboardData.setData('text/plain', text);
+        event.preventDefault();
     });
 
     state.observer = createChipRemovalObserver(state);
@@ -792,7 +836,21 @@ window.cockpit.getActiveMentionFilter = function (id) {
     return cacheActiveMentionRange(element, state);
 };
 
-window.cockpit.insertFileChip = function (id, chipId, filePath, fileName) {
+window.cockpit.getContentInputState = function (id) {
+    const element = getContentEditableElement(id);
+    if (!element) {
+        return { text: '', mentionFilter: null };
+    }
+
+    const state = getContentEditableState(element);
+    const parts = [];
+    appendSerializedChildren(element, parts);
+    const text = finalizePlainText(parts.join(''));
+    const mentionFilter = cacheActiveMentionRange(element, state);
+    return { text, mentionFilter };
+};
+
+window.cockpit.insertFileChip = function (id, chipId, filePath, fileName, isDirectory) {
     const element = getContentEditableElement(id);
     if (!element) {
         return;
@@ -806,7 +864,7 @@ window.cockpit.insertFileChip = function (id, chipId, filePath, fileName) {
 
     removeMentionTriggerTextFromRange(range);
 
-    const chip = createFileChipElement(chipId, filePath, fileName);
+    const chip = createFileChipElement(chipId, filePath, fileName, Boolean(isDirectory));
     range.insertNode(chip);
 
     const spacer = createChipSpacerNode();
@@ -922,6 +980,7 @@ window.cockpit.cleanupContentEditable = function (id) {
     removeTrackedEventListener(element, state, 'input');
     removeTrackedEventListener(element, state, 'keydown');
     removeTrackedEventListener(element, state, 'click');
+    removeTrackedEventListener(element, state, 'copy');
     clearSavedMentionRange(state);
 
     state.dotnetRef = null;
