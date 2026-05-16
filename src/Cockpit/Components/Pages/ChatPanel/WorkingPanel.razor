@@ -27,13 +27,7 @@
                     <div id="workingContent" class="working-content">
                         @foreach(var evt in events)
                         {
-                            @if(evt.Type == ThinkingEventTypeEnum.UserMessage && !string.IsNullOrEmpty(evt.Message))
-                            {
-                                <div class="working-message working-user-message">
-                                    <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
-                                </div>
-                            }
-                            else if(evt.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrEmpty(evt.Message))
+                            @if(evt.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrEmpty(evt.Message))
                             {
                                 @if(evt.EventJson is not null && evt.EventJson.Count > 0)
                                 {

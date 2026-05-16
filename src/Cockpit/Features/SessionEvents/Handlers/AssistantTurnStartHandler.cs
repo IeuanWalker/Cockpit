@@ -44,19 +44,6 @@ static class AssistantTurnStartHandler
 				IsExpanded = true,
 				TriggeredByUserMessageId = triggeredById
 			};
-
-			// When an enqueued/pending message triggers a new working group, embed it in the
-			// group so the working panel shows what the user asked.
-			if(activatedPendingMsg is not null)
-			{
-				session.ActiveWorkingGroup.AddEvent(new ThinkingEventModel
-				{
-					Type = ThinkingEventTypeEnum.UserMessage,
-					Message = activatedPendingMsg.Content,
-					Timestamp = activatedPendingMsg.Timestamp.LocalDateTime,
-					EventJson = null
-				});
-			}
 		}
 	}
 }

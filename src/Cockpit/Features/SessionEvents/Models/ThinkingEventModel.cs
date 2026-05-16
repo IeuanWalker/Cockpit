@@ -14,6 +14,5 @@ public enum ThinkingEventTypeEnum
 {
 	Message,
 	Tool,
-	Reasoning,
-	UserMessage
+	Reasoning
 }

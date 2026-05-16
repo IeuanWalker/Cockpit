@@ -64,12 +64,6 @@
     word-break: break-word;
 }
 
-.thinking-user-message {
-    border-left: 2px solid var(--accent-color);
-    padding-left: 0.5rem;
-    opacity: 0.8;
-}
-
 .thinking-message.cursor-pointer {
     cursor: pointer;
 }
