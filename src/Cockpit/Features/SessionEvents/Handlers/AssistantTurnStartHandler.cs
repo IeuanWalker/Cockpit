@@ -27,11 +27,8 @@ static class AssistantTurnStartHandler
 		// Create working group immediately so the panel shows while the model thinks
 		// (including extended/opaque reasoning where no tool events are emitted).
 		// If a pending message was just consumed, use its Id as the anchor. Otherwise fall back
-		// to the last user message in the list — this covers the cases where:
-		//   (a) the very first user message was sent while the agent was idle (never pending), or
-		//   (b) during session replay, an immediate-mode user.message arrives after turn_start and
-		//       is created with IsPending=true, which would otherwise be skipped by the anchor
-		//       fallback in SessionIdleHandler (which filters out IsPending messages).
+		// to the last user message in the list — this covers the case where the first user message
+		// was sent while the agent was idle (never pending).
 		string? triggeredById = activatedPendingMsg?.Id
 			?? session.Messages.LastOrDefault(m => m.IsUser)?.Id;
 

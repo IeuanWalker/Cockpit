@@ -57,20 +57,12 @@ public sealed class SessionEventProcessor
 				case UserMessageEvent userMsg:
 					// Determine whether the agent was genuinely mid-turn before the safety-net runs.
 					//
-					// Background: in immediate-mode, the SDK writes assistant.turn_start to the event log
-					// *before* the user.message echo. The 100 ms swap heuristic in ReorderImmediateModeReplayEvents
-					// corrects this for most cases, but can fail when there is a larger gap. When it fails,
-					// AssistantTurnStartHandler creates a working group *before* the user message is in
-					// session.Messages. That group is empty at the point the user.message event is processed.
-					//
-					// Old behaviour: fire the safety-net unconditionally → empty group cleared → subsequent
-					// assistant messages (turn 0) go to chat → tools anchor to that chat message → ops group
-					// appears *between* two assistant messages instead of below the user prompt.
-					//
-					// Fix: if the open group is empty (no tools, no non-empty thinking messages) it was
-					// spuriously created by the premature turn_start. Keep it alive and re-anchor it to
-					// this user message so that all subsequent assistant messages and tool calls are
-					// correctly attributed to this prompt.
+					// Background: in immediate-mode (steering), the SDK writes assistant.turn_start to
+					// the event log *before* the user.message echo. The parentId chain makes this
+					// explicit: user.message.parentId == the preceding turn_start.Id.
+					// UserMessageHandler uses session.LastTurnStartId (set by AssistantTurnStartHandler)
+					// to detect this and suppress IsPending, so immediate-mode messages are never
+					// rendered as "Pending…" waiting for a turn that already started.
 					//
 					// Safety for live mode: user.message echoes are not emitted in the live SDK event
 					// stream — only written to disk for replay. ThinkingExhausted/reconnect continuations

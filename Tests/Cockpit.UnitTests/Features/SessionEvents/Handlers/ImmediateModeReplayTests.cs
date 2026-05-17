@@ -18,11 +18,12 @@ namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 ///   to retroactively mark an optimistic message as pending.
 ///
 /// Bug 2 — Wrong ordering on session resume:
-///   During replay, assistant.turn_start fires before user.message (both within ~2 ms).
-///   The swap pre-sort in SessionFeature.Lifecycle.cs reorders these pairs so the user message
-///   arrives first. Combined with the AssistantTurnStartHandler fallback anchor (TriggeredByUserMessageId
-///   falls back to LastOrDefault user message), working groups are placed after the message that
-///   triggered them even when that message has IsPending=true.
+///   During replay, the user.message echo for a steered/enqueued send appears AFTER the
+///   turn_start that processes it. The non-optimistic path in UserMessageHandler is only
+///   reached during replay (live sends go through the optimistic path). In a completed session
+///   no message is ever truly "Pending", so IsPending is always false in this path. The
+///   safety net (wasAgentBusy=true + SessionIdleHandler) then inserts the preceding activity
+///   group correctly before the message.
 /// </summary>
 [Collection("SessionIdleEvent")]
 public class ImmediateModeReplayTests
@@ -47,13 +48,16 @@ public class ImmediateModeReplayTests
 	static SessionEventProcessor CreateProcessor() => new(NullLogger<SessionEventProcessor>.Instance);
 
 	/// <summary>
-	/// Reproduces the exact replay sequence from the failing session (c55572c6-...) after the
-	/// swap pre-sort has reordered the immediate-mode user message before its turn_start.
+	/// Reproduces the replay sequence from the failing session using the natural
+	/// SDK event order: assistant.turn_start fires first, then the user.message echo arrives.
+	///
+	/// The safety net (wasAgentBusy=true + SessionIdleHandler) inserts the first activity group
+	/// before the immediate-mode message because IsPending=false in the non-optimistic path.
 	///
 	/// Expected final message order:
 	///   [0] "Deep dive"              — first user message
 	///   [1] ActivityGroup (turn 1)   — anchored after "Deep dive"
-	///   [2] "Actually focus"         — immediate-mode second message
+	///   [2] "Actually focus"         — immediate-mode second message (IsPending=false)
 	///   [3] ActivityGroup (turn 2)   — anchored after "Actually focus"
 	/// </summary>
 	[Fact]
@@ -84,29 +88,25 @@ public class ImmediateModeReplayTests
 			Timestamp = DateTimeOffset.UtcNow
 		});
 
-		// Immediate-mode second message arrives while turn 1 is still running.
-		// After the swap pre-sort the user.message arrives first (BEFORE its turn_start).
-		// The safety net fires: group 1 is closed and inserted. wasAgentBusy=true so
-		// UserMessageHandler sets IsPending=true on "Actually focus" (replay — no optimistic).
-		DateTimeOffset immediateSendTs = DateTimeOffset.UtcNow;
+		// Natural SDK order for immediate/steered send: turn_start fires before the user.message echo.
+		// No session.idle between turns — the group stays open.
+		processor.Process(session, new AssistantTurnStartEvent
+		{
+			Data = new AssistantTurnStartData { TurnId = "2" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
 		processor.Process(session, new UserMessageEvent
 		{
 			Data = new UserMessageData { Content = "Actually focus" },
-			Timestamp = immediateSendTs
+			Timestamp = DateTimeOffset.UtcNow
 		});
 
 		ChatMessageModel? actuallyFocusMsg = session.Messages.FirstOrDefault(m => m.IsUser && m.Content == "Actually focus");
 		actuallyFocusMsg.ShouldNotBeNull();
-		// IsPending=true here is expected — the safety net was busy. The key fix is that the
-		// subsequent AssistantTurnStart anchors to this message via fallback, ignoring IsPending.
-		actuallyFocusMsg.IsPending.ShouldBeTrue();
+		// IsPending must be false — the non-optimistic (replay) path never sets IsPending=true.
+		actuallyFocusMsg.IsPending.ShouldBeFalse();
 
-		// Turn 2: non-initial turn_start (turnId "2") — must anchor to "Actually focus" via fallback
-		processor.Process(session, new AssistantTurnStartEvent
-		{
-			Data = new AssistantTurnStartData { TurnId = "2" },
-			Timestamp = immediateSendTs.AddMilliseconds(2)
-		});
+		// Turn 2 tools
 		processor.Process(session, new ToolExecutionStartEvent
 		{
 			Data = new ToolExecutionStartData { ToolCallId = "tc2", ToolName = "write_file" },
@@ -137,10 +137,10 @@ public class ImmediateModeReplayTests
 
 		group1Idx.ShouldBeGreaterThan(deepDiveIdx,
 			"activity group 1 must come after 'Deep dive'");
-		actuallyFocusIdx.ShouldBeLessThan(group1Idx,
-			"'Actually focus' (enqueued) must be grouped before the first activity group");
-		group2Idx.ShouldBeGreaterThan(group1Idx,
-			"activity group 2 must come after activity group 1");
+		actuallyFocusIdx.ShouldBeGreaterThan(group1Idx,
+			"'Actually focus' (immediate-mode) must appear after the first activity group");
+		group2Idx.ShouldBeGreaterThan(actuallyFocusIdx,
+			"activity group 2 must come after 'Actually focus'");
 	}
 
 	/// <summary>
@@ -217,12 +217,12 @@ public class ImmediateModeReplayTests
 	}
 
 	/// <summary>
-	/// Full end-to-end enqueue scenario: IsPending is cleared when AssistantTurnStart (turnId "0")
-	/// fires after the previous turn completes, and the activity group is inserted in the correct
-	/// position — after the enqueue-mode message, not before it.
+	/// Full end-to-end enqueue scenario: the activity group for turn 1 is inserted BEFORE the
+	/// second user message (correct ordering — ops come between the user messages that bound them),
+	/// and a second group for turn 2 follows the second message.
 	/// </summary>
 	[Fact]
-	public void EnqueueMode_FullFlow_ActivityGroupPositionedAfterQueuedMessage()
+	public void EnqueueMode_FullFlow_ActivityGroupPositionedBeforeQueuedMessage()
 	{
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
@@ -252,7 +252,8 @@ public class ImmediateModeReplayTests
 		});
 		ChatMessageModel? secondMsg = session.Messages.FirstOrDefault(m => m.IsUser && m.Content == "Second task");
 		secondMsg.ShouldNotBeNull();
-		secondMsg.IsPending.ShouldBeTrue();
+		secondMsg.IsPending.ShouldBeFalse(
+			"non-optimistic path is replay-only; replay messages are never pending");
 
 		// Turn 1 completes
 		processor.Process(session, new ToolExecutionCompleteEvent
@@ -290,7 +291,8 @@ public class ImmediateModeReplayTests
 			Timestamp = DateTimeOffset.UtcNow
 		});
 
-		// Expected order: "First task" → "Second task" (grouped) → group1 → group2
+		// Expected order: "First task" → group1 → "Second task" → group2
+		// (ops for turn 1 appear between the two user messages, ops for turn 2 follow second msg)
 		int firstTaskIdx = session.Messages.FindIndex(m => m.IsUser && m.Content == "First task");
 		int secondTaskIdx = session.Messages.IndexOf(secondMsg);
 		int group1Idx = session.Messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup
@@ -299,7 +301,8 @@ public class ImmediateModeReplayTests
 			&& m.ActivityGroup?.Tools.Any(t => t.ToolCallId == "tc2") == true);
 
 		secondTaskIdx.ShouldBeGreaterThan(firstTaskIdx, "'Second task' after 'First task'");
-		group1Idx.ShouldBeGreaterThan(secondTaskIdx, "group 1 after enqueued 'Second task'");
+		group1Idx.ShouldBeLessThan(secondTaskIdx, "group 1 before 'Second task' (ops between user messages)");
 		group2Idx.ShouldBeGreaterThan(group1Idx, "group 2 after group 1");
+		group2Idx.ShouldBeGreaterThan(secondTaskIdx, "group 2 after 'Second task'");
 	}
 }

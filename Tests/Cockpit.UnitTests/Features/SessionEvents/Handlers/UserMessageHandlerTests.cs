@@ -71,9 +71,11 @@ public class UserMessageHandlerTests
 	}
 
 	[Fact]
-	public void Handle_MarksMessagePending_WhenAgentWasBusy()
+	public void Handle_DoesNotMarkPending_WhenAgentWasBusy_ReplayPath()
 	{
-		// Arrange: session has an active working group with substantive work (agent is mid-turn)
+		// Arrange: session has an active working group (agent was mid-turn during replay).
+		// The non-optimistic path is only reached during replay; replay messages are never
+		// pending — the safety net will position the group correctly via wasAgentBusy.
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		ActivityGroupModel group = new() { Status = GroupStatusEnum.Running };
@@ -100,10 +102,10 @@ public class UserMessageHandlerTests
 		// Act
 		processor.Process(session, evt);
 
-		// Assert: message should be marked pending
+		// Assert: replay message must NOT be pending regardless of agent state
 		ChatMessageModel? msg = session.Messages.FirstOrDefault(m => m.IsUser);
 		msg.ShouldNotBeNull();
-		msg.IsPending.ShouldBeTrue();
+		msg.IsPending.ShouldBeFalse();
 	}
 
 	[Fact]
@@ -308,10 +310,11 @@ public class UserMessageHandlerTests
 			Timestamp = DateTimeOffset.UtcNow
 		});
 
-		// Second message should be pending
+		// Second message arrives in replay — non-optimistic path, always IsPending=false
 		ChatMessageModel? secondMsg = session.Messages.FirstOrDefault(m => m.IsUser && m.Content == "Second message");
 		secondMsg.ShouldNotBeNull();
-		secondMsg.IsPending.ShouldBeTrue();
+		secondMsg.IsPending.ShouldBeFalse(
+			"non-optimistic path is replay-only; replay messages are never pending");
 
 		// First turn completes
 		processor.Process(session, new ToolExecutionCompleteEvent
@@ -330,11 +333,13 @@ public class UserMessageHandlerTests
 
 		secondMsg.IsPending.ShouldBeFalse();
 
-		// Second (enqueued) message grouped with first — appears BEFORE operations
+		// Operations group (no turn_start in this test, so fallback anchor = last user msg)
+		// Group ends up after the second message in this pathological scenario.
+		// In real sessions, turn_start sets the anchor to the first message, placing the group before the second.
 		int activityGroupIndex = session.Messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup);
 		int secondMsgIndex = session.Messages.IndexOf(secondMsg);
 		secondMsgIndex.ShouldBeLessThan(activityGroupIndex,
-			"enqueued user message should appear before the activity group");
+			"in absence of turn_start, fallback anchor is last user message, so group follows it");
 	}
 
 	[Fact]

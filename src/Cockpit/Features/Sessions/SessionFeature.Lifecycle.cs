@@ -13,8 +13,6 @@ namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
-	const int immediateModeReplayOrderingThresholdMs = 500;
-
 	Task? _loadExistingSessionsTask;
 	readonly Lock _loadGate = new();
 
@@ -235,16 +233,6 @@ public sealed partial class SessionFeature
 				IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
 				_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 
-				// Fix immediate-mode ordering: the SDK writes assistant.turn_start to the event
-				// log *before* the user.message echo for immediate-mode sends (both events share
-				// nearly the same timestamp). During live sessions this is fine because the
-				// optimistic message is already in the UI; during replay the turn_start fires
-				// first, creating a working group with no anchor, then the user.message triggers
-				// the safety-net which closes the group prematurely—displaying operations before
-				// the message that caused them. Swapping adjacent (turn_start → user.message)
-				// pairs that are within 100 ms of each other restores the correct logical order.
-				List<SessionEvent> orderedEvents = ReorderImmediateModeReplayEvents(events);
-
 				SessionModel tempSession = new()
 				{
 					Id = sessionId,
@@ -260,7 +248,7 @@ public sealed partial class SessionFeature
 
 				await Task.Run(() =>
 				{
-					foreach(SessionEvent evt in orderedEvents)
+					foreach(SessionEvent evt in events)
 					{
 						_processor.Process(tempSession, evt);
 					}
@@ -598,14 +586,12 @@ public sealed partial class SessionFeature
 			}
 			_sessionListFeature.NotifyStateChanged();
 
-			// Same immediate-mode ordering fix as LoadSession: swap adjacent (turn_start → user.message)
-			// pairs within 100 ms so the user message precedes the turn it triggered.
-			List<SessionEvent> orderedEvents = ReorderImmediateModeReplayEvents(events);
-
+			// Same parentId-based immediate-mode detection used during live sessions applies
+			// here — no pre-processing or reordering needed.
 			Task streamCallback(ChatMessageModel msg, string text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged);
 
 			DateTimeOffset? prevTimestamp = null;
-			foreach(SessionEvent evt in orderedEvents)
+			foreach(SessionEvent evt in events)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
@@ -646,23 +632,6 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogError(ex, "Replay failed for session {SessionId}", session.Id);
 		}
-	}
-
-	static List<SessionEvent> ReorderImmediateModeReplayEvents(IReadOnlyList<SessionEvent> events)
-	{
-		List<SessionEvent> orderedEvents = [.. events];
-		for(int i = 0; i < orderedEvents.Count - 1; i++)
-		{
-			if(orderedEvents[i] is AssistantTurnStartEvent turnStart
-				&& orderedEvents[i + 1] is UserMessageEvent userMsgEvt
-				&& (string.IsNullOrEmpty(turnStart.Data?.TurnId) || turnStart.Data.TurnId == "0")
-				&& (userMsgEvt.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds is >= 0 and <= immediateModeReplayOrderingThresholdMs)
-			{
-				(orderedEvents[i], orderedEvents[i + 1]) = (orderedEvents[i + 1], orderedEvents[i]);
-			}
-		}
-
-		return orderedEvents;
 	}
 
 	async Task LoadContextPanelDataAsync(SessionModel session, CopilotSession sdkSession)

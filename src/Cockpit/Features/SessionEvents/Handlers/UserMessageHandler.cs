@@ -50,6 +50,11 @@ static class UserMessageHandler
 		}
 		else
 		{
+			// This path is only reached during session replay — live sessions add messages
+			// optimistically before the SDK echo arrives. In a completed/replayed session every
+			// user.message has already been processed; "Pending…" is a transient live-only state.
+			// The safety-net (SessionIdleHandler) will still fire when wasAgentBusy=true and
+			// insert the preceding activity group in the correct position before this message.
 			ChatMessageModel message = new()
 			{
 				Id = Guid.NewGuid().ToString(),
@@ -58,7 +63,7 @@ static class UserMessageHandler
 				Timestamp = evt.Timestamp,
 				Type = MessageTypeEnum.Text,
 				EventType = evt.Type,
-				IsPending = !isAgentGenerated && wasAgentBusy,
+				IsPending = false,
 				Attachments = attachments,
 				EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 			};
