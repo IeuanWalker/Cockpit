@@ -94,6 +94,10 @@ static class AssistantMessageHandler
 		}
 		else if(!string.IsNullOrWhiteSpace(content))
 		{
+			// No active group and no prior streaming placeholder — this message arrived while the
+			// group was closed (e.g. safety net fired before the agent finished its turn).
+			// Flag it so that ToolStartHandler can absorb it into the next ops group, matching
+			// the AssistantMessageDeltaHandler behaviour for streaming (live) sessions.
 			ChatMessageModel message = new()
 			{
 				Id = messageId,
@@ -102,6 +106,7 @@ static class AssistantMessageHandler
 				Timestamp = evt.Timestamp,
 				Type = MessageTypeEnum.Text,
 				IsComplete = true,
+				IsLeakedPreGroupMessage = true,
 				EventType = evt.Type,
 				EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 			};

@@ -68,7 +68,9 @@ static class AssistantMessageDeltaHandler
 			return;
 		}
 
-		// Not in thinking mode — add to chat normally
+		// Not in thinking mode — add to chat normally.
+		// Mark as a leaked pre-group message so AssistantTurnStartHandler can absorb it
+		// back into the new ops group when the next turn starts.
 		if(!session.StreamingMessages.TryGetValue(messageId, out ChatMessageModel? msg))
 		{
 			msg = new ChatMessageModel
@@ -80,6 +82,7 @@ static class AssistantMessageDeltaHandler
 				Type = MessageTypeEnum.Text,
 				IsStreaming = true,
 				IsComplete = false,
+				IsLeakedPreGroupMessage = true,
 				EventType = evt.Type,
 				EventJson = []
 			};

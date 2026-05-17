@@ -333,13 +333,13 @@ public class UserMessageHandlerTests
 
 		secondMsg.IsPending.ShouldBeFalse();
 
-		// Operations group (no turn_start in this test, so fallback anchor = last user msg)
-		// Group ends up after the second message in this pathological scenario.
-		// In real sessions, turn_start sets the anchor to the first message, placing the group before the second.
+		// Operations group should be anchored to "First message" (ToolStartHandler sets
+		// TriggeredByUserMessageId to the last completed user message when it creates the group),
+		// so the group appears between the two user messages.
 		int activityGroupIndex = session.Messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup);
 		int secondMsgIndex = session.Messages.IndexOf(secondMsg);
-		secondMsgIndex.ShouldBeLessThan(activityGroupIndex,
-			"in absence of turn_start, fallback anchor is last user message, so group follows it");
+		activityGroupIndex.ShouldBeLessThan(secondMsgIndex,
+			"ops group is anchored to the triggering user message, so it appears before the second user message");
 	}
 
 	[Fact]

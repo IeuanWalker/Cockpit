@@ -41,6 +41,43 @@ static class AssistantTurnStartHandler
 				IsExpanded = true,
 				TriggeredByUserMessageId = triggeredById
 			};
+
+			// Absorb any text messages that leaked into chat before this turn started.
+			// These are messages the agent streamed after the safety net closed the prior group
+			// but before this turn_start fired (so no active group existed to capture them).
+			// Only messages explicitly flagged as leaked (IsLeakedPreGroupMessage) are absorbed —
+			// this avoids mistakenly swallowing legitimate prior-turn response messages.
+			if(!string.IsNullOrEmpty(triggeredById))
+			{
+				int anchorIndex = session.Messages.FindIndex(m => m.Id == triggeredById);
+				if(anchorIndex >= 0)
+				{
+					for(int i = anchorIndex + 1; i < session.Messages.Count;)
+					{
+						ChatMessageModel m = session.Messages[i];
+						if(!m.IsUser && m.Type == MessageTypeEnum.Text && m.IsLeakedPreGroupMessage)
+						{
+							session.ActiveWorkingGroup.AddEvent(new ThinkingEventModel
+							{
+								Id = m.Id,
+								Type = ThinkingEventTypeEnum.Message,
+								Message = m.Content,
+								Timestamp = m.Timestamp.LocalDateTime,
+								EventJson = m.EventJson
+							});
+							session.Messages.RemoveAt(i);
+							if(m.Id is not null)
+							{
+								session.StreamingMessages.Remove(m.Id);
+							}
+						}
+						else
+						{
+							i++;
+						}
+					}
+				}
+			}
 		}
 	}
 }

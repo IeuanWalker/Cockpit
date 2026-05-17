@@ -13,21 +13,21 @@ static class SessionIdleHandler
 	/// </summary>
 	internal static event Action? OnSessionFinished;
 
-	internal static void Handle(SessionModel session, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete, ILogger? logger = null)
+	internal static void Handle(SessionModel session, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete, ILogger? logger = null, bool suppressSummary = false)
 	{
 		if(session.ActiveWorkingGroup is not null)
 		{
 			ThinkingEventModel? lastEvent = session.ActiveWorkingGroup.Events.LastOrDefault();
 			DateTimeOffset timestamp = lastEvent is not null ? lastEvent.Timestamp : DateTimeOffset.UtcNow;
-			Handle(session, timestamp, onStreamSummary, groupStatus, logger);
+			Handle(session, timestamp, onStreamSummary, groupStatus, logger, suppressSummary);
 		}
 		else
 		{
 			DateTimeOffset timestamp = session.Messages.LastOrDefault()?.Timestamp ?? DateTimeOffset.UtcNow;
-			Handle(session, timestamp, onStreamSummary, groupStatus, logger);
+			Handle(session, timestamp, onStreamSummary, groupStatus, logger, suppressSummary);
 		}
 	}
-	internal static void Handle(SessionModel session, DateTimeOffset eventTimestamp, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete, ILogger? logger = null)
+	internal static void Handle(SessionModel session, DateTimeOffset eventTimestamp, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete, ILogger? logger = null, bool suppressSummary = false)
 	{
 		ActivityGroupModel? activeGroup = session.ActiveWorkingGroup;
 
@@ -61,18 +61,25 @@ static class SessionIdleHandler
 			group.EndTime = eventTimestamp.LocalDateTime;
 			group.IsExpanded = false;
 
-			// Check for a task-complete summary override before falling back to last message extraction
+			// Check for a task-complete summary override before falling back to last message extraction.
+			// Always clear PendingTaskSummary regardless of suppressSummary to prevent a stale value
+			// from leaking into the next turn's idle event.
 			string? pendingTaskSummary = session.PendingTaskSummary;
 			session.PendingTaskSummary = null;
 
+			// When the turn was interrupted by the safety net (suppressSummary) or ended with an error,
+			// the last thinking message is intermediate planning text — not a final response.
+			// Suppress both extraction paths so it stays inside the ops group expander.
+			bool suppressSummaryContent = suppressSummary || groupStatus == GroupStatusEnum.Error;
+
 			// Extract the last message event as the summary (but not "Session stopped")
 			List<ThinkingEventModel> events = group.GetEventsSnapshot();
-			ThinkingEventModel? lastMessage = pendingTaskSummary is null
+			ThinkingEventModel? lastMessage = (!suppressSummaryContent && pendingTaskSummary is null)
 				? events.LastOrDefault(e => e.Type == ThinkingEventTypeEnum.Message)
 				: null;
 
 			ChatMessageModel? summaryMsg = null;
-			if(pendingTaskSummary is not null)
+			if(!suppressSummaryContent && pendingTaskSummary is not null)
 			{
 				summaryMsg = new ChatMessageModel
 				{
@@ -86,7 +93,7 @@ static class SessionIdleHandler
 					EventJson = null
 				};
 			}
-			else if(lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
+			else if(!suppressSummaryContent && lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
 			{
 				// Remove the summary from thinking events
 				group.RemoveEvent(lastMessage);

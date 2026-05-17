@@ -130,4 +130,15 @@ public class SessionModel
 	/// <c>session.compaction_complete</c>.
 	/// </summary>
 	public bool IsCompacting { get; set; }
+
+	/// <summary>
+	/// Set to <see langword="true"/> by the <c>AssistantTurnEndEvent</c> case in
+	/// <see cref="SessionEvents.SessionEventProcessor"/> when the agent finishes its current
+	/// mini-turn. Cleared to <see langword="false"/> when a new <c>AssistantTurnStartEvent</c>
+	/// fires (meaning the agent has more work to do).
+	/// Consumed and reset by the safety-net (user.message) to decide whether to promote the
+	/// final summary out of the ops group: <see langword="true"/> means the agent's last
+	/// turn completed cleanly; <see langword="false"/> means it was mid-turn (interrupted).
+	/// </summary>
+	public bool AgentTurnCompleted { get; set; }
 }
