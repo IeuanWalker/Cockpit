@@ -218,8 +218,9 @@ public class SessionEventProcessorTests
 			Timestamp = DateTimeOffset.UtcNow
 		});
 
-		// Assert — group finalized into Messages, but session keeps Running for queued message
-		session.ActiveWorkingGroup.ShouldBeNull();
+		// Assert — group finalized into Messages, placeholder group keeps panel open, Running preserved
+		session.ActiveWorkingGroup.ShouldNotBeNull();
+		session.ActiveWorkingGroup!.IsPlaceholder.ShouldBeTrue();
 		session.Messages.ShouldContain(m => m.Type == MessageTypeEnum.ActivityGroup);
 		session.Status.ShouldBe(SessionStatusEnum.Running);
 	}

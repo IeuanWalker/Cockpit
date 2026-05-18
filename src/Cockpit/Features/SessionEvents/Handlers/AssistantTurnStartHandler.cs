@@ -10,7 +10,7 @@ static class AssistantTurnStartHandler
 	{
 		session.Status = SessionStatusEnum.Running;
 
-		// A single user prompt can produce multiple assistant.turn_start events ("0", "1", ...).
+		// A single user promptcan produce multiple assistant.turn_start events ("0", "1", ...).
 		// Only consume a pending message at the first turn start for that prompt.
 		string? turnId = evt.Data.TurnId;
 		bool shouldActivatePendingMessage = string.IsNullOrEmpty(turnId) || turnId == "0";
@@ -32,7 +32,12 @@ static class AssistantTurnStartHandler
 		string? triggeredById = activatedPendingMsg?.Id
 			?? session.Messages.LastOrDefault(m => m.IsUser)?.Id;
 
-		if(session.ActiveWorkingGroup is null)
+		// Replace a placeholder group (kept alive between turns) OR create a fresh group when
+		// none exists. An existing real group is left in place (multi-turn within same session).
+		// When there IS a real group (immediate turn started before the prior idle/safety-net fired),
+		// leave HasQueuedImmediateMessage alone — SessionIdleHandler will consume it when it finalizes
+		// the old group and decides whether to keep the session running.
+		if(session.ActiveWorkingGroup is null || session.ActiveWorkingGroup.IsPlaceholder)
 		{
 			session.ActiveWorkingGroup = new ActivityGroupModel
 			{

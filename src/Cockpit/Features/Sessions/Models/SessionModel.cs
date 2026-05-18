@@ -141,4 +141,13 @@ public class SessionModel
 	/// turn completed cleanly; <see langword="false"/> means it was mid-turn (interrupted).
 	/// </summary>
 	public bool AgentTurnCompleted { get; set; }
+
+	/// <summary>
+	/// Set to <see langword="true"/> by <c>SessionFeature.SendMessageAsync</c> when the user
+	/// sends a message in immediate (steering) mode while the agent is already processing a
+	/// turn. Cleared by <c>AssistantTurnStartHandler</c> when the new turn begins.
+	/// Used by <c>SessionIdleHandler</c> to keep the working panel open and suppress the
+	/// completion sound during the brief gap before the next turn starts.
+	/// </summary>
+	public bool HasQueuedImmediateMessage { get; set; }
 }

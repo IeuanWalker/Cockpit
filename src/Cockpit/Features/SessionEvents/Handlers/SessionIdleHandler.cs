@@ -280,15 +280,30 @@ static class SessionIdleHandler
 			Debug.WriteLine("No active thinking group to finalize");
 		}
 
-		// When pending user messages exist and the session completed normally, keep the session
-		// running so the working panel stays visible and the completion sound is suppressed —
-		// the next queued prompt will be activated momentarily by AssistantTurnStartHandler.
-		// For error/abort, always transition to Idle and fire the event.
-		bool hasPendingMessages = groupStatus == GroupStatusEnum.Complete
-			&& session.Messages.Any(m => m.IsUser && m.IsPending);
-		if(hasPendingMessages)
+		// Keep the session running when the user has more queued work:
+		// - Pending enqueued messages (IsPending = true in session.Messages)
+		// - An immediate (steering) message sent while the agent was busy
+		// In both cases the agent is about to start a new turn — suppress the completion
+		// sound and keep the working panel visible with an empty placeholder group so the
+		// UI does not flash through Idle between turns.
+		bool keepRunning = groupStatus == GroupStatusEnum.Complete
+			&& (session.Messages.Any(m => m.IsUser && m.IsPending) || session.HasQueuedImmediateMessage);
+
+		// Consume the immediate-message flag here regardless of path. AssistantTurnStartHandler
+		// deliberately leaves it set when the new turn fires before this idle event, so it
+		// survives to this point where it can actually be acted on.
+		session.HasQueuedImmediateMessage = false;
+
+		if(keepRunning)
 		{
 			session.Status = SessionStatusEnum.Running;
+			session.ActiveWorkingGroup = new ActivityGroupModel
+			{
+				StartTime = DateTime.Now,
+				Status = GroupStatusEnum.Running,
+				IsExpanded = true,
+				IsPlaceholder = true
+			};
 		}
 		else
 		{

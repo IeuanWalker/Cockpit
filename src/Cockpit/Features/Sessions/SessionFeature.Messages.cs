@@ -92,6 +92,13 @@ public sealed partial class SessionFeature
 				};
 				CurrentSession.Messages.Add(optimisticMessage);
 				CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
+
+				// For immediate (steering) mode: flag that a new turn is imminent so the
+				// working panel and Running status are preserved through the idle transition.
+				if(agentWasBusy && selectedTurnMode == MessageTurnModeEnum.Immediate)
+				{
+					CurrentSession.HasQueuedImmediateMessage = true;
+				}
 			}
 			_sessionListFeature.NotifyStateChanged();
 
