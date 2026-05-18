@@ -167,24 +167,18 @@ static class SessionIdleHandler
 				}
 			}
 
-			// Extend anchor past consecutive user messages that were enqueued during this turn
-			// (pending), AND past any already-inserted non-user items (activity groups, summaries)
-			// so subsequent activity groups are placed in chronological order.
-			// Stop only when we hit a non-pending user message (a new turn's trigger).
+			// Extend anchor past already-inserted non-user items (activity groups, summaries)
+			// so that subsequent ops groups from multi-turn replay are placed in chronological order.
+			// Stop at any user message — pending messages represent future turns and the ops group
+			// for the current turn must appear before them, not after.
 			if(anchorIndex >= 0)
 			{
 				for(int i = anchorIndex + 1; i < session.Messages.Count; i++)
 				{
 					if(session.Messages[i].IsUser)
 					{
-						if(session.Messages[i].IsPending)
-						{
-							anchorIndex = i;
-						}
-						else
-						{
-							break;
-						}
+						// Any user message (pending or active) marks the boundary of the current turn.
+						break;
 					}
 					else
 					{
