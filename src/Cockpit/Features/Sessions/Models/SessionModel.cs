@@ -145,9 +145,9 @@ public class SessionModel
 	/// <summary>
 	/// Set to <see langword="true"/> by <c>SessionFeature.SendMessageAsync</c> when the user
 	/// sends a message in immediate (steering) mode while the agent is already processing a
-	/// turn. Cleared by <c>AssistantTurnStartHandler</c> when the new turn begins.
-	/// Used by <c>SessionIdleHandler</c> to keep the working panel open and suppress the
-	/// completion sound during the brief gap before the next turn starts.
+	/// turn. Consumed and cleared by <c>SessionIdleHandler</c> when it finalizes the prior
+	/// turn, to keep the working panel open and suppress the completion sound during the
+	/// brief gap before the next turn starts.
 	/// </summary>
 	public bool HasQueuedImmediateMessage { get; set; }
 }

@@ -58,11 +58,9 @@ public sealed class SessionEventProcessor
 					// Determine whether the agent was genuinely mid-turn before the safety-net runs.
 					//
 					// Background: in immediate-mode (steering), the SDK writes assistant.turn_start to
-					// the event log *before* the user.message echo. The parentId chain makes this
-					// explicit: user.message.parentId == the preceding turn_start.Id.
-					// UserMessageHandler uses session.LastTurnStartId (set by AssistantTurnStartHandler)
-					// to detect this and suppress IsPending, so immediate-mode messages are never
-					// rendered as "Pending…" waiting for a turn that already started.
+					// the event log *before* the user.message echo (replay only). In replay, the
+					// non-optimistic path in UserMessageHandler never marks the echoed user message as
+					// pending, so it is not rendered as "Pending…" waiting for a turn that already started.
 					//
 					// Safety for live mode: user.message echoes are not emitted in the live SDK event
 					// stream — only written to disk for replay. ThinkingExhausted/reconnect continuations
@@ -97,9 +95,9 @@ public sealed class SessionEventProcessor
 				string content = userMsg.Data?.Content ?? string.Empty;
 				_logger.LogDebug("Session {SessionId} user message: {Content}", session.Id, content[..Math.Min(50, content.Length)]);
 				// Add the user message FIRST so it appears before operations in the message list.
-				// The safety-net finalization below will anchor past it when extending over
-				// consecutive user messages, producing the desired grouping:
-				// [user msg 1] [user msg 2 (enqueued)] [operations] [agent response]
+				// When a queued/immediate send occurs while a prior ops group is still open, the
+				// safety-net finalization inserts that prior activity group before the new user message,
+				// so operations appear between the two user messages.
 				UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
 				if(wasAgentBusy)
 				{
