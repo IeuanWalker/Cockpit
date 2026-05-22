@@ -84,37 +84,37 @@ public sealed class SessionEventProcessor
 						}
 					}
 					// Consume the agent-turn-completed flag before acting on it.
-				// The flag is set by AssistantTurnEndEvent and cleared by AssistantTurnStartEvent.
-				// If the agent's last mini-turn ended cleanly (no subsequent turn_start before this
-				// user message), the flag is true and the last ops-group message IS the final
-				// response — promote it. If the agent was still in an open turn (interrupted),
-				// suppress the summary.
-				bool agentCompletedTurn = session.AgentTurnCompleted;
-				session.AgentTurnCompleted = false;
+					// The flag is set by AssistantTurnEndEvent and cleared by AssistantTurnStartEvent.
+					// If the agent's last mini-turn ended cleanly (no subsequent turn_start before this
+					// user message), the flag is true and the last ops-group message IS the final
+					// response — promote it. If the agent was still in an open turn (interrupted),
+					// suppress the summary.
+					bool agentCompletedTurn = session.AgentTurnCompleted;
+					session.AgentTurnCompleted = false;
 
-				string content = userMsg.Data?.Content ?? string.Empty;
-				_logger.LogDebug("Session {SessionId} user message: {Content}", session.Id, content[..Math.Min(50, content.Length)]);
-				// Add the user message FIRST so it appears before operations in the message list.
-				// When a queued/immediate send occurs while a prior ops group is still open, the
-				// safety-net finalization inserts that prior activity group before the new user message,
-				// so operations appear between the two user messages.
-				UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
-				if(wasAgentBusy)
-				{
-					// Safety net: finalize the prior group. Suppress the summary only when the agent
-					// was mid-turn (interrupted); a completed turn means the last message IS the response.
-					SessionIdleHandler.Handle(session, logger: _logger, suppressSummary: !agentCompletedTurn);
-				}
-				if(isSpuriousEmptyGroup && session.ActiveWorkingGroup == priorGroup)
-				{
-					// Re-anchor the group to the user message just added to session.Messages
-					ChatMessageModel? addedMsg = session.Messages.LastOrDefault(m => m.IsUser && m.IsComplete && !m.IsPending);
-					if(addedMsg is not null)
+					string content = userMsg.Data?.Content ?? string.Empty;
+					_logger.LogDebug("Session {SessionId} user message: {Content}", session.Id, content[..Math.Min(50, content.Length)]);
+					// Add the user message FIRST so it appears before operations in the message list.
+					// When a queued/immediate send occurs while a prior ops group is still open, the
+					// safety-net finalization inserts that prior activity group before the new user message,
+					// so operations appear between the two user messages.
+					UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
+					if(wasAgentBusy)
 					{
-						priorGroup!.TriggeredByUserMessageId = addedMsg.Id;
+						// Safety net: finalize the prior group. Suppress the summary only when the agent
+						// was mid-turn (interrupted); a completed turn means the last message IS the response.
+						SessionIdleHandler.Handle(session, logger: _logger, suppressSummary: !agentCompletedTurn);
 					}
-				}
-				session.LastActivity = userMsg.Timestamp.UtcDateTime;
+					if(isSpuriousEmptyGroup && session.ActiveWorkingGroup == priorGroup)
+					{
+						// Re-anchor the group to the user message just added to session.Messages
+						ChatMessageModel? addedMsg = session.Messages.LastOrDefault(m => m.IsUser && m.IsComplete && !m.IsPending);
+						if(addedMsg is not null)
+						{
+							priorGroup!.TriggeredByUserMessageId = addedMsg.Id;
+						}
+					}
+					session.LastActivity = userMsg.Timestamp.UtcDateTime;
 					break;
 
 				case AssistantTurnStartEvent turnStart:
