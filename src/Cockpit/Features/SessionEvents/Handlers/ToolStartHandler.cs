@@ -13,7 +13,7 @@ static class ToolStartHandler
 		// turn_start could create one), create the group here and anchor it to the triggering user
 		// message.  Also absorb any agent messages that leaked into chat while there was no active
 		// group — they belong in the ops panel, not as standalone chat messages.
-		if(session.ActiveWorkingGroup is null)
+		if(session.ActiveWorkingGroup is null || session.ActiveWorkingGroup.IsPlaceholder)
 		{
 			ChatMessageModel? triggerMsg = session.Messages
 				.LastOrDefault(m => m.IsUser && m.IsComplete && !m.IsPending);
