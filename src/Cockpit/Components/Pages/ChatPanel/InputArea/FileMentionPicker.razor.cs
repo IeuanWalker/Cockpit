@@ -4,7 +4,7 @@ using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
-public partial class FileMentionPicker : ComponentBase
+public sealed partial class FileMentionPicker : ComponentBase
 {
 	readonly IJSRuntime _jsRuntime;
 
@@ -16,18 +16,37 @@ public partial class FileMentionPicker : ComponentBase
 	[Parameter] public bool Visible { get; set; }
 	[Parameter] public string Filter { get; set; } = string.Empty;
 	[Parameter] public IReadOnlyList<FileSearchResult> Files { get; set; } = [];
+	[Parameter] public IReadOnlyCollection<string> AttachedPaths { get; set; } = [];
 	[Parameter] public EventCallback<FileSearchResult> OnFileSelected { get; set; }
 	[Parameter] public EventCallback OnClose { get; set; }
 	[Parameter] public int SelectedIndex { get; set; }
 	[Parameter] public EventCallback<int> SelectedIndexChanged { get; set; }
 
-	int _lastScrolledIndex = -2; // -2 = never scrolled
+	List<(FileSearchResult File, bool IsAttached)> _orderedFiles = [];
+
+	int _lastScrolledIndex = -2;
 
 	protected override void OnParametersSet()
 	{
 		if(!Visible)
 		{
 			_lastScrolledIndex = -2;
+		}
+
+		_orderedFiles.Clear();
+		foreach(FileSearchResult f in Files)
+		{
+			if(AttachedPaths.Contains(f.FullPath))
+			{
+				_orderedFiles.Add((f, true));
+			}
+		}
+		foreach(FileSearchResult f in Files)
+		{
+			if(!AttachedPaths.Contains(f.FullPath))
+			{
+				_orderedFiles.Add((f, false));
+			}
 		}
 	}
 

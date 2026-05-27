@@ -19,7 +19,7 @@ public sealed class FileSearchFeature : IFileSearchFeature
 		_logger = logger;
 	}
 
-	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = 50, CancellationToken cancellationToken = default)
+	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = int.MaxValue, CancellationToken cancellationToken = default)
 	{
 		return Task.Run<IReadOnlyList<FileSearchResult>>(() => Search(workingDirectory, filter, maxResults, cancellationToken), cancellationToken);
 	}
@@ -59,7 +59,7 @@ public sealed class FileSearchFeature : IFileSearchFeature
 	}
 
 	// Pre-computes per-result sort keys to avoid repeated ToLowerInvariant() and depth counting
-	// inside each comparison during sort. Results are bounded at maxResults (≤ 50 by default).
+	// inside each comparison during sort. Results are bounded at maxResults (≤ 200 by default).
 	static void SortResults(List<FileSearchResult> results, string filter)
 	{
 		if(results.Count <= 1)

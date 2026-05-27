@@ -581,6 +581,58 @@ function handleEnterKey(element, state, event) {
     insertSoftLineBreak(element);
 }
 
+// Returns the nearest <br> element that precedes `startNode` within `element`,
+// or null if `startNode` is on the first line.
+function findPrecedingLineBreak(element, startNode) {
+    let current = startNode;
+    while (current && current !== element) {
+        let prev = current.previousSibling;
+        while (prev) {
+            if (prev.nodeType === Node.ELEMENT_NODE && prev.tagName === 'BR') {
+                return prev;
+            }
+            prev = prev.previousSibling;
+        }
+        current = current.parentNode;
+    }
+    return null;
+}
+
+// Inserts a tab character at the start of every line that falls (even partially) within `range`.
+// Lines in this contenteditable are separated by <br> elements.
+function indentSelectedLines(element, range) {
+    // Collect <br> nodes that are within the selection and are followed by selected content
+    // (i.e. there is at least one character selected on the line after the <br>).
+    const brsInSelection = [];
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_ELEMENT);
+    let node;
+    while ((node = walker.nextNode())) {
+        if (node.tagName !== 'BR' || !range.intersectsNode(node)) {
+            continue;
+        }
+        // Only indent the line after this <br> when the range extends past it.
+        const afterBr = document.createRange();
+        afterBr.setStartAfter(node);
+        afterBr.collapse(true);
+        if (range.compareBoundaryPoints(Range.END_TO_END, afterBr) > 0) {
+            brsInSelection.push(node);
+        }
+    }
+
+    // Insert tabs in reverse order so earlier DOM positions remain stable.
+    for (let i = brsInSelection.length - 1; i >= 0; i--) {
+        brsInSelection[i].after(document.createTextNode('\t'));
+    }
+
+    // Insert a tab at the start of the first selected line.
+    const precedingBr = findPrecedingLineBreak(element, range.startContainer);
+    if (precedingBr) {
+        precedingBr.after(document.createTextNode('\t'));
+    } else {
+        element.insertBefore(document.createTextNode('\t'), element.firstChild);
+    }
+}
+
 function handleContentEditableKeydown(element, state, event) {
     if (shouldSuppressMentionPickerKey(element, state, event.key)) {
         event.preventDefault();
@@ -592,14 +644,20 @@ function handleContentEditableKeydown(element, state, event) {
         const selection = window.getSelection();
         if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
-            range.deleteContents();
-            const tabNode = document.createTextNode('\t');
-            range.insertNode(tabNode);
-            range.setStartAfter(tabNode);
-            range.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(range);
+            if (range.collapsed) {
+                // No selection: insert a single tab at the cursor.
+                const tabNode = document.createTextNode('\t');
+                range.insertNode(tabNode);
+                range.setStartAfter(tabNode);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                // Selection: indent the start of every selected line.
+                indentSelectedLines(element, range);
+            }
             resizeContentEditable(element);
+            element.dispatchEvent(new Event('input', { bubbles: true }));
         }
         return;
     }

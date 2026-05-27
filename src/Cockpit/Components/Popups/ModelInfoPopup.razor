@@ -49,7 +49,7 @@ bool isSelected = SelectedModel?.Id == model.Id;
 string multiplierDisplay = GetMultiplierDisplay(model);
 <div class="rounded-lg border p-4"
      style="@(isSelected ? "border-color: var(--accent-color);" : "border-color: var(--app-border, var(--input-border));")">
-<div class="flex items-start justify-between gap-4">
+<div class="flex items-center justify-between gap-4">
 <div class="flex-1 min-w-0">
 <div class="flex items-center gap-2 flex-wrap">
 @if(isSelected)
@@ -63,33 +63,6 @@ string multiplierDisplay = GetMultiplierDisplay(model);
 @if(!string.IsNullOrEmpty(multiplierDisplay) && !model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
 {
 <span class="text-xs font-medium" style="color: @GetMultiplierColor(model);">@multiplierDisplay</span>
-}
-</div>
-<div class="flex items-center gap-1.5 flex-wrap mt-0.5">
-<p class="text-xs text-app-secondary font-mono">@model.Id</p>
-@if(!model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
-{
-@if(model.Capabilities?.Supports?.Vision == true)
-{
-<span class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-xs"
-      style="background-color: rgba(59,130,246,0.1); color: rgb(96,165,250); border-color: rgba(59,130,246,0.3);">
-<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-</svg>
-Vision
-</span>
-}
-@if(model.Capabilities?.Supports?.ReasoningEffort == true)
-{
-<span class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-xs"
-      style="background-color: rgba(168,85,247,0.1); color: rgb(192,132,252); border-color: rgba(168,85,247,0.3);">
-<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-</svg>
-Reasoning
-</span>
-}
 }
 </div>
 </div>
@@ -116,6 +89,33 @@ Select
 </button>
 }
 </div>
+</div>
+<div class="flex items-center gap-1.5 mt-1">
+<p class="text-xs text-app-secondary font-mono">@model.Id</p>
+@if(!model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
+{
+@if(model.Capabilities?.Supports?.Vision == true)
+{
+<span class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-xs shrink-0 whitespace-nowrap"
+      style="background-color: rgba(59,130,246,0.1); color: rgb(96,165,250); border-color: rgba(59,130,246,0.3);">
+<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+</svg>
+Vision
+</span>
+}
+@if(model.Capabilities?.Supports?.ReasoningEffort == true)
+{
+<span class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-xs shrink-0 whitespace-nowrap"
+      style="background-color: rgba(168,85,247,0.1); color: rgb(192,132,252); border-color: rgba(168,85,247,0.3);">
+<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+</svg>
+Reasoning
+</span>
+}
+}
 </div>
 
 @if(!model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))

@@ -615,7 +615,8 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 				case "Enter":
 					if(_selectedMentionIndex >= 0 && _selectedMentionIndex < _mentionFiles.Count)
 					{
-						await OnFileSelectedAsync(_mentionFiles[_selectedMentionIndex]);
+						IReadOnlyList<FileSearchResult> ordered = GetOrderedMentionFiles();
+						await OnFileSelectedAsync(ordered[_selectedMentionIndex]);
 					}
 					return;
 				case "Escape":
@@ -635,6 +636,29 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	{
 		string basePath = session.Context.WorkspacePath ?? Path.GetTempPath();
 		return Path.Combine(basePath, "Cockpit", "Files");
+	}
+
+	IReadOnlyCollection<string> GetAttachedPaths()
+	{
+		SessionModel? session = _sessionFeature.CurrentSession;
+		if(session is null)
+		{
+			return [];
+		}
+		lock(session.PendingAttachmentsLock)
+		{
+			return session.PendingAttachments.Select(a => a.FilePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+		}
+	}
+
+	IReadOnlyList<FileSearchResult> GetOrderedMentionFiles()
+	{
+		IReadOnlyCollection<string> attached = GetAttachedPaths();
+		if(attached.Count == 0)
+		{
+			return _mentionFiles;
+		}
+		return [.. _mentionFiles.Where(f => attached.Contains(f.FullPath)), .. _mentionFiles.Where(f => !attached.Contains(f.FullPath))];
 	}
 
 	void ToggleYoloMode()
