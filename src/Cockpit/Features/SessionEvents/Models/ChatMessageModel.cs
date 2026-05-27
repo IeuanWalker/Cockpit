@@ -28,6 +28,14 @@ public sealed class ChatMessageModel
 	public bool IsError { get; set; }
 
 	/// <summary>
+	/// True when this assistant text message was streamed to chat while no active working group
+	/// existed (e.g. agent output emitted between the safety-net closing the prior group and
+	/// <c>assistant.turn_start</c> creating the next one). These messages are candidates for
+	/// absorption back into the new ops group by <c>AssistantTurnStartHandler</c>.
+	/// </summary>
+	public bool IsLeakedPreGroupMessage { get; set; }
+
+	/// <summary>
 	/// Attachments included with this user message, for display in the message bubble.
 	/// </summary>
 	public List<AttachmentModel>? Attachments { get; set; }

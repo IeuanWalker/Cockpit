@@ -92,6 +92,18 @@ public sealed partial class SessionFeature
 				};
 				CurrentSession.Messages.Add(optimisticMessage);
 				CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
+
+				// For immediate (steering) mode: flag that a new turn is imminent so the
+				// working panel and Running status are preserved through the idle transition.
+				if(agentWasBusy && selectedTurnMode == MessageTurnModeEnum.Immediate)
+				{
+					CurrentSession.HasQueuedImmediateMessage = true;
+				}
+				else if(!agentWasBusy)
+				{
+					// Clear any stale value (e.g. after a failed send) when no turn is in-flight.
+					CurrentSession.HasQueuedImmediateMessage = false;
+				}
 			}
 			_sessionListFeature.NotifyStateChanged();
 
@@ -132,7 +144,15 @@ public sealed partial class SessionFeature
 				{
 					if(session.Messages.Contains(optimisticMessage) && !optimisticMessage.IsComplete)
 					{
+						string oldId = optimisticMessage.Id;
 						optimisticMessage.Id = sentMessageId;
+
+						// Keep the working group anchor in sync with the updated message ID.
+						// assistant.turn_start may have captured the old GUID before SendAsync returned.
+						if(session.ActiveWorkingGroup?.TriggeredByUserMessageId == oldId)
+						{
+							session.ActiveWorkingGroup.TriggeredByUserMessageId = sentMessageId;
+						}
 					}
 				}
 			}

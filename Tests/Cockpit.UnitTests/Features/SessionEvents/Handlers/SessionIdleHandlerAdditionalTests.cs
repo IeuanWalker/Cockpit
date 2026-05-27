@@ -136,6 +136,155 @@ public class SessionIdleHandlerAdditionalTests
 		session.Messages.ShouldContain(m => !m.IsUser && m.Content == "Extracted summary");
 	}
 
+	// ── suppressSummary (safety-net and error paths) ──────────────────────────
+
+	[Fact]
+	public void SafetyNet_SuppressSummary_ThinkingMessageStaysInGroup()
+	{
+		// When the safety net fires (agent mid-turn interrupted by a new user message),
+		// the last thinking-panel message must NOT be promoted to a standalone chat message.
+		// It is intermediate planning text, not a final response.
+		SessionModel session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+
+		ChatMessageModel userMsg1 = new() { Id = "u1", IsUser = true, Content = "First task", IsComplete = true, EventJson = null };
+		session.Messages.Add(userMsg1);
+
+		processor.Process(session, new AssistantTurnStartEvent
+		{
+			Data = new AssistantTurnStartData { TurnId = "0" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new ToolExecutionStartEvent
+		{
+			Data = new ToolExecutionStartData { ToolCallId = "tc1", ToolName = "read_file" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new ToolExecutionCompleteEvent
+		{
+			Data = new ToolExecutionCompleteData { ToolCallId = "tc1", Success = true },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// Agent emits planning text mid-turn (before session.idle)
+		session.ActiveWorkingGroup!.AddEvent(new ThinkingEventModel
+		{
+			Type = ThinkingEventTypeEnum.Message,
+			Message = "Reading a representative set of key files...",
+			Timestamp = DateTime.UtcNow,
+			EventJson = null
+		});
+
+		// User interrupts mid-turn — safety net fires (wasAgentBusy=true)
+		processor.Process(session, new AssistantTurnStartEvent
+		{
+			Data = new AssistantTurnStartData { TurnId = "2" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new UserMessageEvent
+		{
+			Data = new UserMessageData { Content = "Actually focus" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// The planning text must NOT appear as a standalone chat message
+		session.Messages.ShouldNotContain(m => !m.IsUser && m.Type == MessageTypeEnum.Text && m.Content == "Reading a representative set of key files...");
+
+		// The ops group must still be in chat (tools ran)
+		session.Messages.ShouldContain(m => m.Type == MessageTypeEnum.ActivityGroup);
+	}
+
+	[Fact]
+	public void Error_SuppressSummary_ThinkingMessageStaysInGroup()
+	{
+		// When the session errors out, intermediate planning text must NOT be promoted
+		// to a standalone chat message — only the error message should appear in chat.
+		SessionModel session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+
+		session.Messages.Add(new ChatMessageModel { IsUser = true, Content = "Do something", EventJson = null });
+
+		processor.Process(session, new AssistantTurnStartEvent
+		{
+			Data = new AssistantTurnStartData { TurnId = "0" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new ToolExecutionStartEvent
+		{
+			Data = new ToolExecutionStartData { ToolCallId = "tc1", ToolName = "bash" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// Agent emits planning text mid-turn
+		session.ActiveWorkingGroup!.AddEvent(new ThinkingEventModel
+		{
+			Type = ThinkingEventTypeEnum.Message,
+			Message = "Running a glob to find all permission-related files...",
+			Timestamp = DateTime.UtcNow,
+			EventJson = null
+		});
+
+		// Session errors out
+		processor.Process(session, new SessionErrorEvent
+		{
+			Data = new SessionErrorData { ErrorType = "fatal", Message = "Rate limit exceeded" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// Planning text must NOT appear as a standalone chat message
+		session.Messages.ShouldNotContain(m => !m.IsUser && m.Type == MessageTypeEnum.Text && m.Content == "Running a glob to find all permission-related files...");
+
+		// Error message must still appear
+		session.Messages.ShouldContain(m => m.Type == MessageTypeEnum.Error && m.Content == "Rate limit exceeded");
+	}
+
+	[Fact]
+	public void SafetyNet_PendingTaskSummaryStillCleared_EvenWhenSuppressed()
+	{
+		// PendingTaskSummary must always be consumed (nulled out) by the safety net,
+		// even when suppressSummary=true prevents it from being emitted as a message.
+		// Without this, the stale summary would leak into the next turn's idle event.
+		SessionModel session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+
+		ChatMessageModel userMsg1 = new() { Id = "u1", IsUser = true, Content = "First task", IsComplete = true, EventJson = null };
+		session.Messages.Add(userMsg1);
+
+		processor.Process(session, new AssistantTurnStartEvent
+		{
+			Data = new AssistantTurnStartData { TurnId = "0" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new ToolExecutionStartEvent
+		{
+			Data = new ToolExecutionStartData { ToolCallId = "tc1", ToolName = "bash" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new ToolExecutionCompleteEvent
+		{
+			Data = new ToolExecutionCompleteData { ToolCallId = "tc1", Success = true },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// A task-complete fires before the interruption
+		session.PendingTaskSummary = "Partial work done";
+
+		// User interrupts — safety net fires
+		processor.Process(session, new AssistantTurnStartEvent
+		{
+			Data = new AssistantTurnStartData { TurnId = "2" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new UserMessageEvent
+		{
+			Data = new UserMessageData { Content = "Stop and do this instead" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// PendingTaskSummary must be consumed even though summary content was suppressed
+		session.PendingTaskSummary.ShouldBeNull("stale summary must be cleared to prevent it appearing in the next turn");
+	}
+
 	// ── OnSessionFinished event ───────────────────────────────────────────────
 
 	[Fact]

@@ -1,4 +1,4 @@
-﻿using Cockpit.Features.SessionEvents.Handlers;
+using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
@@ -57,20 +57,10 @@ public sealed class SessionEventProcessor
 				case UserMessageEvent userMsg:
 					// Determine whether the agent was genuinely mid-turn before the safety-net runs.
 					//
-					// Background: in immediate-mode, the SDK writes assistant.turn_start to the event log
-					// *before* the user.message echo. The 100 ms swap heuristic in ReorderImmediateModeReplayEvents
-					// corrects this for most cases, but can fail when there is a larger gap. When it fails,
-					// AssistantTurnStartHandler creates a working group *before* the user message is in
-					// session.Messages. That group is empty at the point the user.message event is processed.
-					//
-					// Old behaviour: fire the safety-net unconditionally → empty group cleared → subsequent
-					// assistant messages (turn 0) go to chat → tools anchor to that chat message → ops group
-					// appears *between* two assistant messages instead of below the user prompt.
-					//
-					// Fix: if the open group is empty (no tools, no non-empty thinking messages) it was
-					// spuriously created by the premature turn_start. Keep it alive and re-anchor it to
-					// this user message so that all subsequent assistant messages and tool calls are
-					// correctly attributed to this prompt.
+					// Background: in immediate-mode (steering), the SDK writes assistant.turn_start to
+					// the event log *before* the user.message echo (replay only). In replay, the
+					// non-optimistic path in UserMessageHandler never marks the echoed user message as
+					// pending, so it is not rendered as "Pending…" waiting for a turn that already started.
 					//
 					// Safety for live mode: user.message echoes are not emitted in the live SDK event
 					// stream — only written to disk for replay. ThinkingExhausted/reconnect continuations
@@ -87,20 +77,34 @@ public sealed class SessionEventProcessor
 							(e.Type == ThinkingEventTypeEnum.Tool && e.Tool is not null)
 							|| ((e.Type == ThinkingEventTypeEnum.Message || e.Type == ThinkingEventTypeEnum.Reasoning)
 								&& !string.IsNullOrWhiteSpace(e.Message)));
-						if(wasAgentBusy)
-						{
-							// Safety net: finalize any prior group not yet closed by SessionIdleEvent
-							SessionIdleHandler.Handle(session, logger: _logger);
-						}
-						else
+						if(!wasAgentBusy)
 						{
 							// Empty spurious group — keep it alive; re-anchor after the user message is added
 							isSpuriousEmptyGroup = true;
 						}
 					}
+					// Consume the agent-turn-completed flag before acting on it.
+					// The flag is set by AssistantTurnEndEvent and cleared by AssistantTurnStartEvent.
+					// If the agent's last mini-turn ended cleanly (no subsequent turn_start before this
+					// user message), the flag is true and the last ops-group message IS the final
+					// response — promote it. If the agent was still in an open turn (interrupted),
+					// suppress the summary.
+					bool agentCompletedTurn = session.AgentTurnCompleted;
+					session.AgentTurnCompleted = false;
+
 					string content = userMsg.Data?.Content ?? string.Empty;
 					_logger.LogDebug("Session {SessionId} user message: {Content}", session.Id, content[..Math.Min(50, content.Length)]);
+					// Add the user message FIRST so it appears before operations in the message list.
+					// When a queued/immediate send occurs while a prior ops group is still open, the
+					// safety-net finalization inserts that prior activity group before the new user message,
+					// so operations appear between the two user messages.
 					UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
+					if(wasAgentBusy)
+					{
+						// Safety net: finalize the prior group. Suppress the summary only when the agent
+						// was mid-turn (interrupted); a completed turn means the last message IS the response.
+						SessionIdleHandler.Handle(session, logger: _logger, suppressSummary: !agentCompletedTurn);
+					}
 					if(isSpuriousEmptyGroup && session.ActiveWorkingGroup == priorGroup)
 					{
 						// Re-anchor the group to the user message just added to session.Messages
@@ -115,6 +119,9 @@ public sealed class SessionEventProcessor
 
 				case AssistantTurnStartEvent turnStart:
 					_logger.LogDebug("Session {SessionId} assistant turn started: {TurnId}", session.Id, turnStart.Data?.TurnId);
+					// A new turn starting means the agent has more work to do — any prior turn_end
+					// should not be treated as completion until we see the matching turn_end.
+					session.AgentTurnCompleted = false;
 					AssistantTurnStartHandler.Handle(session, turnStart);
 					break;
 
@@ -226,6 +233,9 @@ public sealed class SessionEventProcessor
 
 				case AssistantTurnEndEvent turnEnd:
 					_logger.LogDebug("Session {SessionId} assistant turn ended: {TurnId}", session.Id, turnEnd.Data?.TurnId);
+					// Mark that the agent completed its last mini-turn. If a new turn_start fires
+					// before the next user message, this flag will be cleared back to false.
+					session.AgentTurnCompleted = true;
 					break;
 
 				case AssistantUsageEvent usage:

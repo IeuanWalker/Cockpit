@@ -74,7 +74,7 @@ public class SessionEventProcessorTests
 	{
 		// Arrange
 		SessionModel session = CreateSession();
-		DateTime beforeTest = DateTime.Now.AddSeconds(-1);
+		DateTime beforeTest = DateTime.UtcNow.AddSeconds(-1);
 		session.LastActivity = beforeTest;
 		SessionEventProcessor processor = CreateProcessor();
 
@@ -184,6 +184,45 @@ public class SessionEventProcessorTests
 
 		// Act & Assert
 		Should.NotThrow(() => processor.FinalizeOpenGroup(session));
+	}
+
+	[Fact]
+	public void Process_SessionIdle_WithPendingMessages_FinalizesAndKeepsRunning()
+	{
+		// Arrange: enqueue mode — group should be finalized but session stays Running
+		SessionModel session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+		session.Status = SessionStatusEnum.Running;
+		session.Messages.Add(new ChatMessageModel { Id = "user1", IsUser = true, Content = "Hello", EventJson = null });
+		session.Messages.Add(new ChatMessageModel { Id = "user2", IsUser = true, Content = "Queued", IsPending = true, EventJson = null });
+		session.ActiveWorkingGroup = new ActivityGroupModel
+		{
+			Status = GroupStatusEnum.Running,
+			TriggeredByUserMessageId = "user1"
+		};
+		processor.Process(session, new ToolExecutionStartEvent
+		{
+			Data = new ToolExecutionStartData { ToolCallId = "tc1", ToolName = "read_file" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		processor.Process(session, new ToolExecutionCompleteEvent
+		{
+			Data = new ToolExecutionCompleteData { ToolCallId = "tc1", Success = true },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// Act
+		processor.Process(session, new SessionIdleEvent
+		{
+			Data = new SessionIdleData(),
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		// Assert — group finalized into Messages, placeholder group keeps panel open, Running preserved
+		session.ActiveWorkingGroup.ShouldNotBeNull();
+		session.ActiveWorkingGroup!.IsPlaceholder.ShouldBeTrue();
+		session.Messages.ShouldContain(m => m.Type == MessageTypeEnum.ActivityGroup);
+		session.Status.ShouldBe(SessionStatusEnum.Running);
 	}
 
 	[Fact]

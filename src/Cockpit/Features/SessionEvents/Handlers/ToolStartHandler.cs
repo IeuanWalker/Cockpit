@@ -9,12 +9,57 @@ static class ToolStartHandler
 {
 	internal static void Handle(SessionModel session, ToolExecutionStartEvent evt)
 	{
-		session.ActiveWorkingGroup ??= new ActivityGroupModel
+		// When no group exists yet (tool fired after safety net closed the prior group, before a new
+		// turn_start could create one), create the group here and anchor it to the triggering user
+		// message.  Also absorb any agent messages that leaked into chat while there was no active
+		// group — they belong in the ops panel, not as standalone chat messages.
+		if(session.ActiveWorkingGroup is null || session.ActiveWorkingGroup.IsPlaceholder)
 		{
-			StartTime = evt.Timestamp.LocalDateTime,
-			Status = GroupStatusEnum.Running,
-			IsExpanded = true
-		};
+			ChatMessageModel? triggerMsg = session.Messages
+				.LastOrDefault(m => m.IsUser && m.IsComplete && !m.IsPending);
+
+			session.ActiveWorkingGroup = new ActivityGroupModel
+			{
+				StartTime = evt.Timestamp.LocalDateTime,
+				Status = GroupStatusEnum.Running,
+				IsExpanded = true,
+				TriggeredByUserMessageId = triggerMsg?.Id
+			};
+
+			// Absorb leaked pre-group text messages (flagged by AssistantMessageHandler /
+			// AssistantMessageDeltaHandler when no active group was present).
+			if(triggerMsg is not null)
+			{
+				int anchorIndex = session.Messages.IndexOf(triggerMsg);
+				if(anchorIndex >= 0)
+				{
+					for(int i = anchorIndex + 1; i < session.Messages.Count;)
+					{
+						ChatMessageModel m = session.Messages[i];
+						if(!m.IsUser && m.Type == MessageTypeEnum.Text && m.IsLeakedPreGroupMessage)
+						{
+							session.ActiveWorkingGroup.AddEvent(new ThinkingEventModel
+							{
+								Id = m.Id,
+								Type = ThinkingEventTypeEnum.Message,
+								Message = m.Content,
+								Timestamp = m.Timestamp.LocalDateTime,
+								EventJson = m.EventJson
+							});
+							session.Messages.RemoveAt(i);
+							if(m.Id is not null)
+							{
+								session.StreamingMessages.Remove(m.Id);
+							}
+						}
+						else
+						{
+							i++;
+						}
+					}
+				}
+			}
+		}
 
 		// Set InitialMessageId if not already set — find the last assistant message after the last user message
 		if(string.IsNullOrEmpty(session.ActiveWorkingGroup.InitialMessageId))
