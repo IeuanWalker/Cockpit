@@ -28,7 +28,13 @@
     {
         <div class="absolute bottom-full mb-1 right-0 rounded border shadow-lg overflow-y-auto scrollbar-thin"
              style="background-color: var(--input-bg); border-color: var(--input-border); z-index: 1000; min-width: @DropdownMinWidth; max-height: @DropdownMaxHeight;">
-            <div class="picker-dropdown-header px-3 py-1.5 text-xs secondary-text border-b" style="border-color: var(--input-border);">@Title</div>
+            <div class="picker-dropdown-header px-3 py-1.5 text-xs secondary-text border-b flex items-center justify-between" style="border-color: var(--input-border);">
+                <span>@Title</span>
+                @if (HeaderAction is not null)
+                {
+                    @HeaderAction
+                }
+            </div>
             @DropdownContent
         </div>
     }

@@ -50,6 +50,11 @@ static class UserMessageHandler
 		}
 		else
 		{
+			// This path is only reached during session replay — live sessions add messages
+			// optimistically before the SDK echo arrives. In a completed/replayed session every
+			// user.message has already been processed; "Pending…" is a transient live-only state.
+			// The safety-net (SessionIdleHandler) will still fire when wasAgentBusy=true and
+			// insert the preceding activity group in the correct position before this message.
 			ChatMessageModel message = new()
 			{
 				Id = Guid.NewGuid().ToString(),
@@ -58,7 +63,7 @@ static class UserMessageHandler
 				Timestamp = evt.Timestamp,
 				Type = MessageTypeEnum.Text,
 				EventType = evt.Type,
-				IsPending = !isAgentGenerated && wasAgentBusy,
+				IsPending = false,
 				Attachments = attachments,
 				EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 			};
@@ -88,6 +93,13 @@ static class UserMessageHandler
 				// read the file from disk at render time, avoiding a blocking read on the SDK event thread.
 
 				result.Add(new AttachmentModel(fileName, filePath, null, mimeType));
+			}
+			else if(item is UserMessageAttachmentDirectory dir)
+			{
+				string dirPath = dir.Path ?? string.Empty;
+				string dirName = dir.DisplayName ?? Path.GetFileName(dirPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+
+				result.Add(new AttachmentModel(dirName, dirPath, null, string.Empty, isDirectory: true));
 			}
 		}
 

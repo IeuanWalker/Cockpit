@@ -149,4 +149,10 @@ public sealed class AppSettingsFeature : IAppSettingsFeature
 		get => _settings.VoiceLocale;
 		set => _settings.VoiceLocale = value;
 	}
+
+	public bool KeepAlive
+	{
+		get => _settings.KeepAlive;
+		set => _settings.KeepAlive = value;
+	}
 }

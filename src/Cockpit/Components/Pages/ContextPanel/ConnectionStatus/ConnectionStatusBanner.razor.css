@@ -51,6 +51,11 @@
     background: #f59e0b;
 }
 
+.reconnecting .connection-dot,
+.connection-dot.reconnecting {
+    background: #f59e0b;
+}
+
 .connection-banner.connected {
     color: #22c55e;
 }
@@ -60,6 +65,10 @@
 }
 
 .connection-banner.checking {
+    color: #f59e0b;
+}
+
+.connection-banner.reconnecting {
     color: #f59e0b;
 }
 

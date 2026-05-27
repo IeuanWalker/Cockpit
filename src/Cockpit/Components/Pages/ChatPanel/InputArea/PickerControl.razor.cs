@@ -12,6 +12,7 @@ public partial class PickerControl : ComponentBase
 	[Parameter] public string MinWidth { get; set; } = "0px";
 	[Parameter] public string DropdownMinWidth { get; set; } = "200px";
 	[Parameter] public string DropdownMaxHeight { get; set; } = "300px";
+	[Parameter] public RenderFragment? HeaderAction { get; set; }
 
 	bool _isOpen;
 

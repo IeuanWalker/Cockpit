@@ -71,12 +71,27 @@ public class UserMessageHandlerTests
 	}
 
 	[Fact]
-	public void Handle_MarksMessagePending_WhenAgentWasBusy()
+	public void Handle_DoesNotMarkPending_WhenAgentWasBusy_ReplayPath()
 	{
-		// Arrange: session has an active working group (agent is mid-turn)
+		// Arrange: session has an active working group (agent was mid-turn during replay).
+		// The non-optimistic path is only reached during replay; replay messages are never
+		// pending — the safety net will position the group correctly via wasAgentBusy.
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.ActiveWorkingGroup = new ActivityGroupModel { Status = GroupStatusEnum.Running };
+		ActivityGroupModel group = new() { Status = GroupStatusEnum.Running };
+		group.AddEvent(new ThinkingEventModel
+		{
+			Type = ThinkingEventTypeEnum.Tool,
+			Tool = new ToolExecutionModel
+			{
+				ToolName = "read_file",
+				ToolCallId = "tc1",
+				Status = ToolStatusEnum.Running,
+				StartTime = DateTime.Now
+			},
+			EventJson = null
+		});
+		session.ActiveWorkingGroup = group;
 
 		UserMessageEvent evt = new()
 		{
@@ -87,10 +102,10 @@ public class UserMessageHandlerTests
 		// Act
 		processor.Process(session, evt);
 
-		// Assert: message should be marked pending
+		// Assert: replay message must NOT be pending regardless of agent state
 		ChatMessageModel? msg = session.Messages.FirstOrDefault(m => m.IsUser);
 		msg.ShouldNotBeNull();
-		msg.IsPending.ShouldBeTrue();
+		msg.IsPending.ShouldBeFalse();
 	}
 
 	[Fact]
@@ -295,10 +310,11 @@ public class UserMessageHandlerTests
 			Timestamp = DateTimeOffset.UtcNow
 		});
 
-		// Second message should be pending
+		// Second message arrives in replay — non-optimistic path, always IsPending=false
 		ChatMessageModel? secondMsg = session.Messages.FirstOrDefault(m => m.IsUser && m.Content == "Second message");
 		secondMsg.ShouldNotBeNull();
-		secondMsg.IsPending.ShouldBeTrue();
+		secondMsg.IsPending.ShouldBeFalse(
+			"non-optimistic path is replay-only; replay messages are never pending");
 
 		// First turn completes
 		processor.Process(session, new ToolExecutionCompleteEvent
@@ -317,10 +333,13 @@ public class UserMessageHandlerTests
 
 		secondMsg.IsPending.ShouldBeFalse();
 
-		// Activity group for first turn inserted BEFORE second message
+		// Operations group should be anchored to "First message" (ToolStartHandler sets
+		// TriggeredByUserMessageId to the last completed user message when it creates the group),
+		// so the group appears between the two user messages.
 		int activityGroupIndex = session.Messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup);
 		int secondMsgIndex = session.Messages.IndexOf(secondMsg);
-		activityGroupIndex.ShouldBeLessThan(secondMsgIndex);
+		activityGroupIndex.ShouldBeLessThan(secondMsgIndex,
+			"ops group is anchored to the triggering user message, so it appears before the second user message");
 	}
 
 	[Fact]

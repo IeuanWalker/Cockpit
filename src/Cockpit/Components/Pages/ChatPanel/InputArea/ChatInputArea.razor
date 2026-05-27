@@ -10,6 +10,7 @@
         <FileMentionPicker Visible="@_showMentionPicker"
                            Filter="@_mentionFilter"
                            Files="@_mentionFiles"
+                           AttachedPaths="@GetAttachedPaths()"
                            SelectedIndex="@_selectedMentionIndex"
                            SelectedIndexChanged="@(i => _selectedMentionIndex = i)"
                            OnFileSelected="@OnFileSelectedAsync"

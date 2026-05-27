@@ -14,12 +14,16 @@ public sealed class FileSearchFeature : IFileSearchFeature
 		"packages", ".nuget"
 	};
 
+	static readonly TimeSpan indexTtl = TimeSpan.FromSeconds(60);
+	readonly Dictionary<string, FileIndex> _indexCache = new(StringComparer.OrdinalIgnoreCase);
+	readonly Lock _indexLock = new();
+
 	public FileSearchFeature(ILogger<FileSearchFeature> logger)
 	{
 		_logger = logger;
 	}
 
-	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = 50, CancellationToken cancellationToken = default)
+	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = int.MaxValue, CancellationToken cancellationToken = default)
 	{
 		return Task.Run<IReadOnlyList<FileSearchResult>>(() => Search(workingDirectory, filter, maxResults, cancellationToken), cancellationToken);
 	}
@@ -38,8 +42,18 @@ public sealed class FileSearchFeature : IFileSearchFeature
 
 		try
 		{
+			IReadOnlyList<FileSearchResult> allFiles = GetOrBuildIndex(workingDirectory, cancellationToken);
+
 			List<FileSearchResult> results = [];
-			EnumerateFiles(workingDirectory, workingDirectory, filter, results, maxResults, cancellationToken);
+			foreach(FileSearchResult entry in allFiles)
+			{
+				cancellationToken.ThrowIfCancellationRequested();
+				if(string.IsNullOrEmpty(filter) || entry.FileName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+				{
+					results.Add(entry);
+				}
+			}
+
 			SortResults(results, filter);
 			if(results.Count > maxResults)
 			{
@@ -58,8 +72,37 @@ public sealed class FileSearchFeature : IFileSearchFeature
 		}
 	}
 
+	IReadOnlyList<FileSearchResult> GetOrBuildIndex(string workingDirectory, CancellationToken cancellationToken)
+	{
+		lock(_indexLock)
+		{
+			if(_indexCache.TryGetValue(workingDirectory, out FileIndex? existing) && existing.ExpiresAt > DateTimeOffset.UtcNow)
+			{
+				return existing.AllFiles;
+			}
+		}
+
+		// Build outside the lock so filesystem I/O does not block other callers
+		List<FileSearchResult> allFiles = BuildIndex(workingDirectory, cancellationToken);
+		FileIndex index = new() { AllFiles = allFiles, ExpiresAt = DateTimeOffset.UtcNow + indexTtl };
+
+		lock(_indexLock)
+		{
+			_indexCache[workingDirectory] = index;
+		}
+
+		return index.AllFiles;
+	}
+
+	List<FileSearchResult> BuildIndex(string workingDirectory, CancellationToken cancellationToken)
+	{
+		List<FileSearchResult> allFiles = [];
+		EnumerateAllFiles(workingDirectory, workingDirectory, allFiles, cancellationToken);
+		return allFiles;
+	}
+
 	// Pre-computes per-result sort keys to avoid repeated ToLowerInvariant() and depth counting
-	// inside each comparison during sort. Results are bounded at maxResults (≤ 50 by default).
+	// inside each comparison during sort. Results are bounded at maxResults (≤ 200 by default).
 	static void SortResults(List<FileSearchResult> results, string filter)
 	{
 		if(results.Count <= 1)
@@ -112,13 +155,8 @@ public sealed class FileSearchFeature : IFileSearchFeature
 		return count;
 	}
 
-	void EnumerateFiles(string root, string dir, string filter, List<FileSearchResult> results, int maxResults, CancellationToken cancellationToken)
+	void EnumerateAllFiles(string root, string dir, List<FileSearchResult> results, CancellationToken cancellationToken)
 	{
-		if(results.Count >= maxResults)
-		{
-			return;
-		}
-
 		cancellationToken.ThrowIfCancellationRequested();
 
 		try
@@ -126,26 +164,13 @@ public sealed class FileSearchFeature : IFileSearchFeature
 			foreach(string filePath in Directory.EnumerateFiles(dir))
 			{
 				cancellationToken.ThrowIfCancellationRequested();
-
 				string fileName = Path.GetFileName(filePath);
-				if(string.IsNullOrEmpty(filter) || fileName.Contains(filter, StringComparison.OrdinalIgnoreCase))
-				{
-					string relativePath = Path.GetRelativePath(root, filePath);
-					results.Add(new FileSearchResult(fileName, relativePath, filePath));
-					if(results.Count >= maxResults)
-					{
-						return;
-					}
-				}
+				string relativePath = Path.GetRelativePath(root, filePath);
+				results.Add(new FileSearchResult(fileName, relativePath, filePath));
 			}
 
 			foreach(string subDir in Directory.EnumerateDirectories(dir))
 			{
-				if(results.Count >= maxResults)
-				{
-					return;
-				}
-
 				cancellationToken.ThrowIfCancellationRequested();
 
 				string dirName = Path.GetFileName(subDir);
@@ -154,7 +179,9 @@ public sealed class FileSearchFeature : IFileSearchFeature
 					continue;
 				}
 
-				EnumerateFiles(root, subDir, filter, results, maxResults, cancellationToken);
+				string relativeDirPath = Path.GetRelativePath(root, subDir);
+				results.Add(new FileSearchResult(dirName, relativeDirPath, subDir, IsDirectory: true));
+				EnumerateAllFiles(root, subDir, results, cancellationToken);
 			}
 		}
 		catch(OperationCanceledException)
@@ -169,5 +196,11 @@ public sealed class FileSearchFeature : IFileSearchFeature
 		{
 			_logger.LogDebug(ex, "Could not enumerate {Directory}", dir);
 		}
+	}
+
+	sealed class FileIndex
+	{
+		public IReadOnlyList<FileSearchResult> AllFiles { get; init; } = [];
+		public DateTimeOffset ExpiresAt { get; init; }
 	}
 }

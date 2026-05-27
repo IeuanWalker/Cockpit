@@ -125,7 +125,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		StateHasChanged();
 	}
 
-	static string GetAttachmentLabel(int imageCount, int fileCount)
+	static string GetAttachmentLabel(int imageCount, int fileCount, int folderCount)
 	{
 		List<string> parts = [];
 		if(imageCount > 0)
@@ -136,6 +136,11 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		if(fileCount > 0)
 		{
 			parts.Add($"{fileCount} file{(fileCount > 1 ? "s" : "")}");
+		}
+
+		if(folderCount > 0)
+		{
+			parts.Add($"{fileCount} folder{(fileCount > 1 ? "s" : "")}");
 		}
 
 		return string.Join(", ", parts);
@@ -222,6 +227,48 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	async Task RetryMessage(ChatMessageModel message)
 	{
 		await _sessionFeature.RetryMessageAsync(message);
+	}
+
+	async Task CopyUserMessage(ChatMessageModel message)
+	{
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", message.Content);
+			_toastService.Success("Copied", opts => opts.Description = "Message copied to clipboard");
+		}
+		catch
+		{
+			_toastService.Error("Copy failed", opts => opts.Description = "Could not copy to clipboard");
+		}
+	}
+
+	static string HumanizeTimestamp(DateTimeOffset timestamp)
+	{
+		TimeSpan elapsed = DateTimeOffset.UtcNow - timestamp;
+
+		if(elapsed.TotalSeconds < 60)
+		{
+			return "just now";
+		}
+
+		if(elapsed.TotalMinutes < 60)
+		{
+			int minutes = (int)elapsed.TotalMinutes;
+			return $"{minutes} minute{(minutes == 1 ? "" : "s")} ago";
+		}
+
+		if(elapsed.TotalHours < 24)
+		{
+			int hours = (int)elapsed.TotalHours;
+			return $"{hours} hour{(hours == 1 ? "" : "s")} ago";
+		}
+
+		if(elapsed.TotalDays < 2)
+		{
+			return $"yesterday at {timestamp.LocalDateTime.ToString("h:mm tt")}";
+		}
+
+		return timestamp.LocalDateTime.ToString("MMM d, h:mm tt");
 	}
 
 	public async ValueTask DisposeAsync()

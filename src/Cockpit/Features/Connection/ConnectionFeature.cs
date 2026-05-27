@@ -46,6 +46,8 @@ public sealed partial class ConnectionFeature : IDisposable
 	{
 		_pingService = pingService;
 		_logger = logger;
+
+		_pingService.OnConnectionStateChanged += HandleClientConnectionStateChanged;
 	}
 
 	/// <summary>
@@ -167,8 +169,33 @@ public sealed partial class ConnectionFeature : IDisposable
 
 	public void Dispose()
 	{
+		_pingService.OnConnectionStateChanged -= HandleClientConnectionStateChanged;
 		_timer?.Dispose();
 		_initializationLock?.Dispose();
+	}
+
+	/// <summary>
+	/// Reacts immediately to SDK client state changes so the banner updates without
+	/// waiting for the next poll interval. On disconnect, switches to
+	/// <see cref="ConnectionStatusEnum.Reconnecting"/>. On reconnect, triggers a fresh ping.
+	/// </summary>
+	void HandleClientConnectionStateChanged(ConnectionState state)
+	{
+		if(state == ConnectionState.Disconnected)
+		{
+			Status = ConnectionStatusEnum.Reconnecting;
+			OnStatusChanged?.Invoke();
+		}
+		else
+		{
+			// Client is back — run a ping immediately so the banner confirms the connection
+			// is healthy rather than waiting up to PollIntervalSeconds seconds.
+			Ping().ContinueWith(
+				t => _logger.LogError(t.Exception, "Ping after reconnect failed"),
+				CancellationToken.None,
+				TaskContinuationOptions.OnlyOnFaulted,
+				TaskScheduler.Default);
+		}
 	}
 
 	void OnTimerTick(object? _)

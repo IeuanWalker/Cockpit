@@ -39,6 +39,7 @@ public class UserAppSettings
 		internal const string soundFinishedCustomFileName = "SoundFinishedCustomFileName";
 		internal const string sdkLogLevel = "SdkLogLevel";
 		internal const string telemetryEnabled = "TelemetryEnabled";
+		internal const string keepAlive = "KeepAlive";
 	}
 
 	readonly IPreferencesStorage _preferences;
@@ -217,5 +218,14 @@ public class UserAppSettings
 	{
 		get => _preferences.Get(Keys.telemetryEnabled, false);
 		set => _preferences.Set(Keys.telemetryEnabled, value);
+	}
+
+	/// <summary>
+	/// When enabled, prevents the system from sleeping while an agent session is active.
+	/// </summary>
+	public bool KeepAlive
+	{
+		get => _preferences.Get(Keys.keepAlive, true);
+		set => _preferences.Set(Keys.keepAlive, value);
 	}
 }

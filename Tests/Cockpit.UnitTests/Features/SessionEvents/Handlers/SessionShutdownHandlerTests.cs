@@ -44,6 +44,7 @@ public class SessionShutdownHandlerTests
 		// Arrange — routine == auto-restart; the session continues, so the group must be preserved
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
+		session.Status = SessionStatusEnum.Running;
 
 		processor.Process(session, new ToolExecutionStartEvent
 		{

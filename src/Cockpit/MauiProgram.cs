@@ -38,6 +38,7 @@ using MauiDevFlow.Blazor;
 #endif
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Cockpit.Features.KeepAlive;
 using Cockpit.Features.VSCode;
 
 namespace Cockpit;
@@ -124,6 +125,16 @@ public static class MauiProgram
 		builder.Services.AddSingleton<ISessionStateProvider>(sp => sp.GetRequiredService<SessionListFeature>());
 		builder.Services.AddSingleton<SessionFeature>();
 
+		// Keep Alive
+#if WINDOWS
+		builder.Services.AddSingleton<IKeepAliveService, WindowsKeepAliveService>();
+#elif MACCATALYST
+		builder.Services.AddSingleton<IKeepAliveService, MacCatalystKeepAliveService>();
+#else
+		builder.Services.AddSingleton<IKeepAliveService, NullKeepAliveService>();
+#endif
+		builder.Services.AddSingleton<KeepAliveFeature>();
+
 		// Permission features
 
 		builder.Services.AddSingleton<PermissionFeature>();
@@ -164,6 +175,7 @@ public static class MauiProgram
 		// Initialize features
 		app.Services.GetRequiredService<UpdateFeature>().Initialize();
 		app.Services.GetRequiredService<SoundFeature>();
+		app.Services.GetRequiredService<KeepAliveFeature>();
 
 		return app;
 	}

@@ -40,6 +40,12 @@
                     <span class="text-sm font-medium text-app-title">Sounds</span>
                     <span class="text-xs secondary-text">Alerts, requests, finished</span>
                 </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.System ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.System)"
+                        aria-label="Select System settings section">
+                    <span class="text-sm font-medium text-app-title">System</span>
+                    <span class="text-xs secondary-text">Keep alive, sleep</span>
+                </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Diagnostics ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.Diagnostics)"
                         aria-label="Select Diagnostics settings section">
@@ -70,6 +76,9 @@
                         break;
                     case SettingsSectionEnum.Sounds:
                         <SoundSettings />
+                        break;
+                    case SettingsSectionEnum.System:
+                        <SystemSettings />
                         break;
                     case SettingsSectionEnum.Diagnostics:
                         <DiagnosticsSettings />

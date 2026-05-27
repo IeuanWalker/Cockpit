@@ -10,6 +10,7 @@ using Cockpit.Features.Permissions;
 using Cockpit.Features.Plugins;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
+using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Skills;
@@ -86,7 +87,9 @@ public sealed partial class SessionFeature : IDisposable
 		_appSettingsFeature = appSettingsFeature;
 		_hooksFactory = hooksFactory;
 
+		_clientFeature.OnConnectionStateChanged += HandleConnectionStateChanged;
 		StartEvictionLoop();
+		StartReconnectLoop();
 	}
 
 	readonly CancellationTokenSource _evictionCts = new();
@@ -101,7 +104,8 @@ public sealed partial class SessionFeature : IDisposable
 		remove => _sessionListFeature.OnStateChanged -= value;
 	}
 	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.ActiveWorkingGroup;
-	public bool IsWorking => CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatusEnum.Running;
+	public bool IsWorking => CurrentSession?.Status == SessionStatusEnum.Running
+		|| (CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatusEnum.Running);
 
 	void HandleSessionEvent(string sessionId, SessionEvent evt)
 	{
@@ -130,6 +134,7 @@ public sealed partial class SessionFeature : IDisposable
 
 	public void Dispose()
 	{
+		_clientFeature.OnConnectionStateChanged -= HandleConnectionStateChanged;
 		_currentWatcher?.Dispose();
 		_evictionCts.Cancel();
 		_evictionCts.Dispose();

@@ -49,6 +49,10 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 		{
 			_isUserScrolledUpFromWorking = false; // Re-enable auto-scroll
 			_pendingScrollToBottom = true;
+			// Reset so OnAfterRenderAsync re-attaches scroll tracking to the new element.
+			// The working group change may cause #workingContent to be briefly removed and
+			// recreated (new group starts with empty events), invalidating any prior setup.
+			_scrollTrackingSetup = false;
 			_prevSessionId = currentSessionId;
 			_prevWorkingGroupId = currentWorkingGroupId;
 		}

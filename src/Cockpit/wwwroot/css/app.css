@@ -753,14 +753,14 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
     z-index: 100;
     overflow: hidden;
-    max-height: 240px;
+    max-height: 300px;
     display: flex;
     flex-direction: column;
 }
 
 .file-mention-picker-list {
     overflow-y: auto;
-    max-height: 240px;
+    max-height: 300px;
 }
 
     .file-mention-picker-list::-webkit-scrollbar {
@@ -793,6 +793,7 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     cursor: pointer;
     font-size: 0.8125rem;
     transition: background-color 0.1s;
+    border-left: 2px solid transparent;
 }
 
     .file-mention-picker-item:hover,
@@ -828,6 +829,12 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
     color: var(--secondary-text);
     font-size: 0.8125rem;
     text-align: center;
+}
+
+.file-mention-picker-separator {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 2px 0;
 }
 
 /* Character-level diff highlights (applied by JS, must be global) */
