@@ -44,46 +44,47 @@
                     bool attachExpanded = hasAttachments && _expandedAttachments.Contains(message);
                     int imgCount = hasAttachments ? message.Attachments!.Count(a => a.IsImage) : 0;
                     int fCount = hasAttachments ? message.Attachments!.Count - imgCount : 0;
-                    <div class="flex justify-end">
-                        <div class="group w-fit max-w-2xl flex flex-col">
-                            @if(message.EventJson is null)
-                            {
-                                <div class="chat-bubble self-end rounded-lg px-4 py-2.5 @(message.IsError ? "error" : message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")">
-                                    @{
-                                        var userContent = RenderUserContent(message.Content);
-                                    }
-                                    @if(userContent.HasValue)
-                                    {
-                                        <MarkdownRenderer DirectHtml="@userContent" CssClass="text-sm" />
-                                    }
-                                    else
-                                    {
-                                        <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
-                                    }
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="chat-bubble self-end rounded-lg px-4 py-2.5 event-message @(message.IsError ? "error" : message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")" @onclick="() => ShowEventJson(message)">
-                                    @{
-                                        var userContent = RenderUserContent(message.Content);
-                                    }
-                                    @if(userContent.HasValue)
-                                    {
-                                        <MarkdownRenderer DirectHtml="@userContent" CssClass="text-sm" />
-                                    }
-                                    else
-                                    {
-                                        <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
-                                    }
-                                </div>
-                            }
+                    <div class="flex justify-end group">
+                        <div class="flex flex-col items-end">
+                            @* Bubble wrapper: sized to bubble content only (timestamp is absolute) *@
+                            <div class="relative w-fit max-w-2xl">
+                                @if(message.EventJson is null)
+                                {
+                                    <div class="chat-bubble rounded-lg px-4 py-2.5 @(message.IsError ? "error" : message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")">
+                                        @{
+                                            var userContent = RenderUserContent(message.Content);
+                                        }
+                                        @if(userContent.HasValue)
+                                        {
+                                            <MarkdownRenderer DirectHtml="@userContent" CssClass="text-sm" />
+                                        }
+                                        else
+                                        {
+                                            <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="chat-bubble rounded-lg px-4 py-2.5 event-message @(message.IsError ? "error" : message.IsPending ? "pending" : !message.IsComplete ? "sending" : "")" @onclick="() => ShowEventJson(message)">
+                                        @{
+                                            var userContent = RenderUserContent(message.Content);
+                                        }
+                                        @if(userContent.HasValue)
+                                        {
+                                            <MarkdownRenderer DirectHtml="@userContent" CssClass="text-sm" />
+                                        }
+                                        else
+                                        {
+                                            <MarkdownRenderer Content="@message.Content" CssClass="text-sm" />
+                                        }
+                                    </div>
+                                }
 
-                            @* Bottom row: timestamp left, attachment toggle right *@
-                            <div class="flex items-center justify-between mt-1 w-full">
+                                @* Status/timestamp: absolute so it doesn't affect bubble wrapper sizing *@
                                 @if(message.IsError)
                                 {
-                                    <button class="retry-btn" @onclick="() => RetryMessage(message)" title="Retry sending this message">
+                                    <button class="retry-btn absolute left-0 top-full mt-1" @onclick="() => RetryMessage(message)" title="Retry sending this message">
                                         <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                         </svg>
@@ -92,33 +93,35 @@
                                 }
                                 else if(message.IsPending)
                                 {
-                                    <span class="text-xs px-1 secondary-text italic">Pending...</span>
+                                    <span class="absolute left-0 top-full mt-1 text-xs px-1 secondary-text italic whitespace-nowrap">Pending...</span>
                                 }
                                 else if(!message.IsComplete)
                                 {
-                                    <span class="text-xs px-1 secondary-text italic">Sending...</span>
+                                    <span class="absolute left-0 top-full mt-1 text-xs px-1 secondary-text italic whitespace-nowrap">Sending...</span>
                                 }
                                 else
                                 {
-                                    <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-xs px-1 text-left" style="color: var(--secondary-text);">
+                                    <div class="absolute left-0 top-full mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-xs px-1 whitespace-nowrap pointer-events-none" style="color: var(--secondary-text);">
                                         Sent @HumanizeTimestamp(message.Timestamp)
                                     </div>
                                 }
-                                @if(hasAttachments)
-                                {
-                                    <button @onclick="() => ToggleAttachments(message)"
-                                            aria-expanded="@attachExpanded"
-                                            class="flex items-center gap-1.5 text-xs secondary-text hover:text-app-text transition-colors px-2 py-1 rounded hover:bg-app-hover">
-                                        <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                        </svg>
-                                        <span>@GetAttachmentLabel(imgCount, fCount)</span>
-                                        <svg class="icon-xs transition-transform @(attachExpanded ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </button>
-                                }
                             </div>
+
+                            @* Attachment toggle: right-aligned, below bubble *@
+                            @if(hasAttachments)
+                            {
+                                <button @onclick="() => ToggleAttachments(message)"
+                                        aria-expanded="@attachExpanded"
+                                        class="mt-1 flex items-center gap-1.5 text-xs secondary-text hover:text-app-text transition-colors px-2 py-1 rounded hover:bg-app-hover">
+                                    <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                    </svg>
+                                    <span>@GetAttachmentLabel(imgCount, fCount)</span>
+                                    <svg class="icon-xs transition-transform @(attachExpanded ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                            }
 
                             @* Expanded attachment list *@
                             @if(hasAttachments && attachExpanded)
