@@ -107,21 +107,30 @@
                                 }
                             </div>
 
-                            @* Attachment toggle: right-aligned, below bubble *@
-                            @if(hasAttachments)
-                            {
-                                <button @onclick="() => ToggleAttachments(message)"
-                                        aria-expanded="@attachExpanded"
-                                        class="mt-1 flex items-center gap-1.5 text-xs secondary-text hover:text-app-text transition-colors px-2 py-1 rounded hover:bg-app-hover">
+                            @* Actions row: copy (left), attachment toggle (right) — both right-aligned, visible on hover *@
+                            <div class="mt-1 flex items-center gap-1">
+                                <button @onclick="() => CopyUserMessage(message)"
+                                        class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-1 text-xs secondary-text hover:text-app-text px-2 py-1 rounded hover:bg-app-hover"
+                                        title="Copy message">
                                     <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                    </svg>
-                                    <span>@GetAttachmentLabel(imgCount, fCount)</span>
-                                    <svg class="icon-xs transition-transform @(attachExpanded ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                     </svg>
                                 </button>
-                            }
+                                @if(hasAttachments)
+                                {
+                                    <button @onclick="() => ToggleAttachments(message)"
+                                            aria-expanded="@attachExpanded"
+                                            class="flex items-center gap-1.5 text-xs secondary-text hover:text-app-text transition-colors px-2 py-1 rounded hover:bg-app-hover">
+                                        <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                        </svg>
+                                        <span>@GetAttachmentLabel(imgCount, fCount)</span>
+                                        <svg class="icon-xs transition-transform @(attachExpanded ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+                                }
+                            </div>
 
                             @* Expanded attachment list *@
                             @if(hasAttachments && attachExpanded)

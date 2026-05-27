@@ -224,6 +224,19 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		await _sessionFeature.RetryMessageAsync(message);
 	}
 
+	async Task CopyUserMessage(ChatMessageModel message)
+	{
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", message.Content);
+			_toastService.Success("Copied", opts => opts.Description = "Message copied to clipboard");
+		}
+		catch
+		{
+			_toastService.Error("Copy failed", opts => opts.Description = "Could not copy to clipboard");
+		}
+	}
+
 	static string HumanizeTimestamp(DateTimeOffset timestamp)
 	{
 		TimeSpan elapsed = DateTimeOffset.UtcNow - timestamp;
