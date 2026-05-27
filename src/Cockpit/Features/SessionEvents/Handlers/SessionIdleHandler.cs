@@ -17,7 +17,7 @@ static class SessionIdleHandler
 	{
 		if(session.ActiveWorkingGroup is not null)
 		{
-			ThinkingEventModel? lastEvent = session.ActiveWorkingGroup.Events.LastOrDefault();
+			ThinkingEventModel? lastEvent = session.ActiveWorkingGroup.GetEventsSnapshot().LastOrDefault();
 			DateTimeOffset timestamp = lastEvent is not null ? lastEvent.Timestamp : DateTimeOffset.UtcNow;
 			Handle(session, timestamp, onStreamSummary, groupStatus, logger, suppressSummary);
 		}
