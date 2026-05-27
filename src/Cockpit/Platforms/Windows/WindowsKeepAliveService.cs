@@ -6,13 +6,13 @@ namespace Cockpit.Features.KeepAlive;
 
 sealed partial class WindowsKeepAliveService : IKeepAliveService
 {
-	const uint ES_CONTINUOUS = 0x80000000;
-	const uint ES_SYSTEM_REQUIRED = 0x00000001;
+	const uint es_continuous = 0x80000000;
+	const uint es_system_required = 0x00000001;
 
 	[LibraryImport("kernel32.dll")]
 	private static partial uint SetThreadExecutionState(uint esFlags);
 
-	public void Activate() => SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
+	public void Activate() => SetThreadExecutionState(es_continuous | es_system_required);
 
-	public void Deactivate() => SetThreadExecutionState(ES_CONTINUOUS);
+	public void Deactivate() => SetThreadExecutionState(es_continuous);
 }
