@@ -291,13 +291,13 @@ static class SessionIdleHandler
 		if(keepRunning)
 		{
 			session.Status = SessionStatusEnum.Running;
-			session.ActiveWorkingGroup = new ActivityGroupModel
-			{
-				StartTime = DateTime.Now,
-				Status = GroupStatusEnum.Running,
-				IsExpanded = true,
-				IsPlaceholder = true
-			};
+				session.ActiveWorkingGroup = new ActivityGroupModel
+				{
+					StartTime = eventTimestamp.LocalDateTime,
+					Status = GroupStatusEnum.Running,
+					IsExpanded = true,
+					IsPlaceholder = true
+				};
 		}
 		else
 		{
