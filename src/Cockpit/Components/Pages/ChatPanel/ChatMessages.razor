@@ -43,7 +43,8 @@
                     bool hasAttachments = message.Attachments?.Count > 0;
                     bool attachExpanded = hasAttachments && _expandedAttachments.Contains(message);
                     int imgCount = hasAttachments ? message.Attachments!.Count(a => a.IsImage) : 0;
-                    int fCount = hasAttachments ? message.Attachments!.Count - imgCount : 0;
+                    int folderCount = hasAttachments ? message.Attachments!.Count(a => a.IsDirectory) : 0;
+                    int fileCount = hasAttachments ? message.Attachments!.Count - imgCount - folderCount : 0;
                     <div class="flex justify-end group">
                         <div class="flex flex-col items-end">
                             @* Bubble wrapper: sized to bubble content only (timestamp is absolute) *@
@@ -124,7 +125,7 @@
                                         <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                         </svg>
-                                        <span>@GetAttachmentLabel(imgCount, fCount)</span>
+                                        <span>@GetAttachmentLabel(imgCount, fileCount, folderCount)</span>
                                         <svg class="icon-xs transition-transform @(attachExpanded ? "rotate-180" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                         </svg>

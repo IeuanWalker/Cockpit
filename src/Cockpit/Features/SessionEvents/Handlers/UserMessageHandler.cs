@@ -94,6 +94,13 @@ static class UserMessageHandler
 
 				result.Add(new AttachmentModel(fileName, filePath, null, mimeType));
 			}
+			else if(item is UserMessageAttachmentDirectory dir)
+			{
+				string dirPath = dir.Path ?? string.Empty;
+				string dirName = dir.DisplayName ?? Path.GetFileName(dirPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+
+				result.Add(new AttachmentModel(dirName, dirPath, null, string.Empty, isDirectory: true));
+			}
 		}
 
 		return result.Count > 0 ? result : null;

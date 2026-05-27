@@ -125,7 +125,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		StateHasChanged();
 	}
 
-	static string GetAttachmentLabel(int imageCount, int fileCount)
+	static string GetAttachmentLabel(int imageCount, int fileCount, int folderCount)
 	{
 		List<string> parts = [];
 		if(imageCount > 0)
@@ -136,6 +136,11 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		if(fileCount > 0)
 		{
 			parts.Add($"{fileCount} file{(fileCount > 1 ? "s" : "")}");
+		}
+
+		if(folderCount > 0)
+		{
+			parts.Add($"{fileCount} folder{(fileCount > 1 ? "s" : "")}");
 		}
 
 		return string.Join(", ", parts);
