@@ -89,6 +89,7 @@ public sealed partial class SessionFeature : IDisposable
 
 		_clientFeature.OnConnectionStateChanged += HandleConnectionStateChanged;
 		StartEvictionLoop();
+		StartReconnectLoop();
 	}
 
 	readonly CancellationTokenSource _evictionCts = new();

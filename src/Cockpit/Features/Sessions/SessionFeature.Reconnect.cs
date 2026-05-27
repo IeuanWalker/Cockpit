@@ -6,25 +6,64 @@ using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
+using System.Threading.Channels;
 
 namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
+	readonly Channel<ConnectionState> _reconnectChannel = Channel.CreateBounded<ConnectionState>(
+		new BoundedChannelOptions(4)
+		{
+			FullMode = BoundedChannelFullMode.DropOldest,
+			SingleReader = true
+		});
+
 	/// <summary>
-	/// Routes <see cref="CopilotClientFeature.OnConnectionStateChanged"/> events to the
-	/// appropriate handler on a background thread to avoid blocking the event raiser and
-	/// prevent handler re-entrancy issues.
+	/// Routes <see cref="CopilotClientFeature.OnConnectionStateChanged"/> events into the
+	/// serialized <see cref="_reconnectChannel"/> so that disconnect and reconnect handlers
+	/// are never executed concurrently.
 	/// </summary>
 	void HandleConnectionStateChanged(ConnectionState state)
 	{
-		if(state == ConnectionState.Disconnected)
+		_reconnectChannel.Writer.TryWrite(state);
+	}
+
+	/// <summary>
+	/// Starts the background loop that drains <see cref="_reconnectChannel"/> and calls
+	/// the appropriate handler sequentially, eliminating the disconnect/reconnect race.
+	/// </summary>
+	void StartReconnectLoop()
+	{
+		_ = Task.Run(() => ProcessConnectionEventsAsync(_evictionCts.Token));
+	}
+
+	async Task ProcessConnectionEventsAsync(CancellationToken cancellationToken)
+	{
+		try
 		{
-			_ = Task.Run(HandleClientDisconnectedAsync);
+			await foreach(ConnectionState state in _reconnectChannel.Reader.ReadAllAsync(cancellationToken))
+			{
+				try
+				{
+					if(state == ConnectionState.Disconnected)
+					{
+						await HandleClientDisconnectedAsync();
+					}
+					else
+					{
+						await HandleClientReconnectedAsync();
+					}
+				}
+				catch(Exception ex)
+				{
+					_logger.LogWarning(ex, "Unhandled exception processing connection state {State}", state);
+				}
+			}
 		}
-		else
+		catch(OperationCanceledException)
 		{
-			_ = Task.Run(HandleClientReconnectedAsync);
+			// Expected on shutdown.
 		}
 	}
 
