@@ -99,6 +99,11 @@ public sealed partial class SessionFeature
 				{
 					CurrentSession.HasQueuedImmediateMessage = true;
 				}
+				else if(!agentWasBusy)
+				{
+					// Clear any stale value (e.g. after a failed send) when no turn is in-flight.
+					CurrentSession.HasQueuedImmediateMessage = false;
+				}
 			}
 			_sessionListFeature.NotifyStateChanged();
 
