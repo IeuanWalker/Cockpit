@@ -201,6 +201,8 @@ public sealed partial class SessionFeature
 			session.SdkState = SdkSessionStateEnum.Loading;
 			_sessionListFeature.NotifyStateChanged();
 
+			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+
 			ResumeSessionConfig config = new()
 			{
 				ClientName = "Cockpit",
@@ -214,7 +216,8 @@ public sealed partial class SessionFeature
 				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				Hooks = _hooksFactory.CreateHooks(session.Model.Id, session.ReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true)
+				Hooks = _hooksFactory.CreateHooks(session.Model.Id, session.ReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
+				Provider = providerConfig
 			};
 
 			CopilotClient client = await _clientFeature.GetClientAsync();

@@ -98,6 +98,7 @@ public sealed partial class SessionFeature
 		try
 		{
 			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
+			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id);
 			GitContext gitContext = await _gitFeature.GetContext(workingDirectory);
 
 			SessionConfig config = new()
@@ -114,7 +115,8 @@ public sealed partial class SessionFeature
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
 				Hooks = _hooksFactory.CreateHooks(defaultModel.Id, defaultModel.DefaultReasoningEffort, workingDirectory),
-				EnableConfigDiscovery = true
+				EnableConfigDiscovery = true,
+				Provider = providerConfig
 			};
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -205,6 +207,8 @@ public sealed partial class SessionFeature
 				session.Context.CurrentWorkingDirectory = null;
 			}
 
+			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+
 			ResumeSessionConfig config = new()
 			{
 				ClientName = "Cockpit",
@@ -216,7 +220,8 @@ public sealed partial class SessionFeature
 				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				Hooks = _hooksFactory.CreateHooks(session.Model.Id, session.ReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true)
+				Hooks = _hooksFactory.CreateHooks(session.Model.Id, session.ReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
+				Provider = providerConfig
 			};
 
 			session.SdkState = SdkSessionStateEnum.Loading;
@@ -369,7 +374,7 @@ public sealed partial class SessionFeature
 		return true;
 	}
 
-	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, CancellationToken cancellationToken = default)
+	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -397,7 +402,8 @@ public sealed partial class SessionFeature
 					EnableConfigDiscovery = true,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-					Hooks = _hooksFactory.CreateHooks(newModelId, newReasoningEffort, chatSession?.Context.CurrentWorkingDirectory)
+					Hooks = _hooksFactory.CreateHooks(newModelId, newReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
+					Provider = providerConfig
 				};
 				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
 			}
@@ -416,7 +422,8 @@ public sealed partial class SessionFeature
 					WorkingDirectory = chatSession?.Context.CurrentWorkingDirectory,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-					Hooks = _hooksFactory.CreateHooks(newModelId, newReasoningEffort, chatSession?.Context.CurrentWorkingDirectory)
+					Hooks = _hooksFactory.CreateHooks(newModelId, newReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
+					Provider = providerConfig
 				};
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
 

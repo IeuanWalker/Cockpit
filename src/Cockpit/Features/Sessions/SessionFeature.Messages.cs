@@ -28,9 +28,25 @@ public sealed partial class SessionFeature
 
 			if(session.ModelChanged)
 			{
-				await existingSession.SetModelAsync(session.Model.Id, session.ReasoningEffort);
+				ProviderConfig? newProviderConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+				bool requiresRestart = newProviderConfig is not null || session.ByokConfigId is not null;
 
-				session.ModelChanged = false;
+				if(requiresRestart)
+				{
+					session.ModelChanged = false;
+					if(newProviderConfig is null)
+					{
+						// Switching away from BYOK to a built-in model
+						session.ByokConfigId = null;
+					}
+					// If switching to BYOK, ByokConfigId was already set by the UI before ModelChanged was set
+					await RestartSession(session.Id, session.Model.Id, session.ReasoningEffort, newProviderConfig);
+				}
+				else
+				{
+					await existingSession.SetModelAsync(session.Model.Id, session.ReasoningEffort);
+					session.ModelChanged = false;
+				}
 			}
 
 			if(session.AgentChanged)
