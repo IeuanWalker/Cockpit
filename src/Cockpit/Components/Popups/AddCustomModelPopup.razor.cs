@@ -30,7 +30,7 @@ partial class AddCustomModelPopup : ComponentBase
 	string _errorMessage = string.Empty;
 	bool _isSaving;
 
-	[Parameter] public EventCallback OnSaved { get; set; }
+	[Parameter] public EventCallback<string> OnSaved { get; set; }
 
 	public void Open()
 	{
@@ -93,7 +93,7 @@ partial class AddCustomModelPopup : ComponentBase
 
 			await _byokFeature.AddAsync(config);
 			_popup.Close();
-			await OnSaved.InvokeAsync();
+			await OnSaved.InvokeAsync(config.ModelId);
 		}
 		catch(Exception ex)
 		{

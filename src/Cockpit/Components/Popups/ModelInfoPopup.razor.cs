@@ -1,8 +1,10 @@
+using Blazor.Sonner.Services;
 using Cockpit.Components.Controls;
 using Cockpit.Features.Byok;
 using Cockpit.Features.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using System.Text.Json;
 
 namespace Cockpit.Components.Popups;
@@ -11,12 +13,16 @@ public sealed partial class ModelInfoPopup : ComponentBase, IDisposable
 {
 	readonly IByokFeature _byokFeature;
 	readonly IModelFeature _modelFeature;
+	readonly ToastService _toastService;
+	readonly IJSRuntime _jsRuntime;
 	bool _isDisposed;
 
-	public ModelInfoPopup(IByokFeature byokFeature, IModelFeature modelFeature)
+	public ModelInfoPopup(IByokFeature byokFeature, IModelFeature modelFeature, ToastService toastService, IJSRuntime jsRuntime)
 	{
 		_byokFeature = byokFeature;
 		_modelFeature = modelFeature;
+		_toastService = toastService;
+		_jsRuntime = jsRuntime;
 		_byokFeature.OnChanged += HandleByokChanged;
 	}
 
@@ -33,6 +39,7 @@ public sealed partial class ModelInfoPopup : ComponentBase, IDisposable
 	bool _filterDropdownOpen = false;
 	ModelInfo? _jsonModel;
 	IReadOnlyList<ModelInfo>? _localModels;
+	string? _pendingScrollModelId;
 
 	public void Open()
 	{
@@ -105,7 +112,7 @@ public sealed partial class ModelInfoPopup : ComponentBase, IDisposable
 	{
 		if(model.Billing is null)
 		{
-			return "Unknown";
+			return string.Empty;
 		}
 
 		if(model.Id.Equals("Auto", StringComparison.OrdinalIgnoreCase))
@@ -157,10 +164,22 @@ public sealed partial class ModelInfoPopup : ComponentBase, IDisposable
 		StateHasChanged();
 	}
 
-	async Task OnModelAdded()
+	async Task OnModelAdded(string modelId)
 	{
 		await RefreshModelsAsync();
+		_pendingScrollModelId = modelId;
+		_toastService.Success("Model added", opts => opts.Description = "Custom model was added successfully.");
 		StateHasChanged();
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if(_pendingScrollModelId is not null)
+		{
+			string elementId = $"model-card-{Uri.EscapeDataString(_pendingScrollModelId)}";
+			_pendingScrollModelId = null;
+			await _jsRuntime.InvokeVoidAsync("cockpit.scrollIntoView", elementId);
+		}
 	}
 
 	void HandleByokChanged()

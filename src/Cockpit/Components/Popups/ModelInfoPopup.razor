@@ -58,6 +58,7 @@ bool isSelected = SelectedModel?.Id == model.Id;
 string multiplierDisplay = GetMultiplierDisplay(model);
 ByokModelConfig? byokConfig = GetByokConfig(model.Id);
 <div class="rounded-lg border p-4"
+     id="model-card-@(Uri.EscapeDataString(model.Id))"
      style="@(isSelected ? "border-color: var(--accent-color);" : "border-color: var(--app-border, var(--input-border));")">
 <div class="flex items-center justify-between gap-4">
 <div class="flex-1 min-w-0">

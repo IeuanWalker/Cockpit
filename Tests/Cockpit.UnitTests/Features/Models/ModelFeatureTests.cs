@@ -1,4 +1,5 @@
 using Cockpit;
+using Cockpit.Features.Byok;
 using Cockpit.Features.Models;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.Sessions.Models;
@@ -38,7 +39,17 @@ public sealed class ModelFeatureTests : IDisposable
 
 	static ModelFeature CreateFeature() => new(
 		new CopilotClientFeature(NullLogger<CopilotClientFeature>.Instance, new UserAppSettings(new InMemoryPreferencesStorage())),
+		new StubByokFeature(),
 		NullLogger<ModelFeature>.Instance);
+
+	sealed class StubByokFeature : IByokFeature
+	{
+		public event Action? OnChanged;
+		public IReadOnlyList<ByokModelConfig> GetAll() => [];
+		public Task AddAsync(ByokModelConfig config) => Task.CompletedTask;
+		public Task RemoveAsync(string id) => Task.CompletedTask;
+		public ProviderConfig? TryGetProviderConfig(string modelId) => null;
+	}
 
 	static SessionModel MakeSession(string? workspacePath = null) => new()
 	{
