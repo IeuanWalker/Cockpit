@@ -26,6 +26,7 @@ using Cockpit.Features.TextToSpeech;
 using Cockpit.Features.Theme;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
+using Cockpit.Features.Byok;
 using Cockpit.Features.Updates;
 using Cockpit.Features.UserInputRequests;
 using Cockpit.Utilities.Logging;
@@ -147,6 +148,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IUserInputEventSource>(sp => sp.GetRequiredService<UserInputFeature>());
 
 		builder.Services.AddSingleton<IModelFeature, ModelFeature>();
+		builder.Services.AddSingleton<IByokFeature, ByokFeature>();
 		builder.Services.AddSingleton(sp =>
 		{
 			// HttpClient is created exclusively for UpdateFeature, which takes ownership and disposes it.

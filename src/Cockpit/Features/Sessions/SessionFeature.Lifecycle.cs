@@ -507,6 +507,8 @@ public sealed partial class SessionFeature
 	{
 		try
 		{
+			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+
 			_logger.LogInformation(
 				"Restarting session {SessionId} with model {Model} and reasoning effort {ReasoningEffort}",
 				session.Id,
@@ -517,7 +519,8 @@ public sealed partial class SessionFeature
 			await RestartSession(
 				session.Id,
 				session.Model.Id,
-				session.ReasoningEffort
+				session.ReasoningEffort,
+				providerConfig
 			);
 
 			_logger.LogInformation("Session {SessionId} restarted successfully", session.Id);

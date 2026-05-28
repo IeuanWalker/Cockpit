@@ -1,5 +1,6 @@
 @using Cockpit.Components.Controls
 @using GitHub.Copilot.SDK
+@using Cockpit.Features.Byok
 @using System.Text.Json
 
 <PopupBase @ref="_popup"
@@ -38,6 +39,14 @@
 </div>
 }
 </div>
+<button @onclick="OpenAddModelPopup"
+        class="px-3 py-1.5 text-sm rounded flex items-center gap-1.5 font-medium"
+        style="background-color: var(--accent-color); color: white;">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+</svg>
+Add model
+</button>
 </div>
 @{
 IReadOnlyList<ModelInfo> filteredModels = GetFilteredModels();
@@ -47,6 +56,7 @@ IReadOnlyList<ModelInfo> filteredModels = GetFilteredModels();
 {
 bool isSelected = SelectedModel?.Id == model.Id;
 string multiplierDisplay = GetMultiplierDisplay(model);
+ByokModelConfig? byokConfig = GetByokConfig(model.Id);
 <div class="rounded-lg border p-4"
      style="@(isSelected ? "border-color: var(--accent-color);" : "border-color: var(--app-border, var(--input-border));")">
 <div class="flex items-center justify-between gap-4">
@@ -73,6 +83,17 @@ string multiplierDisplay = GetMultiplierDisplay(model);
         title="View raw JSON">
 more info
 </button>
+@if(byokConfig is not null)
+{
+<button @onclick="() => DeleteByokModel(byokConfig)"
+        class="px-2 py-1 text-xs rounded hover:opacity-80"
+        style="color: rgb(248,113,113);"
+        title="Delete custom model">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+</svg>
+</button>
+}
 @if(isSelected)
 {
 <span class="px-3 py-1 text-xs rounded"
@@ -94,6 +115,13 @@ Select
 <p class="text-xs text-app-secondary font-mono">@model.Id</p>
 @if(!model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
 {
+@if(byokConfig is not null)
+{
+<span class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-xs shrink-0 whitespace-nowrap"
+      style="background-color: @GetProviderBadgeStyle(byokConfig.ProviderType).bg; color: @GetProviderBadgeStyle(byokConfig.ProviderType).text; border-color: @GetProviderBadgeStyle(byokConfig.ProviderType).border;">
+@GetProviderLabel(byokConfig.ProviderType)
+</span>
+}
 @if(model.Capabilities?.Supports?.Vision == true)
 {
 <span class="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-xs shrink-0 whitespace-nowrap"
@@ -181,3 +209,5 @@ No models match your search.
 }
 </Content>
 </PopupBase>
+
+<AddCustomModelPopup @ref="_addModelPopup" OnSaved="OnModelAdded" />

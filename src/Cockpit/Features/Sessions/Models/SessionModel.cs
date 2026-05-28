@@ -33,6 +33,12 @@ public class SessionModel
 	public required SessionContext Context { get; set; }
 	public required ModelInfo Model { get; set; }
 	public string? ReasoningEffort { get; set; }
+
+	/// <summary>
+	/// When set, identifies the <see cref="ByokModelConfig"/> that provides the active model.
+	/// Null for built-in Copilot models.
+	/// </summary>
+	public string? ByokConfigId { get; set; }
 	public ActivityGroupModel? ActiveWorkingGroup { get; set; }
 	public Dictionary<string, ChatMessageModel> StreamingMessages { get; } = [];
 
