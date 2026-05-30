@@ -53,7 +53,7 @@ sealed class ByokFeature : IByokFeature
 		await _lock.WaitAsync();
 		try
 		{
-			_configs = [.. _configs.Where(c => c.Id != id)];
+			_configs = [.. _configs.Where(c => !string.Equals(c.Id, id, StringComparison.OrdinalIgnoreCase))];
 			_secureStorage.Remove(ApiKeyStorageKey(id));
 			_secureStorage.Remove(BearerTokenStorageKey(id));
 			await SaveAsync();
