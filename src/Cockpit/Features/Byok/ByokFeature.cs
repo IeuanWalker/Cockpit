@@ -27,7 +27,7 @@ sealed class ByokFeature : IByokFeature
 		await _lock.WaitAsync();
 		try
 		{
-			_configs = [.. _configs.Where(c => c.Id != config.Id), config];
+			_configs = [.. _configs.Where(c => !string.Equals(c.Id, config.Id, StringComparison.OrdinalIgnoreCase) && !string.Equals(c.ModelId, config.ModelId, StringComparison.OrdinalIgnoreCase)), config];
 			await SaveAsync();
 		}
 		finally
