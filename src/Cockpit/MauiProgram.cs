@@ -92,6 +92,7 @@ public static class MauiProgram
 
 		// UI and App features
 		builder.Services.AddSingleton<IPreferencesStorage, MauiPreferencesStorage>();
+		builder.Services.AddSingleton<ISecureStorageProvider, MauiSecureStorageProvider>();
 		builder.Services.AddSingleton<UserAppSettings>();
 		builder.Services.AddSingleton<IAppSettingsFeature, AppSettingsFeature>();
 		builder.Services.AddSingleton<ThemeStateFeature>();
