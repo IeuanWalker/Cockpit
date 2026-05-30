@@ -54,7 +54,7 @@ sealed class ByokFeature : IByokFeature
 
 	public ProviderConfig? TryGetProviderConfig(string modelId)
 	{
-		ByokModelConfig? config = _configs.FirstOrDefault(c => c.ModelId == modelId);
+		ByokModelConfig? config = _configs.FirstOrDefault(c => string.Equals(c.ModelId, modelId, StringComparison.OrdinalIgnoreCase));
 		return config?.ToProviderConfig();
 	}
 
