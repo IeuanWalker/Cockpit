@@ -25,26 +25,6 @@ public sealed class ByokModelConfig
 		WireApi = WireApi
 	};
 
-	/// <summary>
-	/// Returns a copy of this config with the supplied secret values applied.
-	/// Used by <see cref="ByokFeature"/> to reconstruct configs after loading secrets
-	/// from platform secure storage.
-	/// </summary>
-	public ByokModelConfig WithSecrets(string? apiKey, string? bearerToken) => new()
-	{
-		Id = Id,
-		Name = Name,
-		ModelId = ModelId,
-		ProviderType = ProviderType,
-		BaseUrl = BaseUrl,
-		ApiKey = apiKey,
-		BearerToken = bearerToken,
-		WireApi = WireApi,
-		SupportsVision = SupportsVision,
-		SupportsReasoning = SupportsReasoning,
-		MaxContextWindowTokens = MaxContextWindowTokens
-	};
-
 	public ModelInfo ToModelInfo()
 	{
 		ModelInfo info = new()

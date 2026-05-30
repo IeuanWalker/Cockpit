@@ -82,9 +82,7 @@ sealed class ByokFeature : IByokFeature
 		{
 			string json = await File.ReadAllTextAsync(_filePath);
 
-			// Deserialize as ByokModelConfig (not ByokModelConfigMeta) so that any
-			// ApiKey/BearerToken in old plaintext JSON format is captured for migration.
-			List<ByokModelConfig>? loaded = json.DeserializeJson<List<ByokModelConfig>>();
+			List<ByokModelConfigMeta>? loaded = json.DeserializeJson<List<ByokModelConfigMeta>>();
 			if(loaded is null)
 			{
 				return;
@@ -92,33 +90,13 @@ sealed class ByokFeature : IByokFeature
 
 			// Resolve secrets from secure storage before acquiring the write lock so
 			// async I/O is not performed while the semaphore is held.
-			bool needsMigrationSave = false;
 			List<ByokModelConfig> resolved = new(loaded.Count);
 
-			foreach(ByokModelConfig c in loaded)
+			foreach(ByokModelConfigMeta c in loaded)
 			{
-				string apiKeyKey = ApiKeyStorageKey(c.Id);
-				string bearerKey = BearerTokenStorageKey(c.Id);
-
-				string? apiKey = await _secureStorage.GetAsync(apiKeyKey);
-				string? bearerToken = await _secureStorage.GetAsync(bearerKey);
-
-				// Migrate any plaintext secret found in old-format JSON to secure storage.
-				if(c.ApiKey is not null && apiKey is null)
-				{
-					await _secureStorage.SetAsync(apiKeyKey, c.ApiKey);
-					apiKey = c.ApiKey;
-					needsMigrationSave = true;
-				}
-
-				if(c.BearerToken is not null && bearerToken is null)
-				{
-					await _secureStorage.SetAsync(bearerKey, c.BearerToken);
-					bearerToken = c.BearerToken;
-					needsMigrationSave = true;
-				}
-
-				resolved.Add(c.WithSecrets(apiKey, bearerToken));
+				string? apiKey = await _secureStorage.GetAsync(ApiKeyStorageKey(c.Id));
+				string? bearerToken = await _secureStorage.GetAsync(BearerTokenStorageKey(c.Id));
+				resolved.Add(FromMeta(c, apiKey, bearerToken));
 			}
 
 			await _lock.WaitAsync();
@@ -137,12 +115,6 @@ sealed class ByokFeature : IByokFeature
 				}
 
 				_configs = [.. merged.Values];
-
-				// Re-save using the secret-free metadata format to flush any plaintext secrets from disk.
-				if(needsMigrationSave)
-				{
-					await SaveAsync();
-				}
 			}
 			finally
 			{
@@ -222,6 +194,21 @@ sealed class ByokFeature : IByokFeature
 		SupportsVision = c.SupportsVision,
 		SupportsReasoning = c.SupportsReasoning,
 		MaxContextWindowTokens = c.MaxContextWindowTokens
+	};
+
+	static ByokModelConfig FromMeta(ByokModelConfigMeta m, string? apiKey, string? bearerToken) => new()
+	{
+		Id = m.Id,
+		Name = m.Name,
+		ModelId = m.ModelId,
+		ProviderType = m.ProviderType,
+		BaseUrl = m.BaseUrl,
+		WireApi = m.WireApi,
+		SupportsVision = m.SupportsVision,
+		SupportsReasoning = m.SupportsReasoning,
+		MaxContextWindowTokens = m.MaxContextWindowTokens,
+		ApiKey = apiKey,
+		BearerToken = bearerToken
 	};
 
 	/// <summary>
