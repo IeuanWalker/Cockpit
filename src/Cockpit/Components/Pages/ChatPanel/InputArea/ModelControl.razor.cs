@@ -82,11 +82,8 @@ public partial class ModelControl : ComponentBase, IDisposable
 		_sessionListFeature.CurrentSession.ModelChanged = true;
 
 		// Track BYOK config ID so the session layer knows to restart (not SetModelAsync) when switching providers
-		ByokModelConfig? byokConfig = _byokFeature.GetAll().FirstOrDefault(c => c.ModelId == model.Id);
-		if(byokConfig is not null)
-		{
-			_sessionListFeature.CurrentSession.ByokConfigId = byokConfig.Id;
-		}
+		ByokModelConfig? byokConfig = _byokFeature.GetAll().FirstOrDefault(c => string.Equals(c.ModelId, model.Id, StringComparison.OrdinalIgnoreCase));
+		_sessionListFeature.CurrentSession.ByokConfigId = byokConfig?.Id;
 
 		_modelPicker.Close();
 

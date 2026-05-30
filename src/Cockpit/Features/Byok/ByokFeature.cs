@@ -27,7 +27,7 @@ sealed class ByokFeature : IByokFeature
 		await _lock.WaitAsync();
 		try
 		{
-			_configs = [.. _configs.Where(c => c.Id != config.Id), config];
+			_configs = [.. _configs.Where(c => !string.Equals(c.Id, config.Id, StringComparison.OrdinalIgnoreCase) && !string.Equals(c.ModelId, config.ModelId, StringComparison.OrdinalIgnoreCase)), config];
 			await SaveAsync();
 		}
 		finally
@@ -54,13 +54,13 @@ sealed class ByokFeature : IByokFeature
 
 	public ProviderConfig? TryGetProviderConfig(string modelId)
 	{
-		ByokModelConfig? config = _configs.FirstOrDefault(c => c.ModelId == modelId);
+		ByokModelConfig? config = _configs.FirstOrDefault(c => string.Equals(c.ModelId, modelId, StringComparison.OrdinalIgnoreCase));
 		return config?.ToProviderConfig();
 	}
 
 	async Task LoadAsync()
 	{
-		if (!File.Exists(_filePath))
+		if(!File.Exists(_filePath))
 		{
 			return;
 		}
@@ -69,13 +69,35 @@ sealed class ByokFeature : IByokFeature
 		{
 			string json = await File.ReadAllTextAsync(_filePath);
 			List<ByokModelConfig>? loaded = json.DeserializeJson<List<ByokModelConfig>>();
-			if (loaded is not null)
+			if(loaded is null)
 			{
-				_configs = loaded;
-				OnChanged?.Invoke();
+				return;
 			}
+
+			await _lock.WaitAsync();
+			try
+			{
+				// Merge to avoid clobbering configs added before the async load completed.
+				Dictionary<string, ByokModelConfig> merged = new(StringComparer.OrdinalIgnoreCase);
+				foreach(ByokModelConfig c in loaded)
+				{
+					merged[c.Id] = c;
+				}
+				foreach(ByokModelConfig c in _configs)
+				{
+					merged[c.Id] = c;
+				}
+
+				_configs = [.. merged.Values];
+			}
+			finally
+			{
+				_lock.Release();
+			}
+
+			OnChanged?.Invoke();
 		}
-		catch (Exception ex)
+		catch(Exception ex)
 		{
 			_logger.LogWarning(ex, "Failed to load BYOK configs from {Path}", _filePath);
 		}
