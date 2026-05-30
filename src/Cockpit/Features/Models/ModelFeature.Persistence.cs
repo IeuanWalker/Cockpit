@@ -96,12 +96,17 @@ public partial class ModelFeature
 
 			if(modelSettings.TryGetValue("ByokConfigId", out string? byokConfigId) && !string.IsNullOrEmpty(byokConfigId))
 			{
-				session.ByokConfigId = byokConfigId;
 				ByokModelConfig? byokConfig = _byokFeature.GetAll().FirstOrDefault(c => c.Id == byokConfigId);
 				if(byokConfig is not null)
 				{
+					session.ByokConfigId = byokConfigId;
 					session.Model = byokConfig.ToModelInfo();
 					session.ModelChanged = true;
+				}
+				else
+				{
+					// Config no longer exists; clear stale ID so we don't force a BYOK restart.
+					session.ByokConfigId = null;
 				}
 			}
 
