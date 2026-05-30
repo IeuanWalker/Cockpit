@@ -1,3 +1,4 @@
+using Cockpit.Components.Popups;
 using Cockpit.Features.Byok;
 using Cockpit.Features.Models;
 using Cockpit.Features.Sessions;
@@ -12,7 +13,10 @@ public partial class ModelControl : ComponentBase, IDisposable
 	readonly IModelFeature _modelFeature;
 	readonly IByokFeature _byokFeature;
 	readonly SessionListFeature _sessionListFeature;
-	public ModelControl(IModelFeature modelFeature, IByokFeature byokFeature, SessionListFeature sessionListFeature)
+	public ModelControl(
+		IModelFeature modelFeature,
+		IByokFeature byokFeature,
+		SessionListFeature sessionListFeature)
 	{
 		_modelFeature = modelFeature;
 		_byokFeature = byokFeature;
@@ -23,7 +27,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 	double _maxMultiplier;
 	PickerControl _modelPicker = default!;
 	PickerControl? _reasoningPicker;
-	Cockpit.Components.Popups.ModelInfoPopup _modelInfoPopup = default!;
+	ModelInfoPopup _modelInfoPopup = default!;
 
 	protected override async Task OnInitializedAsync()
 	{
