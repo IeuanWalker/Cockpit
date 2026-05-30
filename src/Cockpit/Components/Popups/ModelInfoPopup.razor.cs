@@ -17,7 +17,11 @@ public sealed partial class ModelInfoPopup : ComponentBase, IDisposable
 	readonly IJSRuntime _jsRuntime;
 	bool _isDisposed;
 
-	public ModelInfoPopup(IByokFeature byokFeature, IModelFeature modelFeature, ToastService toastService, IJSRuntime jsRuntime)
+	public ModelInfoPopup(
+		IByokFeature byokFeature,
+		IModelFeature modelFeature,
+		ToastService toastService,
+		IJSRuntime jsRuntime)
 	{
 		_byokFeature = byokFeature;
 		_modelFeature = modelFeature;
