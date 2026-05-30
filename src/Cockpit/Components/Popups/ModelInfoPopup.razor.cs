@@ -46,7 +46,14 @@ public sealed partial class ModelInfoPopup : ComponentBase, IDisposable
 		_searchFilter = string.Empty;
 		_filterOption = "All";
 		_filterDropdownOpen = false;
-		_ = RefreshModelsAsync();
+		_ = InvokeAsync(async () =>
+		{
+			await RefreshModelsAsync();
+			if(!_isDisposed)
+			{
+				StateHasChanged();
+			}
+		});
 		_popup.Open();
 		StateHasChanged();
 	}
