@@ -1,4 +1,3 @@
-using Cockpit;
 using Cockpit.Features.Byok;
 using Cockpit.Features.Models;
 using Cockpit.Features.Sdk;

@@ -265,7 +265,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 
 		if(elapsed.TotalDays < 2)
 		{
-			return $"yesterday at {timestamp.LocalDateTime.ToString("h:mm tt")}";
+			return $"yesterday at {timestamp.LocalDateTime:h:mm tt}";
 		}
 
 		return timestamp.LocalDateTime.ToString("MMM d, h:mm tt");

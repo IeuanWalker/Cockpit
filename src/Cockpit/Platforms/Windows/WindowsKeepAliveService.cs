@@ -1,8 +1,6 @@
 using System.Runtime.InteropServices;
 
-#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace Cockpit.Features.KeepAlive;
-#pragma warning restore IDE0130
 
 sealed partial class WindowsKeepAliveService : IKeepAliveService
 {
@@ -12,7 +10,7 @@ sealed partial class WindowsKeepAliveService : IKeepAliveService
 	[LibraryImport("kernel32.dll")]
 	private static partial uint SetThreadExecutionState(uint esFlags);
 
-	public void Activate() => SetThreadExecutionState(es_continuous | es_system_required);
+	public void Activate() => _ = SetThreadExecutionState(es_continuous | es_system_required);
 
-	public void Deactivate() => SetThreadExecutionState(es_continuous);
+	public void Deactivate() => _ = SetThreadExecutionState(es_continuous);
 }

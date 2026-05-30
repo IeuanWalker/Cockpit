@@ -1,12 +1,12 @@
+using System.Threading.Channels;
 using Cockpit.Features.MessageMode;
 using Cockpit.Features.Sdk;
-using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
-using System.Threading.Channels;
 
 namespace Cockpit.Features.Sessions;
 
@@ -82,7 +82,7 @@ public sealed partial class SessionFeature
 
 		foreach(SessionModel session in sessions)
 		{
-			CopilotSession? sdkSession = null;
+			CopilotSession? sdkSession;
 
 			lock(session.SessionEventLock)
 			{
@@ -187,7 +187,7 @@ public sealed partial class SessionFeature
 	/// Reconnects a session that was actively working when the client disconnected, without
 	/// replaying history or closing the working panel. Sends a hidden continuation prompt so
 	/// the AI picks up from where it left off. The hidden prompt is identified by
-	/// <see cref="SessionEventProcessor.ReconnectContinuationPrefix"/> and is suppressed at the
+	/// <see cref="SessionEventProcessor.reconnectContinuationPrefix"/> and is suppressed at the
 	/// event-processor level — it never appears in the chat log and does not trigger the
 	/// safety-net that would otherwise close the working group.
 	/// </summary>
@@ -236,7 +236,7 @@ public sealed partial class SessionFeature
 			// to suppress both the live echo and any future replay of this message.
 			await sdkSession.SendAsync(new MessageOptions
 			{
-				Prompt = SessionEventProcessor.ReconnectContinuationPrefix + " Session was briefly disconnected, please continue from where you left off.",
+				Prompt = SessionEventProcessor.reconnectContinuationPrefix + " Session was briefly disconnected, please continue from where you left off.",
 				Mode = MessageTurnModeExtensions.ImmediateSdkToken
 			});
 

@@ -638,7 +638,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		return Path.Combine(basePath, "Cockpit", "Files");
 	}
 
-	IReadOnlyCollection<string> GetAttachedPaths()
+	HashSet<string> GetAttachedPaths()
 	{
 		SessionModel? session = _sessionFeature.CurrentSession;
 		if(session is null)
@@ -653,7 +653,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	IReadOnlyList<FileSearchResult> GetOrderedMentionFiles()
 	{
-		IReadOnlyCollection<string> attached = GetAttachedPaths();
+		HashSet<string> attached = GetAttachedPaths();
 		if(attached.Count == 0)
 		{
 			return _mentionFiles;

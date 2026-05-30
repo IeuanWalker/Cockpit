@@ -111,7 +111,7 @@ public sealed partial class ModelFeature : IModelFeature
 		return ValueTask.FromResult(config);
 	}
 
-	IReadOnlyList<ModelInfo> BuildMergedModelList(IReadOnlyList<ModelInfo> sdkModels)
+	List<ModelInfo> BuildMergedModelList(IReadOnlyList<ModelInfo> sdkModels)
 	{
 		IReadOnlyList<ByokModelConfig> byokConfigs = _byokFeature.GetAll();
 		if(byokConfigs.Count == 0)
@@ -141,5 +141,4 @@ public sealed partial class ModelFeature : IModelFeature
 
 		return merged;
 	}
-
 }

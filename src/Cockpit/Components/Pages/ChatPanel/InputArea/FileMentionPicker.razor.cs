@@ -22,7 +22,7 @@ public sealed partial class FileMentionPicker : ComponentBase
 	[Parameter] public int SelectedIndex { get; set; }
 	[Parameter] public EventCallback<int> SelectedIndexChanged { get; set; }
 
-	List<(FileSearchResult File, bool IsAttached)> _orderedFiles = [];
+	readonly List<(FileSearchResult File, bool IsAttached)> _orderedFiles = [];
 
 	int _lastScrolledIndex = -2;
 

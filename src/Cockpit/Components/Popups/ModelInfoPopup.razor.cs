@@ -1,11 +1,11 @@
 using Blazor.Sonner.Services;
 using Cockpit.Components.Controls;
+using Cockpit.Extensions;
 using Cockpit.Features.Byok;
 using Cockpit.Features.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using System.Text.Json;
 
 namespace Cockpit.Components.Popups;
 
@@ -135,8 +135,7 @@ public sealed partial class ModelInfoPopup : ComponentBase, IDisposable
 		_jsonPopup.Open();
 	}
 
-	string GetRawJson(ModelInfo model) =>
-		JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
+	string GetRawJson(ModelInfo model) => model.SerializeJson() ?? string.Empty;
 
 	ByokModelConfig? GetByokConfig(string modelId) =>
 		_byokFeature.GetAll().FirstOrDefault(c => c.ModelId == modelId);

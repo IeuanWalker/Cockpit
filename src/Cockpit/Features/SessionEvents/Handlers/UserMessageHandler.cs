@@ -13,7 +13,7 @@ static class UserMessageHandler
 	/// </summary>
 	static readonly HashSet<string> agentGeneratedSources = ["thinking-exhausted-continuation"];
 
-	internal static void Handle(SessionModel session, UserMessageEvent evt, bool wasAgentBusy = false)
+	internal static void Handle(SessionModel session, UserMessageEvent evt)
 	{
 		List<AttachmentModel>? attachments = ConvertAttachments(evt.Data.Attachments);
 
