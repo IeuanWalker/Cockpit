@@ -11,7 +11,10 @@ public sealed partial class ModelFeature : IModelFeature
 	readonly IByokFeature _byokFeature;
 	readonly ILogger<ModelFeature> _logger;
 
-	public ModelFeature(CopilotClientFeature clientFeature, IByokFeature byokFeature, ILogger<ModelFeature> logger)
+	public ModelFeature(
+		CopilotClientFeature clientFeature,
+		IByokFeature byokFeature,
+		ILogger<ModelFeature> logger)
 	{
 		_clientFeature = clientFeature;
 		_byokFeature = byokFeature;
