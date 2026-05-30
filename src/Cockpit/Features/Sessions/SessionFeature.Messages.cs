@@ -33,7 +33,6 @@ public sealed partial class SessionFeature
 
 				if(requiresRestart)
 				{
-					session.ModelChanged = false;
 					if(newProviderConfig is null)
 					{
 						// Switching away from BYOK to a built-in model
@@ -49,6 +48,8 @@ public sealed partial class SessionFeature
 					{
 						throw new InvalidOperationException($"Session {sessionId} not found after model restart");
 					}
+
+					session.ModelChanged = false;
 				}
 				else
 				{
