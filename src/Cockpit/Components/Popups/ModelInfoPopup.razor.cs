@@ -149,7 +149,7 @@ public sealed partial class ModelInfoPopup : ComponentBase, IDisposable
 	string GetRawJson(ModelInfo model) => model.SerializeJson() ?? string.Empty;
 
 	ByokModelConfig? GetByokConfig(string modelId) =>
-		_byokFeature.GetAll().FirstOrDefault(c => c.ModelId == modelId);
+		_byokFeature.GetAll().FirstOrDefault(c => string.Equals(c.ModelId, modelId, StringComparison.OrdinalIgnoreCase));
 
 	string GetProviderLabel(string providerType) => providerType switch
 	{
