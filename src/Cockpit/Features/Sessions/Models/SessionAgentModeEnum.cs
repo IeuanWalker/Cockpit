@@ -1,4 +1,4 @@
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot;
 
 namespace Cockpit.Features.Sessions.Models;
 

@@ -4,10 +4,11 @@ using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging;
-using SdkPlugin = GitHub.Copilot.SDK.Rpc.Plugin;
+using SdkPlugin = GitHub.Copilot.Rpc.Plugin;
+using SdkSessionMetadata = GitHub.Copilot.SessionMetadata;
 
 namespace Cockpit.Features.Sessions;
 
@@ -36,7 +37,7 @@ public sealed partial class SessionFeature
 			_logger.LogInformation("Loading existing sessions from SDK...");
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
-			IList<SessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
+			IList<SdkSessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
 
 			if(sessionMetadataList.Count == 0)
 			{
@@ -47,7 +48,7 @@ public sealed partial class SessionFeature
 			_logger.LogInformation("Found {Count} existing sessions", sessionMetadataList.Count);
 
 			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
-			foreach(SessionMetadata metadata in sessionMetadataList)
+			foreach(SdkSessionMetadata metadata in sessionMetadataList)
 			{
 				if(_sessionListFeature.Sessions.Any(s => s.Id == metadata.SessionId))
 				{
@@ -60,14 +61,14 @@ public sealed partial class SessionFeature
 					{
 						Id = metadata.SessionId,
 						Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
-						CreatedAt = metadata.StartTime.ToUniversalTime(),
-						LastActivity = metadata.ModifiedTime.ToUniversalTime(),
+						CreatedAt = metadata.StartTime.UtcDateTime,
+						LastActivity = metadata.ModifiedTime.UtcDateTime,
 						Status = SessionStatusEnum.Idle,
 						Model = defaultModel,
 						ReasoningEffort = defaultModel.DefaultReasoningEffort,
 						Context = new()
 						{
-							CurrentWorkingDirectory = metadata.Context?.Cwd ?? string.Empty,
+							CurrentWorkingDirectory = metadata.Context?.WorkingDirectory ?? string.Empty,
 							WorkspacePath = null,
 							GitRoot = metadata.Context?.GitRoot,
 							Repository = metadata.Context?.Repository,
@@ -117,6 +118,7 @@ public sealed partial class SessionFeature
 				WorkingDirectory = workingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+				OnElicitationRequest = _elicitationHandler.HandleElicitationRequest,
 				Hooks = _hooksFactory.CreateHooks(defaultModel.Id, effectiveReasoningEffort, workingDirectory),
 				EnableConfigDiscovery = true,
 				Provider = providerConfig
@@ -226,10 +228,11 @@ public sealed partial class SessionFeature
 				Model = session.Model.Id,
 				ReasoningEffort = effectiveReasoningEffort,
 				Streaming = true,
-				DisableResume = true,
+				SuppressResumeEvent = true,
 				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+				OnElicitationRequest = _elicitationHandler.HandleElicitationRequest,
 				Hooks = _hooksFactory.CreateHooks(session.Model.Id, effectiveReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
 				Provider = providerConfig
 			};
@@ -245,7 +248,7 @@ public sealed partial class SessionFeature
 			bool registered = false;
 			try
 			{
-				IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
+				IReadOnlyList<SessionEvent> events = await sdkSession.GetEventsAsync(CancellationToken.None);
 				_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 
 				SessionModel tempSession = new()
@@ -417,6 +420,7 @@ public sealed partial class SessionFeature
 					EnableConfigDiscovery = true,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+					OnElicitationRequest = _elicitationHandler.HandleElicitationRequest,
 					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
 					Provider = providerConfig
 				};
@@ -437,6 +441,7 @@ public sealed partial class SessionFeature
 					WorkingDirectory = chatSession?.Context.CurrentWorkingDirectory,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+					OnElicitationRequest = _elicitationHandler.HandleElicitationRequest,
 					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
 					Provider = providerConfig
 				};
@@ -501,8 +506,9 @@ public sealed partial class SessionFeature
 			}
 
 			await _terminalFeature.CloseSessionAsync(sessionId);
-			_userInputHandler.CancelPendingRequestsForSession(sessionId);
-			_permissionHandler.CancelPendingRequestsForSession(sessionId);
+		_userInputHandler.CancelPendingRequestsForSession(sessionId);
+		_permissionHandler.CancelPendingRequestsForSession(sessionId);
+		_elicitationHandler.CancelPendingRequestsForSession(sessionId);
 
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
 			await client.DeleteSessionAsync(sessionId, cancellationToken);
@@ -571,9 +577,10 @@ public sealed partial class SessionFeature
 				}
 			}
 
-			// Cancel any pending permission/user-input requests so they are removed from the UI immediately
-			_permissionHandler.CancelPendingRequestsForSession(sessionId);
-			_userInputHandler.CancelPendingRequestsForSession(sessionId);
+			// Cancel any pending permission/user-input/elicitation requests so they are removed from the UI immediately
+		_permissionHandler.CancelPendingRequestsForSession(sessionId);
+		_userInputHandler.CancelPendingRequestsForSession(sessionId);
+		_elicitationHandler.CancelPendingRequestsForSession(sessionId);
 
 			await sdkSession.AbortAsync();
 		}
@@ -604,7 +611,7 @@ public sealed partial class SessionFeature
 
 		try
 		{
-			IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync(cancellationToken);
+			IReadOnlyList<SessionEvent> events = await sdkSession.GetEventsAsync(cancellationToken);
 			_logger.LogInformation("Replaying {Count} events for session {SessionId}", events.Count, session.Id);
 
 			lock(session.SessionEventLock)

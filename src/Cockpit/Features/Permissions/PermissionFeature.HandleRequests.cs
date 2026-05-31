@@ -1,7 +1,7 @@
 using Cockpit.Extensions;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 
 namespace Cockpit.Features.Permissions;
 

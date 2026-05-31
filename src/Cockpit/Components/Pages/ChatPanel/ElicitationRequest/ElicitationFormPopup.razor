@@ -1,0 +1,107 @@
+@using Cockpit.Components.Controls
+@using Cockpit.Features.ElicitationRequests
+@using GitHub.Copilot
+
+<PopupBase @ref="_popup" Title="@GetTitle()" PopupStyle="width: 560px; max-width: 90vw;">
+    <HeaderLeft>
+        <svg class="w-5 h-5 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+        </svg>
+    </HeaderLeft>
+    <Content>
+        @if(_request is not null)
+        {
+            <div class="elicitation-popup-body">
+                @if(!string.IsNullOrEmpty(_request.Message))
+                {
+                    <p class="elicitation-popup-message">@_request.Message</p>
+                }
+
+                @if(_request.Mode?.Value == ElicitationRequestedMode.Url.Value && !string.IsNullOrEmpty(_request.Url))
+                {
+                    <div class="elicitation-url-section">
+                        <p class="elicitation-url-label">Please visit the following URL to continue:</p>
+                        <a href="@_request.Url" target="_blank" class="elicitation-url-link" rel="noopener noreferrer">@_request.Url</a>
+                        <button type="button" class="btn-open-browser" @onclick="OpenInBrowser">
+                            Open in Browser
+                        </button>
+                    </div>
+                }
+                else if(_request.Fields.Length > 0)
+                {
+                    <div class="elicitation-form">
+                        @foreach(ElicitationSchemaField field in _request.Fields)
+                        {
+                            <div class="form-field">
+                                <label class="form-label">
+                                    @(field.Title ?? field.FieldName)
+                                    @if(field.IsRequired)
+                                    {
+                                        <span class="form-required">*</span>
+                                    }
+                                </label>
+                                @if(!string.IsNullOrEmpty(field.Description))
+                                {
+                                    <p class="form-description">@field.Description</p>
+                                }
+                                @switch(field.Type)
+                                {
+                                    case ElicitationFieldType.EnumString:
+                                        <select class="form-select"
+                                                value="@GetValue(field.FieldName)"
+                                                @onchange="e => SetValue(field.FieldName, e.Value?.ToString() ?? string.Empty)">
+                                            <option value="">-- Select --</option>
+                                            @foreach(string option in field.EnumValues)
+                                            {
+                                                <option value="@option" selected="@(GetValue(field.FieldName) == option)">@option</option>
+                                            }
+                                        </select>
+                                        break;
+
+                                    case ElicitationFieldType.Boolean:
+                                        <div class="form-checkbox-row">
+                                            <input type="checkbox"
+                                                   id="@($"field-{field.FieldName}")"
+                                                   class="form-checkbox"
+                                                   checked="@GetBoolValue(field.FieldName)"
+                                                   @onchange="e => SetBoolValue(field.FieldName, (bool?)e.Value ?? false)" />
+                                            <label for="@($"field-{field.FieldName}")" class="form-checkbox-label">@(field.Title ?? field.FieldName)</label>
+                                        </div>
+                                        break;
+
+                                    case ElicitationFieldType.Number:
+                                    case ElicitationFieldType.Integer:
+                                        <input type="number"
+                                               class="form-input"
+                                               value="@GetValue(field.FieldName)"
+                                               step="@(field.Type == ElicitationFieldType.Integer ? "1" : "any")"
+                                               @oninput="e => SetValue(field.FieldName, e.Value?.ToString() ?? string.Empty)" />
+                                        break;
+
+                                    case ElicitationFieldType.String:
+                                        <input type="text"
+                                               class="form-input"
+                                               value="@GetValue(field.FieldName)"
+                                               maxlength="@(field.MaxLength?.ToString())"
+                                               @oninput="e => SetValue(field.FieldName, e.Value?.ToString() ?? string.Empty)" />
+                                        break;
+
+                                    default:
+                                        <textarea class="form-input form-unsupported" disabled rows="2">Unsupported field type: @field.Type</textarea>
+                                        break;
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </Content>
+    <Footer>
+        <div class="elicitation-popup-footer">
+            <button type="button" class="btn-popup-cancel" @onclick="OnCancel">Cancel</button>
+            <button type="button" class="btn-popup-decline" @onclick="OnDecline">Decline</button>
+            <button type="button" class="btn-popup-submit" @onclick="OnSubmit" disabled="@(!CanSubmit)">Submit</button>
+        </div>
+    </Footer>
+</PopupBase>

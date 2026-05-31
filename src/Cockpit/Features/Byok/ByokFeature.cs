@@ -1,5 +1,5 @@
 using Cockpit.Extensions;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Byok;

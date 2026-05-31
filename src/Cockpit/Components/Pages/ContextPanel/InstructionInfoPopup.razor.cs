@@ -1,6 +1,6 @@
 using Cockpit.Components.Controls;
 using Cockpit.Utilities;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot.Rpc;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 

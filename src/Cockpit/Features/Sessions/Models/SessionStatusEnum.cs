@@ -6,5 +6,6 @@ public enum SessionStatusEnum
 	Running,
 	NeedsPermission,
 	NeedsUserInput,
+	NeedsElicitation,
 	Error,
 }

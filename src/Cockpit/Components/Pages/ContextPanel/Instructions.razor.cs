@@ -1,6 +1,6 @@
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot.Rpc;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
@@ -32,7 +32,7 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 
 	void ShowInstructionInfo(InstructionsSources instruction)
 	{
-		SessionContext? ctx = _sessionListFeature.CurrentSession?.Context;
+		var ctx = _sessionListFeature.CurrentSession?.Context;
 		string? repoRoot = ctx?.GitRoot ?? ctx?.CurrentWorkingDirectory;
 		_instructionInfoPopup?.Open(_allInstructions, instruction, repoRoot);
 	}

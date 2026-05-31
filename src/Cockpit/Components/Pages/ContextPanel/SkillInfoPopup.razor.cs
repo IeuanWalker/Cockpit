@@ -3,7 +3,7 @@ using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Skills;
 using Cockpit.Utilities;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot.Rpc;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 

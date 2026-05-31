@@ -10,6 +10,7 @@ using Cockpit.Features.Instructions;
 using Cockpit.Features.Markdown;
 using Cockpit.Features.Mcp;
 using Cockpit.Features.Models;
+using Cockpit.Features.ElicitationRequests;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Plugins;
 using Plugin.Maui.Audio;
@@ -147,6 +148,11 @@ public static class MauiProgram
 		builder.Services.AddSingleton<UserInputFeature>();
 		builder.Services.AddSingleton<IUserInputHandler>(sp => sp.GetRequiredService<UserInputFeature>());
 		builder.Services.AddSingleton<IUserInputEventSource>(sp => sp.GetRequiredService<UserInputFeature>());
+
+		// Register ElicitationFeature
+		builder.Services.AddSingleton<ElicitationFeature>();
+		builder.Services.AddSingleton<IElicitationHandler>(sp => sp.GetRequiredService<ElicitationFeature>());
+		builder.Services.AddSingleton<IElicitationEventSource>(sp => sp.GetRequiredService<ElicitationFeature>());
 
 		builder.Services.AddSingleton<IModelFeature, ModelFeature>();
 		builder.Services.AddSingleton<IByokFeature, ByokFeature>();

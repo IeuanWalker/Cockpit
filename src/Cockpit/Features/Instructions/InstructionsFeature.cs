@@ -1,5 +1,5 @@
-using GitHub.Copilot.SDK;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Instructions;

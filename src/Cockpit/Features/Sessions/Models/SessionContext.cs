@@ -1,7 +1,7 @@
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Git.Models;
-using GitHub.Copilot.SDK.Rpc;
-using SdkPlugin = GitHub.Copilot.SDK.Rpc.Plugin;
+using GitHub.Copilot.Rpc;
+using SdkPlugin = GitHub.Copilot.Rpc.Plugin;
 
 namespace Cockpit.Features.Sessions.Models;
 

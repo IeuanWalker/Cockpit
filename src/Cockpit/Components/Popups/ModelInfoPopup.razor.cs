@@ -3,7 +3,7 @@ using Cockpit.Components.Controls;
 using Cockpit.Extensions;
 using Cockpit.Features.Byok;
 using Cockpit.Features.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -94,7 +94,7 @@ public sealed partial class ModelInfoPopup : ComponentBase, IDisposable
 			return "#999999";
 		}
 
-		double multiplier = model.Billing.Multiplier;
+		double multiplier = model.Billing.Multiplier ?? 0.0;
 
 		if(multiplier == 0)
 		{

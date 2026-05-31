@@ -1,4 +1,4 @@
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Hooks;
@@ -27,7 +27,7 @@ public sealed class SessionHooksFactory
 					reasoningEffort ?? "default",
 					disableResume,
 					configuredWorkingDirectory,
-					input.Cwd,
+					input.WorkingDirectory,
 					GetTextLength(input.InitialPrompt));
 
 				return Task.FromResult<SessionStartHookOutput?>(null);
@@ -40,7 +40,7 @@ public sealed class SessionHooksFactory
 					modelId ?? "unknown",
 					reasoningEffort ?? "default",
 					configuredWorkingDirectory,
-					input.Cwd,
+					input.WorkingDirectory,
 					GetTextLength(input.FinalMessage),
 					CreateSummaryPreview(input.FinalMessage),
 					!string.IsNullOrWhiteSpace(input.Error),
@@ -73,7 +73,7 @@ public sealed class SessionHooksFactory
 					modelId ?? "unknown",
 					reasoningEffort ?? "default",
 					configuredWorkingDirectory,
-					input.Cwd,
+					input.WorkingDirectory,
 					input.Error);
 
 				return Task.FromResult<ErrorOccurredHookOutput?>(output);

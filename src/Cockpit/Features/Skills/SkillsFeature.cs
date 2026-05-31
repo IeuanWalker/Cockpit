@@ -1,7 +1,7 @@
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Skills;
@@ -83,6 +83,6 @@ public sealed class SkillsFeature
 	/// <summary>Groups skills by their source for display purposes.</summary>
 	public static IReadOnlyDictionary<string, List<Skill>> GroupBySource(IEnumerable<Skill> skills)
 		=> skills
-			.GroupBy(s => string.IsNullOrWhiteSpace(s.Source) ? "Unknown" : s.Source, StringComparer.OrdinalIgnoreCase)
+			.GroupBy(s => string.IsNullOrWhiteSpace(s.Source.Value) ? "Unknown" : s.Source.Value, StringComparer.OrdinalIgnoreCase)
 			.ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 }

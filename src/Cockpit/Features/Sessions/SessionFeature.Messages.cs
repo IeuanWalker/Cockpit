@@ -2,7 +2,7 @@ using Cockpit.Features.MessageMode;
 using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;
@@ -319,7 +319,7 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogInformation("Requesting context compaction for session {SessionId}", session.Id);
 #pragma warning disable GHCP001
-			GitHub.Copilot.SDK.Rpc.HistoryCompactResult result = await sdkSession.Rpc.History.CompactAsync();
+			GitHub.Copilot.Rpc.HistoryCompactResult result = await sdkSession.Rpc.History.CompactAsync();
 #pragma warning restore GHCP001
 			if(!result.Success)
 			{

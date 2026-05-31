@@ -1,7 +1,7 @@
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Mcp;
@@ -97,23 +97,23 @@ public sealed class McpFeature
 #pragma warning restore GHCP001
 
 	/// <summary>Returns a human-readable display string for the given MCP server status.</summary>
-	public static string GetStatusDisplayString(McpServerStatus status) => status switch
+	public static string GetStatusDisplayString(McpServerStatus status)
 	{
-		McpServerStatus.Connected => "Connected",
-		McpServerStatus.Failed => "Failed",
-		McpServerStatus.NeedsAuth => "Needs Auth",
-		McpServerStatus.Pending => "Pending",
-		McpServerStatus.Disabled => "Disabled",
-		McpServerStatus.NotConfigured => "Not Configured",
-		_ => status.ToString()
-	};
+		if(status.Equals(McpServerStatus.Connected)) return "Connected";
+		if(status.Equals(McpServerStatus.Failed)) return "Failed";
+		if(status.Equals(McpServerStatus.NeedsAuth)) return "Needs Auth";
+		if(status.Equals(McpServerStatus.Pending)) return "Pending";
+		if(status.Equals(McpServerStatus.Disabled)) return "Disabled";
+		if(status.Equals(McpServerStatus.NotConfigured)) return "Not Configured";
+		return status.Value;
+	}
 
 	/// <summary>Returns the Tailwind CSS text-colour class for the given MCP server status.</summary>
-	public static string GetStatusColor(McpServerStatus status) => status switch
+	public static string GetStatusColor(McpServerStatus status)
 	{
-		McpServerStatus.Connected => "text-green-400",
-		McpServerStatus.Failed => "text-red-400",
-		McpServerStatus.Disabled => "secondary-text",
-		_ => "text-yellow-400"
-	};
+		if(status.Equals(McpServerStatus.Connected)) return "text-green-400";
+		if(status.Equals(McpServerStatus.Failed)) return "text-red-400";
+		if(status.Equals(McpServerStatus.Disabled)) return "secondary-text";
+		return "text-yellow-400";
+	}
 }

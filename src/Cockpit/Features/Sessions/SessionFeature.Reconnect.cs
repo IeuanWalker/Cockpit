@@ -5,7 +5,7 @@ using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;
@@ -101,7 +101,7 @@ public sealed partial class SessionFeature
 				// If the session was blocked waiting for permission/input, those requests are now
 				// dead. Restore status so the working panel reflects the active group correctly.
 				// Guard: if there's no active group the session should end up Idle, not Running.
-				if(session.Status is SessionStatusEnum.NeedsPermission or SessionStatusEnum.NeedsUserInput)
+				if(session.Status is SessionStatusEnum.NeedsPermission or SessionStatusEnum.NeedsUserInput or SessionStatusEnum.NeedsElicitation)
 				{
 					session.Status = session.ActiveWorkingGroup is not null
 						? SessionStatusEnum.Running
@@ -121,9 +121,11 @@ public sealed partial class SessionFeature
 
 			session.PendingPermissionRequests.Clear();
 			session.PendingUserInputRequests.Clear();
+			session.PendingElicitationRequests.Clear();
 
 			_permissionHandler.CancelPendingRequestsForSession(session.Id);
 			_userInputHandler.CancelPendingRequestsForSession(session.Id);
+			_elicitationHandler.CancelPendingRequestsForSession(session.Id);
 
 			if(sdkSession is not null)
 			{
@@ -213,12 +215,13 @@ public sealed partial class SessionFeature
 				Model = session.Model.Id,
 				ReasoningEffort = effectiveReasoningEffort,
 				Streaming = true,
-				// DisableResume=true suppresses the session.resume event so history is not
+				// SuppressResumeEvent=true suppresses the session.resume event so history is not
 				// replayed — the existing session.Messages stays intact.
-				DisableResume = true,
+				SuppressResumeEvent = true,
 				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+				OnElicitationRequest = _elicitationHandler.HandleElicitationRequest,
 				Hooks = _hooksFactory.CreateHooks(session.Model.Id, effectiveReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
 				Provider = providerConfig
 			};

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Blazor.Sonner.Services;
 using Cockpit.Features.Agents;
 using Cockpit.Features.AppSettings;
+using Cockpit.Features.ElicitationRequests;
 using Cockpit.Features.Git;
 using Cockpit.Features.Hooks;
 using Cockpit.Features.Instructions;
@@ -17,7 +18,7 @@ using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Skills;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.UserInputRequests;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;
@@ -33,6 +34,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly SessionListFeature _sessionListFeature;
 	readonly IPermissionHandler _permissionHandler;
 	readonly IUserInputHandler _userInputHandler;
+	readonly IElicitationHandler _elicitationHandler;
 	readonly GitFeature _gitFeature;
 	readonly SdkSessionRegistry _sdkRegistry;
 	readonly AgentPersistence _agentPersistence;
@@ -55,6 +57,7 @@ public sealed partial class SessionFeature : IDisposable
 		SessionListFeature sessionListFeature,
 		IPermissionHandler permissionHandler,
 		IUserInputHandler userInputHandler,
+		IElicitationHandler elicitationHandler,
 		GitFeature gitFeature,
 		SdkSessionRegistry sdkRegistry,
 		AgentPersistence agentPersistence,
@@ -76,6 +79,7 @@ public sealed partial class SessionFeature : IDisposable
 		_sessionListFeature = sessionListFeature;
 		_permissionHandler = permissionHandler;
 		_userInputHandler = userInputHandler;
+		_elicitationHandler = elicitationHandler;
 		_gitFeature = gitFeature;
 		_sdkRegistry = sdkRegistry;
 		_agentPersistence = agentPersistence;
