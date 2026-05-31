@@ -29,7 +29,8 @@ public sealed partial class SessionFeature
 			if(session.ModelChanged)
 			{
 				ProviderConfig? newProviderConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
-				bool requiresRestart = newProviderConfig is not null || session.ByokConfigId is not null;
+				bool hadByokProvider = session.ByokConfigId is not null;
+				bool requiresRestart = newProviderConfig is not null || hadByokProvider;
 
 				if(requiresRestart)
 				{
