@@ -16,6 +16,7 @@ public partial class SessionListItem
 	{
 		SessionStatusEnum.NeedsPermission => "status-needs-permission",
 		SessionStatusEnum.NeedsUserInput => "status-needs-user-input",
+		SessionStatusEnum.NeedsElicitation => "status-needs-user-input",
 		SessionStatusEnum.Running => "status-running",
 		_ => "secondary-text"
 	};

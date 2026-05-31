@@ -99,21 +99,57 @@ public sealed class McpFeature
 	/// <summary>Returns a human-readable display string for the given MCP server status.</summary>
 	public static string GetStatusDisplayString(McpServerStatus status)
 	{
-		if(status.Equals(McpServerStatus.Connected)) return "Connected";
-		if(status.Equals(McpServerStatus.Failed)) return "Failed";
-		if(status.Equals(McpServerStatus.NeedsAuth)) return "Needs Auth";
-		if(status.Equals(McpServerStatus.Pending)) return "Pending";
-		if(status.Equals(McpServerStatus.Disabled)) return "Disabled";
-		if(status.Equals(McpServerStatus.NotConfigured)) return "Not Configured";
+		if(status.Equals(McpServerStatus.Connected))
+		{
+			return "Connected";
+		}
+
+		if(status.Equals(McpServerStatus.Failed))
+		{
+			return "Failed";
+		}
+
+		if(status.Equals(McpServerStatus.NeedsAuth))
+		{
+			return "Needs Auth";
+		}
+
+		if(status.Equals(McpServerStatus.Pending))
+		{
+			return "Pending";
+		}
+
+		if(status.Equals(McpServerStatus.Disabled))
+		{
+			return "Disabled";
+		}
+
+		if(status.Equals(McpServerStatus.NotConfigured))
+		{
+			return "Not Configured";
+		}
+
 		return status.Value;
 	}
 
 	/// <summary>Returns the Tailwind CSS text-colour class for the given MCP server status.</summary>
 	public static string GetStatusColor(McpServerStatus status)
 	{
-		if(status.Equals(McpServerStatus.Connected)) return "text-green-400";
-		if(status.Equals(McpServerStatus.Failed)) return "text-red-400";
-		if(status.Equals(McpServerStatus.Disabled)) return "secondary-text";
+		if(status.Equals(McpServerStatus.Connected))
+		{
+			return "text-green-400";
+		}
+
+		if(status.Equals(McpServerStatus.Failed))
+		{
+			return "text-red-400";
+		}
+
+		if(status.Equals(McpServerStatus.Disabled))
+		{
+			return "secondary-text";
+		}
+
 		return "text-yellow-400";
 	}
 }
