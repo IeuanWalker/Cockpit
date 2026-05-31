@@ -25,6 +25,8 @@ public sealed partial class CanvasRoot : ComponentBase, IDisposable
 	string? _instanceId;
 	CanvasInstanceModel? _instance;
 	string? _htmlContent;
+	ElementReference _canvasBodyRef;
+	bool _contentChanged;
 
 	protected override void OnInitialized()
 	{
@@ -56,6 +58,15 @@ public sealed partial class CanvasRoot : ComponentBase, IDisposable
 			await ApplyThemeAsync();
 			_themeStateFeature.OnThemeChanged += OnThemeChangedHandler;
 			_instance?.SplashFeature.NotifyBlazorReady();
+			if(_htmlContent is not null)
+			{
+				await SetCanvasContentAsync();
+			}
+		}
+		else if(_contentChanged)
+		{
+			_contentChanged = false;
+			await SetCanvasContentAsync();
 		}
 	}
 
@@ -68,6 +79,7 @@ public sealed partial class CanvasRoot : ComponentBase, IDisposable
 
 		_instance = _windowManager.GetInstance(instanceId);
 		_htmlContent = ExtractHtmlContent(_instance?.Input);
+		_contentChanged = true;
 		InvokeAsync(StateHasChanged);
 	}
 
@@ -87,6 +99,15 @@ public sealed partial class CanvasRoot : ComponentBase, IDisposable
 			}
 
 			await _jsRuntime.InvokeVoidAsync("cockpit.setAccentColor", _themeStateFeature.AccentColor, _themeStateFeature.AccentHoverColor);
+		}
+		catch { /* best-effort */ }
+	}
+
+	async Task SetCanvasContentAsync()
+	{
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("cockpit.canvas.setContent", _canvasBodyRef, _htmlContent);
 		}
 		catch { /* best-effort */ }
 	}

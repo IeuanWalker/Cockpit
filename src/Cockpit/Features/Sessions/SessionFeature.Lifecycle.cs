@@ -137,14 +137,14 @@ public sealed partial class SessionFeature
 					{
 						Id = "cockpit-canvas",
 						DisplayName = "Cockpit Canvas",
-						Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Make the HTML rich and visual — cards, tables, badges, lists etc.",
+						Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Tailwind CSS v3 is available (all utilities) and script tags execute in insertion order (external CDN scripts like Chart.js are fully supported). CSS vars --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color available for theming. Provide: \"html\" (required) rich interactive HTML; \"title\" (optional) window title.",
 						InputSchema = System.Text.Json.JsonSerializer.SerializeToElement(new
 						{
 							type = "object",
 							required = new[] { "html" },
 							properties = new
 							{
-								html = new { type = "string", description = "Styled HTML rendered directly in the canvas window. Use inline styles with CSS vars: --bg-color, --sidebar-color, --border-color, --text-color, --title-color, --secondary-text, --accent-color for theming." },
+								html = new { type = "string", description = "Styled HTML rendered directly in the canvas. Tailwind CSS v3 classes work (all utilities available). Script tags execute in order -- external CDN scripts (e.g. Chart.js, D3) are awaited before the next runs. CSS vars --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color available for theming." },
 								title = new { type = "string", description = "Optional window title bar text." }
 							}
 						})
@@ -277,14 +277,14 @@ public sealed partial class SessionFeature
 					{
 						Id = "cockpit-canvas",
 						DisplayName = "Cockpit Canvas",
-						Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Make the HTML rich and visual — cards, tables, badges, lists etc.",
+						Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Tailwind CSS v3 is available (all utilities) and script tags execute in insertion order (external CDN scripts like Chart.js are fully supported). CSS vars --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color available for theming. Provide: \"html\" (required) rich interactive HTML; \"title\" (optional) window title.",
 						InputSchema = System.Text.Json.JsonSerializer.SerializeToElement(new
 						{
 							type = "object",
 							required = new[] { "html" },
 							properties = new
 							{
-								html = new { type = "string", description = "Styled HTML rendered directly in the canvas window. Use inline styles with CSS vars: --bg-color, --sidebar-color, --border-color, --text-color, --title-color, --secondary-text, --accent-color for theming." },
+								html = new { type = "string", description = "Styled HTML rendered directly in the canvas. Tailwind CSS v3 classes work (all utilities available). Script tags execute in order -- external CDN scripts (e.g. Chart.js, D3) are awaited before the next runs. CSS vars --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color available for theming." },
 								title = new { type = "string", description = "Optional window title bar text." }
 							}
 						})
@@ -491,14 +491,14 @@ public sealed partial class SessionFeature
 						{
 							Id = "cockpit-canvas",
 							DisplayName = "Cockpit Canvas",
-							Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Make the HTML rich and visual — cards, tables, badges, lists etc.",
+							Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Tailwind CSS v3 is available (all utilities) and script tags execute in insertion order (external CDN scripts like Chart.js are fully supported). CSS vars --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color available for theming. Provide: \"html\" (required) rich interactive HTML; \"title\" (optional) window title.",
 							InputSchema = System.Text.Json.JsonSerializer.SerializeToElement(new
 							{
 								type = "object",
 								required = new[] { "html" },
 								properties = new
 								{
-									html = new { type = "string", description = "Styled HTML rendered directly in the canvas window. Use inline styles with CSS vars: --bg-color, --sidebar-color, --border-color, --text-color, --title-color, --secondary-text, --accent-color for theming." },
+									html = new { type = "string", description = "Styled HTML rendered directly in the canvas. Tailwind CSS v3 classes work (all utilities available). Script tags execute in order -- external CDN scripts (e.g. Chart.js, D3) are awaited before the next runs. CSS vars --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color available for theming." },
 									title = new { type = "string", description = "Optional window title bar text." }
 								}
 							})
@@ -538,14 +538,14 @@ public sealed partial class SessionFeature
 						{
 							Id = "cockpit-canvas",
 							DisplayName = "Cockpit Canvas",
-							Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Make the HTML rich and visual — cards, tables, badges, lists etc.",
+							Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Tailwind CSS v3 is available (all utilities) and script tags execute in insertion order (external CDN scripts like Chart.js are fully supported). CSS vars --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color available for theming. Provide: \"html\" (required) rich interactive HTML; \"title\" (optional) window title.",
 							InputSchema = System.Text.Json.JsonSerializer.SerializeToElement(new
 							{
 								type = "object",
 								required = new[] { "html" },
 								properties = new
 								{
-									html = new { type = "string", description = "Styled HTML rendered directly in the canvas window. Use inline styles with CSS vars: --bg-color, --sidebar-color, --border-color, --text-color, --title-color, --secondary-text, --accent-color for theming." },
+									html = new { type = "string", description = "Styled HTML rendered directly in the canvas. Tailwind CSS v3 classes work (all utilities available). Script tags execute in order -- external CDN scripts (e.g. Chart.js, D3) are awaited before the next runs. CSS vars --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color available for theming." },
 									title = new { type = "string", description = "Optional window title bar text." }
 								}
 							})

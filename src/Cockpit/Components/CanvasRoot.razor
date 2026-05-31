@@ -19,13 +19,13 @@
         </div>
 
         <div class="canvas-body canvas-html-body">
-            @if(_htmlContent is not null)
+            @if(_htmlContent is null)
             {
-                @((MarkupString)_htmlContent)
+                <p class="secondary-text text-sm">Canvas ready.</p>
             }
             else
             {
-                <p class="secondary-text text-sm">Canvas ready.</p>
+                <div @ref="_canvasBodyRef" class="canvas-html-container"></div>
             }
         </div>
     }

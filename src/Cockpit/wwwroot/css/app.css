@@ -1019,3 +1019,8 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
 .canvas-html-body {
     overflow-y: auto;
 }
+
+.canvas-html-container {
+    min-height: 100%;
+    width: 100%;
+}
