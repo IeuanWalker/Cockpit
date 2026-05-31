@@ -506,9 +506,9 @@ public sealed partial class SessionFeature
 			}
 
 			await _terminalFeature.CloseSessionAsync(sessionId);
-		_userInputHandler.CancelPendingRequestsForSession(sessionId);
-		_permissionHandler.CancelPendingRequestsForSession(sessionId);
-		_elicitationHandler.CancelPendingRequestsForSession(sessionId);
+			_userInputHandler.CancelPendingRequestsForSession(sessionId);
+			_permissionHandler.CancelPendingRequestsForSession(sessionId);
+			_elicitationHandler.CancelPendingRequestsForSession(sessionId);
 
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
 			await client.DeleteSessionAsync(sessionId, cancellationToken);
@@ -578,9 +578,9 @@ public sealed partial class SessionFeature
 			}
 
 			// Cancel any pending permission/user-input/elicitation requests so they are removed from the UI immediately
-		_permissionHandler.CancelPendingRequestsForSession(sessionId);
-		_userInputHandler.CancelPendingRequestsForSession(sessionId);
-		_elicitationHandler.CancelPendingRequestsForSession(sessionId);
+			_permissionHandler.CancelPendingRequestsForSession(sessionId);
+			_userInputHandler.CancelPendingRequestsForSession(sessionId);
+			_elicitationHandler.CancelPendingRequestsForSession(sessionId);
 
 			await sdkSession.AbortAsync();
 		}
