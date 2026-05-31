@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Blazor.Sonner.Services;
 using Cockpit.Features.Agents;
 using Cockpit.Features.AppSettings;
@@ -93,6 +94,13 @@ public sealed partial class SessionFeature : IDisposable
 	}
 
 	readonly CancellationTokenSource _evictionCts = new();
+
+	/// <summary>
+	/// Tracks the ByokConfigId that was active when each SDK session was last created or resumed.
+	/// Used to detect provider changes (BYOK ↔ built-in) by comparing against the new model selection
+	/// in <see cref="SendMessageAsync"/>. The value is null for built-in sessions.
+	/// </summary>
+	readonly ConcurrentDictionary<string, string?> _sdkSessionByokId = new();
 
 	IDisposable? _currentWatcher;
 

@@ -1,4 +1,4 @@
-using Cockpit.Features.Agents.Models;
+﻿using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
@@ -154,7 +154,7 @@ public sealed partial class SessionFeature
 
 			await LoadContextPanelDataAsync(chatSession, sdkSession);
 
-			_sessionListFeature.AddSession(chatSession);
+			_sdkSessionByokId[chatSession.Id] = chatSession.ByokConfigId;
 
 			await _modelFeature.SaveSessionModel(chatSession);
 			await _agentPersistence.SaveSessionAgent(chatSession);
@@ -312,6 +312,7 @@ public sealed partial class SessionFeature
 					HandleSessionEvent(sdkSession.SessionId, evt);
 				});
 				registered = true;
+				_sdkSessionByokId[sessionId] = session.ByokConfigId;
 
 				await SwitchCurrentSessionAsync(session);
 				_logger.LogInformation("Successfully loaded session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
@@ -476,6 +477,7 @@ public sealed partial class SessionFeature
 				_logger.LogDebug("Session {SessionId} event: {EventType}", newSdkSession.SessionId, evt.Type);
 				HandleSessionEvent(newSdkSession.SessionId, evt);
 			});
+			_sdkSessionByokId[newSdkSession.SessionId] = chatSession?.ByokConfigId;
 
 			_logger.LogInformation("Restarted session {SessionId} with model {Model}", sessionId, newModelId);
 		}
@@ -503,11 +505,13 @@ public sealed partial class SessionFeature
 			await client.DeleteSessionAsync(sessionId, cancellationToken);
 
 			_sessionListFeature.RemoveSession(sessionId);
+			_sdkSessionByokId.TryRemove(sessionId, out _);
 		}
 		catch(InvalidOperationException ex) when(ex.Message.Contains("Error: Session file not found"))
 		{
 			_logger.LogWarning(ex, "Session {SessionId} not found during deletion - it may have already been deleted", sessionId);
 			_sessionListFeature.RemoveSession(sessionId);
+			_sdkSessionByokId.TryRemove(sessionId, out _);
 		}
 		catch(Exception ex)
 		{

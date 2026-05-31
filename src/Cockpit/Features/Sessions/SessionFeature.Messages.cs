@@ -29,17 +29,18 @@ public sealed partial class SessionFeature
 			if(session.ModelChanged)
 			{
 				ProviderConfig? newProviderConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
-				bool hadByokProvider = session.ByokConfigId is not null;
-				bool requiresRestart = newProviderConfig is not null || hadByokProvider;
+
+				// Compare the ByokConfigId the current SDK session was created with against what the new
+				// model selection needs. session.ByokConfigId reflects the new selection (already updated
+				// by the UI), so we use _sdkSessionByokId to know what the live SDK session actually has.
+				string? sdkActiveByokId = _sdkSessionByokId.GetValueOrDefault(sessionId);
+				string? newByokId = newProviderConfig is not null ? session.ByokConfigId : null;
+				bool requiresRestart = newByokId != sdkActiveByokId;
 
 				if(requiresRestart)
 				{
-					if(newProviderConfig is null)
-					{
-						// Switching away from BYOK to a built-in model
-						session.ByokConfigId = null;
-					}
-					// If switching to BYOK, ByokConfigId was already set by the UI before ModelChanged was set
+					// If switching to BYOK, ByokConfigId was already set by the UI before ModelChanged was set.
+					// If switching away from BYOK, ByokConfigId was already cleared to null by the UI.
 					await RestartSession(session.Id, session.Model.Id, session.ReasoningEffort, newProviderConfig);
 
 					// The session ID may have changed if a brand-new SDK session was created (no prior messages).
