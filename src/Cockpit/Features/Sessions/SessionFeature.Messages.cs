@@ -28,9 +28,36 @@ public sealed partial class SessionFeature
 
 			if(session.ModelChanged)
 			{
-				await existingSession.SetModelAsync(session.Model.Id, session.ReasoningEffort);
+				ProviderConfig? newProviderConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 
-				session.ModelChanged = false;
+				// Compare the ByokConfigId the current SDK session was created with against what the new
+				// model selection needs. session.ByokConfigId reflects the new selection (already updated
+				// by the UI), so we use _sdkSessionByokId to know what the live SDK session actually has.
+				string? sdkActiveByokId = _sdkSessionByokId.GetValueOrDefault(sessionId);
+				string? newByokId = newProviderConfig is not null ? session.ByokConfigId : null;
+				bool requiresRestart = newByokId != sdkActiveByokId;
+
+				if(requiresRestart)
+				{
+					// If switching to BYOK, ByokConfigId was already set by the UI before ModelChanged was set.
+					// If switching away from BYOK, ByokConfigId was already cleared to null by the UI.
+					await RestartSession(session.Id, session.Model.Id, session.ReasoningEffort, newProviderConfig);
+
+					// The session ID may have changed if a brand-new SDK session was created (no prior messages).
+					// Re-capture sessionId and re-fetch the live SDK session before sending.
+					sessionId = session.Id;
+					if(!_sdkRegistry.TryGet(sessionId, out existingSession))
+					{
+						throw new InvalidOperationException($"Session {sessionId} not found after model restart");
+					}
+
+					session.ModelChanged = false;
+				}
+				else
+				{
+					await existingSession.SetModelAsync(session.Model.Id, session.ReasoningEffort);
+					session.ModelChanged = false;
+				}
 			}
 
 			if(session.AgentChanged)

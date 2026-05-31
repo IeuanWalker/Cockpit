@@ -3,7 +3,7 @@ using Cockpit.Features.Sessions;
 
 namespace Cockpit.Features.KeepAlive;
 
-public sealed class KeepAliveFeature : IDisposable
+public sealed partial class KeepAliveFeature : IDisposable
 {
 	readonly IKeepAliveService _keepAliveService;
 	readonly IAppSettingsFeature _appSettings;

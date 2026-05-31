@@ -382,6 +382,10 @@ cockpit.cleanupSmartScroll = function cleanupSmartScroll(elementId, subscription
     disposeSmartScrollSubscriber(element, subscriptionKey);
 };
 
+cockpit.scrollIntoView = function scrollIntoView(elementId) {
+    document.getElementById(elementId)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
+
 cockpit.setupScrollAnchor = function setupScrollAnchor(elementId) {
     const element = getElementById(elementId);
     if (!element) {

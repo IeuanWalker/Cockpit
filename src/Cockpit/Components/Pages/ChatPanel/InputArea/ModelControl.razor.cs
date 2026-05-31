@@ -1,3 +1,5 @@
+using Cockpit.Components.Popups;
+using Cockpit.Features.Byok;
 using Cockpit.Features.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
@@ -9,10 +11,15 @@ namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 public partial class ModelControl : ComponentBase, IDisposable
 {
 	readonly IModelFeature _modelFeature;
+	readonly IByokFeature _byokFeature;
 	readonly SessionListFeature _sessionListFeature;
-	public ModelControl(IModelFeature modelFeature, SessionListFeature sessionListFeature)
+	public ModelControl(
+		IModelFeature modelFeature,
+		IByokFeature byokFeature,
+		SessionListFeature sessionListFeature)
 	{
 		_modelFeature = modelFeature;
+		_byokFeature = byokFeature;
 		_sessionListFeature = sessionListFeature;
 	}
 
@@ -20,21 +27,36 @@ public partial class ModelControl : ComponentBase, IDisposable
 	double _maxMultiplier;
 	PickerControl _modelPicker = default!;
 	PickerControl? _reasoningPicker;
-	Cockpit.Components.Popups.ModelInfoPopup _modelInfoPopup = default!;
+	ModelInfoPopup _modelInfoPopup = default!;
 
 	protected override async Task OnInitializedAsync()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_byokFeature.OnChanged += OnByokChanged;
 
-		_availableModels = await _modelFeature.GetModels();
-		_maxMultiplier = _availableModels.Count > 0
-			? _availableModels.Max(m => m.Billing?.Multiplier ?? 0)
-			: 0;
+		await RefreshModelsAsync();
 	}
 
 	void OnStateChanged()
 	{
 		_ = InvokeAsync(StateHasChanged);
+	}
+
+	void OnByokChanged()
+	{
+		_ = InvokeAsync(async () =>
+		{
+			await RefreshModelsAsync();
+			StateHasChanged();
+		});
+	}
+
+	async Task RefreshModelsAsync()
+	{
+		_availableModels = await _modelFeature.GetModels();
+		_maxMultiplier = _availableModels.Count > 0
+			? _availableModels.Max(m => m.Billing?.Multiplier ?? 0)
+			: 0;
 	}
 
 	void OpenModelInfoPopup()
@@ -62,6 +84,10 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 		_sessionListFeature.CurrentSession.Model = model;
 		_sessionListFeature.CurrentSession.ModelChanged = true;
+
+		// Track BYOK config ID so the session layer knows to restart (not SetModelAsync) when switching providers
+		ByokModelConfig? byokConfig = _byokFeature.GetAll().FirstOrDefault(c => string.Equals(c.ModelId, model.Id, StringComparison.OrdinalIgnoreCase));
+		_sessionListFeature.CurrentSession.ByokConfigId = byokConfig?.Id;
 
 		_modelPicker.Close();
 
@@ -152,7 +178,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 		if(model.Billing is null)
 		{
-			return "Unknown";
+			return string.Empty;
 		}
 
 		return $"{model.Billing.Multiplier:0.0}x";
@@ -202,6 +228,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		if(disposing)
 		{
 			_sessionListFeature.OnStateChanged -= OnStateChanged;
+			_byokFeature.OnChanged -= OnByokChanged;
 		}
 	}
 }

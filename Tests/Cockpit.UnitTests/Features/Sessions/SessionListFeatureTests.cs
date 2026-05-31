@@ -233,14 +233,13 @@ public class SessionListFeatureTests
 		feature.SetCurrentSession(session);
 		await Task.Delay(50, TestContext.Current.CancellationToken);
 
-		bool eventFired = false;
-		feature.OnStateChanged += () => eventFired = true;
+		TaskCompletionSource eventFiredTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnStateChanged += () => eventFiredTcs.TrySetResult();
 
 		feature.SetCurrentSession(null!);
-		await Task.Delay(50, TestContext.Current.CancellationToken);
+		await eventFiredTcs.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
 		feature.CurrentSession.ShouldBeNull();
-		eventFired.ShouldBeTrue();
 	}
 
 	[Fact]

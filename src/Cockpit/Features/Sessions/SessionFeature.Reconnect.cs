@@ -1,12 +1,12 @@
+using System.Threading.Channels;
 using Cockpit.Features.MessageMode;
 using Cockpit.Features.Sdk;
-using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
-using System.Threading.Channels;
 
 namespace Cockpit.Features.Sessions;
 
@@ -82,7 +82,7 @@ public sealed partial class SessionFeature
 
 		foreach(SessionModel session in sessions)
 		{
-			CopilotSession? sdkSession = null;
+			CopilotSession? sdkSession;
 
 			lock(session.SessionEventLock)
 			{
@@ -187,7 +187,7 @@ public sealed partial class SessionFeature
 	/// Reconnects a session that was actively working when the client disconnected, without
 	/// replaying history or closing the working panel. Sends a hidden continuation prompt so
 	/// the AI picks up from where it left off. The hidden prompt is identified by
-	/// <see cref="SessionEventProcessor.ReconnectContinuationPrefix"/> and is suppressed at the
+	/// <see cref="SessionEventProcessor.reconnectContinuationPrefix"/> and is suppressed at the
 	/// event-processor level — it never appears in the chat log and does not trigger the
 	/// safety-net that would otherwise close the working group.
 	/// </summary>
@@ -201,12 +201,17 @@ public sealed partial class SessionFeature
 			session.SdkState = SdkSessionStateEnum.Loading;
 			_sessionListFeature.NotifyStateChanged();
 
+			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+
+			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
+			string? effectiveReasoningEffort = providerConfig is null ? session.ReasoningEffort : null;
+
 			ResumeSessionConfig config = new()
 			{
 				ClientName = "Cockpit",
 				EnableConfigDiscovery = true,
 				Model = session.Model.Id,
-				ReasoningEffort = session.ReasoningEffort,
+				ReasoningEffort = effectiveReasoningEffort,
 				Streaming = true,
 				// DisableResume=true suppresses the session.resume event so history is not
 				// replayed — the existing session.Messages stays intact.
@@ -214,7 +219,8 @@ public sealed partial class SessionFeature
 				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				Hooks = _hooksFactory.CreateHooks(session.Model.Id, session.ReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true)
+				Hooks = _hooksFactory.CreateHooks(session.Model.Id, effectiveReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
+				Provider = providerConfig
 			};
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -233,7 +239,7 @@ public sealed partial class SessionFeature
 			// to suppress both the live echo and any future replay of this message.
 			await sdkSession.SendAsync(new MessageOptions
 			{
-				Prompt = SessionEventProcessor.ReconnectContinuationPrefix + " Session was briefly disconnected, please continue from where you left off.",
+				Prompt = SessionEventProcessor.reconnectContinuationPrefix + " Session was briefly disconnected, please continue from where you left off.",
 				Mode = MessageTurnModeExtensions.ImmediateSdkToken
 			});
 

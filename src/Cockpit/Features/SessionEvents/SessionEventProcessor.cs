@@ -26,7 +26,7 @@ public sealed class SessionEventProcessor
 	/// The constant lives here so it is shared between <see cref="SessionEventProcessor"/>
 	/// and <see cref="Sessions.SessionFeature"/>.
 	/// </summary>
-	internal const string ReconnectContinuationPrefix = "##COCKPIT-RECONNECT##";
+	internal const string reconnectContinuationPrefix = "##COCKPIT-RECONNECT##";
 
 	/// <summary>
 	/// Processes a session event, mutating <paramref name="session"/> state.
@@ -49,7 +49,7 @@ public sealed class SessionEventProcessor
 				// Cockpit-internal reconnect continuation: silently re-triggers the AI after a
 				// client disconnect. Must not appear in chat, not close the working panel, and
 				// not trigger the safety-net — handled identically to thinking-exhausted-continuation.
-				case UserMessageEvent reconnectMsg when reconnectMsg.Data?.Content?.StartsWith(ReconnectContinuationPrefix, StringComparison.Ordinal) == true:
+				case UserMessageEvent reconnectMsg when reconnectMsg.Data?.Content?.StartsWith(reconnectContinuationPrefix, StringComparison.Ordinal) == true:
 					_logger.LogDebug("Session {SessionId} reconnect-continuation suppressed", session.Id);
 					session.Status = SessionStatusEnum.Running;
 					break;
@@ -98,7 +98,7 @@ public sealed class SessionEventProcessor
 					// When a queued/immediate send occurs while a prior ops group is still open, the
 					// safety-net finalization inserts that prior activity group before the new user message,
 					// so operations appear between the two user messages.
-					UserMessageHandler.Handle(session, userMsg, wasAgentBusy);
+					UserMessageHandler.Handle(session, userMsg);
 					if(wasAgentBusy)
 					{
 						// Safety net: finalize the prior group. Suppress the summary only when the agent

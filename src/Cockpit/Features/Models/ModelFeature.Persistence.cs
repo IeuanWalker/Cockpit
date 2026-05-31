@@ -1,4 +1,5 @@
-﻿using Cockpit.Extensions;
+﻿using Cockpit.Features.Byok;
+using Cockpit.Extensions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -31,6 +32,7 @@ public partial class ModelFeature
 			{
 				["ModelId"] = session.Model.Id,
 				["ReasoningEffort"] = session.ReasoningEffort ?? string.Empty,
+				["ByokConfigId"] = session.ByokConfigId ?? string.Empty,
 			};
 			string json = modelSettings.SerializeJson()!;
 
@@ -90,6 +92,22 @@ public partial class ModelFeature
 			{
 				session.Model = model;
 				session.ModelChanged = true;
+			}
+
+			if(modelSettings.TryGetValue("ByokConfigId", out string? byokConfigId) && !string.IsNullOrEmpty(byokConfigId))
+			{
+				ByokModelConfig? byokConfig = _byokFeature.GetAll().FirstOrDefault(c => c.Id == byokConfigId);
+				if(byokConfig is not null)
+				{
+					session.ByokConfigId = byokConfigId;
+					session.Model = byokConfig.ToModelInfo();
+					session.ModelChanged = true;
+				}
+				else
+				{
+					// Config no longer exists; clear stale ID so we don't force a BYOK restart.
+					session.ByokConfigId = null;
+				}
 			}
 
 			// Use the freshly-fetched `model` (not `session.Model`) for all effort validation

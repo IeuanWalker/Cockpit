@@ -98,13 +98,17 @@ public sealed partial class SessionFeature
 		try
 		{
 			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
+			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id);
 			GitContext gitContext = await _gitFeature.GetContext(workingDirectory);
+
+			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
+			string? effectiveReasoningEffort = providerConfig is null ? defaultModel.DefaultReasoningEffort : null;
 
 			SessionConfig config = new()
 			{
 				ClientName = "Cockpit",
 				Model = defaultModel.Id,
-				ReasoningEffort = defaultModel.DefaultReasoningEffort,
+				ReasoningEffort = effectiveReasoningEffort,
 				Streaming = true,
 				InfiniteSessions = new InfiniteSessionConfig
 				{
@@ -113,8 +117,9 @@ public sealed partial class SessionFeature
 				WorkingDirectory = workingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				Hooks = _hooksFactory.CreateHooks(defaultModel.Id, defaultModel.DefaultReasoningEffort, workingDirectory),
-				EnableConfigDiscovery = true
+				Hooks = _hooksFactory.CreateHooks(defaultModel.Id, effectiveReasoningEffort, workingDirectory),
+				EnableConfigDiscovery = true,
+				Provider = providerConfig
 			};
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -148,6 +153,8 @@ public sealed partial class SessionFeature
 			};
 
 			await LoadContextPanelDataAsync(chatSession, sdkSession);
+
+			_sdkSessionByokId[chatSession.Id] = chatSession.ByokConfigId;
 
 			_sessionListFeature.AddSession(chatSession);
 
@@ -205,18 +212,26 @@ public sealed partial class SessionFeature
 				session.Context.CurrentWorkingDirectory = null;
 			}
 
+			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+
+			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
+			// This also guards against stale "medium" values loaded from pre-switch sessions before
+			// TryRestoreModelSettings has had a chance to clear the effort.
+			string? effectiveReasoningEffort = providerConfig is null ? session.ReasoningEffort : null;
+
 			ResumeSessionConfig config = new()
 			{
 				ClientName = "Cockpit",
 				EnableConfigDiscovery = true,
 				Model = session.Model.Id,
-				ReasoningEffort = session.ReasoningEffort,
+				ReasoningEffort = effectiveReasoningEffort,
 				Streaming = true,
 				DisableResume = true,
 				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				Hooks = _hooksFactory.CreateHooks(session.Model.Id, session.ReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true)
+				Hooks = _hooksFactory.CreateHooks(session.Model.Id, effectiveReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
+				Provider = providerConfig
 			};
 
 			session.SdkState = SdkSessionStateEnum.Loading;
@@ -299,6 +314,7 @@ public sealed partial class SessionFeature
 					HandleSessionEvent(sdkSession.SessionId, evt);
 				});
 				registered = true;
+				_sdkSessionByokId[sessionId] = session.ByokConfigId;
 
 				await SwitchCurrentSessionAsync(session);
 				_logger.LogInformation("Successfully loaded session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
@@ -369,7 +385,7 @@ public sealed partial class SessionFeature
 		return true;
 	}
 
-	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, CancellationToken cancellationToken = default)
+	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -386,18 +402,23 @@ public sealed partial class SessionFeature
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
 			CopilotSession newSdkSession;
 
+			// BYOK providers don't support Copilot-specific reasoning effort (e.g. KV-based "medium").
+			// Always pass null when a provider config is present so the SDK doesn't emit reasoning includes.
+			string? effectiveReasoningEffort = providerConfig is null ? newReasoningEffort : null;
+
 			bool hasMessages = chatSession?.Messages.Count > 0;
 			if(hasMessages)
 			{
 				ResumeSessionConfig resumeConfig = new()
 				{
 					Model = newModelId,
-					ReasoningEffort = newReasoningEffort,
+					ReasoningEffort = effectiveReasoningEffort,
 					Streaming = true,
 					EnableConfigDiscovery = true,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-					Hooks = _hooksFactory.CreateHooks(newModelId, newReasoningEffort, chatSession?.Context.CurrentWorkingDirectory)
+					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
+					Provider = providerConfig
 				};
 				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
 			}
@@ -406,7 +427,7 @@ public sealed partial class SessionFeature
 				SessionConfig createConfig = new()
 				{
 					Model = newModelId,
-					ReasoningEffort = newReasoningEffort,
+					ReasoningEffort = effectiveReasoningEffort,
 					Streaming = true,
 					EnableConfigDiscovery = true,
 					InfiniteSessions = new InfiniteSessionConfig
@@ -416,13 +437,15 @@ public sealed partial class SessionFeature
 					WorkingDirectory = chatSession?.Context.CurrentWorkingDirectory,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-					Hooks = _hooksFactory.CreateHooks(newModelId, newReasoningEffort, chatSession?.Context.CurrentWorkingDirectory)
+					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
+					Provider = providerConfig
 				};
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
 
 				if(chatSession is not null)
 				{
 					_sdkRegistry.Remove(chatSession.Id);
+					_sdkSessionByokId.TryRemove(chatSession.Id, out _);
 					chatSession.Id = newSdkSession.SessionId;
 					chatSession.Context.WorkspacePath = newSdkSession.WorkspacePath;
 				}
@@ -457,6 +480,7 @@ public sealed partial class SessionFeature
 				_logger.LogDebug("Session {SessionId} event: {EventType}", newSdkSession.SessionId, evt.Type);
 				HandleSessionEvent(newSdkSession.SessionId, evt);
 			});
+			_sdkSessionByokId[newSdkSession.SessionId] = chatSession?.ByokConfigId;
 
 			_logger.LogInformation("Restarted session {SessionId} with model {Model}", sessionId, newModelId);
 		}
@@ -484,11 +508,13 @@ public sealed partial class SessionFeature
 			await client.DeleteSessionAsync(sessionId, cancellationToken);
 
 			_sessionListFeature.RemoveSession(sessionId);
+			_sdkSessionByokId.TryRemove(sessionId, out _);
 		}
 		catch(InvalidOperationException ex) when(ex.Message.Contains("Error: Session file not found"))
 		{
 			_logger.LogWarning(ex, "Session {SessionId} not found during deletion - it may have already been deleted", sessionId);
 			_sessionListFeature.RemoveSession(sessionId);
+			_sdkSessionByokId.TryRemove(sessionId, out _);
 		}
 		catch(Exception ex)
 		{
@@ -500,6 +526,8 @@ public sealed partial class SessionFeature
 	{
 		try
 		{
+			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+
 			_logger.LogInformation(
 				"Restarting session {SessionId} with model {Model} and reasoning effort {ReasoningEffort}",
 				session.Id,
@@ -510,7 +538,8 @@ public sealed partial class SessionFeature
 			await RestartSession(
 				session.Id,
 				session.Model.Id,
-				session.ReasoningEffort
+				session.ReasoningEffort,
+				providerConfig
 			);
 
 			_logger.LogInformation("Session {SessionId} restarted successfully", session.Id);

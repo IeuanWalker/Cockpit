@@ -1,3 +1,4 @@
+using Cockpit.Features.Byok;
 using Cockpit.Features.Sdk;
 using GitHub.Copilot.SDK;
 using Microsoft.Extensions.Logging;
@@ -7,11 +8,16 @@ namespace Cockpit.Features.Models;
 public sealed partial class ModelFeature : IModelFeature
 {
 	readonly CopilotClientFeature _clientFeature;
+	readonly IByokFeature _byokFeature;
 	readonly ILogger<ModelFeature> _logger;
 
-	public ModelFeature(CopilotClientFeature clientFeature, ILogger<ModelFeature> logger)
+	public ModelFeature(
+		CopilotClientFeature clientFeature,
+		IByokFeature byokFeature,
+		ILogger<ModelFeature> logger)
 	{
 		_clientFeature = clientFeature;
+		_byokFeature = byokFeature;
 		_logger = logger;
 	}
 
@@ -25,7 +31,7 @@ public sealed partial class ModelFeature : IModelFeature
 	{
 		if(_models is not null)
 		{
-			return _models;
+			return BuildMergedModelList(_models);
 		}
 
 		await _fetchLock.WaitAsync(cancellationToken);
@@ -34,7 +40,7 @@ public sealed partial class ModelFeature : IModelFeature
 			// Re-check after acquiring lock — another caller may have populated it already.
 			if(_models is not null)
 			{
-				return _models;
+				return BuildMergedModelList(_models);
 			}
 
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
@@ -51,7 +57,7 @@ public sealed partial class ModelFeature : IModelFeature
 			_fetchLock.Release();
 		}
 
-		return _models!;
+		return BuildMergedModelList(_models!);
 	}
 
 	/// <inheritdoc />
@@ -101,4 +107,41 @@ public sealed partial class ModelFeature : IModelFeature
 		return secondFree ?? firstFree ?? models[0];
 	}
 
+	/// <inheritdoc />
+	public ValueTask<ProviderConfig?> GetProviderConfig(string modelId, CancellationToken cancellationToken = default)
+	{
+		ProviderConfig? config = _byokFeature.TryGetProviderConfig(modelId);
+		return ValueTask.FromResult(config);
+	}
+
+	List<ModelInfo> BuildMergedModelList(IReadOnlyList<ModelInfo> sdkModels)
+	{
+		IReadOnlyList<ByokModelConfig> byokConfigs = _byokFeature.GetAll();
+		if(byokConfigs.Count == 0)
+		{
+			return [.. sdkModels];
+		}
+
+		HashSet<string> byokModelIds = new(StringComparer.OrdinalIgnoreCase);
+		foreach(ByokModelConfig config in byokConfigs)
+		{
+			byokModelIds.Add(config.ModelId);
+		}
+
+		List<ModelInfo> merged = [];
+		foreach(ModelInfo model in sdkModels)
+		{
+			if(!byokModelIds.Contains(model.Id))
+			{
+				merged.Add(model);
+			}
+		}
+
+		foreach(ByokModelConfig config in byokConfigs)
+		{
+			merged.Add(config.ToModelInfo());
+		}
+
+		return merged;
+	}
 }

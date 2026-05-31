@@ -1,4 +1,4 @@
-using Cockpit;
+using Cockpit.Features.Byok;
 using Cockpit.Features.Models;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.Sessions.Models;
@@ -36,9 +36,27 @@ public sealed class ModelFeatureTests : IDisposable
 		Billing = billingMultiplier is null ? null : new ModelBilling { Multiplier = billingMultiplier.Value }
 	};
 
-	static ModelFeature CreateFeature() => new(
+	static ModelFeature CreateFeature(StubByokFeature? byokFeature = null) => new(
 		new CopilotClientFeature(NullLogger<CopilotClientFeature>.Instance, new UserAppSettings(new InMemoryPreferencesStorage())),
+		byokFeature ?? new StubByokFeature(),
 		NullLogger<ModelFeature>.Instance);
+
+	sealed class StubByokFeature : IByokFeature
+	{
+		readonly List<ByokModelConfig> _configs;
+
+		public StubByokFeature(params ByokModelConfig[] configs)
+		{
+			_configs = [.. configs];
+		}
+
+		public event Action? OnChanged;
+		public IReadOnlyList<ByokModelConfig> GetAll() => _configs;
+		public Task AddAsync(ByokModelConfig config) => Task.CompletedTask;
+		public Task RemoveAsync(string id) => Task.CompletedTask;
+		public ProviderConfig? TryGetProviderConfig(string modelId) =>
+			_configs.FirstOrDefault(c => c.ModelId == modelId)?.ToProviderConfig();
+	}
 
 	static SessionModel MakeSession(string? workspacePath = null) => new()
 	{
@@ -368,6 +386,71 @@ public sealed class ModelFeatureTests : IDisposable
 		ModelInfo result = ModelFeature.SelectDefaultModel([paid]);
 
 		result.Id.ShouldBe("paid");
+	}
+
+	// ── ByokConfigId persistence ──────────────────────────────────────────────
+
+	static ByokModelConfig MakeByokConfig(string id, string modelId, string name = "BYOK Model") => new()
+	{
+		Id = id,
+		Name = name,
+		ModelId = modelId,
+		ProviderType = "openai",
+		BaseUrl = "https://api.example.com",
+		ApiKey = "test-key"
+	};
+
+	[Fact]
+	public async Task SaveAndRestore_WithByokConfigId_WhenByokConfigExists_RestoresModelAndId()
+	{
+		ByokModelConfig byokConfig = MakeByokConfig("byok-1", "my-custom-model", "My Custom GPT4");
+		StubByokFeature byokFeature = new(byokConfig);
+		ModelFeature feature = CreateFeature(byokFeature);
+
+		ModelInfo apiModel = MakeModel("gpt-4o", 1.0);
+		SessionModel saveSession = MakeSession(workspacePath: _tempDir);
+		saveSession.Model = byokConfig.ToModelInfo();
+		saveSession.ByokConfigId = "byok-1";
+		await feature.SaveSessionModel(saveSession);
+
+		// Inject API models — the BYOK model is merged in via the stub, not via API.
+		InjectCachedModels(feature, [apiModel]);
+
+		SessionModel restoreSession = MakeSession(workspacePath: _tempDir);
+		restoreSession.Model = apiModel;
+
+		bool restored = await feature.TryRestoreModelSettings(restoreSession);
+
+		restored.ShouldBeTrue();
+		restoreSession.ByokConfigId.ShouldBe("byok-1");
+		restoreSession.Model.Id.ShouldBe("my-custom-model");
+		restoreSession.ModelChanged.ShouldBeTrue();
+	}
+
+	[Fact]
+	public async Task TryRestoreModelSettings_WithByokConfigId_WhenByokConfigMissing_IdPreservedAndModelFallsBackToApi()
+	{
+		// No BYOK configs in the feature — simulates a config that was deleted.
+		ModelFeature feature = CreateFeature();
+
+		ModelInfo apiModel = MakeModel("gpt-4o", 1.0);
+		SessionModel saveSession = MakeSession(workspacePath: _tempDir);
+		saveSession.Model = apiModel;
+		saveSession.ByokConfigId = "byok-gone";
+		await feature.SaveSessionModel(saveSession);
+
+		InjectCachedModels(feature, [apiModel]);
+
+		SessionModel restoreSession = MakeSession(workspacePath: _tempDir);
+		restoreSession.Model = MakeModel("other-model", 0);
+
+		bool restored = await feature.TryRestoreModelSettings(restoreSession);
+
+		restored.ShouldBeTrue();
+		// ByokConfigId is cleared because the referenced config no longer exists.
+		restoreSession.ByokConfigId.ShouldBeNull();
+		// Model falls back to what was resolved via the ModelId key.
+		restoreSession.Model.Id.ShouldBe("gpt-4o");
 	}
 
 	/// <summary>
