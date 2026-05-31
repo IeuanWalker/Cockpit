@@ -1,3 +1,4 @@
+using Cockpit.Features.Canvas;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
@@ -177,6 +178,8 @@ public sealed partial class SessionFeature
 				// Shutdown requested — abandon waiting for dispose
 			}
 		}
+
+		await _canvasWindowManager.CloseAllForSessionAsync(session.Id, ct);
 
 		return true;
 	}

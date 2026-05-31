@@ -155,4 +155,10 @@ public sealed class AppSettingsFeature : IAppSettingsFeature
 		get => _settings.KeepAlive;
 		set => _settings.KeepAlive = value;
 	}
+
+	public bool CanvasEnabled
+	{
+		get => _settings.CanvasEnabled;
+		set => _settings.CanvasEnabled = value;
+	}
 }

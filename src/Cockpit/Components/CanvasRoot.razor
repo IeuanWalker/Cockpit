@@ -1,0 +1,31 @@
+@using Cockpit.Features.Canvas
+
+<div class="canvas-root">
+    @if(_instance is null)
+    {
+        <div class="canvas-loading">
+            <p class="secondary-text text-sm">Loading canvas…</p>
+        </div>
+    }
+    else
+    {
+        <div class="canvas-header">
+            <h2 class="text-base font-semibold text-app-title">@_instance.Title</h2>
+            @if(_instance.Status is not null)
+            {
+                <p class="text-xs secondary-text canvas-status">@_instance.Status</p>
+            }
+        </div>
+
+        <div class="canvas-body">
+            @if(_instance.Input.HasValue)
+            {
+                <pre class="canvas-json">@System.Text.Json.JsonSerializer.Serialize(_instance.Input.Value, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
+            }
+            else
+            {
+                <p class="secondary-text text-sm">Canvas ready.</p>
+            }
+        </div>
+    }
+</div>

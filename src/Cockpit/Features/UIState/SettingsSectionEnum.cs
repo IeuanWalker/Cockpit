@@ -9,5 +9,6 @@ public enum SettingsSectionEnum
 	Sounds,
 	System,
 	Diagnostics,
-	About
+	About,
+	PreviewFeatures
 }

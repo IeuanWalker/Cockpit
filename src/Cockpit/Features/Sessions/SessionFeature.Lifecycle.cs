@@ -1,4 +1,5 @@
 using Cockpit.Features.Agents.Models;
+using Cockpit.Features.Canvas;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
@@ -124,6 +125,23 @@ public sealed partial class SessionFeature
 				Provider = providerConfig
 			};
 
+			if(_appSettingsFeature.CanvasEnabled)
+			{
+				config.RequestCanvasRenderer = true;
+				config.RequestExtensions = true;
+				config.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+				config.Canvases =
+				[
+					new CanvasDeclaration
+					{
+						Id = "cockpit-canvas",
+						DisplayName = "Cockpit Canvas",
+						Description = "Opens an interactive panel for rich content display and actions."
+					}
+				];
+				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+			}
+
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.CreateSessionAsync(config);
 			_sdkRegistry.Register(sdkSession, evt =>
@@ -236,6 +254,23 @@ public sealed partial class SessionFeature
 				Hooks = _hooksFactory.CreateHooks(session.Model.Id, effectiveReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
 				Provider = providerConfig
 			};
+
+			if(_appSettingsFeature.CanvasEnabled)
+			{
+				config.RequestCanvasRenderer = true;
+				config.RequestExtensions = true;
+				config.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+				config.Canvases =
+				[
+					new CanvasDeclaration
+					{
+						Id = "cockpit-canvas",
+						DisplayName = "Cockpit Canvas",
+						Description = "Opens an interactive panel for rich content display and actions."
+					}
+				];
+				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+			}
 
 			session.SdkState = SdkSessionStateEnum.Loading;
 			_sessionListFeature.NotifyStateChanged();
@@ -424,6 +459,22 @@ public sealed partial class SessionFeature
 					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
 					Provider = providerConfig
 				};
+				if(_appSettingsFeature.CanvasEnabled)
+				{
+					resumeConfig.RequestCanvasRenderer = true;
+					resumeConfig.RequestExtensions = true;
+					resumeConfig.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+					resumeConfig.Canvases =
+					[
+						new CanvasDeclaration
+						{
+							Id = "cockpit-canvas",
+							DisplayName = "Cockpit Canvas",
+							Description = "Opens an interactive panel for rich content display and actions."
+						}
+					];
+					resumeConfig.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+				}
 				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
 			}
 			else
@@ -445,6 +496,22 @@ public sealed partial class SessionFeature
 					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
 					Provider = providerConfig
 				};
+				if(_appSettingsFeature.CanvasEnabled)
+				{
+					createConfig.RequestCanvasRenderer = true;
+					createConfig.RequestExtensions = true;
+					createConfig.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+					createConfig.Canvases =
+					[
+						new CanvasDeclaration
+						{
+							Id = "cockpit-canvas",
+							DisplayName = "Cockpit Canvas",
+							Description = "Opens an interactive panel for rich content display and actions."
+						}
+					];
+					createConfig.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+				}
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
 
 				if(chatSession is not null)
@@ -509,6 +576,7 @@ public sealed partial class SessionFeature
 			_userInputHandler.CancelPendingRequestsForSession(sessionId);
 			_permissionHandler.CancelPendingRequestsForSession(sessionId);
 			_elicitationHandler.CancelPendingRequestsForSession(sessionId);
+			await _canvasWindowManager.CloseAllForSessionAsync(sessionId, cancellationToken);
 
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
 			await client.DeleteSessionAsync(sessionId, cancellationToken);

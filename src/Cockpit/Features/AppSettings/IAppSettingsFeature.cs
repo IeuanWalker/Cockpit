@@ -29,4 +29,5 @@ public interface IAppSettingsFeature
 	float VoiceRate { get; set; }
 	string VoiceLocale { get; set; }
 	bool KeepAlive { get; set; }
+	bool CanvasEnabled { get; set; }
 }
