@@ -39,7 +39,7 @@ public sealed partial class SessionFeature
 						session.ByokConfigId = null;
 					}
 					// If switching to BYOK, ByokConfigId was already set by the UI before ModelChanged was set
-					await RestartSession(session.Id, session.Model.Id, session.ReasoningEffort, newProviderConfig);
+					await RestartSession(session.Id, session.Model.Id, session.ReasoningEffort, newProviderConfig, providerChanged: true);
 
 					// The session ID may have changed if a brand-new SDK session was created (no prior messages).
 					// Re-capture sessionId and re-fetch the live SDK session before sending.

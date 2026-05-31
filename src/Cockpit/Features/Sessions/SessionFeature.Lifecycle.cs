@@ -101,11 +101,14 @@ public sealed partial class SessionFeature
 			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id);
 			GitContext gitContext = await _gitFeature.GetContext(workingDirectory);
 
+			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
+			string? effectiveReasoningEffort = providerConfig is null ? defaultModel.DefaultReasoningEffort : null;
+
 			SessionConfig config = new()
 			{
 				ClientName = "Cockpit",
 				Model = defaultModel.Id,
-				ReasoningEffort = defaultModel.DefaultReasoningEffort,
+				ReasoningEffort = effectiveReasoningEffort,
 				Streaming = true,
 				InfiniteSessions = new InfiniteSessionConfig
 				{
@@ -114,7 +117,7 @@ public sealed partial class SessionFeature
 				WorkingDirectory = workingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				Hooks = _hooksFactory.CreateHooks(defaultModel.Id, defaultModel.DefaultReasoningEffort, workingDirectory),
+				Hooks = _hooksFactory.CreateHooks(defaultModel.Id, effectiveReasoningEffort, workingDirectory),
 				EnableConfigDiscovery = true,
 				Provider = providerConfig
 			};
@@ -209,18 +212,23 @@ public sealed partial class SessionFeature
 
 			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 
+			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
+			// This also guards against stale "medium" values loaded from pre-switch sessions before
+			// TryRestoreModelSettings has had a chance to clear the effort.
+			string? effectiveReasoningEffort = providerConfig is null ? session.ReasoningEffort : null;
+
 			ResumeSessionConfig config = new()
 			{
 				ClientName = "Cockpit",
 				EnableConfigDiscovery = true,
 				Model = session.Model.Id,
-				ReasoningEffort = session.ReasoningEffort,
+				ReasoningEffort = effectiveReasoningEffort,
 				Streaming = true,
 				DisableResume = true,
 				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				Hooks = _hooksFactory.CreateHooks(session.Model.Id, session.ReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
+				Hooks = _hooksFactory.CreateHooks(session.Model.Id, effectiveReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
 				Provider = providerConfig
 			};
 
@@ -374,7 +382,12 @@ public sealed partial class SessionFeature
 		return true;
 	}
 
-	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
+	/// <param name="providerChanged">
+	/// When <see langword="true"/> the provider is changing (BYOK ↔ built-in) and a brand-new SDK
+	/// session must always be created via <c>CreateSessionAsync</c> even when the session already has
+	/// messages — resuming a BYOK session with a different provider routes to the wrong endpoint.
+	/// </param>
+	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, ProviderConfig? providerConfig = null, bool providerChanged = false, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -391,18 +404,24 @@ public sealed partial class SessionFeature
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
 			CopilotSession newSdkSession;
 
-			bool hasMessages = chatSession?.Messages.Count > 0;
+			// BYOK providers don't support Copilot-specific reasoning effort (e.g. KV-based "medium").
+			// Always pass null when a provider config is present so the SDK doesn't emit reasoning includes.
+			string? effectiveReasoningEffort = providerConfig is null ? newReasoningEffort : null;
+
+			// When the provider changes we must create a fresh session: resuming a BYOK session
+			// with Provider=null still routes to the original BYOK endpoint server-side.
+			bool hasMessages = chatSession?.Messages.Count > 0 && !providerChanged;
 			if(hasMessages)
 			{
 				ResumeSessionConfig resumeConfig = new()
 				{
 					Model = newModelId,
-					ReasoningEffort = newReasoningEffort,
+					ReasoningEffort = effectiveReasoningEffort,
 					Streaming = true,
 					EnableConfigDiscovery = true,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-					Hooks = _hooksFactory.CreateHooks(newModelId, newReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
+					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
 					Provider = providerConfig
 				};
 				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
@@ -412,7 +431,7 @@ public sealed partial class SessionFeature
 				SessionConfig createConfig = new()
 				{
 					Model = newModelId,
-					ReasoningEffort = newReasoningEffort,
+					ReasoningEffort = effectiveReasoningEffort,
 					Streaming = true,
 					EnableConfigDiscovery = true,
 					InfiniteSessions = new InfiniteSessionConfig
@@ -422,7 +441,7 @@ public sealed partial class SessionFeature
 					WorkingDirectory = chatSession?.Context.CurrentWorkingDirectory,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-					Hooks = _hooksFactory.CreateHooks(newModelId, newReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
+					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
 					Provider = providerConfig
 				};
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
