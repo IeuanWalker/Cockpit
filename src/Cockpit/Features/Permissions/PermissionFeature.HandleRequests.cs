@@ -25,6 +25,8 @@ public sealed partial class PermissionFeature
 			PermissionRequestCustomTool customTool => HandleCustomTool(customTool, session),
 			PermissionRequestHook hook => HandleHook(hook, session),
 			PermissionRequestUrl url => HandleUrl(url, session),
+			PermissionRequestExtensionManagement extMgmt => HandleExtensionManagement(extMgmt, session),
+			PermissionRequestExtensionPermissionAccess extAccess => HandleExtensionPermissionAccess(extAccess, session),
 			_ => ThrowOnUnhandledPermissionType
 				? throw new InvalidOperationException(
 					$"No handler for SDK permission type '{request.GetType().Name}' (kind='{request.Kind}'). " +
@@ -225,6 +227,45 @@ public sealed partial class PermissionFeature
 				: $"Allow accessing `{url}`",
 			Intention = intention,
 			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			FullRequestJson = request.SerializeJson() ?? string.Empty
+		};
+	}
+
+	static PermissionRequestModel HandleExtensionManagement(PermissionRequestExtensionManagement request, SessionModel session)
+	{
+		string extensionName = request.ExtensionName ?? string.Empty;
+		string operation = request.Operation ?? string.Empty;
+
+		return new PermissionRequestModel
+		{
+			SessionId = session.Id,
+			FullCommand = extensionName,
+			Commands = [string.IsNullOrWhiteSpace(operation) ? extensionName : $"{extensionName}:{operation}"],
+			RequestTitle = string.IsNullOrWhiteSpace(operation)
+				? $"Allow extension management for `{extensionName}`"
+				: $"Allow `{operation}` on extension `{extensionName}`",
+			Intention = string.Empty,
+			CanApproveGlobally = true,
+			CanApproveForSession = true,
+			FullRequestJson = request.SerializeJson() ?? string.Empty
+		};
+	}
+
+	static PermissionRequestModel HandleExtensionPermissionAccess(PermissionRequestExtensionPermissionAccess request, SessionModel session)
+	{
+		string extensionName = request.ExtensionName ?? string.Empty;
+		string[] capabilities = request.Capabilities ?? [];
+		string capList = capabilities.Length > 0 ? string.Join(", ", capabilities) : "unknown capabilities";
+
+		return new PermissionRequestModel
+		{
+			SessionId = session.Id,
+			FullCommand = extensionName,
+			Commands = [extensionName],
+			RequestTitle = $"Allow `{extensionName}` to access: {capList}",
+			Intention = string.Empty,
+			CanApproveGlobally = false,
 			CanApproveForSession = true,
 			FullRequestJson = request.SerializeJson() ?? string.Empty
 		};

@@ -55,7 +55,8 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	bool IsInputDisabled =>
 		_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0
-		|| _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0;
+		|| _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0
+		|| _sessionFeature.CurrentSession?.PendingElicitationRequests?.Count > 0;
 
 	string UserInput
 	{
@@ -546,7 +547,9 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		}
 	}
 
-	bool CanSend => !string.IsNullOrWhiteSpace(UserInput) && _sessionFeature.CurrentSession?.PendingPermissionRequests?.Count == 0;
+	bool CanSend => !string.IsNullOrWhiteSpace(UserInput)
+		&& _sessionFeature.CurrentSession?.PendingPermissionRequests?.Count == 0
+		&& _sessionFeature.CurrentSession?.PendingElicitationRequests?.Count == 0;
 
 	async Task SendMessage()
 	{

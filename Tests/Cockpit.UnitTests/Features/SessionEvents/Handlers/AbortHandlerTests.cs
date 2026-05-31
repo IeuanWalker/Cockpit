@@ -5,6 +5,8 @@ using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
+#pragma warning disable GHCP001
+
 namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 
 public class AbortHandlerTests
@@ -43,7 +45,7 @@ public class AbortHandlerTests
 		});
 
 		// Act
-		processor.Process(session, new AbortEvent { Data = new AbortData { Reason = "" }, Timestamp = DateTimeOffset.UtcNow });
+		processor.Process(session, new AbortEvent { Data = new AbortData { Reason = new AbortReason("test") }, Timestamp = DateTimeOffset.UtcNow });
 
 		// Assert
 		session.ActiveWorkingGroup.ShouldBeNull();
@@ -64,7 +66,7 @@ public class AbortHandlerTests
 		session.Messages.Add(new ChatMessageModel { IsUser = true, IsPending = true, IsComplete = true, Content = "Pending 2", EventJson = null });
 
 		// Act
-		processor.Process(session, new AbortEvent { Data = new AbortData { Reason = "" }, Timestamp = DateTimeOffset.UtcNow });
+		processor.Process(session, new AbortEvent { Data = new AbortData { Reason = new AbortReason("test") }, Timestamp = DateTimeOffset.UtcNow });
 
 		// Assert — all pending messages cleared
 		session.Messages.ShouldNotContain(m => m.IsPending);
@@ -79,7 +81,7 @@ public class AbortHandlerTests
 		session.Messages.Add(new ChatMessageModel { IsUser = true, IsPending = true, IsComplete = true, Content = "Queued", EventJson = null });
 
 		// Act
-		processor.Process(session, new AbortEvent { Data = new AbortData { Reason = "" }, Timestamp = DateTimeOffset.UtcNow });
+		processor.Process(session, new AbortEvent { Data = new AbortData { Reason = new AbortReason("test") }, Timestamp = DateTimeOffset.UtcNow });
 
 		// Assert
 		session.Status.ShouldBe(SessionStatusEnum.Idle);
@@ -101,7 +103,7 @@ public class AbortHandlerTests
 		});
 
 		// Act
-		processor.Process(session, new AbortEvent { Data = new AbortData { Reason = "" }, Timestamp = DateTimeOffset.UtcNow });
+		processor.Process(session, new AbortEvent { Data = new AbortData { Reason = new AbortReason("test") }, Timestamp = DateTimeOffset.UtcNow });
 
 		// Assert — an "Session aborted" thinking event is appended to the group
 		ChatMessageModel? activityMsg = session.Messages.FirstOrDefault(m => m.Type == MessageTypeEnum.ActivityGroup);

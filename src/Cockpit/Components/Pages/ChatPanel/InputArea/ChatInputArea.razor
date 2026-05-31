@@ -2,7 +2,7 @@
 
 <div class="border-t border-app-border bg-app-sidebar p-3">
     <div class="relative">
-        @if(_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0 || _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0)
+        @if(_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0 || _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0 || _sessionFeature.CurrentSession?.PendingElicitationRequests?.Count > 0)
         {
             <div class="absolute inset-0 bg-black bg-opacity-30 z-10 rounded-lg cursor-not-allowed"></div>
         }

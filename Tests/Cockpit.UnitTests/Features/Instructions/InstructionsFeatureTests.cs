@@ -2,6 +2,8 @@ using Cockpit.Features.Instructions;
 using GitHub.Copilot.Rpc;
 using Shouldly;
 
+#pragma warning disable GHCP001
+
 namespace Cockpit.UnitTests.Features.Instructions;
 
 public sealed class InstructionsFeatureTests

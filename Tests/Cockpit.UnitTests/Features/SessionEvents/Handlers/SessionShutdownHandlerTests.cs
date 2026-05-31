@@ -34,8 +34,7 @@ public class SessionShutdownHandlerTests
 		CodeChanges = new ShutdownCodeChanges { FilesModified = [], LinesAdded = 0, LinesRemoved = 0 },
 		ModelMetrics = new Dictionary<string, ShutdownModelMetric>(),
 		SessionStartTime = 0,
-		TotalApiDurationMs = 0,
-		TotalPremiumRequests = 0
+		TotalApiDuration = TimeSpan.Zero,
 	};
 
 	[Fact]
