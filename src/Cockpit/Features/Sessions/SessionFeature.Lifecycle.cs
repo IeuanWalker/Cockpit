@@ -1,4 +1,4 @@
-﻿using Cockpit.Features.Agents.Models;
+using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
@@ -445,6 +445,7 @@ public sealed partial class SessionFeature
 				if(chatSession is not null)
 				{
 					_sdkRegistry.Remove(chatSession.Id);
+					_sdkSessionByokId.TryRemove(chatSession.Id, out _);
 					chatSession.Id = newSdkSession.SessionId;
 					chatSession.Context.WorkspacePath = newSdkSession.WorkspacePath;
 				}

@@ -203,12 +203,15 @@ public sealed partial class SessionFeature
 
 			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 
+			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
+			string? effectiveReasoningEffort = providerConfig is null ? session.ReasoningEffort : null;
+
 			ResumeSessionConfig config = new()
 			{
 				ClientName = "Cockpit",
 				EnableConfigDiscovery = true,
 				Model = session.Model.Id,
-				ReasoningEffort = session.ReasoningEffort,
+				ReasoningEffort = effectiveReasoningEffort,
 				Streaming = true,
 				// DisableResume=true suppresses the session.resume event so history is not
 				// replayed — the existing session.Messages stays intact.
@@ -216,7 +219,7 @@ public sealed partial class SessionFeature
 				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				Hooks = _hooksFactory.CreateHooks(session.Model.Id, session.ReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
+				Hooks = _hooksFactory.CreateHooks(session.Model.Id, effectiveReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
 				Provider = providerConfig
 			};
 
