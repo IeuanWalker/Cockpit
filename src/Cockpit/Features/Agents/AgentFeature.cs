@@ -18,7 +18,6 @@ public sealed class AgentFeature
 	/// Calls the SDK to list all discovered agents and maps them to AgentProfile instances.
 	/// Agents with no file path or a file that no longer exists on disk are excluded.
 	/// </summary>
-#pragma warning disable GHCP001
 	public async Task<List<AgentProfile>> LoadSessionAgentsAsync(CopilotSession sdkSession, string? gitRoot)
 	{
 		try
@@ -36,7 +35,6 @@ public sealed class AgentFeature
 			return [];
 		}
 	}
-#pragma warning restore GHCP001
 
 	static AgentProfile? MapToProfile(AgentInfo info, string? gitRoot)
 	{

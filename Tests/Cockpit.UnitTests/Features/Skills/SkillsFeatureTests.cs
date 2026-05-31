@@ -1,5 +1,5 @@
 using Cockpit.Features.Skills;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot.Rpc;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Skills;

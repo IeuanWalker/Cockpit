@@ -1,5 +1,4 @@
 using Cockpit.Features.Sessions;
-using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot.Rpc;
 using Microsoft.AspNetCore.Components;
 
@@ -32,7 +31,7 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 
 	void ShowInstructionInfo(InstructionsSources instruction)
 	{
-		var ctx = _sessionListFeature.CurrentSession?.Context;
+		Features.Sessions.Models.SessionContext? ctx = _sessionListFeature.CurrentSession?.Context;
 		string? repoRoot = ctx?.GitRoot ?? ctx?.CurrentWorkingDirectory;
 		_instructionInfoPopup?.Open(_allInstructions, instruction, repoRoot);
 	}

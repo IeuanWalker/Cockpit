@@ -3,7 +3,7 @@ using Cockpit.Features.Models;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.UnitTests.Features.AppSettings;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 

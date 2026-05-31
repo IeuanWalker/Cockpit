@@ -1,7 +1,7 @@
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
@@ -384,8 +384,7 @@ public class ImmediateModeReplayTests
 				CodeChanges = new ShutdownCodeChanges { FilesModified = [], LinesAdded = 0, LinesRemoved = 0 },
 				ModelMetrics = new Dictionary<string, ShutdownModelMetric>(),
 				SessionStartTime = 0,
-				TotalApiDurationMs = 0,
-				TotalPremiumRequests = 0
+				TotalApiDuration = TimeSpan.Zero
 			},
 			Timestamp = DateTimeOffset.UtcNow
 		});

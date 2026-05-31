@@ -318,9 +318,7 @@ public sealed partial class SessionFeature
 		try
 		{
 			_logger.LogInformation("Requesting context compaction for session {SessionId}", session.Id);
-#pragma warning disable GHCP001
 			GitHub.Copilot.Rpc.HistoryCompactResult result = await sdkSession.Rpc.History.CompactAsync();
-#pragma warning restore GHCP001
 			if(!result.Success)
 			{
 				_logger.LogWarning("Context compaction did not succeed for session {SessionId}", session.Id);

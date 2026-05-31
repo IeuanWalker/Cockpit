@@ -1,5 +1,5 @@
 using Cockpit.Features.Hooks;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
@@ -33,7 +33,7 @@ public sealed class SessionHooksFactoryTests
 			Error = "transient",
 			ErrorContext = "model_call",
 			Recoverable = true,
-			Cwd = @"C:\\repo"
+			WorkingDirectory = @"C:\\repo"
 		}, testInvocation);
 
 		output.ShouldNotBeNull();
@@ -52,7 +52,7 @@ public sealed class SessionHooksFactoryTests
 			Error = "bad input",
 			ErrorContext = errorContext,
 			Recoverable = false,
-			Cwd = @"C:\\repo"
+			WorkingDirectory = @"C:\\repo"
 		}, testInvocation);
 
 		output.ShouldNotBeNull();
@@ -69,7 +69,7 @@ public sealed class SessionHooksFactoryTests
 			Error = "fatal",
 			ErrorContext = "system",
 			Recoverable = false,
-			Cwd = @"C:\\repo"
+			WorkingDirectory = @"C:\\repo"
 		}, testInvocation);
 
 		output.ShouldNotBeNull();

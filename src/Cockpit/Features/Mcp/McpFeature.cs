@@ -19,7 +19,6 @@ public sealed class McpFeature
 		_sessionListFeature = sessionListFeature;
 	}
 
-#pragma warning disable GHCP001
 	public async Task<List<McpServer>> LoadSessionMcpServersAsync(CopilotSession sdkSession, CancellationToken cancellationToken = default)
 	{
 		try
@@ -94,7 +93,6 @@ public sealed class McpFeature
 		session.Context.McpServers = await LoadSessionMcpServersAsync(sdkSession, cancellationToken);
 		_sessionListFeature.NotifyStateChanged();
 	}
-#pragma warning restore GHCP001
 
 	/// <summary>Returns a human-readable display string for the given MCP server status.</summary>
 	public static string GetStatusDisplayString(McpServerStatus status)

@@ -1,7 +1,7 @@
 using Cockpit.Features.Agents;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Agents;

@@ -19,7 +19,6 @@ public sealed class SkillsFeature
 		_sessionListFeature = sessionListFeature;
 	}
 
-#pragma warning disable GHCP001
 	public async Task<List<Skill>> LoadSessionSkillsAsync(CopilotSession sdkSession, CancellationToken cancellationToken = default)
 	{
 		try
@@ -78,7 +77,6 @@ public sealed class SkillsFeature
 		session.Context.Skills = await LoadSessionSkillsAsync(sdkSession, cancellationToken);
 		_sessionListFeature.NotifyStateChanged();
 	}
-#pragma warning restore GHCP001
 
 	/// <summary>Groups skills by their source for display purposes.</summary>
 	public static IReadOnlyDictionary<string, List<Skill>> GroupBySource(IEnumerable<Skill> skills)
