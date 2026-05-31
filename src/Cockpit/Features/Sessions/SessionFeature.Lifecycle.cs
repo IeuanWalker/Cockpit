@@ -156,6 +156,8 @@ public sealed partial class SessionFeature
 
 			_sdkSessionByokId[chatSession.Id] = chatSession.ByokConfigId;
 
+			_sessionListFeature.AddSession(chatSession);
+
 			await _modelFeature.SaveSessionModel(chatSession);
 			await _agentPersistence.SaveSessionAgent(chatSession);
 			await _sessionModePersistence.SaveSessionMode(chatSession);
