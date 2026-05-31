@@ -382,12 +382,7 @@ public sealed partial class SessionFeature
 		return true;
 	}
 
-	/// <param name="providerChanged">
-	/// When <see langword="true"/> the provider is changing (BYOK ↔ built-in) and a brand-new SDK
-	/// session must always be created via <c>CreateSessionAsync</c> even when the session already has
-	/// messages — resuming a BYOK session with a different provider routes to the wrong endpoint.
-	/// </param>
-	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, ProviderConfig? providerConfig = null, bool providerChanged = false, CancellationToken cancellationToken = default)
+	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -408,9 +403,7 @@ public sealed partial class SessionFeature
 			// Always pass null when a provider config is present so the SDK doesn't emit reasoning includes.
 			string? effectiveReasoningEffort = providerConfig is null ? newReasoningEffort : null;
 
-			// When the provider changes we must create a fresh session: resuming a BYOK session
-			// with Provider=null still routes to the original BYOK endpoint server-side.
-			bool hasMessages = chatSession?.Messages.Count > 0 && !providerChanged;
+			bool hasMessages = chatSession?.Messages.Count > 0;
 			if(hasMessages)
 			{
 				ResumeSessionConfig resumeConfig = new()
