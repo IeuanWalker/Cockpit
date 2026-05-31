@@ -23,15 +23,15 @@ public sealed partial class ElicitationRequestPanel : ComponentBase, IDisposable
 		_logger = logger;
 	}
 
-	// Expose as property so razor can reference it
-	ElicitationFeature ElicitationFeature => _elicitationFeature;
-
 	protected override void OnInitialized()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;
 	}
 
 	public ElicitationRequestModel? Request => _sessionListFeature.CurrentSession?.PendingElicitationRequests.Values.OrderBy(r => r.Requested).FirstOrDefault();
+
+	bool IsUrlOnly => Request?.Mode?.Value == ElicitationRequestedMode.Url.Value;
+	bool IsInline => IsUrlOnly || Request?.Fields.Length <= 4;
 
 	ElicitationFormPopup _formPopup = default!;
 

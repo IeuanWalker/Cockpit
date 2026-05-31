@@ -69,3 +69,7 @@
     .btn-elicitation-cancel:hover {
         color: #3b82f6;
     }
+
+.elicitation-inline-body {
+    border-top: 1px solid rgba(59, 130, 246, 0.15);
+}
