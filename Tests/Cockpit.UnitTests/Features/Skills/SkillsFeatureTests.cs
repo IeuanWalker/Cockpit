@@ -1,6 +1,9 @@
 using Cockpit.Features.Skills;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
 using Shouldly;
+
+#pragma warning disable GHCP001
 
 namespace Cockpit.UnitTests.Features.Skills;
 
@@ -19,9 +22,9 @@ public sealed class SkillsFeatureTests
 	{
 		List<Skill> skills =
 		[
-			new() { Name = "skill-a", Source = "project" },
-			new() { Name = "skill-b", Source = "builtin" },
-			new() { Name = "skill-c", Source = "user" },
+			new() { Name = "skill-a", Source = new SkillSource("project") },
+			new() { Name = "skill-b", Source = new SkillSource("builtin") },
+			new() { Name = "skill-c", Source = new SkillSource("user") },
 		];
 
 		IReadOnlyDictionary<string, List<Skill>> result = SkillsFeature.GroupBySource(skills);
@@ -37,8 +40,8 @@ public sealed class SkillsFeatureTests
 	{
 		List<Skill> skills =
 		[
-			new() { Name = "skill-a", Source = "project" },
-			new() { Name = "skill-b", Source = "Project" },
+			new() { Name = "skill-a", Source = new SkillSource("project") },
+			new() { Name = "skill-b", Source = new SkillSource("project") },
 		];
 
 		IReadOnlyDictionary<string, List<Skill>> result = SkillsFeature.GroupBySource(skills);
@@ -53,9 +56,9 @@ public sealed class SkillsFeatureTests
 	{
 		List<Skill> skills =
 		[
-			new() { Name = "skill-a", Source = string.Empty },
-			new() { Name = "skill-b", Source = "   " },
-			new() { Name = "skill-c", Source = "builtin" },
+			new() { Name = "skill-a" },
+			new() { Name = "skill-b" },
+			new() { Name = "skill-c", Source = new SkillSource("builtin") },
 		];
 
 		IReadOnlyDictionary<string, List<Skill>> result = SkillsFeature.GroupBySource(skills);

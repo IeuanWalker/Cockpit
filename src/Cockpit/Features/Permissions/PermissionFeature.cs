@@ -1,8 +1,9 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Permissions;
@@ -39,7 +40,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 		_logger = logger;
 	}
 
-	public async Task<PermissionRequestResult> HandlePermissionRequest(PermissionRequest request, PermissionInvocation invocation)
+	public async Task<PermissionDecision> HandlePermissionRequest(PermissionRequest request, PermissionInvocation invocation)
 	{
 		try
 		{
@@ -47,10 +48,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 			if(session is null)
 			{
 				_logger.LogWarning("SessionModel not found for SDK session {SessionId}", invocation.SessionId);
-				return new PermissionRequestResult
-				{
-					Kind = PermissionRequestResultKind.UserNotAvailable
-				};
+				return PermissionDecision.UserNotAvailable();
 			}
 
 			PermissionRequestModel permissionRequest = ToRequestModel(request, session);
@@ -60,17 +58,17 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 			// Check permission through our service
 			PermissionDecisionEnum decision = await CheckPermissionAsync(permissionRequest, session.IsYolo);
 
-			// Convert our decision to SDK format
-			PermissionRequestResultKind resultKind = decision == PermissionDecisionEnum.Denied ? PermissionRequestResultKind.Rejected : PermissionRequestResultKind.Approved;
+			_logger.LogInformation("Permission decision: {Decision} for {Commands}", decision, string.Join(", ", permissionRequest.Commands));
 
-			_logger.LogInformation("Permission decision: {Decision} for {Commands}", resultKind, string.Join(", ", permissionRequest.Commands));
-
-			return new PermissionRequestResult { Kind = resultKind };
+			// The app manages permission persistence (session/global scope) — tell the SDK to simply proceed or not.
+			return decision == PermissionDecisionEnum.Denied
+				? PermissionDecision.Reject("denied")
+				: PermissionDecision.ApproveOnce();
 		}
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Error in permission handler");
-			return new PermissionRequestResult { Kind = PermissionRequestResultKind.UserNotAvailable };
+			return PermissionDecision.UserNotAvailable();
 		}
 	}
 
@@ -88,10 +86,12 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 		{
 			session.PendingPermissionRequests.TryRemove(requestId, out _);
 
-			session.Status = session.PendingPermissionRequests.IsEmpty && session.PendingUserInputRequests.IsEmpty
+			session.Status = session.PendingPermissionRequests.IsEmpty && session.PendingUserInputRequests.IsEmpty && session.PendingElicitationRequests.IsEmpty
 				? session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle
 				: session.PendingPermissionRequests.IsEmpty
-					? SessionStatusEnum.NeedsUserInput
+					? !session.PendingUserInputRequests.IsEmpty
+						? SessionStatusEnum.NeedsUserInput
+						: SessionStatusEnum.NeedsElicitation
 					: SessionStatusEnum.NeedsPermission;
 		}
 
@@ -119,7 +119,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 
 			// Only push to history on the first blocking request (i.e. when not already in a blocking status).
 			// Subsequent concurrent requests see NeedsPermission/NeedsUserInput and skip the push, preventing duplicates.
-			if(session.Status is not SessionStatusEnum.NeedsPermission and not SessionStatusEnum.NeedsUserInput)
+			if(session.Status is not SessionStatusEnum.NeedsPermission and not SessionStatusEnum.NeedsUserInput and not SessionStatusEnum.NeedsElicitation)
 			{
 				session.StatusHistory.Push(session.Status);
 			}

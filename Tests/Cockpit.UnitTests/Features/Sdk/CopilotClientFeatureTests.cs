@@ -1,7 +1,6 @@
-﻿using Cockpit;
-using Cockpit.Features.Sdk;
+﻿using Cockpit.Features.Sdk;
 using Cockpit.UnitTests.Features.AppSettings;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 

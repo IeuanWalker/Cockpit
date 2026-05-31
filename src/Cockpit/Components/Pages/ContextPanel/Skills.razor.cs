@@ -1,6 +1,6 @@
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Skills;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot.Rpc;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;

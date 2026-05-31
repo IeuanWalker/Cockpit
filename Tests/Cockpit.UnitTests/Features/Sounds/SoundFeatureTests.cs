@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using Cockpit.Features.AppSettings;
+using Cockpit.Features.ElicitationRequests;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.SessionEvents.Handlers;
@@ -43,12 +44,14 @@ public class SoundFeatureTests
 		FakeAudioManager audioManager,
 		IAppSettingsFeature settings,
 		FakePermissionEventSource? permissionSource = null,
-		FakeUserInputEventSource? userInputSource = null)
+		FakeUserInputEventSource? userInputSource = null,
+		FakeElicitationEventSource? elicitationSource = null)
 	{
 		SoundFeature feature = new(
 			audioManager,
 			permissionSource ?? new FakePermissionEventSource(),
 			userInputSource ?? new FakeUserInputEventSource(),
+			elicitationSource ?? new FakeElicitationEventSource(),
 			settings,
 			NullLogger<SoundFeature>.Instance);
 
@@ -142,6 +145,7 @@ public class SoundFeatureTests
 			audioManager,
 			new FakePermissionEventSource(),
 			new FakeUserInputEventSource(),
+			new FakeElicitationEventSource(),
 			settings,
 			NullLogger<SoundFeature>.Instance);
 
@@ -197,6 +201,7 @@ public class SoundFeatureTests
 			new FakeAudioManager(),
 			new FakePermissionEventSource(),
 			new FakeUserInputEventSource(),
+			new FakeElicitationEventSource(),
 			settings,
 			NullLogger<SoundFeature>.Instance);
 
@@ -213,6 +218,7 @@ public class SoundFeatureTests
 			new FakeAudioManager(),
 			new FakePermissionEventSource(),
 			new FakeUserInputEventSource(),
+			new FakeElicitationEventSource(),
 			settings,
 			NullLogger<SoundFeature>.Instance);
 
@@ -353,6 +359,14 @@ sealed class FakeUserInputEventSource : IUserInputEventSource
 
 	public void RaiseUserInputRequested(string sessionId, UserInputRequestModel model) =>
 		OnUserInputRequested?.Invoke(sessionId, model);
+}
+
+sealed class FakeElicitationEventSource : IElicitationEventSource
+{
+	public event Action<string, ElicitationRequestModel>? OnElicitationRequested;
+
+	public void RaiseElicitationRequested(string sessionId, ElicitationRequestModel model) =>
+		OnElicitationRequested?.Invoke(sessionId, model);
 }
 
 sealed class FakeAudioManager : IAudioManager

@@ -3,7 +3,7 @@ using Cockpit.Features.Models;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.UnitTests.Features.AppSettings;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
@@ -49,8 +49,9 @@ public sealed class ModelFeatureTests : IDisposable
 		{
 			_configs = [.. configs];
 		}
-
+#pragma warning disable CS0067
 		public event Action? OnChanged;
+#pragma warning restore CS0067
 		public IReadOnlyList<ByokModelConfig> GetAll() => _configs;
 		public Task AddAsync(ByokModelConfig config) => Task.CompletedTask;
 		public Task RemoveAsync(string id) => Task.CompletedTask;

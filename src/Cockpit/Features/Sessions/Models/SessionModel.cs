@@ -1,7 +1,8 @@
 using System.Collections.Concurrent;
+using Cockpit.Features.ElicitationRequests;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.SessionEvents.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Cockpit.Features.UserInputRequests;
 
 namespace Cockpit.Features.Sessions.Models;
@@ -61,6 +62,12 @@ public class SessionModel
 	/// Key: request.Id, Value: UserInputRequestModel
 	/// </summary>
 	public ConcurrentDictionary<string, UserInputRequestModel> PendingUserInputRequests { get; set; } = new();
+
+	/// <summary>
+	/// Pending elicitation requests for this session (supports multiple concurrent requests)
+	/// Key: request.Id, Value: ElicitationRequestModel
+	/// </summary>
+	public ConcurrentDictionary<string, ElicitationRequestModel> PendingElicitationRequests { get; set; } = new();
 
 	/// <summary>
 	/// History of statuses before blocking requests (permission/user-input).

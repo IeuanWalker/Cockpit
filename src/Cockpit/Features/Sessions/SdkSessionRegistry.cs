@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 
 namespace Cockpit.Features.Sessions;
 
@@ -17,9 +17,9 @@ public sealed class SdkSessionRegistry
 	/// Registers an SDK session and subscribes <paramref name="onEvent"/> to its event stream.
 	/// Replaces any previously registered entry for the same session ID.
 	/// </summary>
-	public void Register(CopilotSession session, SessionEventHandler onEvent)
+	public void Register(CopilotSession session, Action<SessionEvent> onEvent)
 	{
-		session.On(onEvent);
+		session.On<SessionEvent>(onEvent);
 		_sessions[session.SessionId] = session;
 	}
 

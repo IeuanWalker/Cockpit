@@ -1,0 +1,93 @@
+@using Cockpit.Features.ElicitationRequests
+@using GitHub.Copilot
+
+<div class="ef-body">
+	@if(ShowMessage && !string.IsNullOrEmpty(Request.Message))
+	{
+		<p class="ef-message">@Request.Message</p>
+	}
+
+	@if(Request.Mode?.Value == ElicitationRequestedMode.Url.Value && !string.IsNullOrEmpty(Request.Url))
+	{
+		<div class="ef-url-section">
+			<p class="ef-url-label">Please visit the following URL to continue:</p>
+			<a href="@Request.Url" target="_blank" class="ef-url-link" rel="noopener noreferrer">@Request.Url</a>
+			<button type="button" class="ef-btn-open-browser" @onclick="OpenInBrowser">Open in Browser</button>
+		</div>
+	}
+	else if(Request.Fields.Length > 0)
+	{
+		<div class="ef-form">
+			@foreach(ElicitationSchemaField field in Request.Fields)
+			{
+				<div class="ef-field">
+					<label class="ef-label">
+						@(field.Title ?? field.FieldName)
+						@if(field.IsRequired)
+						{
+							<span class="ef-required">*</span>
+						}
+					</label>
+					@if(!string.IsNullOrEmpty(field.Description))
+					{
+						<p class="ef-field-desc">@field.Description</p>
+					}
+					@switch(field.Type)
+					{
+						case ElicitationFieldType.EnumString:
+							<select class="ef-input"
+							        value="@GetValue(field.FieldName)"
+							        @onchange="e => SetValue(field.FieldName, e.Value?.ToString() ?? string.Empty)">
+								<option value="">-- Select --</option>
+								@foreach(string option in field.EnumValues)
+								{
+									<option value="@option" selected="@(GetValue(field.FieldName) == option)">@option</option>
+								}
+							</select>
+							break;
+
+						case ElicitationFieldType.Boolean:
+							<div class="ef-checkbox-row">
+								<input type="checkbox"
+								       id="@($"field-{field.FieldName}")"
+								       class="ef-checkbox"
+								       checked="@GetBoolValue(field.FieldName)"
+								       @onchange="e => SetBoolValue(field.FieldName, (bool?)e.Value ?? false)" />
+								<label for="@($"field-{field.FieldName}")" class="ef-checkbox-label">@(field.Title ?? field.FieldName)</label>
+							</div>
+							break;
+
+						case ElicitationFieldType.Number:
+						case ElicitationFieldType.Integer:
+							<input type="number"
+							       class="ef-input"
+							       value="@GetValue(field.FieldName)"
+							       step="@(field.Type == ElicitationFieldType.Integer ? "1" : "any")"
+							       @oninput="e => SetValue(field.FieldName, e.Value?.ToString() ?? string.Empty)" />
+							break;
+
+						case ElicitationFieldType.String:
+							<input type="text"
+							       class="ef-input"
+							       value="@GetValue(field.FieldName)"
+							       maxlength="@(field.MaxLength?.ToString())"
+							       @oninput="e => SetValue(field.FieldName, e.Value?.ToString() ?? string.Empty)" />
+							break;
+
+						default:
+							<textarea class="ef-input ef-unsupported" disabled rows="2">Unsupported field type: @field.Type</textarea>
+							break;
+					}
+				</div>
+			}
+		</div>
+	}
+
+	<div class="ef-actions">
+		<button type="button" class="ef-btn-cancel" @onclick="OnCancel">Cancel</button>
+		<button type="button" class="ef-btn-decline" @onclick="OnDecline">Decline</button>
+		<button type="button" class="ef-btn-submit" @onclick="OnSubmit" disabled="@(!CanSubmit)">
+			@(Request.Mode?.Value == ElicitationRequestedMode.Url.Value ? "Accept" : "Submit")
+		</button>
+	</div>
+</div>

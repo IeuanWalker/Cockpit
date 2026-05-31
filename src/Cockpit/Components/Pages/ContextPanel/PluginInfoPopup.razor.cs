@@ -1,7 +1,7 @@
 using Cockpit.Components.Controls;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using SdkPlugin = GitHub.Copilot.SDK.Rpc.Plugin;
+using SdkPlugin = GitHub.Copilot.Rpc.Plugin;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 

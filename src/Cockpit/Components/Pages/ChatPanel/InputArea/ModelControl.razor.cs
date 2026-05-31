@@ -3,7 +3,7 @@ using Cockpit.Features.Byok;
 using Cockpit.Features.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ChatPanel.InputArea;
@@ -191,7 +191,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 			return "#999999";
 		}
 
-		double multiplier = model.Billing.Multiplier;
+		double multiplier = model.Billing.Multiplier ?? 0.0;
 
 		if(multiplier == 0)
 		{

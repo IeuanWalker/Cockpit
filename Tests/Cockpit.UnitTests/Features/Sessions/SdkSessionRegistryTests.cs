@@ -1,5 +1,5 @@
 using Cockpit.Features.Sessions;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Sessions;

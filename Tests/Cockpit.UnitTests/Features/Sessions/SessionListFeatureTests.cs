@@ -1,6 +1,6 @@
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
@@ -80,14 +80,13 @@ public class SessionListFeatureTests
 		SessionListFeature feature = CreateFeature();
 		SessionModel session = MakeSession("removed");
 		feature.AddSession(session);
-		int callCount = 0;
-		feature.OnStateChanged += () => callCount++;
+
+		TaskCompletionSource fired = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnStateChanged += () => fired.TrySetResult();
 
 		feature.RemoveSession(session.Id);
 
-		await Task.Delay(50, TestContext.Current.CancellationToken);
-
-		callCount.ShouldBe(1);
+		await fired.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 	}
 
 	[Fact]

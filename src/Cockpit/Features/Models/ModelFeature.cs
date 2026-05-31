@@ -1,6 +1,6 @@
 using Cockpit.Features.Byok;
 using Cockpit.Features.Sdk;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Models;

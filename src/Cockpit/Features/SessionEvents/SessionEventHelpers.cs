@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Cockpit.Extensions;
 using Cockpit.Features.SessionEvents.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 
 namespace Cockpit.Features.SessionEvents;
 

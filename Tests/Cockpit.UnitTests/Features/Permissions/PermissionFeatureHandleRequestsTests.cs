@@ -2,7 +2,8 @@ using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
@@ -502,6 +503,18 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 			ToolName = "pre-commit",
 			HookMessage = string.Empty
 		},
+		[typeof(PermissionRequestExtensionManagement)] = new PermissionRequestExtensionManagement
+		{
+			ExtensionName = "my-extension",
+			Operation = "scaffold",
+			ToolCallId = "tc1"
+		},
+		[typeof(PermissionRequestExtensionPermissionAccess)] = new PermissionRequestExtensionPermissionAccess
+		{
+			ExtensionName = "my-extension",
+			Capabilities = [],
+			ToolCallId = "tc1"
+		},
 	};
 
 	/// <summary>
@@ -554,13 +567,15 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 			feature.ResolvePermissionRequest(model.Id, PermissionDecisionEnum.Once);
 		};
 
-		PermissionRequestResult result = await feature.HandlePermissionRequest(request, new PermissionInvocation { SessionId = "session1" })
+#pragma warning disable GHCP001
+		PermissionDecision result = await feature.HandlePermissionRequest(request, new PermissionInvocation { SessionId = "session1" })
 			.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+#pragma warning restore GHCP001
 
 		// If ToRequestModel hits the default case with ThrowOnUnhandledPermissionType=true, the exception is
 		// caught inside HandlePermissionRequest and returns DeniedCouldNotRequestFromUser instead of firing
 		// OnPermissionRequested.
-		result.Kind.ShouldNotBe(PermissionRequestResultKind.UserNotAvailable,
+		result.GetType().Name.ShouldNotBe("PermissionDecisionUserNotAvailable",
 			$"SDK type '{typeName}' hit the unhandled default case in ToRequestModel. " +
 			$"Add a switch case for it in PermissionFeature.HandleRequests.cs.");
 

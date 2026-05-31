@@ -1,6 +1,8 @@
 using Cockpit.Features.Instructions;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot.Rpc;
 using Shouldly;
+
+#pragma warning disable GHCP001
 
 namespace Cockpit.UnitTests.Features.Instructions;
 

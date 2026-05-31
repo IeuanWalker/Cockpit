@@ -1,7 +1,7 @@
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Skills;
@@ -19,7 +19,6 @@ public sealed class SkillsFeature
 		_sessionListFeature = sessionListFeature;
 	}
 
-#pragma warning disable GHCP001
 	public async Task<List<Skill>> LoadSessionSkillsAsync(CopilotSession sdkSession, CancellationToken cancellationToken = default)
 	{
 		try
@@ -78,11 +77,10 @@ public sealed class SkillsFeature
 		session.Context.Skills = await LoadSessionSkillsAsync(sdkSession, cancellationToken);
 		_sessionListFeature.NotifyStateChanged();
 	}
-#pragma warning restore GHCP001
 
 	/// <summary>Groups skills by their source for display purposes.</summary>
 	public static IReadOnlyDictionary<string, List<Skill>> GroupBySource(IEnumerable<Skill> skills)
 		=> skills
-			.GroupBy(s => string.IsNullOrWhiteSpace(s.Source) ? "Unknown" : s.Source, StringComparer.OrdinalIgnoreCase)
+			.GroupBy(s => string.IsNullOrWhiteSpace(s.Source.Value) ? "Unknown" : s.Source.Value, StringComparer.OrdinalIgnoreCase)
 			.ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 }

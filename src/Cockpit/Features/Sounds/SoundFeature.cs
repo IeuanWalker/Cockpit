@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Cockpit.Features.AppSettings;
+using Cockpit.Features.ElicitationRequests;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.SessionEvents.Handlers;
@@ -14,6 +15,7 @@ public sealed partial class SoundFeature : IDisposable
 	readonly IAudioManager _audioManager;
 	readonly IPermissionEventSource _permissionEventSource;
 	readonly IUserInputEventSource _userInputEventSource;
+	readonly IElicitationEventSource _elicitationEventSource;
 	readonly IAppSettingsFeature _appSettings;
 	readonly ILogger<SoundFeature> _logger;
 	const long maxSoundFileSizeBytes = 10 * 1024 * 1024; // 10 MB
@@ -59,17 +61,20 @@ public sealed partial class SoundFeature : IDisposable
 		IAudioManager audioManager,
 		IPermissionEventSource permissionEventSource,
 		IUserInputEventSource userInputEventSource,
+		IElicitationEventSource elicitationEventSource,
 		IAppSettingsFeature appSettings,
 		ILogger<SoundFeature> logger)
 	{
 		_audioManager = audioManager;
 		_permissionEventSource = permissionEventSource;
 		_userInputEventSource = userInputEventSource;
+		_elicitationEventSource = elicitationEventSource;
 		_appSettings = appSettings;
 		_logger = logger;
 
 		_permissionEventSource.OnPermissionRequested += OnPermissionRequested;
 		_userInputEventSource.OnUserInputRequested += OnUserInputRequested;
+		_elicitationEventSource.OnElicitationRequested += OnElicitationRequested;
 		SessionIdleHandler.OnSessionFinished += OnSessionFinished;
 
 		_ = LoadAllSoundsAsync();
@@ -199,6 +204,9 @@ public sealed partial class SoundFeature : IDisposable
 	void OnUserInputRequested(string sessionId, UserInputRequestModel request) =>
 		_ = PlaySoundAsync(SoundEffectTypeEnum.UserInput);
 
+	void OnElicitationRequested(string sessionId, ElicitationRequestModel request) =>
+		_ = PlaySoundAsync(SoundEffectTypeEnum.UserInput);
+
 	void OnSessionFinished() => _ = PlaySoundAsync(SoundEffectTypeEnum.Finished);
 
 	/// <summary>
@@ -260,6 +268,7 @@ public sealed partial class SoundFeature : IDisposable
 	{
 		_permissionEventSource.OnPermissionRequested -= OnPermissionRequested;
 		_userInputEventSource.OnUserInputRequested -= OnUserInputRequested;
+		_elicitationEventSource.OnElicitationRequested -= OnElicitationRequested;
 		SessionIdleHandler.OnSessionFinished -= OnSessionFinished;
 	}
 }

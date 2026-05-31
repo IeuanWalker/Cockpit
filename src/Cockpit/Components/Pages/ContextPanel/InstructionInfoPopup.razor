@@ -1,6 +1,6 @@
 @using Cockpit.Components.Controls
 @using Cockpit.Features.Instructions
-@using GitHub.Copilot.SDK.Rpc
+@using GitHub.Copilot.Rpc
 
 <PopupBase @ref="_popup"
            Title="@($"Instructions ({_instructions.Count})")"
@@ -57,10 +57,10 @@
 							<div class="grid gap-x-4 gap-y-0.5" style="grid-template-columns: auto 1fr;">
 								<span class="secondary-text">Location</span>
 								<span style="color: var(--text-color);">@_selectedInstruction.Location</span>
-								@if(!string.IsNullOrWhiteSpace(_selectedInstruction.ApplyTo))
+								@if(_selectedInstruction.ApplyTo?.Count > 0)
 								{
 									<span class="secondary-text">Apply To</span>
-									<span style="color: var(--text-color);">@_selectedInstruction.ApplyTo</span>
+									<span style="color: var(--text-color);">@string.Join(", ", _selectedInstruction.ApplyTo)</span>
 								}
 								@if(!string.IsNullOrWhiteSpace(_selectedInstruction.Description))
 								{

@@ -2,7 +2,8 @@ using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
@@ -836,10 +837,12 @@ public class PermissionFeatureTests
 		};
 
 		// Act
-		PermissionRequestResult result = await feature.HandlePermissionRequest(shellRequest, invocation);
+#pragma warning disable GHCP001
+		PermissionDecision result = await feature.HandlePermissionRequest(shellRequest, invocation);
+#pragma warning restore GHCP001
 
 		// Assert
-		result.Kind.ShouldBe(PermissionRequestResultKind.UserNotAvailable);
+		result.GetType().Name.ShouldBe("PermissionDecisionUserNotAvailable");
 	}
 
 	[Fact]

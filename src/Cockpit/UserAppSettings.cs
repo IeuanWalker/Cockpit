@@ -200,7 +200,7 @@ public class UserAppSettings
 	}
 
 	/// <summary>
-	/// SDK CLI log level passed to <see cref="GitHub.Copilot.SDK.CopilotClientOptions.LogLevel"/>.
+	/// SDK CLI log level passed to <see cref="GitHub.Copilot.CopilotClientOptions.LogLevel"/>.
 	/// Valid values: "error", "warn", "info", "debug". Default is "info".
 	/// Requires client restart to take effect.
 	/// </summary>

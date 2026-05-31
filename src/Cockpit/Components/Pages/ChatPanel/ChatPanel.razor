@@ -1,4 +1,5 @@
 ﻿@using Cockpit.Components.Pages.ChatPanel
+@using Cockpit.Components.Pages.ChatPanel.ElicitationRequest
 @using Cockpit.Components.Pages.ChatPanel.InputArea
 @using Cockpit.Components.Pages.ChatPanel.Permissions
 @using Cockpit.Components.Pages.ChatPanel.Terminal
@@ -22,6 +23,10 @@
                         @:Permission required
                     }
                     else if(_sessionFeature.CurrentSession?.Status == SessionStatusEnum.NeedsUserInput)
+                    {
+                        @:Input requested
+                    }
+                    else if(_sessionFeature.CurrentSession?.Status == SessionStatusEnum.NeedsElicitation)
                     {
                         @:Input requested
                     }
@@ -60,6 +65,8 @@
 <ChatMessages />
 
 <UserInputRequestPanel />
+
+<ElicitationRequestPanel />
 
 <PermissionRequestPanel />
 

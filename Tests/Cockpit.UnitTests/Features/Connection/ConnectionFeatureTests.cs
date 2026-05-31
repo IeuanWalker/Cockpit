@@ -1,6 +1,6 @@
 using Cockpit.Features.Connection;
 using Cockpit.Features.Sdk;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
@@ -23,8 +23,9 @@ public class ConnectionFeatureTests
 
 		public Task<PingResponse?> PingAsync(CancellationToken cancellationToken = default)
 			=> _handler(cancellationToken);
-
+#pragma warning disable CS0067
 		public event Action<ConnectionState>? OnConnectionStateChanged;
+#pragma warning restore CS0067
 	}
 
 	static ConnectionFeature CreateFeature(Func<CancellationToken, Task<PingResponse?>> handler)

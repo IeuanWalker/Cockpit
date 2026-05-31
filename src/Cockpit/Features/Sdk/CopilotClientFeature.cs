@@ -1,6 +1,6 @@
-﻿using System.Net.Sockets;
+using System.Net.Sockets;
 using Cockpit.Utilities.Logging;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sdk;
@@ -35,7 +35,7 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 	/// <see cref="ConnectionState.Disconnected"/> when no client exists.
 	/// Uses a volatile read so the check is safe outside <see cref="_clientLock"/>.
 	/// </summary>
-	public ConnectionState State => _client?.State ?? ConnectionState.Disconnected;
+	public ConnectionState State => _client is not null ? ConnectionState.Connected : ConnectionState.Disconnected;
 
 	public CopilotClientFeature(ILogger<CopilotClientFeature> logger, UserAppSettings appSettings)
 	{
@@ -69,9 +69,7 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 
 			CopilotClientOptions options = new()
 			{
-				AutoStart = true,
-				LogLevel = _appSettings.SdkLogLevel,
-				UseStdio = true,
+				LogLevel = _appSettings.SdkLogLevel is string logLevel ? new CopilotLogLevel(logLevel) : null,
 				Logger = _logger,
 				SessionIdleTimeoutSeconds = sessionIdleTimeoutSeconds
 			};
@@ -97,7 +95,7 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 
 			_logger.LogInformation("CopilotClient started successfully");
 
-			notifyState = _client.State;
+			notifyState = ConnectionState.Connected;
 			return _client;
 		}
 		catch(OperationCanceledException)

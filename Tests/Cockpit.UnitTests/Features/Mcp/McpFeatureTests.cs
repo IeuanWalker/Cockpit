@@ -1,6 +1,6 @@
 using Cockpit.Features.Mcp;
 using Cockpit.Features.Sessions;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
@@ -10,44 +10,54 @@ public sealed class McpFeatureTests
 {
 	// ── GetStatusDisplayString ────────────────────────────────────────────────
 
-	[Theory]
-	[InlineData(McpServerStatus.Connected, "Connected")]
-	[InlineData(McpServerStatus.Failed, "Failed")]
-	[InlineData(McpServerStatus.NeedsAuth, "Needs Auth")]
-	[InlineData(McpServerStatus.Pending, "Pending")]
-	[InlineData(McpServerStatus.Disabled, "Disabled")]
-	[InlineData(McpServerStatus.NotConfigured, "Not Configured")]
-	public void GetStatusDisplayString_KnownStatus_ReturnsExpectedLabel(McpServerStatus status, string expected)
+	public static TheoryData<string, string> DisplayStringCases => new()
 	{
-		McpFeature.GetStatusDisplayString(status).ShouldBe(expected);
+		{ McpServerStatus.Connected.Value, "Connected" },
+		{ McpServerStatus.Failed.Value, "Failed" },
+		{ McpServerStatus.NeedsAuth.Value, "Needs Auth" },
+		{ McpServerStatus.Pending.Value, "Pending" },
+		{ McpServerStatus.Disabled.Value, "Disabled" },
+		{ McpServerStatus.NotConfigured.Value, "Not Configured" },
+	};
+
+	[Theory]
+	[MemberData(nameof(DisplayStringCases))]
+	public void GetStatusDisplayString_KnownStatus_ReturnsExpectedLabel(string statusValue, string expected)
+	{
+		McpFeature.GetStatusDisplayString(new McpServerStatus(statusValue)).ShouldBe(expected);
 	}
 
 	[Fact]
 	public void GetStatusDisplayString_UnknownStatus_FallsBackToToString()
 	{
-		McpServerStatus unknown = (McpServerStatus)999;
+		McpServerStatus unknown = new("999");
 
 		McpFeature.GetStatusDisplayString(unknown).ShouldBe("999");
 	}
 
 	// ── GetStatusColor ────────────────────────────────────────────────────────
 
-	[Theory]
-	[InlineData(McpServerStatus.Connected, "text-green-400")]
-	[InlineData(McpServerStatus.Failed, "text-red-400")]
-	[InlineData(McpServerStatus.Disabled, "secondary-text")]
-	[InlineData(McpServerStatus.NeedsAuth, "text-yellow-400")]
-	[InlineData(McpServerStatus.Pending, "text-yellow-400")]
-	[InlineData(McpServerStatus.NotConfigured, "text-yellow-400")]
-	public void GetStatusColor_KnownStatus_ReturnsExpectedCssClass(McpServerStatus status, string expectedClass)
+	public static TheoryData<string, string> StatusColorCases => new()
 	{
-		McpFeature.GetStatusColor(status).ShouldBe(expectedClass);
+		{ McpServerStatus.Connected.Value, "text-green-400" },
+		{ McpServerStatus.Failed.Value, "text-red-400" },
+		{ McpServerStatus.Disabled.Value, "secondary-text" },
+		{ McpServerStatus.NeedsAuth.Value, "text-yellow-400" },
+		{ McpServerStatus.Pending.Value, "text-yellow-400" },
+		{ McpServerStatus.NotConfigured.Value, "text-yellow-400" },
+	};
+
+	[Theory]
+	[MemberData(nameof(StatusColorCases))]
+	public void GetStatusColor_KnownStatus_ReturnsExpectedCssClass(string statusValue, string expectedClass)
+	{
+		McpFeature.GetStatusColor(new McpServerStatus(statusValue)).ShouldBe(expectedClass);
 	}
 
 	[Fact]
 	public void GetStatusColor_UnknownStatus_FallsBackToYellow()
 	{
-		McpServerStatus unknown = (McpServerStatus)999;
+		McpServerStatus unknown = new("999");
 
 		McpFeature.GetStatusColor(unknown).ShouldBe("text-yellow-400");
 	}
