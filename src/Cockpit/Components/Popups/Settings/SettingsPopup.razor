@@ -28,6 +28,12 @@
                     <span class="text-sm font-medium text-app-title">Input settings</span>
                     <span class="text-xs secondary-text">Enter behavior</span>
                 </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.PreviewFeatures ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.PreviewFeatures)"
+                        aria-label="Select Preview features settings section">
+                    <span class="text-sm font-medium text-app-title">Preview features</span>
+                    <span class="text-xs secondary-text">Experimental, canvas</span>
+                </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Voice ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.Voice)"
                         aria-label="Select Voice settings section">
@@ -57,12 +63,6 @@
                         aria-label="Select About settings section">
                     <span class="text-sm font-medium text-app-title">About app</span>
                     <span class="text-xs secondary-text">Version, updates, libraries</span>
-                </button>
-                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.PreviewFeatures ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSectionEnum.PreviewFeatures)"
-                        aria-label="Select Preview features settings section">
-                    <span class="text-sm font-medium text-app-title">Preview features</span>
-                    <span class="text-xs secondary-text">Experimental, canvas</span>
                 </button>
             </nav>
             <div class="settings-panel">

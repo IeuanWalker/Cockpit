@@ -1,3 +1,4 @@
+@using Cockpit.Components.Controls
 @using Cockpit.Features.Canvas
 
 <div class="canvas-root">
@@ -18,9 +19,9 @@
         </div>
 
         <div class="canvas-body">
-            @if(_instance.Input.HasValue)
+            @if(_markdownContent is not null)
             {
-                <pre class="canvas-json">@System.Text.Json.JsonSerializer.Serialize(_instance.Input.Value, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
+                <MarkdownRenderer Content="@_markdownContent" />
             }
             else
             {

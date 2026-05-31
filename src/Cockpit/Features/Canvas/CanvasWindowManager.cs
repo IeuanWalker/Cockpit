@@ -45,7 +45,7 @@ public sealed class CanvasWindowManager
 			InstanceId = request.InstanceId,
 			CanvasId = request.CanvasId,
 			SessionId = request.SessionId,
-			Title = request.CanvasId,
+			Title = TryExtractString(request.Input, "title") ?? request.CanvasId,
 			Input = request.Input
 		};
 
@@ -163,8 +163,23 @@ public sealed class CanvasWindowManager
 	/// </summary>
 	public void NotifyInstanceChanged(string instanceId) => OnInstanceChanged?.Invoke(instanceId);
 
-	Window BuildWindow(CanvasInstanceModel instance, bool isLightTheme)
+	static string? TryExtractString(JsonElement? element, string propertyName)
 	{
+		if(element is null || element.Value.ValueKind != JsonValueKind.Object)
+		{
+			return null;
+		}
+
+		if(element.Value.TryGetProperty(propertyName, out JsonElement prop)
+			&& prop.ValueKind == JsonValueKind.String)
+		{
+			return prop.GetString();
+		}
+
+		return null;
+	}
+
+	Window BuildWindow(CanvasInstanceModel instance, bool isLightTheme){
 		Color bg = isLightTheme ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
 		Color fg = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
 		string title = instance.Title ?? "Canvas";

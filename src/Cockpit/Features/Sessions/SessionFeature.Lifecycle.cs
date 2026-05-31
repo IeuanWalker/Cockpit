@@ -8,6 +8,7 @@ using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 using SdkPlugin = GitHub.Copilot.Rpc.Plugin;
 using SdkSessionMetadata = GitHub.Copilot.SessionMetadata;
 
@@ -136,7 +137,7 @@ public sealed partial class SessionFeature
 					{
 						Id = "cockpit-canvas",
 						DisplayName = "Cockpit Canvas",
-						Description = "Opens an interactive panel for rich content display and actions."
+						Description = "Opens a canvas window in the Cockpit UI for rich content display. When opening a canvas, the input MUST be a JSON object with a \"content\" field (string) containing Markdown-formatted content to display, and an optional \"title\" field (string) for the window title. Always populate \"content\" with the data you want to show — the canvas will render it as formatted Markdown."
 					}
 				];
 				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
@@ -266,7 +267,7 @@ public sealed partial class SessionFeature
 					{
 						Id = "cockpit-canvas",
 						DisplayName = "Cockpit Canvas",
-						Description = "Opens an interactive panel for rich content display and actions."
+						Description = "Opens a canvas window in the Cockpit UI for rich content display. When opening a canvas, the input MUST be a JSON object with a \"content\" field (string) containing Markdown-formatted content to display, and an optional \"title\" field (string) for the window title. Always populate \"content\" with the data you want to show — the canvas will render it as formatted Markdown."
 					}
 				];
 				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
@@ -470,7 +471,7 @@ public sealed partial class SessionFeature
 						{
 							Id = "cockpit-canvas",
 							DisplayName = "Cockpit Canvas",
-							Description = "Opens an interactive panel for rich content display and actions."
+							Description = "Opens a canvas window in the Cockpit UI for rich content display. When opening a canvas, the input MUST be a JSON object with a \"content\" field (string) containing Markdown-formatted content to display, and an optional \"title\" field (string) for the window title. Always populate \"content\" with the data you want to show — the canvas will render it as formatted Markdown."
 						}
 					];
 					resumeConfig.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
@@ -507,7 +508,7 @@ public sealed partial class SessionFeature
 						{
 							Id = "cockpit-canvas",
 							DisplayName = "Cockpit Canvas",
-							Description = "Opens an interactive panel for rich content display and actions."
+							Description = "Opens a canvas window in the Cockpit UI for rich content display. When opening a canvas, the input MUST be a JSON object with a \"content\" field (string) containing Markdown-formatted content to display, and an optional \"title\" field (string) for the window title. Always populate \"content\" with the data you want to show — the canvas will render it as formatted Markdown."
 						}
 					];
 					createConfig.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);

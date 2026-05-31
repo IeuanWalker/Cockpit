@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Cockpit.Features.Canvas;
 using Cockpit.Features.Theme;
 using Microsoft.AspNetCore.Components;
@@ -23,6 +24,7 @@ public sealed partial class CanvasRoot : ComponentBase, IDisposable
 
 	string? _instanceId;
 	CanvasInstanceModel? _instance;
+	string? _markdownContent;
 
 	protected override void OnInitialized()
 	{
@@ -43,6 +45,8 @@ public sealed partial class CanvasRoot : ComponentBase, IDisposable
 		{
 			_windowManager.OnInstanceChanged += OnInstanceChanged;
 		}
+
+		_markdownContent = ExtractMarkdownContent(_instance?.Input);
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -63,6 +67,7 @@ public sealed partial class CanvasRoot : ComponentBase, IDisposable
 		}
 
 		_instance = _windowManager.GetInstance(instanceId);
+		_markdownContent = ExtractMarkdownContent(_instance?.Input);
 		InvokeAsync(StateHasChanged);
 	}
 
@@ -84,6 +89,26 @@ public sealed partial class CanvasRoot : ComponentBase, IDisposable
 			await _jsRuntime.InvokeVoidAsync("cockpit.setAccentColor", _themeStateFeature.AccentColor, _themeStateFeature.AccentHoverColor);
 		}
 		catch { /* best-effort */ }
+	}
+
+	/// <summary>
+	/// Extracts the markdown <c>content</c> string from the agent-supplied input JSON.
+	/// Returns <see langword="null"/> if the field is absent or not a string.
+	/// </summary>
+	static string? ExtractMarkdownContent(JsonElement? input)
+	{
+		if(input is null || input.Value.ValueKind != JsonValueKind.Object)
+		{
+			return null;
+		}
+
+		if(input.Value.TryGetProperty("content", out JsonElement contentProp)
+			&& contentProp.ValueKind == JsonValueKind.String)
+		{
+			return contentProp.GetString();
+		}
+
+		return null;
 	}
 
 	public void Dispose()

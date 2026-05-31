@@ -3,16 +3,16 @@
 
 	<div class="diag-card">
 		<div class="diag-settings-grid">
-			<label class="diag-toggle-row">
+			<div class="flex items-center justify-between">
 				<div>
 					<div class="text-sm font-medium text-app-title">Canvas</div>
 					<div class="text-xs secondary-text">Enable canvas support — opens interactive windows during agent sessions. This is an experimental feature from the Copilot SDK and behaviour may change.</div>
 				</div>
-				<span class="diag-toggle-control">
+				<label class="diag-toggle-control ml-4 flex-shrink-0">
 					<input type="checkbox" @bind="_canvasEnabled" @bind:after="OnCanvasChanged" />
 					<span class="diag-toggle-track"></span>
-				</span>
-			</label>
+				</label>
+			</div>
 		</div>
 	</div>
 
