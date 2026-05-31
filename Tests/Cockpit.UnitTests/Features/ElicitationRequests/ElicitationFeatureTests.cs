@@ -326,7 +326,7 @@ public sealed class ElicitationFeatureTests
 			.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
 		result.Action.ShouldBe(UIElicitationResponseAction.Accept);
-		result.Content["name"].ShouldBe("Alice");
+		result.Content!["name"].ShouldBe("Alice");
 	}
 
 	[Fact]

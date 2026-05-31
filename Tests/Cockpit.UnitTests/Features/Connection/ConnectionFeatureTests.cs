@@ -23,8 +23,9 @@ public class ConnectionFeatureTests
 
 		public Task<PingResponse?> PingAsync(CancellationToken cancellationToken = default)
 			=> _handler(cancellationToken);
-
+#pragma warning disable CS0067
 		public event Action<ConnectionState>? OnConnectionStateChanged;
+#pragma warning restore CS0067
 	}
 
 	static ConnectionFeature CreateFeature(Func<CancellationToken, Task<PingResponse?>> handler)

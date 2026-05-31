@@ -568,7 +568,7 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 		};
 
 #pragma warning disable GHCP001
-		var result = await feature.HandlePermissionRequest(request, new PermissionInvocation { SessionId = "session1" })
+		PermissionDecision result = await feature.HandlePermissionRequest(request, new PermissionInvocation { SessionId = "session1" })
 			.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 #pragma warning restore GHCP001
 

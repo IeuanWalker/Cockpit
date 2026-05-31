@@ -5,8 +5,6 @@ using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
-#pragma warning disable GHCP001
-
 namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 
 public class AbortHandlerTests

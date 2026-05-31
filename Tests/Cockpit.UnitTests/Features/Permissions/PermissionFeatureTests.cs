@@ -838,7 +838,7 @@ public class PermissionFeatureTests
 
 		// Act
 #pragma warning disable GHCP001
-		var result = await feature.HandlePermissionRequest(shellRequest, invocation);
+		PermissionDecision result = await feature.HandlePermissionRequest(shellRequest, invocation);
 #pragma warning restore GHCP001
 
 		// Assert
