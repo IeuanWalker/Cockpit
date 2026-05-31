@@ -137,7 +137,17 @@ public sealed partial class SessionFeature
 					{
 						Id = "cockpit-canvas",
 						DisplayName = "Cockpit Canvas",
-						Description = "Opens a canvas window in the Cockpit UI for rich content display. When opening a canvas, the input MUST be a JSON object with a \"content\" field (string) containing Markdown-formatted content to display, and an optional \"title\" field (string) for the window title. Always populate \"content\" with the data you want to show — the canvas will render it as formatted Markdown."
+						Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Make the HTML rich and visual — cards, tables, badges, lists etc.",
+						InputSchema = System.Text.Json.JsonSerializer.SerializeToElement(new
+						{
+							type = "object",
+							required = new[] { "html" },
+							properties = new
+							{
+								html = new { type = "string", description = "Styled HTML rendered directly in the canvas window. Use inline styles with CSS vars: --bg-color, --sidebar-color, --border-color, --text-color, --title-color, --secondary-text, --accent-color for theming." },
+								title = new { type = "string", description = "Optional window title bar text." }
+							}
+						})
 					}
 				];
 				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
@@ -267,7 +277,17 @@ public sealed partial class SessionFeature
 					{
 						Id = "cockpit-canvas",
 						DisplayName = "Cockpit Canvas",
-						Description = "Opens a canvas window in the Cockpit UI for rich content display. When opening a canvas, the input MUST be a JSON object with a \"content\" field (string) containing Markdown-formatted content to display, and an optional \"title\" field (string) for the window title. Always populate \"content\" with the data you want to show — the canvas will render it as formatted Markdown."
+						Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Make the HTML rich and visual — cards, tables, badges, lists etc.",
+						InputSchema = System.Text.Json.JsonSerializer.SerializeToElement(new
+						{
+							type = "object",
+							required = new[] { "html" },
+							properties = new
+							{
+								html = new { type = "string", description = "Styled HTML rendered directly in the canvas window. Use inline styles with CSS vars: --bg-color, --sidebar-color, --border-color, --text-color, --title-color, --secondary-text, --accent-color for theming." },
+								title = new { type = "string", description = "Optional window title bar text." }
+							}
+						})
 					}
 				];
 				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
@@ -471,7 +491,17 @@ public sealed partial class SessionFeature
 						{
 							Id = "cockpit-canvas",
 							DisplayName = "Cockpit Canvas",
-							Description = "Opens a canvas window in the Cockpit UI for rich content display. When opening a canvas, the input MUST be a JSON object with a \"content\" field (string) containing Markdown-formatted content to display, and an optional \"title\" field (string) for the window title. Always populate \"content\" with the data you want to show — the canvas will render it as formatted Markdown."
+							Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Make the HTML rich and visual — cards, tables, badges, lists etc.",
+							InputSchema = System.Text.Json.JsonSerializer.SerializeToElement(new
+							{
+								type = "object",
+								required = new[] { "html" },
+								properties = new
+								{
+									html = new { type = "string", description = "Styled HTML rendered directly in the canvas window. Use inline styles with CSS vars: --bg-color, --sidebar-color, --border-color, --text-color, --title-color, --secondary-text, --accent-color for theming." },
+									title = new { type = "string", description = "Optional window title bar text." }
+								}
+							})
 						}
 					];
 					resumeConfig.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
@@ -508,7 +538,17 @@ public sealed partial class SessionFeature
 						{
 							Id = "cockpit-canvas",
 							DisplayName = "Cockpit Canvas",
-							Description = "Opens a canvas window in the Cockpit UI for rich content display. When opening a canvas, the input MUST be a JSON object with a \"content\" field (string) containing Markdown-formatted content to display, and an optional \"title\" field (string) for the window title. Always populate \"content\" with the data you want to show — the canvas will render it as formatted Markdown."
+							Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Use inline styles referencing CSS variables: --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color. Make the HTML rich and visual — cards, tables, badges, lists etc.",
+							InputSchema = System.Text.Json.JsonSerializer.SerializeToElement(new
+							{
+								type = "object",
+								required = new[] { "html" },
+								properties = new
+								{
+									html = new { type = "string", description = "Styled HTML rendered directly in the canvas window. Use inline styles with CSS vars: --bg-color, --sidebar-color, --border-color, --text-color, --title-color, --secondary-text, --accent-color for theming." },
+									title = new { type = "string", description = "Optional window title bar text." }
+								}
+							})
 						}
 					];
 					createConfig.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);

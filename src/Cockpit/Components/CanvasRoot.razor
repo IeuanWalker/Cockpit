@@ -1,5 +1,5 @@
-@using Cockpit.Components.Controls
 @using Cockpit.Features.Canvas
+@using Microsoft.AspNetCore.Components
 
 <div class="canvas-root">
     @if(_instance is null)
@@ -18,10 +18,10 @@
             }
         </div>
 
-        <div class="canvas-body">
-            @if(_markdownContent is not null)
+        <div class="canvas-body canvas-html-body">
+            @if(_htmlContent is not null)
             {
-                <MarkdownRenderer Content="@_markdownContent" />
+                @((MarkupString)_htmlContent)
             }
             else
             {
