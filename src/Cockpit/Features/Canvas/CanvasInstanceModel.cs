@@ -21,7 +21,7 @@ public sealed class CanvasInstanceModel
 	public string? Status { get; set; }
 
 	/// <summary>The agent-supplied input payload for this canvas instance.</summary>
-	public JsonElement? Input { get; init; }
+	public JsonElement? Input { get; set; }
 
 	/// <summary>
 	/// Per-instance splash feature. A new instance is created for each canvas window so

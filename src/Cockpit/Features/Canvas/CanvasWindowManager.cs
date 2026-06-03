@@ -40,12 +40,35 @@ public sealed class CanvasWindowManager
 	/// </summary>
 	public Task<CanvasProviderOpenResult> OpenAsync(CanvasProviderOpenRequest request, CancellationToken cancellationToken)
 	{
+		string title = TryExtractString(request.Input, "title") ?? request.CanvasId;
+
+		if(_instances.TryGetValue(request.InstanceId, out CanvasInstanceModel? existingInstance))
+		{
+			existingInstance.Title = title;
+			existingInstance.Input = request.Input;
+
+			if(existingInstance.Window is not null)
+			{
+				MainThread.BeginInvokeOnMainThread(() => ApplyWindowTitle(existingInstance.Window, title));
+			}
+
+			NotifyInstanceChanged(existingInstance.InstanceId);
+			_logger.LogInformation(
+				"Updated existing canvas window for instance {InstanceId} (canvasId={CanvasId}, session={SessionId})",
+				existingInstance.InstanceId, existingInstance.CanvasId, existingInstance.SessionId);
+
+			return Task.FromResult(new CanvasProviderOpenResult
+			{
+				Title = existingInstance.Title
+			});
+		}
+
 		CanvasInstanceModel instance = new()
 		{
 			InstanceId = request.InstanceId,
 			CanvasId = request.CanvasId,
 			SessionId = request.SessionId,
-			Title = TryExtractString(request.Input, "title") ?? request.CanvasId,
+			Title = title,
 			Input = request.Input
 		};
 
@@ -177,6 +200,18 @@ public sealed class CanvasWindowManager
 		}
 
 		return null;
+	}
+
+	static void ApplyWindowTitle(Window window, string? title)
+	{
+		string effectiveTitle = title ?? "Canvas";
+		window.Title = effectiveTitle;
+
+		if(window.TitleBar is TitleBar { LeadingContent: HorizontalStackLayout { Children.Count: > 1 } leadingContent }
+			&& leadingContent.Children[1] is Label titleLabel)
+		{
+			titleLabel.Text = effectiveTitle;
+		}
 	}
 
 	Window BuildWindow(CanvasInstanceModel instance, bool isLightTheme){

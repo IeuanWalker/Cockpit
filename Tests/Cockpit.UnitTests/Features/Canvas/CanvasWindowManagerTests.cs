@@ -95,6 +95,58 @@ public class CanvasWindowManagerTests
 		manager.GetInstance("inst-1").ShouldBe(inst);
 	}
 
+	[Fact]
+	public async Task OpenAsync_UpdatesExistingInstance_InsteadOfCreatingNewOne()
+	{
+		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances, ConcurrentQueue<string> pending) = Create();
+		CanvasInstanceModel existing = MakeInstance("inst-1");
+		Func<string, JsonElement?, CancellationToken, Task<object?>> callback = (_, _, _) => Task.FromResult<object?>(null);
+		existing.ActionCallback = callback;
+		instances[existing.InstanceId] = existing;
+
+		JsonElement input = JsonDocument.Parse("{\"title\":\"Updated title\",\"html\":\"<div>Updated</div>\"}").RootElement;
+		CanvasProviderOpenRequest request = new()
+		{
+			SessionId = existing.SessionId,
+			CanvasId = existing.CanvasId,
+			InstanceId = existing.InstanceId,
+			Input = input
+		};
+
+		CanvasProviderOpenResult result = await manager.OpenAsync(request, CancellationToken.None);
+
+		manager.GetInstance(existing.InstanceId).ShouldBeSameAs(existing);
+		existing.Title.ShouldBe("Updated title");
+		existing.Input.ShouldNotBeNull();
+		existing.Input?.GetProperty("html").GetString().ShouldBe("<div>Updated</div>");
+		existing.ActionCallback.ShouldBeSameAs(callback);
+		pending.IsEmpty.ShouldBeTrue();
+		result.Title.ShouldBe("Updated title");
+	}
+
+	[Fact]
+	public async Task OpenAsync_NotifiesSubscribers_WhenUpdatingExistingInstance()
+	{
+		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances, _) = Create();
+		CanvasInstanceModel existing = MakeInstance("inst-1");
+		instances[existing.InstanceId] = existing;
+		string? changedId = null;
+		manager.OnInstanceChanged += id => changedId = id;
+
+		JsonElement input = JsonDocument.Parse("{\"title\":\"Updated title\",\"html\":\"<div>Updated</div>\"}").RootElement;
+		CanvasProviderOpenRequest request = new()
+		{
+			SessionId = existing.SessionId,
+			CanvasId = existing.CanvasId,
+			InstanceId = existing.InstanceId,
+			Input = input
+		};
+
+		await manager.OpenAsync(request, CancellationToken.None);
+
+		changedId.ShouldBe(existing.InstanceId);
+	}
+
 	// -------------------------------------------------------------------------
 	// CloseAsync
 	// -------------------------------------------------------------------------
@@ -207,7 +259,7 @@ public class CanvasWindowManagerTests
 		instances["inst-B"] = MakeInstance("inst-B", sessionId: "sess-1");
 		instances["inst-C"] = MakeInstance("inst-C", sessionId: "sess-2");
 
-		await manager.CloseAllForSessionAsync("sess-1");
+		await manager.CloseAllForSessionAsync("sess-1", TestContext.Current.CancellationToken);
 
 		manager.GetInstance("inst-A").ShouldBeNull();
 		manager.GetInstance("inst-B").ShouldBeNull();
@@ -219,7 +271,7 @@ public class CanvasWindowManagerTests
 	{
 		(CanvasWindowManager manager, _, _) = Create();
 		// Should not throw
-		await manager.CloseAllForSessionAsync("nonexistent-session");
+		await manager.CloseAllForSessionAsync("nonexistent-session", TestContext.Current.CancellationToken);
 	}
 
 	// -------------------------------------------------------------------------
