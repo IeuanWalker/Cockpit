@@ -10,15 +10,7 @@
     }
     else
     {
-        <div class="canvas-header">
-            <h2 class="text-base font-semibold text-app-title">@_instance.Title</h2>
-            @if(_instance.Status is not null)
-            {
-                <p class="text-xs secondary-text canvas-status">@_instance.Status</p>
-            }
-        </div>
-
-        <div class="canvas-body canvas-html-body">
+        <div class="canvas-body canvas-html-body scrollbar-thin">
             @if(_htmlContent is null)
             {
                 <p class="secondary-text text-sm">Canvas ready.</p>
