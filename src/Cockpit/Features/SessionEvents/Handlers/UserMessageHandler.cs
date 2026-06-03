@@ -73,7 +73,7 @@ static class UserMessageHandler
 		session.Status = SessionStatusEnum.Running;
 	}
 
-	static List<AttachmentModel>? ConvertAttachments(UserMessageAttachment[]? items)
+	static List<AttachmentModel>? ConvertAttachments(Attachment[]? items)
 	{
 		if(items is null || items.Length == 0)
 		{
@@ -81,9 +81,9 @@ static class UserMessageHandler
 		}
 
 		List<AttachmentModel> result = [];
-		foreach(UserMessageAttachment item in items)
+		foreach(Attachment item in items)
 		{
-			if(item is UserMessageAttachmentFile file)
+			if(item is AttachmentFile file)
 			{
 				string filePath = file.Path ?? string.Empty;
 				string fileName = file.DisplayName ?? Path.GetFileName(filePath);
@@ -94,7 +94,7 @@ static class UserMessageHandler
 
 				result.Add(new AttachmentModel(fileName, filePath, null, mimeType));
 			}
-			else if(item is UserMessageAttachmentDirectory dir)
+			else if(item is AttachmentDirectory dir)
 			{
 				string dirPath = dir.Path ?? string.Empty;
 				string dirName = dir.DisplayName ?? Path.GetFileName(dirPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));

@@ -134,7 +134,7 @@ public sealed partial class SessionFeature
 			}
 			_sessionListFeature.NotifyStateChanged();
 
-			List<UserMessageAttachment>? sdkAttachments = null;
+			List<Attachment>? sdkAttachments = null;
 			if(attachments?.Count > 0)
 			{
 				sdkAttachments = [];
@@ -142,7 +142,7 @@ public sealed partial class SessionFeature
 				{
 					if(attachment.IsDirectory)
 					{
-						sdkAttachments.Add(new UserMessageAttachmentDirectory
+						sdkAttachments.Add(new AttachmentDirectory
 						{
 							DisplayName = attachment.FileName,
 							Path = attachment.FilePath
@@ -150,7 +150,7 @@ public sealed partial class SessionFeature
 					}
 					else
 					{
-						sdkAttachments.Add(new UserMessageAttachmentFile
+						sdkAttachments.Add(new AttachmentFile
 						{
 							DisplayName = attachment.FileName,
 							Path = attachment.FilePath
