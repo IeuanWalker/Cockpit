@@ -1,0 +1,80 @@
+@using Cockpit.Features.SystemMessage
+
+<div class="settings-section">
+    <h4 class="text-sm font-semibold text-app-title mb-3">Copilot Settings</h4>
+
+    <div class="flex flex-col gap-3">
+        @foreach((string key, string displayName, string description) in sections)
+        {
+            SystemMessageSectionSetting setting = GetSectionSetting(key);
+
+            <div class="copilot-settings-section-card">
+                <div>
+                    <div class="text-sm font-medium text-app-title">@displayName</div>
+                    <div class="text-xs secondary-text">@description</div>
+                </div>
+
+                <select class="copilot-settings-select"
+                        value="@setting.Action"
+                        @onchange="e => OnActionChanged(key, e)">
+                    <option value="@SystemMessageOverrideAction.None">None (use default)</option>
+                    <option value="@SystemMessageOverrideAction.Replace">Replace</option>
+                    <option value="@SystemMessageOverrideAction.Remove">Remove</option>
+                    <option value="@SystemMessageOverrideAction.Append">Append</option>
+                    <option value="@SystemMessageOverrideAction.Prepend">Prepend</option>
+                </select>
+
+                @if(setting.Action != SystemMessageOverrideAction.None && setting.Action != SystemMessageOverrideAction.Remove)
+                {
+                    <textarea class="copilot-settings-textarea"
+                              rows="4"
+                              value="@setting.Content"
+                              @onchange="e => OnContentChanged(key, e)"></textarea>
+                }
+
+                <div>
+                    <button class="text-xs secondary-text flex items-center gap-1"
+                            @onclick="() => ToggleDefaultExpanded(key)"
+                            aria-label="Toggle default content for @displayName">
+                        <svg class="w-3 h-3 transition-transform @(_expandedDefaults.Contains(key) ? "rotate-180" : "")"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Default content
+                    </button>
+
+                    @if(_expandedDefaults.Contains(key))
+                    {
+                        @if(_systemMessageFeature.DefaultsLoaded && _systemMessageFeature.Defaults.TryGetValue(key, out string? defaultContent))
+                        {
+                            <div class="copilot-settings-default-content mt-1">@defaultContent</div>
+                        }
+                        else if(_systemMessageFeature.DefaultsLoaded)
+                        {
+                            <div class="copilot-settings-default-content mt-1">(No default content for this section)</div>
+                        }
+                        else
+                        {
+                            <div class="text-xs secondary-text mt-1">Defaults loading…</div>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    @if(_showRestartWarning)
+    {
+        <div class="settings-restart-warning mt-3">
+            <div class="settings-restart-warning-icon">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+            </div>
+            <div class="settings-restart-warning-content">
+                <div class="settings-restart-warning-title">Restart required</div>
+                <div class="text-xs secondary-text">Restart the app for this change to take full effect.</div>
+            </div>
+        </div>
+    }
+</div>

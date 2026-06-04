@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.MessageMode;
+using Cockpit.Features.SystemMessage;
 using Cockpit.Features.TextToSpeech;
 using Cockpit.Features.Theme;
 
@@ -41,6 +43,7 @@ public class UserAppSettings
 		internal const string telemetryEnabled = "TelemetryEnabled";
 		internal const string keepAlive = "KeepAlive";
 		internal const string canvasEnabled = "CanvasEnabled";
+		internal const string systemMessageSectionOverrides = "SystemMessageSectionOverrides";
 	}
 
 	readonly IPreferencesStorage _preferences;
@@ -238,5 +241,29 @@ public class UserAppSettings
 	{
 		get => _preferences.Get(Keys.canvasEnabled, true);
 		set => _preferences.Set(Keys.canvasEnabled, value);
+	}
+
+	/// <summary>
+	/// Per-section system message overrides, serialised as JSON.
+	/// </summary>
+	public Dictionary<string, SystemMessageSectionSetting> SystemMessageSectionOverrides
+	{
+		get
+		{
+			string? json = _preferences.Get<string?>(Keys.systemMessageSectionOverrides, null);
+			if (string.IsNullOrEmpty(json))
+			{
+				return [];
+			}
+			try
+			{
+				return JsonSerializer.Deserialize<Dictionary<string, SystemMessageSectionSetting>>(json) ?? [];
+			}
+			catch
+			{
+				return [];
+			}
+		}
+		set => _preferences.Set(Keys.systemMessageSectionOverrides, JsonSerializer.Serialize(value));
 	}
 }

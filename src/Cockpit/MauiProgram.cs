@@ -29,6 +29,7 @@ using Cockpit.Features.Theme;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
 using Cockpit.Features.Byok;
+using Cockpit.Features.SystemMessage;
 using Cockpit.Features.Updates;
 using Cockpit.Features.UserInputRequests;
 using Cockpit.Utilities.Logging;
@@ -129,6 +130,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<SessionListFeature>();
 		builder.Services.AddSingleton<ISessionStateProvider>(sp => sp.GetRequiredService<SessionListFeature>());
 		builder.Services.AddSingleton<SessionFeature>();
+		builder.Services.AddSingleton<ISystemMessageFeature, SystemMessageFeature>();
 
 		// Keep Alive
 #if WINDOWS
@@ -182,6 +184,12 @@ public static class MauiProgram
 		builder.Services.AddSingleton<PluginsFeature>();
 
 		MauiApp app = builder.Build();
+
+		// Clean up any leftover internal probe sessions from previous runs
+		SystemMessageFeature.CleanupInternalSessionsDirectory();
+
+		// Eagerly resolve so the warm-up probe starts as soon as the client connects
+		app.Services.GetRequiredService<ISystemMessageFeature>();
 
 		// Initialize features
 		app.Services.GetRequiredService<UpdateFeature>().Initialize();

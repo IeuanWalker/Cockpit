@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using Blazor.Sonner.Services;
-using Cockpit.Features.Canvas;
 using Cockpit.Features.Agents;
 using Cockpit.Features.AppSettings;
+using Cockpit.Features.Canvas;
 using Cockpit.Features.ElicitationRequests;
 using Cockpit.Features.Git;
 using Cockpit.Features.Hooks;
@@ -13,7 +13,6 @@ using Cockpit.Features.Permissions;
 using Cockpit.Features.Plugins;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
-using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Skills;
