@@ -71,7 +71,14 @@ partial class CopilotSettings : ComponentBase, IDisposable
 	void SaveSectionSetting(string key, SystemMessageSectionSetting setting)
 	{
 		Dictionary<string, SystemMessageSectionSetting> overrides = _appSettingsFeature.SystemMessageSectionOverrides;
-		overrides[key] = setting;
+		if(setting.Action == SystemMessageOverrideAction.None && string.IsNullOrWhiteSpace(setting.Content))
+		{
+			overrides.Remove(key);
+		}
+		else
+		{
+			overrides[key] = setting;
+		}
 		_appSettingsFeature.SystemMessageSectionOverrides = overrides;
 		_showRestartWarning = true;
 	}
