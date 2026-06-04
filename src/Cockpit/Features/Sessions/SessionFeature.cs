@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Blazor.Sonner.Services;
+using Cockpit.Features.Canvas;
 using Cockpit.Features.Agents;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.ElicitationRequests;
@@ -46,6 +47,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly PluginsFeature _pluginsFeature;
 	readonly IAppSettingsFeature _appSettingsFeature;
 	readonly SessionHooksFactory _hooksFactory;
+	readonly CanvasWindowManager _canvasWindowManager;
 
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
@@ -68,7 +70,8 @@ public sealed partial class SessionFeature : IDisposable
 		SkillsFeature skillsFeature,
 		PluginsFeature pluginsFeature,
 		IAppSettingsFeature appSettingsFeature,
-		SessionHooksFactory hooksFactory)
+		SessionHooksFactory hooksFactory,
+		CanvasWindowManager canvasWindowManager)
 	{
 		_clientFeature = clientFeature;
 		_logger = logger;
@@ -91,6 +94,7 @@ public sealed partial class SessionFeature : IDisposable
 		_pluginsFeature = pluginsFeature;
 		_appSettingsFeature = appSettingsFeature;
 		_hooksFactory = hooksFactory;
+		_canvasWindowManager = canvasWindowManager;
 
 		_clientFeature.OnConnectionStateChanged += HandleConnectionStateChanged;
 		StartEvictionLoop();

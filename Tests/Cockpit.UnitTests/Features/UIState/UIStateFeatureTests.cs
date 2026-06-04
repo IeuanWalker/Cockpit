@@ -681,4 +681,5 @@ sealed class MockAppSettings : IAppSettingsFeature
 	public string SoundUserInputCustomFileName { get; set; } = string.Empty;
 	public string SoundFinishedCustomFileName { get; set; } = string.Empty;
 	public bool KeepAlive { get; set; }
+	public bool CanvasEnabled { get; set; } = true;
 }

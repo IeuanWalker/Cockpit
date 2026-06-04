@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Cockpit.Features.Agents.Models;
+using Cockpit.Features.Canvas;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
@@ -124,6 +126,18 @@ public sealed partial class SessionFeature
 				Provider = providerConfig
 			};
 
+			if(_appSettingsFeature.CanvasEnabled)
+			{
+				config.RequestCanvasRenderer = true;
+				config.RequestExtensions = true;
+				config.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+				config.Canvases =
+				[
+					CreateCockpitCanvasDeclaration()
+				];
+				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+			}
+
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.CreateSessionAsync(config);
 			_sdkRegistry.Register(sdkSession, evt =>
@@ -236,6 +250,18 @@ public sealed partial class SessionFeature
 				Hooks = _hooksFactory.CreateHooks(session.Model.Id, effectiveReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
 				Provider = providerConfig
 			};
+
+			if(_appSettingsFeature.CanvasEnabled)
+			{
+				config.RequestCanvasRenderer = true;
+				config.RequestExtensions = true;
+				config.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+				config.Canvases =
+				[
+					CreateCockpitCanvasDeclaration()
+				];
+				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+			}
 
 			session.SdkState = SdkSessionStateEnum.Loading;
 			_sessionListFeature.NotifyStateChanged();
@@ -424,6 +450,17 @@ public sealed partial class SessionFeature
 					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
 					Provider = providerConfig
 				};
+				if(_appSettingsFeature.CanvasEnabled)
+				{
+					resumeConfig.RequestCanvasRenderer = true;
+					resumeConfig.RequestExtensions = true;
+					resumeConfig.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+					resumeConfig.Canvases =
+					[
+						CreateCockpitCanvasDeclaration()
+					];
+					resumeConfig.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+				}
 				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
 			}
 			else
@@ -445,6 +482,17 @@ public sealed partial class SessionFeature
 					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
 					Provider = providerConfig
 				};
+				if(_appSettingsFeature.CanvasEnabled)
+				{
+					createConfig.RequestCanvasRenderer = true;
+					createConfig.RequestExtensions = true;
+					createConfig.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+					createConfig.Canvases =
+					[
+						CreateCockpitCanvasDeclaration()
+					];
+					createConfig.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+				}
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
 
 				if(chatSession is not null)
@@ -509,6 +557,7 @@ public sealed partial class SessionFeature
 			_userInputHandler.CancelPendingRequestsForSession(sessionId);
 			_permissionHandler.CancelPendingRequestsForSession(sessionId);
 			_elicitationHandler.CancelPendingRequestsForSession(sessionId);
+			await _canvasWindowManager.CloseAllForSessionAsync(sessionId, cancellationToken);
 
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
 			await client.DeleteSessionAsync(sessionId, cancellationToken);
@@ -686,4 +735,26 @@ public sealed partial class SessionFeature
 		session.Context.Skills = skillsTask.Result;
 		session.Context.Plugins = pluginsTask.Result;
 	}
+
+	static CanvasDeclaration CreateCockpitCanvasDeclaration()
+		=> new()
+		{
+			Id = "cockpit-canvas",
+			DisplayName = "Cockpit Canvas",
+			Description = "Opens a visual canvas window. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Content is rendered inside a sandboxed iframe (allow-scripts only) — scripts execute but have no access to the parent window, storage, or navigation. Tailwind CSS v3 is available (all utilities) and script tags execute in insertion order. External CDN script tags are NOT supported (the sandbox blocks network requests from the null origin); use only inline scripts and the preloaded libraries (Chart.js, Mermaid). CSS vars --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color, --sidebar-color, --hover-color are available for theming. Provide: \"html\" (required) rich interactive HTML; \"title\" (optional) window title.",
+			InputSchema = JsonSerializer.SerializeToElement(new
+			{
+				type = "object",
+				required = new[] { "html" },
+				properties = new
+				{
+					html = new
+					{
+						type = "string",
+						description = "Rich HTML rendered in a sandboxed iframe inside the canvas window. The sandbox allows script execution but blocks access to the parent window, cookies, storage, forms, popups, and navigation. The native window chrome already displays the canvas title, so do not duplicate it in the HTML unless you intentionally want a separate in-content heading. Tailwind CSS v3 and Cockpit app.css classes are available: bg-app-bg, bg-app-sidebar, border-app-border, bg-app-hover, bg-app-active, text-app-text, text-app-title, secondary-text, accent-btn, scrollbar-thin. Mermaid (strict security level) and Chart.js are preloaded locally — do NOT add CDN script tags for these or any other external libraries (the sandboxed iframe has a null origin and cannot fetch external resources). For Mermaid, use <div class=\"mermaid\">...</div> instead of markdown fences or raw code blocks. For Chart.js, create a canvas element and instantiate new Chart(...) in a following inline script; maintainAspectRatio is always enforced to true and cannot be overridden — do NOT set maintainAspectRatio to false. Inline scripts run in insertion order. CSS vars --bg-color, --sidebar-color, --border-color, --hover-color, --active-color, --text-color, --title-color, --secondary-text, --accent-color, --button-bg, --button-hover are available for theming."
+					},
+					title = new { type = "string", description = "Optional window title bar text." }
+				}
+			})
+		};
 }

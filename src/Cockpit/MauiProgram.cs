@@ -2,6 +2,7 @@ using System.Text;
 using Blazor.Sonner.Extensions;
 using Blazor.Sonner.Services;
 using Cockpit.Features.Agents;
+using Cockpit.Features.Canvas;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Connection;
 using Cockpit.Features.Git;
@@ -110,6 +111,7 @@ public static class MauiProgram
 		builder.Services.AddSingleton<TelemetryDashboardSplashFeature>();
 		builder.Services.AddSingleton<EditedFilesSplashFeature>();
 		builder.Services.AddSingleton<EditedFilesWindowService>();
+		builder.Services.AddSingleton<CanvasWindowManager>();
 		builder.Services.AddSingleton<TelemetryFileService>();
 
 		// Copilot SDK and Permissions

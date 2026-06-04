@@ -40,6 +40,7 @@ public class UserAppSettings
 		internal const string sdkLogLevel = "SdkLogLevel";
 		internal const string telemetryEnabled = "TelemetryEnabled";
 		internal const string keepAlive = "KeepAlive";
+		internal const string canvasEnabled = "CanvasEnabled";
 	}
 
 	readonly IPreferencesStorage _preferences;
@@ -227,5 +228,15 @@ public class UserAppSettings
 	{
 		get => _preferences.Get(Keys.keepAlive, true);
 		set => _preferences.Set(Keys.keepAlive, value);
+	}
+
+	/// <summary>
+	/// When enabled, sessions declare canvas support to the Copilot SDK so the agent
+	/// can open interactive canvas windows. Requires app restart to take effect.
+	/// </summary>
+	public bool CanvasEnabled
+	{
+		get => _preferences.Get(Keys.canvasEnabled, true);
+		set => _preferences.Set(Keys.canvasEnabled, value);
 	}
 }

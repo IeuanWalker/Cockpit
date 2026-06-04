@@ -1,0 +1,24 @@
+@using Cockpit.Features.Canvas
+@using Microsoft.AspNetCore.Components
+
+<div class="canvas-root">
+    @if(_instance is null)
+    {
+        <div class="canvas-loading">
+            <p class="secondary-text text-sm">Loading canvas…</p>
+        </div>
+    }
+    else
+    {
+        <div class="canvas-body canvas-html-body scrollbar-thin">
+            @if(_htmlContent is null)
+            {
+                <p class="secondary-text text-sm">Canvas ready.</p>
+            }
+            else
+            {
+                <div @ref="_canvasBodyRef" class="canvas-html-container"></div>
+            }
+        </div>
+    }
+</div>

@@ -1,4 +1,5 @@
 using Cockpit.Features.Splash;
+using Cockpit.Features.Canvas;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Splash;
@@ -25,6 +26,19 @@ public class SplashSubclassTests
 	public void LogViewerSplashFeature_NotifyBlazorReady_FiresOnce()
 	{
 		LogViewerSplashFeature feature = new();
+		int callCount = 0;
+		feature.OnBlazorReady += () => callCount++;
+
+		feature.NotifyBlazorReady();
+		feature.NotifyBlazorReady();
+
+		callCount.ShouldBe(1);
+	}
+
+	[Fact]
+	public void CanvasSplashFeature_NotifyBlazorReady_FiresOnce()
+	{
+		CanvasSplashFeature feature = new();
 		int callCount = 0;
 		feature.OnBlazorReady += () => callCount++;
 

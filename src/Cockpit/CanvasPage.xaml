@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<local:SecondaryWindowPage x:Class="Cockpit.CanvasPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:Cockpit"
+             xmlns:components="clr-namespace:Cockpit.Components">
+
+    <Grid>
+        <BlazorWebView x:Name="blazorWebView"
+                       HostPage="wwwroot/index.html" />
+
+        <Grid x:Name="splashOverlay"
+              BackgroundColor="#181818"
+              ZIndex="1000">
+            <VerticalStackLayout HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Spacing="0">
+                <Image Source="logo.png"
+                       WidthRequest="72"
+                       HeightRequest="72"
+                       HorizontalOptions="Center" />
+                <Label Text="Cockpit"
+                       TextColor="White"
+                       FontSize="22"
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center"
+                       Margin="0,14,0,0" />
+                <ActivityIndicator IsRunning="True"
+                                   Color="#0078D4"
+                                   WidthRequest="28"
+                                   HeightRequest="28"
+                                   Margin="0,28,0,0"
+                                   HorizontalOptions="Center" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+
+</local:SecondaryWindowPage>
