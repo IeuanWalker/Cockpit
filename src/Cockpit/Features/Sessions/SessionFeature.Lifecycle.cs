@@ -6,6 +6,7 @@ using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
+using Cockpit.Features.SystemMessage;
 using GitHub.Copilot;
 using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging;
@@ -136,6 +137,29 @@ public sealed partial class SessionFeature
 					CreateCockpitCanvasDeclaration()
 				];
 				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+			}
+
+			// Apply system message section overrides if any are configured
+			Dictionary<string, SystemMessageSectionSetting> overrides = _appSettingsFeature.SystemMessageSectionOverrides;
+			if(overrides.Count > 0)
+			{
+				Dictionary<SystemMessageSection, SectionOverride> sections = [];
+				foreach(KeyValuePair<string, SystemMessageSectionSetting> kvp in overrides)
+				{
+					SectionOverride? sectionOverride = MapToSectionOverride(kvp.Value);
+					if(sectionOverride is not null)
+					{
+						sections[new SystemMessageSection(kvp.Key)] = sectionOverride;
+					}
+				}
+				if(sections.Count > 0)
+				{
+					config.SystemMessage = new SystemMessageConfig
+					{
+						Mode = SystemMessageMode.Customize,
+						Sections = sections
+					};
+				}
 			}
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -735,6 +759,16 @@ public sealed partial class SessionFeature
 		session.Context.Skills = skillsTask.Result;
 		session.Context.Plugins = pluginsTask.Result;
 	}
+
+	static SectionOverride? MapToSectionOverride(SystemMessageSectionSetting setting)
+		=> setting.Action switch
+		{
+			SystemMessageOverrideAction.Replace => new SectionOverride { Action = SectionOverrideAction.Replace, Content = setting.Content },
+			SystemMessageOverrideAction.Remove  => new SectionOverride { Action = SectionOverrideAction.Remove },
+			SystemMessageOverrideAction.Append  => new SectionOverride { Action = SectionOverrideAction.Append, Content = setting.Content },
+			SystemMessageOverrideAction.Prepend => new SectionOverride { Action = SectionOverrideAction.Prepend, Content = setting.Content },
+			_                                   => null  // None → skip
+		};
 
 	static CanvasDeclaration CreateCockpitCanvasDeclaration()
 		=> new()
