@@ -92,15 +92,15 @@ sealed class SystemMessageFeature : ISystemMessageFeature
 			};
 
 			CopilotSession session = await client.CreateSessionAsync(config, _cts.Token);
-
+			await using CopilotSession session = await client.CreateSessionAsync(config, _cts.Token);
 			// The CLI only calls systemMessage.transform when processing the first message,
 			// not at session creation. Send a minimal prompt to trigger the callbacks.
 			await session.SendAsync(new MessageOptions { Prompt = "." }, _cts.Token);
 
 			// Wait for the CLI to call systemMessage.transform (all sections arrive in one batch).
 			using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(
-				_cts.Token, new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token);
-			try
+			using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(30));
+			using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, timeout.Token);
 			{
 				await transformReceived.Task.WaitAsync(timeoutCts.Token);
 			}
@@ -110,8 +110,6 @@ sealed class SystemMessageFeature : ISystemMessageFeature
 			}
 
 			await session.DisposeAsync();
-
-			_defaults = captured;
 			DefaultsLoaded = true;
 			OnDefaultsLoaded?.Invoke();
 
