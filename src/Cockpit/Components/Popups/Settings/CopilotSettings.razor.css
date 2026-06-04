@@ -1,67 +1,67 @@
 .copilot-settings-section-card {
-	padding: 0.75rem;
-	border: 1px solid var(--border-color);
-	border-radius: 0.5rem;
-	background: var(--hover-color);
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    background: var(--hover-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .copilot-settings-select {
-	background: var(--bg-color);
-	color: var(--text-color);
-	border: 1px solid var(--border-color);
-	border-radius: 0.375rem;
-	padding: 0.375rem 0.5rem;
-	font-size: 0.75rem;
-	width: 100%;
+    background: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.75rem;
+    width: 100%;
 }
 
 .copilot-settings-textarea {
-	width: 100%;
-	background: var(--bg-color);
-	color: var(--text-color);
-	border: 1px solid var(--border-color);
-	border-radius: 0.375rem;
-	padding: 0.5rem;
-	font-size: 0.75rem;
-	resize: vertical;
-	font-family: monospace;
+    width: 100%;
+    background: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    font-size: 0.75rem;
+    resize: vertical;
+    font-family: monospace;
 }
 
 .copilot-settings-default-content {
-	font-size: 0.7rem;
-	color: var(--secondary-text-color);
-	background: var(--bg-color);
-	border: 1px solid var(--border-color);
-	border-radius: 0.375rem;
-	padding: 0.5rem;
-	white-space: pre-wrap;
-	font-family: monospace;
-	max-height: 8rem;
-	overflow-y: auto;
-	scrollbar-width: thin;
-	scrollbar-color: var(--border-color) transparent;
+    font-size: 0.7rem;
+    color: var(--secondary-text-color);
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    white-space: pre-wrap;
+    font-family: monospace;
+    max-height: 8rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
 }
 
-.copilot-settings-default-content::-webkit-scrollbar {
-	width: 4px;
-}
+    .copilot-settings-default-content::-webkit-scrollbar {
+        width: 4px;
+    }
 
-.copilot-settings-default-content::-webkit-scrollbar-corner {
-	background: transparent;
-}
+    .copilot-settings-default-content::-webkit-scrollbar-corner {
+        background: transparent;
+    }
 
-.copilot-settings-default-content::-webkit-scrollbar-track {
-	background: transparent;
-}
+    .copilot-settings-default-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
 
-.copilot-settings-default-content::-webkit-scrollbar-thumb {
-	background: var(--border-color);
-	border-radius: 4px;
-}
+    .copilot-settings-default-content::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+    }
 
-.copilot-settings-default-content::-webkit-scrollbar-thumb:hover {
-	background: var(--hover-color);
-}
+        .copilot-settings-default-content::-webkit-scrollbar-thumb:hover {
+            background: var(--hover-color);
+        }

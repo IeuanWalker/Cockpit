@@ -7,8 +7,7 @@ namespace Cockpit.Features.SystemMessage;
 
 sealed class SystemMessageFeature : ISystemMessageFeature
 {
-	static readonly string _internalSessionsDir =
-	Path.Combine(FileSystem.Current.AppDataDirectory, "InternalSessions");
+	static readonly string internalSessionsDir = Path.Combine(FileSystem.Current.AppDataDirectory, "InternalSessions");
 
 	readonly CopilotClientFeature _clientFeature;
 	readonly IModelFeature _modelFeature;
@@ -70,7 +69,7 @@ sealed class SystemMessageFeature : ISystemMessageFeature
 
 			SessionConfig config = new()
 			{
-				ConfigDirectory = _internalSessionsDir,
+				ConfigDirectory = internalSessionsDir,
 				Model = cheapestModel,
 				SystemMessage = new SystemMessageConfig
 				{
@@ -146,9 +145,9 @@ sealed class SystemMessageFeature : ISystemMessageFeature
 	{
 		try
 		{
-			if(Directory.Exists(_internalSessionsDir))
+			if(Directory.Exists(internalSessionsDir))
 			{
-				Directory.Delete(_internalSessionsDir, recursive: true);
+				Directory.Delete(internalSessionsDir, recursive: true);
 			}
 		}
 		catch(Exception)

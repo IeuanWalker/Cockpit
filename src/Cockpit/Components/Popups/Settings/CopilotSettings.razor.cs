@@ -6,7 +6,7 @@ namespace Cockpit.Components.Popups.Settings;
 
 partial class CopilotSettings : ComponentBase, IDisposable
 {
-	static readonly (string Key, string DisplayName, string Description)[] _sections =
+	static readonly (string Key, string DisplayName, string Description)[] sections =
 	[
 		("identity",             "Identity",             "Agent identity preamble and mode statement"),
 		("tone",                 "Tone",                 "Response style, conciseness rules, output formatting preferences"),
@@ -31,7 +31,7 @@ partial class CopilotSettings : ComponentBase, IDisposable
 	}
 
 	bool _showRestartWarning;
-	HashSet<string> _expandedDefaults = [];
+	readonly HashSet<string> _expandedDefaults = [];
 
 	protected override void OnInitialized()
 	{
@@ -51,7 +51,7 @@ partial class CopilotSettings : ComponentBase, IDisposable
 
 	protected virtual void Dispose(bool disposing)
 	{
-		if (disposing)
+		if(disposing)
 		{
 			_systemMessageFeature.OnDefaultsLoaded -= OnDefaultsLoaded;
 		}
@@ -60,7 +60,7 @@ partial class CopilotSettings : ComponentBase, IDisposable
 	SystemMessageSectionSetting GetSectionSetting(string key)
 	{
 		Dictionary<string, SystemMessageSectionSetting> overrides = _appSettingsFeature.SystemMessageSectionOverrides;
-		if (overrides.TryGetValue(key, out SystemMessageSectionSetting? setting))
+		if(overrides.TryGetValue(key, out SystemMessageSectionSetting? setting))
 		{
 			return setting;
 		}
@@ -78,7 +78,7 @@ partial class CopilotSettings : ComponentBase, IDisposable
 
 	void OnActionChanged(string key, ChangeEventArgs e)
 	{
-		if (!Enum.TryParse(e.Value?.ToString(), out SystemMessageOverrideAction action))
+		if(!Enum.TryParse(e.Value?.ToString(), out SystemMessageOverrideAction action))
 		{
 			return;
 		}
@@ -103,7 +103,7 @@ partial class CopilotSettings : ComponentBase, IDisposable
 
 	void ToggleDefaultExpanded(string key)
 	{
-		if (!_expandedDefaults.Remove(key))
+		if(!_expandedDefaults.Remove(key))
 		{
 			_expandedDefaults.Add(key);
 		}
