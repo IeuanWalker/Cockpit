@@ -1,5 +1,7 @@
+using Cockpit.Components;
 using Cockpit.Features.Canvas;
 using Cockpit.Features.Splash;
+using Microsoft.AspNetCore.Components.WebView.Maui;
 
 namespace Cockpit;
 
@@ -12,6 +14,17 @@ public partial class CanvasPage : SecondaryWindowPage
 		InstanceId = instanceId;
 		_canvasWindowManager = canvasWindowManager;
 		InitializeComponent();
+
+		blazorWebView.RootComponents.Add(new RootComponent
+		{
+			Selector = "#app",
+			ComponentType = typeof(CanvasRoot),
+			Parameters = new Dictionary<string, object?>
+			{
+				{ nameof(CanvasRoot.InstanceId), instanceId }
+			}
+		});
+
 		InitializeSplash(splashOverlay, splashFeature);
 	}
 

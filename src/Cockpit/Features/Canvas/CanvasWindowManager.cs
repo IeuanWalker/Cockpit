@@ -19,13 +19,6 @@ public sealed class CanvasWindowManager
 
 	readonly ConcurrentDictionary<string, CanvasInstanceModel> _instances = new();
 
-	/// <summary>
-	/// FIFO queue of instance IDs for in-flight window opens.
-	/// Enqueued before <see cref="Application.OpenWindow"/> is called; dequeued by the
-	/// newly-created <see cref="CanvasRoot"/> component during its initialization.
-	/// </summary>
-	readonly ConcurrentQueue<string> _pendingInstanceIds = new();
-
 	public event Action<string>? OnInstanceChanged;
 
 	public CanvasWindowManager(ThemeStateFeature themeStateFeature, ILogger<CanvasWindowManager> logger)
@@ -73,7 +66,6 @@ public sealed class CanvasWindowManager
 		};
 
 		_instances[instance.InstanceId] = instance;
-		_pendingInstanceIds.Enqueue(instance.InstanceId);
 		_logger.LogInformation(
 			"Opening canvas window for instance {InstanceId} (canvasId={CanvasId}, session={SessionId})",
 			instance.InstanceId, instance.CanvasId, instance.SessionId);
@@ -90,8 +82,6 @@ public sealed class CanvasWindowManager
 			{
 				_logger.LogError(ex, "Failed to open canvas window for instance {InstanceId}", instance.InstanceId);
 				_instances.TryRemove(instance.InstanceId, out _);
-				// Also drain the stale ID from the pending queue so it doesn't block the next valid open.
-				_pendingInstanceIds.TryDequeue(out _);
 			}
 		});
 
@@ -152,13 +142,6 @@ public sealed class CanvasWindowManager
 
 		return await instance.ActionCallback(request.ActionName, request.Input, cancellationToken);
 	}
-
-	/// <summary>
-	/// Called by a newly-initialised <see cref="CanvasRoot"/> component to claim the instance
-	/// ID that was enqueued immediately before its window was opened.
-	/// </summary>
-	public string? ClaimPendingInstanceId()
-		=> _pendingInstanceIds.TryDequeue(out string? id) ? id : null;
 
 	/// <summary>Looks up a canvas instance by ID, for use by Blazor canvas components.</summary>
 	public CanvasInstanceModel? GetInstance(string instanceId)

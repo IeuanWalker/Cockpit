@@ -6,11 +6,8 @@
              xmlns:components="clr-namespace:Cockpit.Components">
 
     <Grid>
-        <BlazorWebView HostPage="wwwroot/index.html">
-            <BlazorWebView.RootComponents>
-                <RootComponent ComponentType="{x:Type components:CanvasRoot}" Selector="#app" />
-            </BlazorWebView.RootComponents>
-        </BlazorWebView>
+        <BlazorWebView x:Name="blazorWebView"
+                       HostPage="wwwroot/index.html" />
 
         <Grid x:Name="splashOverlay"
               BackgroundColor="#181818"

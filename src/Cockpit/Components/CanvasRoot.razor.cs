@@ -22,7 +22,13 @@ public sealed partial class CanvasRoot : ComponentBase, IDisposable
 		_jsRuntime = jsRuntime;
 	}
 
-	string? _instanceId;
+	/// <summary>
+	/// The canvas instance ID passed from <see cref="CanvasPage"/> via
+	/// <see cref="Microsoft.AspNetCore.Components.WebView.Maui.RootComponent.Parameters"/>.
+	/// </summary>
+	[Parameter]
+	public string? InstanceId { get; set; }
+
 	CanvasInstanceModel? _instance;
 	string? _htmlContent;
 	ElementReference _canvasBodyRef;
@@ -30,21 +36,9 @@ public sealed partial class CanvasRoot : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		// Skip any stale IDs whose instances were removed (e.g. due to a window-open failure).
-		do
+		if(InstanceId is not null)
 		{
-			_instanceId = _windowManager.ClaimPendingInstanceId();
-			if(_instanceId is null)
-			{
-				break;
-			}
-
-			_instance = _windowManager.GetInstance(_instanceId);
-		}
-		while(_instance is null);
-
-		if(_instanceId is not null)
-		{
+			_instance = _windowManager.GetInstance(InstanceId);
 			_windowManager.OnInstanceChanged += OnInstanceChanged;
 		}
 
@@ -66,13 +60,16 @@ public sealed partial class CanvasRoot : ComponentBase, IDisposable
 		else if(_contentChanged)
 		{
 			_contentChanged = false;
-			await SetCanvasContentAsync();
+			if(_htmlContent is not null)
+			{
+				await SetCanvasContentAsync();
+			}
 		}
 	}
 
 	void OnInstanceChanged(string instanceId)
 	{
-		if(instanceId != _instanceId)
+		if(instanceId != InstanceId)
 		{
 			return;
 		}

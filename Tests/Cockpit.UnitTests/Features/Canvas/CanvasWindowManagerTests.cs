@@ -21,7 +21,7 @@ namespace Cockpit.UnitTests.Features.Canvas;
 /// </summary>
 public class CanvasWindowManagerTests
 {
-	static (CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances, ConcurrentQueue<string> pendingIds) Create()
+	static (CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances) Create()
 	{
 		IAppSettingsFeature settings = new AppSettingsFeature(new UserAppSettings(new InMemoryPreferencesStorage()));
 		ThemeStateFeature theme = new(settings);
@@ -32,47 +32,11 @@ public class CanvasWindowManagerTests
 				.GetField("_instances", BindingFlags.NonPublic | BindingFlags.Instance)!
 				.GetValue(manager)!;
 
-		ConcurrentQueue<string> pendingIds = (ConcurrentQueue<string>)
-			typeof(CanvasWindowManager)
-				.GetField("_pendingInstanceIds", BindingFlags.NonPublic | BindingFlags.Instance)!
-				.GetValue(manager)!;
-
-		return (manager, instances, pendingIds);
+		return (manager, instances);
 	}
 
 	static CanvasInstanceModel MakeInstance(string instanceId = "inst-1", string canvasId = "cockpit-canvas", string sessionId = "sess-1")
 		=> new() { InstanceId = instanceId, CanvasId = canvasId, SessionId = sessionId };
-
-	// -------------------------------------------------------------------------
-	// ClaimPendingInstanceId
-	// -------------------------------------------------------------------------
-
-	[Fact]
-	public void ClaimPendingInstanceId_ReturnsNull_WhenQueueIsEmpty()
-	{
-		(CanvasWindowManager manager, _, _) = Create();
-		manager.ClaimPendingInstanceId().ShouldBeNull();
-	}
-
-	[Fact]
-	public void ClaimPendingInstanceId_ReturnsId_AfterEnqueue()
-	{
-		(CanvasWindowManager manager, _, ConcurrentQueue<string> pending) = Create();
-		pending.Enqueue("my-instance");
-		manager.ClaimPendingInstanceId().ShouldBe("my-instance");
-	}
-
-	[Fact]
-	public void ClaimPendingInstanceId_Dequeues_InFifoOrder()
-	{
-		(CanvasWindowManager manager, _, ConcurrentQueue<string> pending) = Create();
-		pending.Enqueue("inst-A");
-		pending.Enqueue("inst-B");
-
-		manager.ClaimPendingInstanceId().ShouldBe("inst-A");
-		manager.ClaimPendingInstanceId().ShouldBe("inst-B");
-		manager.ClaimPendingInstanceId().ShouldBeNull();
-	}
 
 	// -------------------------------------------------------------------------
 	// GetInstance
@@ -81,14 +45,14 @@ public class CanvasWindowManagerTests
 	[Fact]
 	public void GetInstance_ReturnsNull_WhenNotRegistered()
 	{
-		(CanvasWindowManager manager, _, _) = Create();
+		(CanvasWindowManager manager, _) = Create();
 		manager.GetInstance("unknown").ShouldBeNull();
 	}
 
 	[Fact]
 	public void GetInstance_Returns_RegisteredInstance()
 	{
-		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances, _) = Create();
+		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances) = Create();
 		CanvasInstanceModel inst = MakeInstance("inst-1");
 		instances["inst-1"] = inst;
 
@@ -98,7 +62,7 @@ public class CanvasWindowManagerTests
 	[Fact]
 	public async Task OpenAsync_UpdatesExistingInstance_InsteadOfCreatingNewOne()
 	{
-		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances, ConcurrentQueue<string> pending) = Create();
+		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances) = Create();
 		CanvasInstanceModel existing = MakeInstance("inst-1");
 		Func<string, JsonElement?, CancellationToken, Task<object?>> callback = (_, _, _) => Task.FromResult<object?>(null);
 		existing.ActionCallback = callback;
@@ -120,14 +84,13 @@ public class CanvasWindowManagerTests
 		existing.Input.ShouldNotBeNull();
 		existing.Input?.GetProperty("html").GetString().ShouldBe("<div>Updated</div>");
 		existing.ActionCallback.ShouldBeSameAs(callback);
-		pending.IsEmpty.ShouldBeTrue();
 		result.Title.ShouldBe("Updated title");
 	}
 
 	[Fact]
 	public async Task OpenAsync_NotifiesSubscribers_WhenUpdatingExistingInstance()
 	{
-		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances, _) = Create();
+		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances) = Create();
 		CanvasInstanceModel existing = MakeInstance("inst-1");
 		instances[existing.InstanceId] = existing;
 		string? changedId = null;
@@ -154,7 +117,7 @@ public class CanvasWindowManagerTests
 	[Fact]
 	public async Task CloseAsync_Succeeds_WhenInstanceNotFound()
 	{
-		(CanvasWindowManager manager, _, _) = Create();
+		(CanvasWindowManager manager, _) = Create();
 		// Should not throw; no-op for unknown instance
 		await manager.CloseAsync("nonexistent", CancellationToken.None);
 	}
@@ -162,7 +125,7 @@ public class CanvasWindowManagerTests
 	[Fact]
 	public async Task CloseAsync_RemovesInstance_WhenNoWindow()
 	{
-		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances, _) = Create();
+		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances) = Create();
 		CanvasInstanceModel inst = MakeInstance("inst-1");
 		instances["inst-1"] = inst;
 
@@ -178,7 +141,7 @@ public class CanvasWindowManagerTests
 	[Fact]
 	public async Task InvokeActionAsync_ThrowsCanvasException_WhenInstanceUnknown()
 	{
-		(CanvasWindowManager manager, _, _) = Create();
+		(CanvasWindowManager manager, _) = Create();
 
 		CanvasProviderInvokeActionRequest request = new()
 		{
@@ -196,7 +159,7 @@ public class CanvasWindowManagerTests
 	[Fact]
 	public async Task InvokeActionAsync_ThrowsCanvasException_WhenNoCallbackRegistered()
 	{
-		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances, _) = Create();
+		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances) = Create();
 		CanvasInstanceModel inst = MakeInstance();
 		instances[inst.InstanceId] = inst;
 
@@ -216,7 +179,7 @@ public class CanvasWindowManagerTests
 	[Fact]
 	public async Task InvokeActionAsync_InvokesCallback_WithCorrectArguments()
 	{
-		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances, _) = Create();
+		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances) = Create();
 		string? receivedAction = null;
 		JsonElement? receivedInput = null;
 
@@ -254,7 +217,7 @@ public class CanvasWindowManagerTests
 	[Fact]
 	public async Task CloseAllForSessionAsync_RemovesAllInstancesForSession()
 	{
-		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances, _) = Create();
+		(CanvasWindowManager manager, ConcurrentDictionary<string, CanvasInstanceModel> instances) = Create();
 		instances["inst-A"] = MakeInstance("inst-A", sessionId: "sess-1");
 		instances["inst-B"] = MakeInstance("inst-B", sessionId: "sess-1");
 		instances["inst-C"] = MakeInstance("inst-C", sessionId: "sess-2");
@@ -269,7 +232,7 @@ public class CanvasWindowManagerTests
 	[Fact]
 	public async Task CloseAllForSessionAsync_Succeeds_WhenNoInstancesForSession()
 	{
-		(CanvasWindowManager manager, _, _) = Create();
+		(CanvasWindowManager manager, _) = Create();
 		// Should not throw
 		await manager.CloseAllForSessionAsync("nonexistent-session", TestContext.Current.CancellationToken);
 	}
@@ -281,7 +244,7 @@ public class CanvasWindowManagerTests
 	[Fact]
 	public void NotifyInstanceChanged_FiresEvent_WithCorrectId()
 	{
-		(CanvasWindowManager manager, _, _) = Create();
+		(CanvasWindowManager manager, _) = Create();
 		string? received = null;
 		manager.OnInstanceChanged += id => received = id;
 
@@ -293,7 +256,7 @@ public class CanvasWindowManagerTests
 	[Fact]
 	public void NotifyInstanceChanged_DoesNotThrow_WhenNoSubscribers()
 	{
-		(CanvasWindowManager manager, _, _) = Create();
+		(CanvasWindowManager manager, _) = Create();
 		Should.NotThrow(() => manager.NotifyInstanceChanged("inst-1"));
 	}
 }
