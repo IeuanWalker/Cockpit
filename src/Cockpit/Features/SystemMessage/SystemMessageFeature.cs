@@ -61,10 +61,11 @@ sealed class SystemMessageFeature : ISystemMessageFeature
 				.FirstOrDefault()?.Id
 				?? models.FirstOrDefault()?.Id;
 
-			Dictionary<string, string> captured = new();
+			Dictionary<string, string> captured = [];
 
 			// The CLI calls systemMessage.transform after CreateSessionAsync returns,
-			// as a separate RPC. Signal this TCS on the first callback so we know to stop waiting.
+			// as a separate RPC triggered by the first message. Signal this TCS on the
+			// first callback so we know all sections have arrived (they come in one batch).
 			TaskCompletionSource transformReceived = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
 			SessionConfig config = new()
@@ -91,17 +92,17 @@ sealed class SystemMessageFeature : ISystemMessageFeature
 				}
 			};
 
-			CopilotSession session = await client.CreateSessionAsync(config, _cts.Token);
 			await using CopilotSession session = await client.CreateSessionAsync(config, _cts.Token);
+
 			// The CLI only calls systemMessage.transform when processing the first message,
 			// not at session creation. Send a minimal prompt to trigger the callbacks.
 			await session.SendAsync(new MessageOptions { Prompt = "." }, _cts.Token);
 
 			// Wait for the CLI to call systemMessage.transform (all sections arrive in one batch).
-			using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(
-			using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(30));
-			using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, timeout.Token);
+			try
 			{
+				using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(30));
+				using CancellationTokenSource timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, timeout.Token);
 				await transformReceived.Task.WaitAsync(timeoutCts.Token);
 			}
 			catch(OperationCanceledException)
@@ -109,7 +110,7 @@ sealed class SystemMessageFeature : ISystemMessageFeature
 				_logger.LogWarning("Timed out waiting for system message transform callbacks; captured {Count} sections", captured.Count);
 			}
 
-			await session.DisposeAsync();
+			_defaults = captured;
 			DefaultsLoaded = true;
 			OnDefaultsLoaded?.Invoke();
 
@@ -128,12 +129,12 @@ sealed class SystemMessageFeature : ISystemMessageFeature
 	}
 
 	static Func<string, Task<string>> CaptureAndReturn(Dictionary<string, string> captured, string key, TaskCompletionSource transformReceived)
-	=> content =>
-	{
-		captured[key] = content;
-		transformReceived.TrySetResult();
-		return Task.FromResult(content);
-	};
+		=> content =>
+		{
+			captured[key] = content;
+			transformReceived.TrySetResult();
+			return Task.FromResult(content);
+		};
 
 	/// <summary>
 	/// Deletes the internal probe sessions directory left from previous runs.
@@ -154,3 +155,4 @@ sealed class SystemMessageFeature : ISystemMessageFeature
 		}
 	}
 }
+

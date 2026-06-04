@@ -78,4 +78,5 @@ sealed class MockAppSettingsFeature : IAppSettingsFeature
 	public string SoundFinishedCustomFileName { get; set; } = "";
 	public bool KeepAlive { get; set; }
 	public bool CanvasEnabled { get; set; } = true;
+	public Dictionary<string, Cockpit.Features.SystemMessage.SystemMessageSectionSetting> SystemMessageSectionOverrides { get; set; } = [];
 }
