@@ -1086,16 +1086,46 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
 
 .canvas-body {
     flex: 1;
-    overflow-y: auto;
-    padding: 16px;
-    scrollbar-color: var(--border-color) var(--sidebar-color);
-}
-
-.canvas-html-body {
-    overflow-y: auto;
+    overflow: hidden;
+    position: relative;
 }
 
 .canvas-html-container {
-    min-height: 100%;
-    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* Inside the sandboxed iframe, override the host-inherited overflow:hidden
+   so the iframe body scrolls normally. */
+.canvas-sandbox-body {
+    overflow: auto !important;
+    height: 100%;
+    padding: 16px;
+    box-sizing: border-box;
+    scrollbar-color: var(--border-color) var(--sidebar-color);
+}
+
+.canvas-sandbox-body::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.canvas-sandbox-body::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+.canvas-sandbox-body::-webkit-scrollbar-track {
+    background: var(--sidebar-color);
+}
+
+.canvas-sandbox-body::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 0px;
+}
+
+.canvas-sandbox-body::-webkit-scrollbar-thumb:hover {
+    background: var(--hover-color);
 }
