@@ -58,6 +58,12 @@
                     <span class="text-sm font-medium text-app-title">Diagnostics</span>
                     <span class="text-xs secondary-text">Logs, telemetry, report an issue</span>
                 </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.CopilotSettings ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.CopilotSettings)"
+                        aria-label="Select Copilot Settings section">
+                    <span class="text-sm font-medium text-app-title">Copilot Settings</span>
+                    <span class="text-xs secondary-text">System message, sections</span>
+                </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.About ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.About)"
                         aria-label="Select About settings section">
@@ -88,6 +94,9 @@
                         break;
                     case SettingsSectionEnum.Diagnostics:
                         <DiagnosticsSettings />
+                        break;
+                    case SettingsSectionEnum.CopilotSettings:
+                        <CopilotSettings />
                         break;
                     case SettingsSectionEnum.About:
                         <AboutSettings />

@@ -188,6 +188,9 @@ public static class MauiProgram
 		// Clean up any leftover internal probe sessions from previous runs
 		SystemMessageFeature.CleanupInternalSessionsDirectory();
 
+		// Eagerly resolve so the warm-up probe starts as soon as the client connects
+		app.Services.GetRequiredService<ISystemMessageFeature>();
+
 		// Initialize features
 		app.Services.GetRequiredService<UpdateFeature>().Initialize();
 		app.Services.GetRequiredService<SoundFeature>();

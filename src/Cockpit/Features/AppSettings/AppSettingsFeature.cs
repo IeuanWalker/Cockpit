@@ -1,4 +1,5 @@
 using Cockpit.Features.MessageMode;
+using Cockpit.Features.SystemMessage;
 using Cockpit.Features.Theme;
 
 namespace Cockpit.Features.AppSettings;
@@ -160,5 +161,11 @@ public sealed class AppSettingsFeature : IAppSettingsFeature
 	{
 		get => _settings.CanvasEnabled;
 		set => _settings.CanvasEnabled = value;
+	}
+
+	public Dictionary<string, SystemMessageSectionSetting> SystemMessageSectionOverrides
+	{
+		get => _settings.SystemMessageSectionOverrides;
+		set => _settings.SystemMessageSectionOverrides = value;
 	}
 }

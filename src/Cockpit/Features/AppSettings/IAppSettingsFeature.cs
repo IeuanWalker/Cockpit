@@ -1,4 +1,5 @@
 using Cockpit.Features.MessageMode;
+using Cockpit.Features.SystemMessage;
 using Cockpit.Features.Theme;
 
 namespace Cockpit.Features.AppSettings;
@@ -30,4 +31,5 @@ public interface IAppSettingsFeature
 	string VoiceLocale { get; set; }
 	bool KeepAlive { get; set; }
 	bool CanvasEnabled { get; set; }
+	Dictionary<string, SystemMessageSectionSetting> SystemMessageSectionOverrides { get; set; }
 }
