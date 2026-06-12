@@ -8,15 +8,11 @@ partial class CopilotSettings : ComponentBase, IDisposable
 {
 	static readonly (string Key, string DisplayName, string Description)[] sections =
 	[
-		("identity",             "Identity",             "Agent identity preamble and mode statement"),
 		("tone",                 "Tone",                 "Response style, conciseness rules, output formatting preferences"),
 		("tool_efficiency",      "Tool Efficiency",      "Tool usage patterns, parallel calling, batching guidelines"),
-		("environment_context",  "Environment",          "Working directory, OS, git root, directory listing, available tools"),
 		("code_change_rules",    "Code Change Rules",    "Coding rules, linting/testing, ecosystem tools, style"),
 		("guidelines",           "Guidelines",           "Tips, behavioural best practices"),
-		("safety",               "Safety",               "Environment limitations, prohibited actions, security policies"),
 		("tool_instructions",    "Tool Instructions",    "Per-tool usage instructions"),
-		("custom_instructions",  "Custom Instructions",  "Repository and organisation custom instructions"),
 		("runtime_instructions", "Runtime Instructions", "End-of-prompt runtime instructions"),
 		("last_instructions",    "Last Instructions",    "Final instructions: parallel tool calling, persistence, task completion"),
 	];
