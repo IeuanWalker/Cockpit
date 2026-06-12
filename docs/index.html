@@ -5,6 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Cockpit | GUI for GitHub Copilot CLI</title>
 	<meta name="description" content="Cockpit is a visual control plane for GitHub Copilot CLI with sessions, permissions, BYOK support, and full workflow transparency.">
+	<link rel="icon" type="image/png" href="assets/logo.png">
 	<style>
 		:root {
 			/* Cockpit app dark theme colors */
@@ -282,7 +283,9 @@
 		.feature-card {
 			text-align: left;
 			background:
-				radial-gradient(420px 120px at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--neon-cyan) var(--glow-strength, 0%), transparent), transparent 72%),
+				radial-gradient(300px 90px at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--title-color) var(--glow-strength, 0%), transparent), transparent 58%),
+				radial-gradient(420px 120px at calc(var(--mx, 50%) + 8%) var(--my, 50%), color-mix(in srgb, var(--neon-cyan) var(--glow-strength, 0%), transparent), transparent 72%),
+				radial-gradient(420px 120px at calc(var(--mx, 50%) - 8%) calc(var(--my, 50%) + 3%), color-mix(in srgb, var(--neon-violet) var(--glow-strength, 0%), transparent), transparent 74%),
 				linear-gradient(160deg, color-mix(in srgb, var(--input-bg) 90%, transparent), var(--input-bg));
 			border: 1px solid var(--border-color);
 			border-radius: 1rem;
@@ -310,7 +313,13 @@
 			inset: -1px;
 			border-radius: inherit;
 			pointer-events: none;
-			background: linear-gradient(145deg, color-mix(in srgb, var(--neon-violet) 38%, transparent), transparent 30%, color-mix(in srgb, var(--neon-cyan) 35%, transparent));
+			background: linear-gradient(
+				120deg,
+				color-mix(in srgb, var(--title-color) 34%, transparent),
+				color-mix(in srgb, var(--neon-cyan) 35%, transparent),
+				color-mix(in srgb, var(--neon-violet) 35%, transparent),
+				color-mix(in srgb, var(--title-color) 28%, transparent)
+			);
 			opacity: 0;
 			transition: opacity 0.25s ease;
 			mix-blend-mode: screen;
