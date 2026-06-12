@@ -4,7 +4,17 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Cockpit | GUI for GitHub Copilot CLI</title>
-	<meta name="description" content="Cockpit is a visual control plane for GitHub Copilot CLI with sessions, permissions, BYOK support, and full workflow transparency.">
+	<meta name="description" content="Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.">
+	<link rel="canonical" href="https://ieuanwalker.github.io/Cockpit/">
+	<meta property="og:title" content="Cockpit | GUI for GitHub Copilot CLI">
+	<meta property="og:description" content="Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.">
+	<meta property="og:image" content="https://ieuanwalker.github.io/Cockpit/assets/app-preview.png">
+	<meta property="og:url" content="https://ieuanwalker.github.io/Cockpit/">
+	<meta property="og:type" content="website">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="Cockpit | GUI for GitHub Copilot CLI">
+	<meta name="twitter:description" content="Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.">
+	<meta name="twitter:image" content="https://ieuanwalker.github.io/Cockpit/assets/app-preview.png">
 	<link rel="icon" type="image/png" href="assets/logo.png">
 	<style>
 		:root {
@@ -101,8 +111,33 @@
 			margin: 0 auto;
 		}
 
+		.skip-link {
+			position: absolute;
+			left: 1rem;
+			top: -3.2rem;
+			padding: 0.6rem 0.9rem;
+			border-radius: 0.6rem;
+			background: var(--button-bg);
+			color: var(--button-text);
+			border: 1px solid var(--input-border);
+			font-weight: 600;
+			text-decoration: none;
+			z-index: 100;
+		}
+
+		.skip-link:focus-visible {
+			top: 1rem;
+		}
+
 		a {
 			color: inherit;
+			text-decoration: underline;
+			text-underline-offset: 0.15rem;
+			text-decoration-thickness: 0.08em;
+		}
+
+		a.btn,
+		.brand {
 			text-decoration: none;
 		}
 
@@ -151,6 +186,7 @@
 			padding: 0.68rem 1rem;
 			border-radius: 0.75rem;
 			border: 1px solid transparent;
+			cursor: pointer;
 			font-weight: 650;
 			font-size: 0.94rem;
 			transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
@@ -165,6 +201,16 @@
 
 		.btn:hover {
 			transform: translateY(-2px);
+		}
+
+		.btn:focus-visible,
+		.feature-card:focus-visible,
+		.close-btn:focus-visible,
+		.theme-toggle:focus-visible,
+		a:focus-visible {
+			outline: 2px solid var(--accent-color);
+			outline-offset: 2px;
+			box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-color) 26%, transparent);
 		}
 
 		.btn.primary {
@@ -258,6 +304,9 @@
 		.preview {
 			display: block;
 			width: 100%;
+			height: auto;
+			aspect-ratio: 1918 / 1030;
+			object-fit: contain;
 			border-radius: 0.85rem;
 			border: 1px solid var(--border-color);
 			background: var(--sidebar-color);
@@ -442,6 +491,7 @@
 			width: 100%;
 			height: auto;
 			max-height: 420px;
+			object-fit: contain;
 			background: #000;
 		}
 
@@ -559,6 +609,11 @@
 			gap: 1.2rem;
 		}
 
+		.footer-links a {
+			text-decoration: none;
+		}
+
+
 		.footer-links a:hover {
 			color: var(--title-color);
 		}
@@ -618,25 +673,39 @@
 			}
 		}
 	</style>
-</head>
-<body>
-	<canvas id="starfield" aria-hidden="true"></canvas>
-	<nav class="top-nav">
-		<div class="container nav-row">
-			<a class="brand" href="#">
-				<img src="assets/logo.png" alt="Cockpit logo">
-				Cockpit
-			</a>
-			<div class="top-actions">
-				<button class="btn ghost theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@type": "SoftwareApplication",
+				"name": "Cockpit",
+				"description": "Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.",
+				"operatingSystem": "Windows 10+, macOS 15+",
+				"applicationCategory": "DeveloperApplication",
+				"url": "https://ieuanwalker.github.io/Cockpit/",
+				"downloadUrl": "https://github.com/IeuanWalker/Cockpit/releases/latest",
+				"codeRepository": "https://github.com/IeuanWalker/Cockpit"
+			}
+		</script>
+	</head>
+	<body>
+		<canvas id="starfield" aria-hidden="true"></canvas>
+		<a class="skip-link" href="#main-content">Skip to main content</a>
+		<nav class="top-nav">
+			<div class="container nav-row">
+				<a class="brand" href="#">
+					<img src="assets/logo.png" alt="Cockpit logo" width="512" height="512" decoding="async">
+					Cockpit
+				</a>
+				<div class="top-actions">
+					<button class="btn ghost theme-toggle" id="themeToggle" type="button" aria-label="Toggle color theme" title="Toggle color theme">
 					<svg class="sun-icon" viewBox="0 0 47.576 47.576" aria-hidden="true"><path d="M24.235 12.13c-6.478 0-11.748 5.269-11.748 11.748s5.27 11.747 11.748 11.747 11.748-5.27 11.748-11.747S30.713 12.13 24.235 12.13zm0 21.145c-5.182 0-9.398-4.216-9.398-9.397 0-5.183 4.216-9.397 9.398-9.397 5.183 0 9.397 4.217 9.397 9.397 0 5.182-4.214 9.397-9.397 9.397zm-1.175-26.79V1.589c0-.649.526-1.174 1.175-1.174.648 0 1.175.525 1.175 1.174v4.896c0 .648-.528 1.175-1.175 1.175-.649 0-1.175-.527-1.175-1.175zm12.035 6.802c-.459-.458-.459-1.202 0-1.661l4.209-4.209c.459-.458 1.203-.458 1.662 0 .459.459.459 1.203 0 1.661l-4.209 4.209a1.17 1.17 0 0 1-.83.344c-.3 0-.601-.115-.832-.344zM5.63 9.078c-.458-.458-.458-1.202 0-1.661.459-.458 1.203-.458 1.661 0l4.21 4.209c.458.459.458 1.204 0 1.661a1.172 1.172 0 0 1-.83.344c-.301 0-.602-.115-.831-.344L5.63 9.078zm18.842 32.013v4.896c0 .649-.525 1.175-1.173 1.175-.649 0-1.175-.527-1.175-1.175v-4.896c0-.649.526-1.176 1.175-1.176.648 0 1.173.526 1.173 1.176zm-12.035-6.803c.459.458.459 1.202 0 1.661l-4.209 4.21a1.174 1.174 0 0 1-.831.346c-.3 0-.601-.117-.83-.346-.459-.458-.459-1.203 0-1.662l4.209-4.209c.459-.459 1.202-.459 1.661 0zm29.465 4.209c.459.459.459 1.202 0 1.662-.229.23-.527.346-.83.346-.299 0-.601-.117-.83-.346l-4.209-4.21c-.459-.459-.459-1.202 0-1.661s1.201-.459 1.66 0l4.209 4.209zM6.461 25.054H1.175C.526 25.054 0 24.526 0 23.878s.526-1.176 1.175-1.176h5.286c.649 0 1.175.527 1.175 1.176-.001.648-.526 1.174-1.175 1.176zm41.115-1.176c0 .649-.526 1.176-1.174 1.176h-6.267c-.649 0-1.176-.527-1.176-1.176s.526-1.176 1.176-1.176h6.267c.648 0 1.174.526 1.174 1.176z"></path></svg>
 					<svg class="moon-icon" viewBox="0 0 122.88 122.89" aria-hidden="true"><path d="M49.06 1.27c2.17-.45 4.34-.77 6.48-.98 2.2-.21 4.38-.31 6.53-.29 1.21.01 2.18 1 2.17 2.21-.01.93-.6 1.72-1.42 2.03-9.15 3.6-16.47 10.31-20.96 18.62-4.42 8.17-6.1 17.88-4.09 27.68l.01.07c2.29 11.06 8.83 20.15 17.58 25.91 8.74 5.76 19.67 8.18 30.73 5.92l.07-.01c7.96-1.65 14.89-5.49 20.3-10.78 5.6-5.47 9.56-12.48 11.33-20.16.27-1.18 1.45-1.91 2.62-1.64.89.21 1.53.93 1.67 1.78 2.64 16.2-1.35 32.07-10.06 44.71-8.67 12.58-22.03 21.97-38.18 25.29-16.62 3.42-33.05-.22-46.18-8.86C14.52 104.1 4.69 90.45 1.27 73.83-2.07 57.6 1.32 41.55 9.53 28.58 17.78 15.57 30.88 5.64 46.91 1.75c.31-.08.67-.16 1.06-.25h.01l1.08-.23z"></path></svg>
 				</button>
-				<a class="btn ghost" href="https://github.com/IeuanWalker/CopilotUI">
+				<a class="btn ghost" href="https://github.com/IeuanWalker/Cockpit" target="_blank">
 					<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.67 0 8.2c0 3.62 2.29 6.68 5.47 7.77.4.08.55-.18.55-.4 0-.2-.01-.86-.01-1.56-2.01.38-2.53-.5-2.69-.96-.09-.24-.48-.97-.82-1.17-.28-.15-.68-.52-.01-.53.63-.01 1.08.6 1.23.85.72 1.24 1.87.89 2.33.68.07-.53.28-.89.5-1.1-1.78-.21-3.64-.92-3.64-4.08 0-.9.31-1.63.82-2.2-.08-.21-.36-1.05.08-2.2 0 0 .67-.22 2.2.84.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.06 2.2-.84 2.2-.84.44 1.15.16 1.99.08 2.2.51.57.82 1.29.82 2.2 0 3.17-1.87 3.87-3.65 4.08.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .22.15.49.55.4A8.23 8.23 0 0 0 16 8.2C16 3.67 12.42 0 8 0Z"></path></svg>
 					GitHub
 				</a>
-				<a class="btn primary" href="https://github.com/IeuanWalker/CopilotUI/releases/latest">
+				<a class="btn primary" href="https://github.com/IeuanWalker/Cockpit/releases/latest" target="_blank">
 					<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 2.23 6.55 1.33v6.32H0V2.23Zm7.27-1V7.65H16V0L7.27 1.23ZM0 8.35h6.55v6.32L0 13.77V8.35Zm7.27 0V14.8L16 16V8.35H7.27Z"></path></svg>
 					Download
 				</a>
@@ -644,6 +713,7 @@
 		</div>
 	</nav>
 
+	<main id="main-content">
 	<header class="hero">
 		<div class="container">
 			<div class="hero-content">
@@ -654,17 +724,17 @@
 					manage permissions, and keep every step visible.
 				</p>
 				<div class="hero-buttons">
-					<a class="btn primary" href="https://github.com/IeuanWalker/CopilotUI/releases/latest">
+					<a class="btn primary" href="https://github.com/IeuanWalker/Cockpit/releases/latest" target="_blank">
 						<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 2.23 6.55 1.33v6.32H0V2.23Zm7.27-1V7.65H16V0L7.27 1.23ZM0 8.35h6.55v6.32L0 13.77V8.35Zm7.27 0V14.8L16 16V8.35H7.27Z"></path></svg>
 						Download for Windows
 					</a>
-					<a class="btn ghost" href="https://github.com/IeuanWalker/CopilotUI">
+					<a class="btn ghost" href="https://github.com/IeuanWalker/Cockpit" target="_blank">
 						<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.67 0 8.2c0 3.62 2.29 6.68 5.47 7.77.4.08.55-.18.55-.4 0-.2-.01-.86-.01-1.56-2.01.38-2.53-.5-2.69-.96-.09-.24-.48-.97-.82-1.17-.28-.15-.68-.52-.01-.53.63-.01 1.08.6 1.23.85.72 1.24 1.87.89 2.33.68.07-.53.28-.89.5-1.1-1.78-.21-3.64-.92-3.64-4.08 0-.9.31-1.63.82-2.2-.08-.21-.36-1.05.08-2.2 0 0 .67-.22 2.2.84.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.06 2.2-.84 2.2-.84.44 1.15.16 1.99.08 2.2.51.57.82 1.29.82 2.2 0 3.17-1.87 3.87-3.65 4.08.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .22.15.49.55.4A8.23 8.23 0 0 0 16 8.2C16 3.67 12.42 0 8 0Z"></path></svg>
 						Star on GitHub
 					</a>
 				</div>
 				<div class="preview-wrap" id="previewWrap">
-					<img class="preview" src="assets/app-preview.png" alt="Cockpit app interface preview">
+					<img class="preview" src="assets/app-preview.png" alt="Cockpit app interface preview" width="1918" height="1030" loading="eager" fetchpriority="high" decoding="async">
 				</div>
 			</div>
 		</div>
@@ -732,9 +802,10 @@
 			</div>
 		</div>
 	</section>
+	</main>
 
 	<div class="modal-backdrop" id="featureModal" aria-hidden="true">
-		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
 			<div class="modal-head">
 				<h3 id="modalTitle"></h3>
 				<button class="close-btn" type="button" id="modalClose" aria-label="Close">
@@ -744,7 +815,7 @@
 			<p id="modalBody"></p>
 			<a id="modalDocLink" class="modal-doc-link" href="#" target="_blank" rel="noopener noreferrer">Official documentation</a>
 			<div class="modal-media" id="modalMedia">
-				<img id="modalImage" alt="">
+				<img id="modalImage" alt="" width="1918" height="1030" loading="lazy" decoding="async">
 				<video id="modalVideo" controls preload="metadata"></video>
 			</div>
 		</div>
@@ -753,19 +824,21 @@
 	<footer class="site-footer">
 		<div class="container footer-row">
 			<div class="footer-left">
-				<img src="assets/logo.png" alt="Cockpit logo">
+				<img src="assets/logo.png" alt="Cockpit logo" width="512" height="512" loading="lazy" decoding="async">
 				<span>&copy; 2026 Cockpit</span>
 			</div>
 			<div class="footer-links">
-				<a href="https://github.com/IeuanWalker/CopilotUI">GitHub</a>
-				<a href="https://github.com/IeuanWalker/CopilotUI/releases/latest">Download</a>
+				<a href="https://github.com/IeuanWalker/Cockpit" target="_blank">GitHub</a>
+				<a href="https://github.com/IeuanWalker/Cockpit/releases/latest" target="_blank">Download</a>
 			</div>
 		</div>
 	</footer>
 
 	<script>
 		const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+		const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 		const themeToggle = document.getElementById("themeToggle");
+		let reduceMotionEnabled = reducedMotionQuery.matches;
 
 		function getPreferredTheme() {
 			const saved = localStorage.getItem("landing-theme");
@@ -801,8 +874,15 @@
 		let targetRotateY = 0;
 		let currentRotateX = 0;
 		let currentRotateY = 0;
+		let previewTiltRunning = false;
 
 		function animatePreviewTilt() {
+			if (reduceMotionEnabled) {
+				previewTiltRunning = false;
+				previewWrap.style.removeProperty("transform");
+				return;
+			}
+
 			currentRotateX += (targetRotateX - currentRotateX) * 0.16;
 			currentRotateY += (targetRotateY - currentRotateY) * 0.16;
 			previewWrap.style.transform = `perspective(1200px) rotateX(${currentRotateX.toFixed(2)}deg) rotateY(${currentRotateY.toFixed(2)}deg)`;
@@ -810,6 +890,10 @@
 		}
 
 		previewWrap.addEventListener("pointermove", (event) => {
+			if (reduceMotionEnabled) {
+				return;
+			}
+
 			const rect = previewWrap.getBoundingClientRect();
 			const x = (event.clientX - rect.left) / rect.width;
 			const y = (event.clientY - rect.top) / rect.height;
@@ -822,7 +906,10 @@
 			targetRotateY = 0;
 		});
 
-		animatePreviewTilt();
+		if (!reduceMotionEnabled) {
+			previewTiltRunning = true;
+			animatePreviewTilt();
+		}
 
 		const featureCards = [...document.querySelectorAll(".feature-card")];
 
@@ -849,6 +936,10 @@
 		}
 
 		document.addEventListener("pointermove", (event) => {
+			if (reduceMotionEnabled) {
+				return;
+			}
+
 			updateFeatureCardGlow(event.clientX, event.clientY);
 		});
 
@@ -858,10 +949,16 @@
 			});
 		});
 
-		updateFeatureCardGlow(window.innerWidth / 2, window.innerHeight / 2);
+		if (!reduceMotionEnabled) {
+			updateFeatureCardGlow(window.innerWidth / 2, window.innerHeight / 2);
+		}
 
 		featureCards.forEach((card) => {
 			card.addEventListener("pointermove", (event) => {
+				if (reduceMotionEnabled) {
+					return;
+				}
+
 				const rect = card.getBoundingClientRect();
 				const x = ((event.clientX - rect.left) / rect.width) * 100;
 				const y = ((event.clientY - rect.top) / rect.height) * 100;
@@ -899,6 +996,7 @@
 		let mouseDriftY = 0;
 		let starfieldWidth = 0;
 		let starfieldHeight = 0;
+		let starfieldRunning = false;
 
 		function resizeStarfield() {
 			const scale = window.devicePixelRatio || 1;
@@ -924,6 +1022,11 @@
 		}
 
 		function animateStars(time) {
+			if (reduceMotionEnabled) {
+				starfieldRunning = false;
+				return;
+			}
+
 			starContext.clearRect(0, 0, starfieldWidth, starfieldHeight);
 			starContext.fillStyle = "rgba(255, 255, 255, 0.88)";
 
@@ -945,6 +1048,10 @@
 		}
 
 		window.addEventListener("pointermove", (event) => {
+			if (reduceMotionEnabled) {
+				return;
+			}
+
 			mouseDriftX = ((event.clientX / window.innerWidth) - 0.5) * 2;
 			mouseDriftY = ((event.clientY / window.innerHeight) - 0.5) * 2;
 		});
@@ -954,9 +1061,46 @@
 			seedStars();
 		});
 
-		resizeStarfield();
-		seedStars();
-		requestAnimationFrame(animateStars);
+		function clearInteractiveEffects() {
+			targetRotateX = 0;
+			targetRotateY = 0;
+			currentRotateX = 0;
+			currentRotateY = 0;
+			previewWrap.style.removeProperty("transform");
+			featureCards.forEach((card) => {
+				card.style.removeProperty("transform");
+				card.classList.remove("is-tilting");
+				card.style.setProperty("--glow-strength", "0%");
+			});
+		}
+
+		function applyReducedMotionPreference() {
+			if (reduceMotionEnabled) {
+				starfield.style.display = "none";
+				clearInteractiveEffects();
+				return;
+			}
+
+			starfield.style.display = "";
+			if (!previewTiltRunning) {
+				previewTiltRunning = true;
+				animatePreviewTilt();
+			}
+			resizeStarfield();
+			seedStars();
+			if (!starfieldRunning) {
+				starfieldRunning = true;
+				requestAnimationFrame(animateStars);
+			}
+			updateFeatureCardGlow(window.innerWidth / 2, window.innerHeight / 2);
+		}
+
+		reducedMotionQuery.addEventListener("change", (event) => {
+			reduceMotionEnabled = event.matches;
+			applyReducedMotionPreference();
+		});
+
+		applyReducedMotionPreference();
 
 		const featureDetails = {
 			sessions: {
@@ -1028,6 +1172,12 @@
 		const modalVideo = document.getElementById("modalVideo");
 		const modalDocLink = document.getElementById("modalDocLink");
 		const closeBtn = document.getElementById("modalClose");
+		const modalFocusableSelector = "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])";
+		let lastModalTrigger = null;
+
+		function getModalFocusableElements() {
+			return [...modal.querySelectorAll(modalFocusableSelector)].filter((element) => element.offsetParent !== null);
+		}
 
 		function resetModalMedia() {
 			modalMedia.classList.remove("show");
@@ -1045,11 +1195,12 @@
 			modalDocLink.removeAttribute("href");
 		}
 
-		function openModal(featureKey) {
+		function openModal(featureKey, trigger) {
 			const detail = featureDetails[featureKey];
 			if (!detail) {
 				return;
 			}
+			lastModalTrigger = trigger || document.activeElement;
 
 			modalTitle.textContent = detail.title;
 			modalBody.textContent = detail.body;
@@ -1077,6 +1228,7 @@
 			modal.classList.add("show");
 			modal.setAttribute("aria-hidden", "false");
 			document.body.style.overflow = "hidden";
+			closeBtn.focus();
 		}
 
 		function closeModal() {
@@ -1084,10 +1236,14 @@
 			modal.setAttribute("aria-hidden", "true");
 			document.body.style.overflow = "";
 			resetModalMedia();
+			if (lastModalTrigger) {
+				lastModalTrigger.focus();
+			}
+			lastModalTrigger = null;
 		}
 
 		document.querySelectorAll(".feature-card").forEach((card) => {
-			card.addEventListener("click", () => openModal(card.dataset.feature));
+			card.addEventListener("click", () => openModal(card.dataset.feature, card));
 		});
 
 		closeBtn.addEventListener("click", closeModal);
@@ -1098,8 +1254,35 @@
 		});
 
 		window.addEventListener("keydown", (event) => {
-			if (event.key === "Escape" && modal.classList.contains("show")) {
+			if (!modal.classList.contains("show")) {
+				return;
+			}
+
+			if (event.key === "Escape") {
+				event.preventDefault();
 				closeModal();
+				return;
+			}
+
+			if (event.key === "Tab") {
+				const focusableElements = getModalFocusableElements();
+				if (focusableElements.length === 0) {
+					event.preventDefault();
+					return;
+				}
+
+				const firstElement = focusableElements[0];
+				const lastElement = focusableElements[focusableElements.length - 1];
+
+				if (event.shiftKey) {
+					if (document.activeElement === firstElement || !modal.contains(document.activeElement)) {
+						event.preventDefault();
+						lastElement.focus();
+					}
+				} else if (document.activeElement === lastElement || !modal.contains(document.activeElement)) {
+					event.preventDefault();
+					firstElement.focus();
+				}
 			}
 		});
 	</script>
