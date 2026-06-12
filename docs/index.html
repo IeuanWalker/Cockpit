@@ -19,11 +19,15 @@
 			--input-border: #3D3D3D;
 			--secondary-text: #868686;
 			--accent-color: #0078D4;
-			--button-bg: #0078D4;
-			--button-hover: #026ec1;
+			--button-bg: #FFFFFF;
+			--button-hover: #EDEDED;
+			--button-text: #111111;
 			--shadow: rgba(0, 0, 0, 0.35);
 			--grid-line: rgba(255, 255, 255, 0.05);
 			--overlay: rgba(6, 6, 8, 0.72);
+			--neon-cyan: #35D7FF;
+			--neon-violet: #8E7CFF;
+			--neon-pink: #FF66C4;
 		}
 
 		body.light-theme {
@@ -39,8 +43,9 @@
 			--input-border: #CECECE;
 			--secondary-text: #616161;
 			--accent-color: #0078D4;
-			--button-bg: #0078D4;
-			--button-hover: #026ec1;
+			--button-bg: #111111;
+			--button-hover: #000000;
+			--button-text: #FFFFFF;
 			--shadow: rgba(0, 0, 0, 0.12);
 			--grid-line: rgba(0, 0, 0, 0.05);
 			--overlay: rgba(7, 12, 22, 0.38);
@@ -60,10 +65,11 @@
 			font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
 			color: var(--text-color);
 			background:
-				radial-gradient(1200px 560px at 50% -20%, rgba(0, 120, 212, 0.28), transparent 60%),
+				radial-gradient(1200px 560px at 50% -20%, color-mix(in srgb, var(--neon-violet) 28%, transparent), transparent 60%),
 				linear-gradient(180deg, var(--sidebar-color) 0%, var(--bg-color) 55%);
 			min-height: 100vh;
 			overflow-x: hidden;
+			position: relative;
 		}
 
 		body::before {
@@ -77,6 +83,16 @@
 			background-size: 48px 48px;
 			mask-image: radial-gradient(circle at center, black 30%, transparent 92%);
 			z-index: -1;
+		}
+
+		#starfield {
+			position: fixed;
+			inset: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			z-index: -2;
+			opacity: 0.85;
 		}
 
 		.container {
@@ -93,6 +109,7 @@
 			padding: 1.2rem 0;
 			position: relative;
 			z-index: 3;
+			backdrop-filter: blur(8px);
 		}
 
 		.nav-row {
@@ -151,7 +168,7 @@
 
 		.btn.primary {
 			background: var(--button-bg);
-			color: #FFFFFF;
+			color: var(--button-text);
 			box-shadow: 0 10px 22px var(--shadow);
 		}
 
@@ -197,8 +214,13 @@
 			font-size: clamp(2.2rem, 7vw, 5.2rem);
 			line-height: 1.02;
 			letter-spacing: -0.03em;
-			max-width: 13ch;
-			color: var(--title-color);
+			max-width: 17ch;
+			color: transparent;
+			background: linear-gradient(120deg, var(--title-color), var(--neon-cyan), var(--neon-violet), var(--title-color));
+			background-size: 220% 220%;
+			-webkit-background-clip: text;
+			background-clip: text;
+			animation: holoShift 10s linear infinite;
 			text-wrap: balance;
 		}
 
@@ -259,7 +281,9 @@
 
 		.feature-card {
 			text-align: left;
-			background: var(--input-bg);
+			background:
+				radial-gradient(420px 120px at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--neon-cyan) var(--glow-strength, 0%), transparent), transparent 72%),
+				linear-gradient(160deg, color-mix(in srgb, var(--input-bg) 90%, transparent), var(--input-bg));
 			border: 1px solid var(--border-color);
 			border-radius: 1rem;
 			padding: 1rem;
@@ -268,11 +292,33 @@
 			transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 			box-shadow: 0 10px 24px var(--shadow);
 			min-height: 140px;
+			transform-style: preserve-3d;
+			will-change: transform;
+			position: relative;
+			overflow: hidden;
 		}
 
 		.feature-card:hover {
 			transform: translateY(-3px);
 			border-color: color-mix(in srgb, var(--accent-color) 55%, var(--border-color));
+			box-shadow: 0 14px 28px var(--shadow), 0 0 24px color-mix(in srgb, var(--neon-violet) 22%, transparent);
+		}
+
+		.feature-card::before {
+			content: "";
+			position: absolute;
+			inset: -1px;
+			border-radius: inherit;
+			pointer-events: none;
+			background: linear-gradient(145deg, color-mix(in srgb, var(--neon-violet) 38%, transparent), transparent 30%, color-mix(in srgb, var(--neon-cyan) 35%, transparent));
+			opacity: 0;
+			transition: opacity 0.25s ease;
+			mix-blend-mode: screen;
+		}
+
+		.feature-card:hover::before,
+		.feature-card.is-tilting::before {
+			opacity: 0.38;
 		}
 
 		.feature-card h3 {
@@ -352,6 +398,19 @@
 			color: var(--text-color);
 			line-height: 1.6;
 			white-space: pre-line;
+		}
+
+		.modal-doc-link {
+			display: none;
+			margin-top: 0.8rem;
+			color: var(--accent-color);
+			font-weight: 600;
+			text-decoration: underline;
+			text-underline-offset: 0.18rem;
+		}
+
+		.modal-doc-link.show {
+			display: inline-flex;
 		}
 
 		.modal-media {
@@ -518,6 +577,23 @@
 			}
 		}
 
+		@keyframes holoShift {
+			0% { background-position: 0% 50%; }
+			50% { background-position: 100% 50%; }
+			100% { background-position: 0% 50%; }
+		}
+
+		.reveal {
+			opacity: 0;
+			transform: translateY(16px);
+			transition: opacity 0.55s ease, transform 0.55s ease;
+		}
+
+		.reveal.show {
+			opacity: 1;
+			transform: translateY(0);
+		}
+
 		@media (max-width: 880px) {
 			.footer-row {
 				flex-direction: column;
@@ -525,9 +601,17 @@
 				padding: 1rem 0;
 			}
 		}
+
+		@media (prefers-reduced-motion: reduce) {
+			* {
+				animation: none !important;
+				transition: none !important;
+			}
+		}
 	</style>
 </head>
 <body>
+	<canvas id="starfield" aria-hidden="true"></canvas>
 	<nav class="top-nav">
 		<div class="container nav-row">
 			<a class="brand" href="#">
@@ -555,9 +639,9 @@
 		<div class="container">
 			<div class="hero-content">
 				<span class="pill">GUI for GitHub Copilot CLI</span>
-				<h1>Your AI coding cockpit, built for speed and control.</h1>
+				<h1>Your AI coding cockpit, built for speed, transparency, and control.</h1>
 				<p class="hero-caption">
-					Cockpit makes AI agent workflows easier: run multiple sessions, review terminal activity and diffs,
+					Cockpit makes AI agent workflows easier: run multiple sessions, integrated terminal, review activity and diffs,
 					manage permissions, and keep every step visible.
 				</p>
 				<div class="hero-buttons">
@@ -617,10 +701,24 @@
 					<h3>Bring your own key (BYOK)</h3>
 					<p>Use custom model/provider configs with secure key handling.</p>
 				</button>
+				<button class="feature-card" type="button" data-feature="systemmessage">
+					<h3>System message customisation</h3>
+					<p>Control prompt sections with replace, remove, append, or prepend overrides.</p>
+				</button>
 				<button class="feature-card coming-soon" type="button" data-feature="plugins">
 					<span class="tag">Coming soon</span>
 					<h3>Plugins</h3>
 					<p>Extend Cockpit with custom integrations and workflow modules.</p>
+				</button>
+				<button class="feature-card coming-soon" type="button" data-feature="worktrees">
+					<span class="tag">Coming soon</span>
+					<h3>Git worktrees</h3>
+					<p>Work in multiple branches at once with isolated checkouts inside Cockpit workflows.</p>
+				</button>
+				<button class="feature-card coming-soon" type="button" data-feature="themecustomisation">
+					<span class="tag">Coming soon</span>
+					<h3>Full theme customisation</h3>
+					<p>Fine-tune colors, contrast, and layout styling to match your personal setup.</p>
 				</button>
 			</div>
 		</div>
@@ -635,6 +733,7 @@
 				</button>
 			</div>
 			<p id="modalBody"></p>
+			<a id="modalDocLink" class="modal-doc-link" href="#" target="_blank" rel="noopener noreferrer">Official documentation</a>
 			<div class="modal-media" id="modalMedia">
 				<img id="modalImage" alt="">
 				<video id="modalVideo" controls preload="metadata"></video>
@@ -716,6 +815,140 @@
 
 		animatePreviewTilt();
 
+		const featureCards = [...document.querySelectorAll(".feature-card")];
+
+		function clampPercent(value) {
+			return Math.max(0, Math.min(100, value));
+		}
+
+		function updateFeatureCardGlow(clientX, clientY) {
+			const glowRadius = 180;
+			featureCards.forEach((card) => {
+				const rect = card.getBoundingClientRect();
+				const clampedX = Math.max(rect.left, Math.min(clientX, rect.right));
+				const clampedY = Math.max(rect.top, Math.min(clientY, rect.bottom));
+				const distanceX = clientX - clampedX;
+				const distanceY = clientY - clampedY;
+				const distance = Math.hypot(distanceX, distanceY);
+				const glowFactor = Math.max(0, 1 - (distance / glowRadius));
+				const x = clampPercent(((clientX - rect.left) / rect.width) * 100);
+				const y = clampPercent(((clientY - rect.top) / rect.height) * 100);
+				card.style.setProperty("--mx", `${x}%`);
+				card.style.setProperty("--my", `${y}%`);
+				card.style.setProperty("--glow-strength", `${(glowFactor * 16).toFixed(2)}%`);
+			});
+		}
+
+		document.addEventListener("pointermove", (event) => {
+			updateFeatureCardGlow(event.clientX, event.clientY);
+		});
+
+		document.addEventListener("pointerleave", () => {
+			featureCards.forEach((card) => {
+				card.style.setProperty("--glow-strength", "0%");
+			});
+		});
+
+		updateFeatureCardGlow(window.innerWidth / 2, window.innerHeight / 2);
+
+		featureCards.forEach((card) => {
+			card.addEventListener("pointermove", (event) => {
+				const rect = card.getBoundingClientRect();
+				const x = ((event.clientX - rect.left) / rect.width) * 100;
+				const y = ((event.clientY - rect.top) / rect.height) * 100;
+				const rotateY = ((x / 100) - 0.5) * 8;
+				const rotateX = (0.5 - (y / 100)) * 8;
+				card.style.transform = `translateY(-3px) perspective(900px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg)`;
+				card.classList.add("is-tilting");
+			});
+
+			card.addEventListener("pointerleave", () => {
+				card.style.removeProperty("transform");
+				card.classList.remove("is-tilting");
+			});
+		});
+
+		const revealTargets = document.querySelectorAll(".hero-content, .features h2, .feature-card, .footer-row");
+		const revealObserver = new IntersectionObserver((entries) => {
+			entries.forEach((entry) => {
+				if (entry.isIntersecting) {
+					entry.target.classList.add("show");
+					revealObserver.unobserve(entry.target);
+				}
+			});
+		}, { threshold: 0.14 });
+
+		revealTargets.forEach((element) => {
+			element.classList.add("reveal");
+			revealObserver.observe(element);
+		});
+
+		const starfield = document.getElementById("starfield");
+		const starContext = starfield.getContext("2d");
+		const stars = [];
+		let mouseDriftX = 0;
+		let mouseDriftY = 0;
+		let starfieldWidth = 0;
+		let starfieldHeight = 0;
+
+		function resizeStarfield() {
+			const scale = window.devicePixelRatio || 1;
+			starfieldWidth = window.innerWidth;
+			starfieldHeight = window.innerHeight;
+			starfield.width = Math.floor(starfieldWidth * scale);
+			starfield.height = Math.floor(starfieldHeight * scale);
+			starContext.setTransform(scale, 0, 0, scale, 0, 0);
+		}
+
+		function seedStars() {
+			stars.length = 0;
+			const count = Math.max(70, Math.floor((window.innerWidth * window.innerHeight) / 16000));
+			for (let index = 0; index < count; index += 1) {
+				stars.push({
+					x: Math.random() * starfieldWidth,
+					y: Math.random() * starfieldHeight,
+					radius: Math.random() * 1.5 + 0.25,
+					speed: Math.random() * 0.18 + 0.03,
+					twinkle: Math.random() * Math.PI * 2
+				});
+			}
+		}
+
+		function animateStars(time) {
+			starContext.clearRect(0, 0, starfieldWidth, starfieldHeight);
+			starContext.fillStyle = "rgba(255, 255, 255, 0.88)";
+
+			for (const star of stars) {
+				star.y += star.speed;
+				if (star.y > starfieldHeight + 2) {
+					star.y = -2;
+					star.x = Math.random() * starfieldWidth;
+				}
+
+				const alpha = 0.22 + (Math.sin(time * 0.0016 + star.twinkle) + 1) * 0.38;
+				starContext.globalAlpha = alpha;
+				starContext.beginPath();
+				starContext.arc(star.x + mouseDriftX * star.speed * 6, star.y + mouseDriftY * star.speed * 6, star.radius, 0, Math.PI * 2);
+				starContext.fill();
+			}
+
+			requestAnimationFrame(animateStars);
+		}
+
+		window.addEventListener("pointermove", (event) => {
+			mouseDriftX = ((event.clientX / window.innerWidth) - 0.5) * 2;
+			mouseDriftY = ((event.clientY / window.innerHeight) - 0.5) * 2;
+		});
+
+		window.addEventListener("resize", () => {
+			resizeStarfield();
+			seedStars();
+		});
+
+		resizeStarfield();
+		seedStars();
+		requestAnimationFrame(animateStars);
+
 		const featureDetails = {
 			sessions: {
 				title: "Multi-session management",
@@ -732,7 +965,7 @@
 			attachments: {
 				title: "Image & attachment support",
 				body: "Attach files and visuals to give agents richer context for debugging, UI work, and documentation-heavy tasks.",
-				image: "assets/app-preview.svg",
+				image: "assets/app-preview.png",
 				imageAlt: "Cockpit interface showing rich context"
 			},
 			history: {
@@ -746,7 +979,7 @@
 			canvas: {
 				title: "Canvas support",
 				body: "Render diagrams, charts, and interactive outputs inside the workflow so architecture and data discussions stay visual and actionable.",
-				image: "assets/app-preview.svg",
+				image: "assets/app-preview.png",
 				imageAlt: "Cockpit canvas-style visual output"
 			},
 			continuity: {
@@ -755,13 +988,26 @@
 			},
 			byok: {
 				title: "Bring your own key (BYOK)",
-				body: "Configure custom models with provider type, model ID, base URL, wire API, and capability hints like vision, reasoning support, and max context window tokens.\n\nBYOK metadata is persisted separately from secrets. API keys and bearer tokens are resolved through secure platform storage, while model metadata is stored without secret values.",
-				image: "assets/app-preview.svg",
+				body: "Configure BYOK providers and model profiles, including:\n- Provider type and model ID\n- Base URL and wire API compatibility\n- Capability hints (vision support, reasoning support, max context tokens)\n- Secure secret handling for API keys/tokens\n\nBYOK metadata is stored separately from secrets so model settings can be shared without exposing credentials.",
+				docsUrl: "https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/byok",
+				image: "assets/app-preview.png",
 				imageAlt: "Cockpit model configuration preview"
+			},
+			systemmessage: {
+				title: "System message customisation",
+				body: "Customize system prompt sections directly in Cockpit with section-level actions: Replace, Remove, Append, and Prepend.\n\nDefaults are captured from the runtime and can be overridden per section, giving teams consistent behavior while still allowing targeted prompt tuning."
 			},
 			plugins: {
 				title: "Plugins (Coming soon)",
 				body: "A plugin system is planned so teams can add custom integrations, automation hooks, and UI extensions tailored to their own development workflows."
+			},
+			worktrees: {
+				title: "Git worktrees (Coming soon)",
+				body: "Git worktree support is planned so you can run parallel feature branches in separate working directories without cloning the repository again."
+			},
+			themecustomisation: {
+				title: "Full theme customisation (Coming soon)",
+				body: "Full theme customization is planned to let you control palette, contrast, and visual density for a workspace appearance tailored to your preferences."
 			}
 		};
 
@@ -771,6 +1017,7 @@
 		const modalMedia = document.getElementById("modalMedia");
 		const modalImage = document.getElementById("modalImage");
 		const modalVideo = document.getElementById("modalVideo");
+		const modalDocLink = document.getElementById("modalDocLink");
 		const closeBtn = document.getElementById("modalClose");
 
 		function resetModalMedia() {
@@ -784,6 +1031,9 @@
 			modalVideo.removeAttribute("src");
 			modalVideo.removeAttribute("poster");
 			modalVideo.load();
+
+			modalDocLink.classList.remove("show");
+			modalDocLink.removeAttribute("href");
 		}
 
 		function openModal(featureKey) {
@@ -795,6 +1045,11 @@
 			modalTitle.textContent = detail.title;
 			modalBody.textContent = detail.body;
 			resetModalMedia();
+
+			if (detail.docsUrl) {
+				modalDocLink.href = detail.docsUrl;
+				modalDocLink.classList.add("show");
+			}
 
 			if (detail.video) {
 				modalVideo.src = detail.video;
