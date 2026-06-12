@@ -4,6 +4,7 @@
     <File Path="CLA.md" />
     <File Path="global.json" />
     <File Path="LICENCE.md" />
+    <File Path="README.md" />
     <File Path="scripts/generate-libraries.cs" />
   </Folder>
   <Project Path="src/Cockpit/Cockpit.csproj">

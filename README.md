@@ -15,6 +15,7 @@
     - Global
     - Session
     - YOLO mode
+- Canvas support, whcih allows copilot to render anything (diagrams, charts, iternactive dashboards, etc.)
 - Works directly with the CLI, start a session in the cli, pick it up in Cockpit _(and vice-versa)_
 
 ### Requirement
