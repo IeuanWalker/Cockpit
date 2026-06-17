@@ -1,7 +1,7 @@
 @namespace Cockpit.Components.Pages.ChatPanel.InputArea
 @using Cockpit.Features.Sessions.Models
 
-<PickerControl @ref="_picker"
+<PickerControl @ref="_picker" DropdownMinWidth="280px"
                Title="Mode"
                IsDisabled="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running || _sessionListFeature.CurrentSession?.PendingPermissionRequests?.Count > 0)"
                TooltipText="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running ? "You can't change mode while the agent is working" : null)">
@@ -27,37 +27,52 @@
     </SelectedContent>
     <DropdownContent>
         <button @onclick="() => SelectMode(SessionAgentModeEnum.Interactive)"
-                class="w-full px-3 py-1.5 text-xs hover:bg-app-hover flex items-center justify-between"
+                class="w-full px-3 py-2 hover:bg-app-hover flex items-start gap-2 text-left"
                 style="color: var(--text-color);">
-            <span class="text-left">Default</span>
-            @if(GetCurrentMode() == SessionAgentModeEnum.Interactive)
-            {
-                <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-            }
+            <div class="w-3 h-3 mt-1 flex-shrink-0">
+                @if(GetCurrentMode() == SessionAgentModeEnum.Interactive)
+                {
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                }
+            </div>
+            <div class="min-w-0">
+                <div class="text-sm font-medium">Interactive</div>
+                <div class="text-xs" style="color: var(--secondary-text);">Step-by-step collaboration</div>
+            </div>
         </button>
         <button @onclick="() => SelectMode(SessionAgentModeEnum.Plan)"
-                class="w-full px-3 py-1.5 text-xs hover:bg-app-hover flex items-center justify-between"
+                class="w-full px-3 py-2 hover:bg-app-hover flex items-start gap-2 text-left"
                 style="color: var(--text-color);">
-            <span class="text-left">Plan</span>
-            @if(GetCurrentMode() == SessionAgentModeEnum.Plan)
-            {
-                <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-            }
+            <div class="w-3 h-3 mt-1 flex-shrink-0">
+                @if(GetCurrentMode() == SessionAgentModeEnum.Plan)
+                {
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                }
+            </div>
+            <div class="min-w-0">
+                <div class="text-sm font-medium">Plan</div>
+                <div class="text-xs" style="color: var(--secondary-text);">Plan first, execute when ready</div>
+            </div>
         </button>
         <button @onclick="() => SelectMode(SessionAgentModeEnum.Autopilot)"
-                class="w-full px-3 py-1.5 text-xs hover:bg-app-hover flex items-center justify-between"
+                class="w-full px-3 py-2 hover:bg-app-hover flex items-start gap-2 text-left"
                 style="color: var(--text-color);">
-            <span class="text-left">Autopilot</span>
-            @if(GetCurrentMode() == SessionAgentModeEnum.Autopilot)
-            {
-                <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
-            }
+            <div class="w-3 h-3 mt-1 flex-shrink-0">
+                @if(GetCurrentMode() == SessionAgentModeEnum.Autopilot)
+                {
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                }
+            </div>
+            <div class="min-w-0">
+                <div class="text-sm font-medium">Autopilot</div>
+                <div class="text-xs" style="color: var(--secondary-text);">End-to-end execution without interruption</div>
+            </div>
         </button>
     </DropdownContent>
 </PickerControl>

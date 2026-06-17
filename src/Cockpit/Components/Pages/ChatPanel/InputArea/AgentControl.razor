@@ -1,6 +1,6 @@
 @namespace Cockpit.Components.Pages.ChatPanel.InputArea
 
-<PickerControl @ref="_picker"
+<PickerControl @ref="_picker" DropdownMinWidth="250px"
                Title="Agent"
                IsDisabled="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running || _sessionListFeature.CurrentSession?.PendingPermissionRequests?.Count > 0)"
                TooltipText="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running ? "You can't change agent while the agent is working" : null)">
