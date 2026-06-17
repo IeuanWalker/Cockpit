@@ -102,7 +102,7 @@ public sealed partial class SessionFeature
 		try
 		{
 			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
-			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id);
+			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id);
 			GitContext gitContext = await _gitFeature.GetContext(workingDirectory);
 
 			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
@@ -270,7 +270,7 @@ public sealed partial class SessionFeature
 				session.Context.CurrentWorkingDirectory = null;
 			}
 
-			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 
 			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
 			// This also guards against stale "medium" values loaded from pre-switch sessions before
@@ -456,7 +456,7 @@ public sealed partial class SessionFeature
 		return true;
 	}
 
-	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
+	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, GitHub.Copilot.ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -623,7 +623,7 @@ public sealed partial class SessionFeature
 	{
 		try
 		{
-			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 
 			_logger.LogInformation(
 				"Restarting session {SessionId} with model {Model} and reasoning effort {ReasoningEffort}",
@@ -764,7 +764,7 @@ public sealed partial class SessionFeature
 	async Task LoadContextPanelDataAsync(SessionModel session, CopilotSession sdkSession)
 	{
 		Task<List<AgentProfile>> agentsTask = _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
-		Task<List<InstructionsSources>> instructionsTask = _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
+		Task<List<InstructionSource>> instructionsTask = _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
 		Task<List<McpServer>> mcpTask = _mcpFeature.LoadSessionMcpServersAsync(sdkSession);
 		Task<List<Skill>> skillsTask = _skillsFeature.LoadSessionSkillsAsync(sdkSession);
 		Task<List<SdkPlugin>> pluginsTask = _pluginsFeature.LoadSessionPluginsAsync(sdkSession);

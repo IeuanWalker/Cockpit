@@ -9,8 +9,8 @@ namespace Cockpit.Components.Pages.ContextPanel;
 public sealed partial class InstructionInfoPopup : ComponentBase
 {
 	PopupBase? _popup;
-	InstructionsSources? _selectedInstruction;
-	List<InstructionsSources> _instructions = [];
+	InstructionSource? _selectedInstruction;
+	List<InstructionSource> _instructions = [];
 	string? _workspacePath;
 	bool _needsSplitInit;
 
@@ -21,7 +21,7 @@ public sealed partial class InstructionInfoPopup : ComponentBase
 		_jsRuntime = jsRuntime;
 	}
 
-	public void Open(IReadOnlyList<InstructionsSources> instructions, InstructionsSources selectedInstruction, string? workspacePath = null)
+	public void Open(IReadOnlyList<InstructionSource> instructions, InstructionSource selectedInstruction, string? workspacePath = null)
 	{
 		_instructions = [.. instructions.OrderBy(i => i.Label, StringComparer.OrdinalIgnoreCase)];
 		_workspacePath = workspacePath;
@@ -30,7 +30,7 @@ public sealed partial class InstructionInfoPopup : ComponentBase
 		SelectInstruction(selectedInstruction);
 	}
 
-	void SelectInstruction(InstructionsSources instruction)
+	void SelectInstruction(InstructionSource instruction)
 	{
 		_selectedInstruction = instruction;
 		StateHasChanged();

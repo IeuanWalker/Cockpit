@@ -26,7 +26,7 @@
 				{
 					<div class="px-3 py-4 text-center secondary-text text-xs">No instructions available</div>
 				}
-				@foreach(InstructionsSources instr in _instructions)
+                @foreach(InstructionSource instr in _instructions)
 				{
 					bool isSelected = _selectedInstruction?.Id == instr.Id;
 					<div class="ai-file-item @(isSelected ? "selected" : "")"
