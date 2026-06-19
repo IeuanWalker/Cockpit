@@ -6,7 +6,7 @@ window.cockpit ??= {};
  * Main concerns:
  * - chip lifecycle and removal notifications
  * - mention trigger tracking while focus moves to the picker
- * - DOM <-> plain-text conversion via #file:"path" tokens
+ * - DOM <-> plain-text conversion via #file/#folder mention tokens
  * - send/newline/backspace/delete behavior around non-editable chips
  */
 
@@ -16,12 +16,16 @@ const chipSelector = '.file-mention-chip';
 const chipDeleteSelector = '.chip-delete';
 const maxContentEditableHeight = 300;
 const svgNamespace = 'http://www.w3.org/2000/svg';
-const chipIconPathData = 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z';
+const fileChipIconPathData = 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z';
+const folderChipIconPathData = 'M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z';
+const fileChipIconColor = '#60a5fa';
+const folderChipIconColor = '#f59e0b';
 const fileChipTokenPattern = /#(file|folder):("(?:[^"\\]|\\.)*")/g;
 const blockContainerTags = new Set(['DIV', 'P']);
 const mentionNavigationKeys = new Set(['Enter', 'ArrowDown', 'ArrowUp', 'Escape']);
 const contentEditableStates = new WeakMap();
-const chipIconTemplate = createChipIconTemplate();
+const fileChipIconTemplate = createChipIconTemplate(fileChipIconPathData, fileChipIconColor);
+const folderChipIconTemplate = createChipIconTemplate(folderChipIconPathData, folderChipIconColor);
 
 function getContentEditableElement(id) {
     return document.getElementById(id);
@@ -143,7 +147,7 @@ function withSuppressedChipRemovalNotifications(element, action) {
     }
 }
 
-function createChipIconTemplate() {
+function createChipIconTemplate(pathData, iconColor) {
     const icon = document.createElementNS(svgNamespace, 'svg');
     icon.setAttribute('xmlns', svgNamespace);
     icon.setAttribute('width', '12');
@@ -154,16 +158,17 @@ function createChipIconTemplate() {
     icon.setAttribute('stroke-width', '2');
     icon.setAttribute('stroke-linecap', 'round');
     icon.setAttribute('stroke-linejoin', 'round');
+    icon.style.color = iconColor;
 
     const iconPath = document.createElementNS(svgNamespace, 'path');
-    iconPath.setAttribute('d', chipIconPathData);
+    iconPath.setAttribute('d', pathData);
     icon.appendChild(iconPath);
 
     return icon;
 }
 
-function createChipIconElement() {
-    return chipIconTemplate.cloneNode(true);
+function createChipIconElement(isDirectory) {
+    return (isDirectory ? folderChipIconTemplate : fileChipIconTemplate).cloneNode(true);
 }
 
 function createChipSpacerNode() {
@@ -192,7 +197,7 @@ function createFileChipElement(chipId, filePath, fileName, isDirectory) {
     deleteButton.title = 'Remove';
     deleteButton.textContent = '×';
 
-    chip.append(createChipIconElement(), nameSpan, deleteButton);
+    chip.append(createChipIconElement(Boolean(isDirectory)), nameSpan, deleteButton);
     return chip;
 }
 
