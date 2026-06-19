@@ -1,10 +1,7 @@
 using Cockpit.Components.Popups;
 using Cockpit.Features.Sessions;
-using Cockpit.Features.Sessions.Models;
-using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
@@ -14,18 +11,15 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionFeature _sessionFeature;
 	readonly IJSRuntime _jsRuntime;
-	readonly ITimestampFeature _timestampFeature;
 
 	public SessionPanel(
 		IUIStateFeature uiStateFeature,
 		SessionFeature sessionFeature,
-		IJSRuntime jsRuntime,
-		ITimestampFeature timestampFeature)
+		IJSRuntime jsRuntime)
 	{
 		_uiStateFeature = uiStateFeature;
 		_sessionFeature = sessionFeature;
 		_jsRuntime = jsRuntime;
-		_timestampFeature = timestampFeature;
 	}
 
 	DotNetObjectReference<SessionPanel>? _dotNetHelper;
@@ -37,16 +31,11 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	{
 		_sessionFeature.OnStateChanged += OnStateChanged;
 		_uiStateFeature.OnStateChanged += OnStateChanged;
-		_timestampFeature.OnTick += OnStateChanged;
 	}
 
 	void OnStateChanged()
 	{
-		InvokeAsync(() =>
-		{
-			RefreshPastSessions();
-			StateHasChanged();
-		});
+		InvokeAsync(StateHasChanged);
 	}
 
 	bool _isLoadingSessions = true;
@@ -55,27 +44,11 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	{
 		_isLoadingSessions = true;
 		await _sessionFeature.LoadExistingSessions();
-		RefreshPastSessions();
 		_isLoadingSessions = false;
 	}
 
 	bool _isRefreshingSessions = false;
 	bool _showSearch = false;
-	bool _pastSessionsExpanded = false;
-
-	bool IsSearchActive => _sessionList?.IsSearchActive ?? false;
-
-	List<SessionModel> _pastSessions = [];
-
-	void RefreshPastSessions()
-	{
-		DateTime now = DateTime.UtcNow;
-		_pastSessions = [.. _sessionFeature.Sessions
-			.Where(s => (now - s.LastActivity).TotalDays > 7)
-			.OrderByDescending(s => s.LastActivity)];
-	}
-
-	string GetTimeAgo(DateTime dateTime) => _timestampFeature.FormatRelative(dateTime);
 
 	void ToggleSearch()
 	{
@@ -99,7 +72,6 @@ public partial class SessionPanel : ComponentBase, IDisposable
 			Task loadTask = _sessionFeature.RefreshExistingSessions();
 			Task delayTask = Task.Delay(1000);
 			await Task.WhenAll(loadTask, delayTask);
-			RefreshPastSessions();
 		}
 		finally
 		{
@@ -127,16 +99,6 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		_createSessionPopup?.Open();
 	}
 
-	void ShowPastDeleteDialog(SessionModel session, MouseEventArgs _)
-	{
-		_deletePopup?.Open(session.Id);
-	}
-
-	async Task SelectPastSession(SessionModel session)
-	{
-		await _sessionFeature.LoadSession(session.Id);
-	}
-
 	public void Dispose()
 	{
 		Dispose(true);
@@ -149,7 +111,6 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		{
 			_sessionFeature.OnStateChanged -= OnStateChanged;
 			_uiStateFeature.OnStateChanged -= OnStateChanged;
-			_timestampFeature.OnTick -= OnStateChanged;
 			_dotNetHelper?.Dispose();
 		}
 	}

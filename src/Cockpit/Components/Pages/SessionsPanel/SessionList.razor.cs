@@ -59,7 +59,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	bool HasActiveFilters => _filterCwds.Count > 0 || _filterRepos.Count > 0;
 
 	IEnumerable<SessionModel> AllSessionsSorted => _sessionFeature.Sessions.OrderByDescending(x => x.LastActivity);
-	IEnumerable<SessionModel> RecentSessions => AllSessionsSorted.Where(s => (DateTime.UtcNow - s.LastActivity).TotalDays <= 7);
+	IEnumerable<SessionModel> RecentSessions => AllSessionsSorted;
 
 	IEnumerable<SessionModel> FilteredSessions
 	{
