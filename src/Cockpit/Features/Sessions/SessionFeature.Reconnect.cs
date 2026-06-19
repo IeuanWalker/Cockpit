@@ -226,6 +226,8 @@ public sealed partial class SessionFeature
 				Provider = providerConfig
 			};
 
+			ApplySystemMessageCustomization(config, session.Model);
+
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			sdkSession = await client.ResumeSessionAsync(session.Id, config);
 
