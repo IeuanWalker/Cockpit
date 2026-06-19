@@ -134,6 +134,28 @@
             padding-bottom: 2rem;
         }
 
+        .markdown-content ::deep .code-block pre::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .markdown-content ::deep .code-block pre::-webkit-scrollbar-corner {
+            background: transparent;
+        }
+
+        .markdown-content ::deep .code-block pre::-webkit-scrollbar-track {
+            background: var(--sidebar-color);
+        }
+
+        .markdown-content ::deep .code-block pre::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 0;
+        }
+
+            .markdown-content ::deep .code-block pre::-webkit-scrollbar-thumb:hover {
+                background: var(--hover-color);
+            }
+
     .markdown-content ::deep pre code {
         background-color: transparent;
         padding: 0;

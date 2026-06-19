@@ -2,14 +2,12 @@ window.cockpit ??= {};
 
 (() => {
     const copyFeedbackDurationMs = 1500;
-    const scrollbarClass = 'scrollbar-thin';
 
     const selectors = Object.freeze({
         codeBlock: '.code-block',
         copyButton: '.code-copy-button',
         code: 'pre code',
-        unhighlightedCode: 'pre code:not([data-highlighted])',
-        scrollablePre: `.code-block pre:not(.${scrollbarClass})`
+        unhighlightedCode: 'pre code:not([data-highlighted])'
     });
 
     const buttonLabels = Object.freeze({
@@ -18,7 +16,7 @@ window.cockpit ??= {};
         failure: 'Failed'
     });
     const copyFeedbackTimers = new WeakMap();
-    const containersWithCopyHandler = new WeakSet();
+    const copyButtonsWithHandler = new WeakSet();
 
     function getElementById(elementId) {
         return typeof elementId === 'string' && elementId.length > 0
@@ -76,29 +74,6 @@ window.cockpit ??= {};
                 console.warn('Failed to highlight code element.', error, element);
             }
         }
-    }
-
-    function addScrollbarStyling(container) {
-        for (const preElement of container.querySelectorAll(selectors.scrollablePre)) {
-            preElement.classList.add(scrollbarClass);
-        }
-    }
-
-    function getCopyButtonFromEvent(eventTarget, container) {
-        const sourceElement = eventTarget instanceof Element
-            ? eventTarget
-            : eventTarget instanceof Node
-                ? eventTarget.parentElement
-                : null;
-
-        if (!sourceElement) {
-            return null;
-        }
-
-        const button = sourceElement.closest(selectors.copyButton);
-        return button instanceof HTMLButtonElement && container.contains(button)
-            ? button
-            : null;
     }
 
     function getCodeElementForButton(button) {
@@ -198,18 +173,25 @@ window.cockpit ??= {};
     }
 
     function handleCopyButtonClick(event) {
-        const container = event.currentTarget;
-        if (!(container instanceof HTMLElement)) {
-            return;
-        }
-
-        const button = getCopyButtonFromEvent(event.target, container);
-        if (!button || button.disabled) {
+        const button = event.currentTarget;
+        if (!(button instanceof HTMLButtonElement) || button.disabled) {
             return;
         }
 
         event.preventDefault();
+        event.stopPropagation();
         void copyCode(button);
+    }
+
+    function wireCopyButtons(container) {
+        for (const button of container.querySelectorAll(selectors.copyButton)) {
+            if (!(button instanceof HTMLButtonElement) || copyButtonsWithHandler.has(button)) {
+                continue;
+            }
+
+            button.addEventListener('click', handleCopyButtonClick);
+            copyButtonsWithHandler.add(button);
+        }
     }
 
     window.cockpit.highlightCodeBlocks = function (containerId) {
@@ -236,14 +218,7 @@ window.cockpit ??= {};
             return;
         }
 
-        addScrollbarStyling(container);
-
-        if (containersWithCopyHandler.has(container)) {
-            return;
-        }
-
-        container.addEventListener('click', handleCopyButtonClick);
-        containersWithCopyHandler.add(container);
+        wireCopyButtons(container);
     };
 
 })();
