@@ -10,7 +10,7 @@
     <Content>
         @if(string.IsNullOrWhiteSpace(CurrentDirectory))
         {
-            <div class="px-3 py-1.5 text-xs secondary-text">No directory set</div>
+            <div class="px-3 py-1.5 text-xs secondary-text">No working directory set</div>
         }
         else
         {
@@ -27,13 +27,13 @@
                     </div>
                 }
             </div>
+        }
 
-            @if(!string.IsNullOrWhiteSpace(SessionDirectory))
-            {
-                <button type="button" class="px-3 py-1.5 hover:bg-app-hover text-xs transition-colors group mt-1 w-full text-left break-words whitespace-normal" @onclick="() => OpenInExplorer(SessionDirectory)" aria-label="@($"Open {SessionDirectory} in file explorer")">
-                    @SessionDirectory
-                </button>
-            }
+        @if(!string.IsNullOrWhiteSpace(SessionDirectory))
+        {
+            <button type="button" class="px-3 py-1.5 hover:bg-app-hover text-xs transition-colors group mt-1 w-full text-left break-words whitespace-normal" @onclick="() => OpenInExplorer(SessionDirectory)" aria-label="@($"Open {SessionDirectory} in file explorer")">
+                @SessionDirectory
+            </button>
         }
     </Content>
 </Expander>

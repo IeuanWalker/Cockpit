@@ -60,6 +60,8 @@ public sealed partial class SessionFeature
 
 				try
 				{
+					string? cwd = SessionWorkingDirectoryNormalizer.Normalize(metadata.Context?.WorkingDirectory);
+
 					SessionModel chatSession = new()
 					{
 						Id = metadata.SessionId,
@@ -71,13 +73,15 @@ public sealed partial class SessionFeature
 						ReasoningEffort = defaultModel.DefaultReasoningEffort,
 						Context = new()
 						{
-							CurrentWorkingDirectory = metadata.Context?.WorkingDirectory ?? string.Empty,
+							CurrentWorkingDirectory = cwd,
 							WorkspacePath = null,
-							GitRoot = metadata.Context?.GitRoot,
-							Repository = metadata.Context?.Repository,
-							Branch = metadata.Context?.Branch
+							GitRoot = cwd is null ? null : metadata.Context?.GitRoot,
+							Repository = cwd is null ? null : metadata.Context?.Repository,
+							Branch = cwd is null ? null : metadata.Context?.Branch
 						}
 					};
+
+					SessionWorkingDirectoryNormalizer.ApplyContextConsistency(chatSession.Context);
 
 					_sessionListFeature.AddSession(chatSession);
 					_logger.LogInformation("Loaded session {SessionId}", chatSession.Id);
@@ -97,13 +101,18 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	public async Task<SessionModel> CreateSession(string workingDirectory)
+	public async Task<SessionModel> CreateSession(string? workingDirectory, CancellationToken cancellationToken = default)
 	{
+		CopilotClient? client = null;
+		CopilotSession? sdkSession = null;
+
 		try
 		{
-			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
-			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id);
-			GitContext gitContext = await _gitFeature.GetContext(workingDirectory);
+			cancellationToken.ThrowIfCancellationRequested();
+
+			ModelInfo defaultModel = await _modelFeature.GetDefaultModel(cancellationToken);
+			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id, cancellationToken);
+			GitContext? gitContext = await _gitFeature.GetContext(workingDirectory);
 
 			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
 			string? effectiveReasoningEffort = providerConfig is null ? defaultModel.DefaultReasoningEffort : null;
@@ -141,17 +150,28 @@ public sealed partial class SessionFeature
 
 			ApplySystemMessageCustomization(config, defaultModel);
 
-			CopilotClient client = await _clientFeature.GetClientAsync();
-			CopilotSession sdkSession = await client.CreateSessionAsync(config);
-			_sdkRegistry.Register(sdkSession, evt =>
+			cancellationToken.ThrowIfCancellationRequested();
+
+			client = await _clientFeature.GetClientAsync(cancellationToken);
+			CopilotSession createdSession = await client.CreateSessionAsync(config, cancellationToken);
+			sdkSession = createdSession;
+
+			if(cancellationToken.IsCancellationRequested)
 			{
-				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
-				HandleSessionEvent(sdkSession.SessionId, evt);
+				await client.DeleteSessionAsync(createdSession.SessionId, CancellationToken.None);
+				sdkSession = null;
+				cancellationToken.ThrowIfCancellationRequested();
+			}
+
+			_sdkRegistry.Register(createdSession, evt =>
+			{
+				_logger.LogDebug("Session {SessionId} event: {EventType}", createdSession.SessionId, evt.Type);
+				HandleSessionEvent(createdSession.SessionId, evt);
 			});
 
 			SessionModel chatSession = new()
 			{
-				Id = sdkSession.SessionId,
+				Id = createdSession.SessionId,
 				Title = !string.IsNullOrEmpty(workingDirectory)
 					? Path.GetFileName(workingDirectory)
 					: "New Session",
@@ -161,17 +181,23 @@ public sealed partial class SessionFeature
 				Context = new()
 				{
 					CurrentWorkingDirectory = workingDirectory,
-					WorkspacePath = sdkSession.WorkspacePath,
-					GitRoot = gitContext.GitRoot,
-					Repository = gitContext.Repository,
-					Branch = gitContext.Branch
+					WorkspacePath = createdSession.WorkspacePath,
+					GitRoot = gitContext?.GitRoot,
+					Repository = gitContext?.Repository,
+					Branch = gitContext?.Branch
 				},
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				SdkState = SdkSessionStateEnum.Resumed
 			};
 
-			await LoadContextPanelDataAsync(chatSession, sdkSession);
+			SessionWorkingDirectoryNormalizer.ApplyContextConsistency(chatSession.Context);
+
+			cancellationToken.ThrowIfCancellationRequested();
+
+			await LoadContextPanelDataAsync(chatSession, createdSession);
+
+			cancellationToken.ThrowIfCancellationRequested();
 
 			_sdkSessionByokId[chatSession.Id] = chatSession.ByokConfigId;
 
@@ -179,11 +205,27 @@ public sealed partial class SessionFeature
 
 			await _modelFeature.SaveSessionModel(chatSession);
 			await _agentPersistence.SaveSessionAgent(chatSession);
-			await _sessionModePersistence.SaveSessionMode(chatSession);
+			await _sessionModePersistence.SaveSessionMode(chatSession, cancellationToken);
 
 			await SwitchCurrentSessionAsync(chatSession);
 
 			return chatSession;
+		}
+		catch(OperationCanceledException)
+		{
+			if(client is not null && sdkSession is not null)
+			{
+				try
+				{
+					await client.DeleteSessionAsync(sdkSession.SessionId, CancellationToken.None);
+				}
+				catch(Exception cleanupEx)
+				{
+					_logger.LogWarning(cleanupEx, "Failed to cleanup canceled session {SessionId}", sdkSession.SessionId);
+				}
+			}
+
+			throw;
 		}
 		catch(Exception ex)
 		{
@@ -226,10 +268,14 @@ public sealed partial class SessionFeature
 
 			_logger.LogInformation("Loading session {SessionId}", sessionId);
 
+			session.Context.CurrentWorkingDirectory = SessionWorkingDirectoryNormalizer.Normalize(session.Context.CurrentWorkingDirectory);
+
 			if(string.IsNullOrWhiteSpace(session.Context.CurrentWorkingDirectory) || !Directory.Exists(session.Context.CurrentWorkingDirectory))
 			{
 				session.Context.CurrentWorkingDirectory = null;
 			}
+
+			SessionWorkingDirectoryNormalizer.ApplyContextConsistency(session.Context);
 
 			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 

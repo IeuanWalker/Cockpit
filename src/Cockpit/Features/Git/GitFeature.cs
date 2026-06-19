@@ -61,8 +61,18 @@ public sealed partial class GitFeature
 	/// Resolves git context (root, repository, branch) for a given working directory.
 	/// Returns a <see cref="GitContext"/> with null fields if the directory is not a git repo.
 	/// </summary>
-	public async Task<GitContext> GetContext(string workingDirectory)
+	public async Task<GitContext?> GetContext(string? workingDirectory)
 	{
+		if(string.IsNullOrWhiteSpace(workingDirectory))
+		{
+			return null;
+		}
+
+		if(!Directory.Exists(workingDirectory))
+		{
+			return null;
+		}
+
 		try
 		{
 			Task<string?> rootTask = RunCommand(workingDirectory, "rev-parse", "--show-toplevel");
