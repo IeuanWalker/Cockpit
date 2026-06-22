@@ -31,5 +31,6 @@ public interface IAppSettingsFeature
 	string VoiceLocale { get; set; }
 	bool KeepAlive { get; set; }
 	bool CanvasEnabled { get; set; }
+	string SessionListGroupBy { get; set; }
 	Dictionary<string, SystemMessageSectionSetting> SystemMessageSectionOverrides { get; set; }
 }

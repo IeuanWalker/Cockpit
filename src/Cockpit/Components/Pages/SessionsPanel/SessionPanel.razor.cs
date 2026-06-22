@@ -49,6 +49,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	bool _isRefreshingSessions = false;
 	bool _showSearch = false;
+	bool _isGroupByPanelOpen = false;
 
 	void ToggleSearch()
 	{
@@ -57,6 +58,22 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		{
 			_ = _sessionList?.FocusSearchAsync();
 		}
+	}
+
+	async Task ToggleGroupByPanel()
+	{
+		if(_sessionList is null)
+		{
+			return;
+		}
+
+		await _sessionList.ToggleGroupByPanelFromHeader();
+	}
+
+	Task OnGroupByPanelOpenChanged(bool isOpen)
+	{
+		_isGroupByPanelOpen = isOpen;
+		return InvokeAsync(StateHasChanged);
 	}
 
 	async Task RefreshSessions()
@@ -97,6 +114,16 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	void CreateNewSession()
 	{
 		_createSessionPopup?.Open();
+	}
+
+	async Task CreateSessionFromPathAsync(string? path)
+	{
+		if(_createSessionPopup is null)
+		{
+			return;
+		}
+
+		await _createSessionPopup.OpenAndCreateFromPathAsync(path);
 	}
 
 	public void Dispose()
