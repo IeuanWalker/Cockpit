@@ -164,6 +164,34 @@ public partial class ModelControl : ComponentBase, IDisposable
 		return char.ToUpper(_sessionListFeature.CurrentSession.ReasoningEffort[0]) + _sessionListFeature.CurrentSession.ReasoningEffort[1..];
 	}
 
+	bool IsReasoningEffortSelected(string effort)
+	{
+		return string.Equals(_sessionListFeature.CurrentSession?.ReasoningEffort, effort, StringComparison.OrdinalIgnoreCase);
+	}
+
+	string GetReasoningEffortDisplayName(string effort)
+	{
+		string displayName = char.ToUpper(effort[0]) + effort[1..];
+		if(string.Equals(effort, _sessionListFeature.CurrentSession?.Model.DefaultReasoningEffort, StringComparison.OrdinalIgnoreCase))
+		{
+			return $"{displayName} (default)";
+		}
+
+		return displayName;
+	}
+
+	static string GetReasoningEffortDescription(string effort)
+	{
+		return effort.ToLowerInvariant() switch
+		{
+			"low" => "Faster responses with less reasoning",
+			"medium" => "Balanced reasoning and speed",
+			"high" => "Greater reasoning depth but slower",
+			"max" => "Absolute maximum capability with no constraints",
+			_ => "Higher reasoning depth for complex tasks"
+		};
+	}
+
 	string GetDisplayModelMultiplier(ModelInfo? model)
 	{
 		if(model is null)
