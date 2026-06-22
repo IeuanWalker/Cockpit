@@ -175,9 +175,7 @@ public sealed partial class SessionFeature
 			SessionModel chatSession = new()
 			{
 				Id = createdSession.SessionId,
-				Title = !string.IsNullOrEmpty(workingDirectory)
-					? Path.GetFileName(workingDirectory)
-					: "New Session",
+				Title = "New Session",
 				CreatedAt = DateTime.UtcNow,
 				LastActivity = DateTime.UtcNow,
 				Status = SessionStatusEnum.Idle,

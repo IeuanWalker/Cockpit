@@ -45,6 +45,12 @@ public partial class CreateSessionPopup : ComponentBase
 
 	Task CreateFromRecent(string path) => CreateSession(path);
 
+	public Task OpenAndCreateFromPathAsync(string? path)
+	{
+		Open();
+		return CreateSession(path);
+	}
+
 	async Task BrowseDirectory()
 	{
 #if WINDOWS || MACCATALYST

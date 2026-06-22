@@ -43,6 +43,7 @@ public class UserAppSettings
 		internal const string telemetryEnabled = "TelemetryEnabled";
 		internal const string keepAlive = "KeepAlive";
 		internal const string canvasEnabled = "CanvasEnabled";
+		internal const string sessionListGroupBy = "SessionListGroupBy";
 		internal const string systemMessageSectionOverrides = "SystemMessageSectionOverrides";
 	}
 
@@ -241,6 +242,12 @@ public class UserAppSettings
 	{
 		get => _preferences.Get(Keys.canvasEnabled, true);
 		set => _preferences.Set(Keys.canvasEnabled, value);
+	}
+
+	public string SessionListGroupBy
+	{
+		get => _preferences.Get(Keys.sessionListGroupBy, "Project");
+		set => _preferences.Set(Keys.sessionListGroupBy, value);
 	}
 
 	/// <summary>

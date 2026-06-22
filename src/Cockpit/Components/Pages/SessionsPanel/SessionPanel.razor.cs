@@ -99,6 +99,16 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		_createSessionPopup?.Open();
 	}
 
+	async Task CreateSessionFromPathAsync(string? path)
+	{
+		if(_createSessionPopup is null)
+		{
+			return;
+		}
+
+		await _createSessionPopup.OpenAndCreateFromPathAsync(path);
+	}
+
 	public void Dispose()
 	{
 		Dispose(true);

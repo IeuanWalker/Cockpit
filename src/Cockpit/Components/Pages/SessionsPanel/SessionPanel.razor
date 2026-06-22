@@ -39,7 +39,10 @@
         }
         else
         {
-            <SessionList @ref="_sessionList" DeletePopup="@_deletePopup" ShowSearch="@_showSearch" />
+            <SessionList @ref="_sessionList"
+                         DeletePopup="@_deletePopup"
+                         ShowSearch="@_showSearch"
+                         OnCreateSessionFromPath="CreateSessionFromPathAsync" />
         }
 
     </div>
