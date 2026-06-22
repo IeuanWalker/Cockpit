@@ -218,13 +218,14 @@ public sealed partial class SessionFeature
 		{
 			if(client is not null && sdkSession is not null)
 			{
+				string sessionId = sdkSession.SessionId;
 				try
 				{
-					await client.DeleteSessionAsync(sdkSession.SessionId, CancellationToken.None);
+					await client.DeleteSessionAsync(sessionId, CancellationToken.None);
 
 					if(sdkSessionRegistered)
 					{
-						_sdkRegistry.Remove(sdkSession.SessionId);
+						_sdkRegistry.Remove(sessionId);
 					}
 
 					await sdkSession.DisposeAsync();
@@ -232,7 +233,7 @@ public sealed partial class SessionFeature
 				}
 				catch(Exception cleanupEx)
 				{
-					_logger.LogWarning(cleanupEx, "Failed to cleanup canceled session {SessionId}", sdkSession.SessionId);
+					_logger.LogWarning(cleanupEx, "Failed to cleanup canceled session {SessionId}", sessionId);
 				}
 			}
 
