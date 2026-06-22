@@ -14,7 +14,7 @@ static class SessionContextChangedHandler
 
 		if(evt.Data.Cwd is not null)
 		{
-			session.Context.CurrentWorkingDirectory = evt.Data.Cwd;
+			session.Context.CurrentWorkingDirectory = Cockpit.Features.Sessions.SessionWorkingDirectoryNormalizer.Normalize(evt.Data.Cwd);
 		}
 
 		if(evt.Data.GitRoot is not null)
@@ -31,5 +31,7 @@ static class SessionContextChangedHandler
 		{
 			session.Context.Branch = evt.Data.Branch;
 		}
+
+		Cockpit.Features.Sessions.SessionWorkingDirectoryNormalizer.ApplyContextConsistency(session.Context);
 	}
 }
