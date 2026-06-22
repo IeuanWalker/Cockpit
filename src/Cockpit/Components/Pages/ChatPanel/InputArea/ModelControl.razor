@@ -1,6 +1,7 @@
 @namespace Cockpit.Components.Pages.ChatPanel.InputArea
 @using GitHub.Copilot
 @using Cockpit.Components.Popups
+@using Cockpit.Components.Controls
 
 <div class="flex items-center gap-1">
 <PickerControl @ref="_modelPicker"
@@ -19,11 +20,13 @@
         </button>
     </HeaderAction>
     <SelectedContent>
-        @(_sessionListFeature.CurrentSession?.Model.Name ?? "No Model")
-        @if(!string.IsNullOrEmpty(GetDisplayModelMultiplier(_sessionListFeature.CurrentSession?.Model)))
-        {
-            <text> (</text><span style="color: @GetMultiplierColor(_sessionListFeature.CurrentSession?.Model)">@(GetDisplayModelMultiplier(_sessionListFeature.CurrentSession?.Model))</span><text>)</text>
-        }
+        <div style="display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;">
+            <span>@(_sessionListFeature.CurrentSession?.Model.Name ?? "No Model")</span>
+            @if(GetCostColor(_sessionListFeature.CurrentSession?.Model) is { } color)
+            {
+                <CostIndicator Color="@color" NormalizedCost="@GetNormalizedCost(_sessionListFeature.CurrentSession?.Model)" />
+            }
+        </div>
     </SelectedContent>
     <DropdownContent>
         @foreach(ModelInfo model in _availableModels)
@@ -33,7 +36,14 @@
                     class="w-full px-3 py-1.5 text-xs hover:bg-app-hover flex items-center justify-between"
                     style="color: var(--text-color);">
                 <span class="text-left">@model.Name</span>
-                <span class="text-right ml-4" style="color: @GetMultiplierColor(model)">@GetDisplayModelMultiplier(model)</span>
+                @if(model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
+                {
+                    <span style="color: var(--text-secondary); font-size: 0.8em;">Variable</span>
+                }
+                else if(GetNormalizedCost(model) is { } cost)
+                {
+                    <CostGradientBar NormalizedCost="@cost" />
+                }
             </button>
         }
     </DropdownContent>
@@ -84,6 +94,5 @@
 <ModelInfoPopup @ref="_modelInfoPopup"
                 Models="_availableModels"
                 SelectedModel="@_sessionListFeature.CurrentSession?.Model"
-                OnModelSelected="HandleModelSelectedFromPopup"
-                MaxMultiplier="_maxMultiplier" />
+                OnModelSelected="HandleModelSelectedFromPopup" />
 </div>

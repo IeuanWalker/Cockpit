@@ -24,7 +24,6 @@ public partial class ModelControl : ComponentBase, IDisposable
 	}
 
 	IReadOnlyList<ModelInfo> _availableModels = [];
-	double _maxMultiplier;
 	PickerControl _modelPicker = default!;
 	PickerControl? _reasoningPicker;
 	ModelInfoPopup _modelInfoPopup = default!;
@@ -54,9 +53,6 @@ public partial class ModelControl : ComponentBase, IDisposable
 	async Task RefreshModelsAsync()
 	{
 		_availableModels = await _modelFeature.GetModels();
-		_maxMultiplier = _availableModels.Count > 0
-			? _availableModels.Max(m => m.Billing?.Multiplier ?? 0)
-			: 0;
 	}
 
 	void OpenModelInfoPopup()
@@ -192,57 +188,20 @@ public partial class ModelControl : ComponentBase, IDisposable
 		};
 	}
 
-	string GetDisplayModelMultiplier(ModelInfo? model)
+	double? GetNormalizedCost(ModelInfo? model)
 	{
-		if(model is null)
+		if(model is null || model.Id.Equals("Auto", StringComparison.OrdinalIgnoreCase))
 		{
-			return "Unknown";
+			return null;
 		}
 
-		if(model.Id.Equals("Auto", StringComparison.OrdinalIgnoreCase))
-		{
-			return string.Empty;
-		}
-
-		if(model.Billing is null)
-		{
-			return string.Empty;
-		}
-
-		return $"{model.Billing.Multiplier:0.0}x";
+		return ModelCostCalculator.GetNormalizedCost(model, _availableModels);
 	}
 
-	string GetMultiplierColor(ModelInfo? model)
+	string? GetCostColor(ModelInfo? model)
 	{
-		if(_availableModels.Count == 0 || model?.Billing?.Multiplier is null)
-		{
-			return "#999999";
-		}
-
-		double multiplier = model.Billing.Multiplier ?? 0.0;
-
-		if(multiplier == 0)
-		{
-			return "#00ff00";
-		}
-
-		if(multiplier < 1)
-		{
-			return "#00d000";
-		}
-
-		if(multiplier == 1)
-		{
-			return "#999999";
-		}
-
-		if(multiplier >= _maxMultiplier)
-		{
-			return "#FF0000";
-		}
-
-		// multiplier > 1 and below the maximum
-		return "#ff8c00";
+		double? cost = GetNormalizedCost(model);
+		return cost is not null ? ModelCostCalculator.GetGradientColor(cost) : null;
 	}
 
 	public void Dispose()

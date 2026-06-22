@@ -56,8 +56,8 @@ sealed class SystemMessageFeature : ISystemMessageFeature
 			// systemMessage.transform, so model quality is irrelevant.
 			IReadOnlyList<ModelInfo> models = await _modelFeature.GetModels(_cts.Token);
 			string? cheapestModel = models
-				.Where(m => m.Billing?.Multiplier.HasValue == true)
-				.OrderBy(m => m.Billing!.Multiplier!.Value)
+				.Where(m => m.Billing?.TokenPrices?.InputPrice.HasValue == true)
+				.OrderBy(m => m.Billing!.TokenPrices!.InputPrice!.Value)
 				.FirstOrDefault()?.Id
 				?? models.FirstOrDefault()?.Id;
 

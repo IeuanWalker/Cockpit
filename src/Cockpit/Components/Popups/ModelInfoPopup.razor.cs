@@ -33,11 +33,11 @@ public sealed partial class ModelInfoPopup : ComponentBase, IDisposable
 	[Parameter] public IReadOnlyList<ModelInfo> Models { get; set; } = [];
 	[Parameter] public ModelInfo? SelectedModel { get; set; }
 	[Parameter] public EventCallback<ModelInfo> OnModelSelected { get; set; }
-	[Parameter] public double MaxMultiplier { get; set; }
 
 	PopupBase _popup = default!;
 	PopupBase _jsonPopup = default!;
 	AddCustomModelPopup _addModelPopup = default!;
+	ModelCostPopup _costPopup = default!;
 	string _searchFilter = string.Empty;
 	string _filterOption = "All";
 	bool _filterDropdownOpen = false;
@@ -87,51 +87,20 @@ public sealed partial class ModelInfoPopup : ComponentBase, IDisposable
 		return [.. result];
 	}
 
-	string GetMultiplierColor(ModelInfo model)
+	double? GetNormalizedCost(ModelInfo model)
 	{
-		if(model.Billing is null)
-		{
-			return "#999999";
-		}
-
-		double multiplier = model.Billing.Multiplier ?? 0.0;
-
-		if(multiplier == 0)
-		{
-			return "#00ff00";
-		}
-
-		if(multiplier < 1)
-		{
-			return "#00d000";
-		}
-
-		if(multiplier == 1)
-		{
-			return "#999999";
-		}
-
-		if(MaxMultiplier > 1 && multiplier >= MaxMultiplier)
-		{
-			return "#FF0000";
-		}
-
-		return "#ff8c00";
-	}
-
-	string GetMultiplierDisplay(ModelInfo model)
-	{
-		if(model.Billing is null)
-		{
-			return string.Empty;
-		}
-
 		if(model.Id.Equals("Auto", StringComparison.OrdinalIgnoreCase))
 		{
-			return string.Empty;
+			return null;
 		}
 
-		return $"{model.Billing.Multiplier:0.0}x";
+		return ModelCostCalculator.GetNormalizedCost(model, _localModels ?? Models);
+	}
+
+	string? GetCostColor(ModelInfo model)
+	{
+		double? cost = GetNormalizedCost(model);
+		return cost is not null ? ModelCostCalculator.GetGradientColor(cost) : null;
 	}
 
 	async Task SelectModelFromPopup(ModelInfo model)

@@ -87,11 +87,6 @@ public sealed partial class ModelFeature : IModelFeature
 
 		foreach(ModelInfo m in models)
 		{
-			if(m.Billing?.Multiplier != 0)
-			{
-				continue;
-			}
-
 			if(firstFree is null)
 			{
 				firstFree = m;

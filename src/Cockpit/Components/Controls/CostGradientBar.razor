@@ -1,0 +1,20 @@
+@namespace Cockpit.Components.Controls
+
+<!-- Gradient bar component for model list - shows relative cost position with fixed width -->
+<div title="@GetTooltip()" style="display: inline-block; width: 90px; flex-shrink: 0;">
+    @if(NormalizedCost is { } cost)
+    {
+        <svg width="90" height="16" viewBox="0 0 90 16" style="display: block;">
+            <defs>
+                <linearGradient id="costGradient@(GetHashCode())" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#4ade80;stop-opacity:1" />
+                    <stop offset="33%" style="stop-color:#fbbf24;stop-opacity:1" />
+                    <stop offset="66%" style="stop-color:#f97316;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <rect x="5" y="5" width="80" height="6" rx="3" fill="url(#costGradient@(GetHashCode()))" />
+            <circle cx="@(5 + cost * 80)" cy="8" r="5" fill="#f5f5f5" stroke="#000" stroke-width="0.5" opacity="0.9" />
+        </svg>
+    }
+</div>

@@ -1,3 +1,4 @@
+@namespace Cockpit.Components.Popups
 @using Cockpit.Components.Controls
 @using GitHub.Copilot
 @using Cockpit.Features.Byok
@@ -54,7 +55,6 @@
             @foreach(ModelInfo model in filteredModels)
             {
                 bool isSelected = SelectedModel?.Id == model.Id;
-                string multiplierDisplay = GetMultiplierDisplay(model);
                 ByokModelConfig? byokConfig = GetByokConfig(model.Id);
                 <div class="rounded-lg border p-4"
                      id="model-card-@(Uri.EscapeDataString(model.Id))"
@@ -70,9 +70,17 @@
                                     </svg>
                                 }
                                 <h3 class="text-sm font-semibold text-app-title">@model.Name</h3>
-                                @if(!string.IsNullOrEmpty(multiplierDisplay) && !model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
+                                @if(!model.Id.Equals("auto", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    <span class="text-xs font-medium" style="color: @GetMultiplierColor(model);">@multiplierDisplay</span>
+                                    @if(GetCostColor(model) is { } color)
+                                    {
+                                        <button @onclick="() => _costPopup.Open(model, _localModels ?? [])"
+                                                class="hover:opacity-80 cursor-pointer transition-opacity"
+                                                title="View cost breakdown"
+                                                style="background: none; border: none; padding: 0;">
+                                            <CostIndicator Color="@color" NormalizedCost="@GetNormalizedCost(model)" />
+                                        </button>
+                                    }
                                 }
                             </div>
                         </div>
@@ -211,3 +219,4 @@
 </PopupBase>
 
 <AddCustomModelPopup @ref="_addModelPopup" OnSaved="OnModelAdded" />
+<ModelCostPopup @ref="_costPopup" />
