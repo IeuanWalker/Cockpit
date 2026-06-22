@@ -5,6 +5,9 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Cockpit | GUI for GitHub Copilot CLI</title>
 	<meta name="description" content="Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.">
+	<meta name="author" content="Ieuan Walker">
+	<meta name="copyright" content="Copyright 2026 Ieuan Walker. All rights reserved.">
+	<meta name="keywords" content="GitHub Copilot GUI, AI coding assistant, multi-session workflows, developer tool, Windows IDE, code editor, AI agent interface, BYOK, diff viewer">
 	<link rel="canonical" href="https://ieuanwalker.github.io/Cockpit/">
 	<meta property="og:title" content="Cockpit | GUI for GitHub Copilot CLI">
 	<meta property="og:description" content="Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.">
@@ -15,6 +18,8 @@
 	<meta name="twitter:title" content="Cockpit | GUI for GitHub Copilot CLI">
 	<meta name="twitter:description" content="Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.">
 	<meta name="twitter:image" content="https://ieuanwalker.github.io/Cockpit/assets/app-preview.png">
+	<meta name="twitter:site" content="@IeuanWalker">
+	<meta name="twitter:creator" content="@IeuanWalker">
 	<link rel="icon" type="image/png" href="assets/logo.png">
 	<style>
 		:root {
@@ -28,7 +33,7 @@
 			--title-color: #FFFFFF;
 			--input-bg: #313131;
 			--input-border: #3D3D3D;
-			--secondary-text: #868686;
+			--secondary-text: #7B7B7B;
 			--accent-color: #0078D4;
 			--button-bg: #FFFFFF;
 			--button-hover: #EDEDED;
@@ -52,7 +57,7 @@
 			--title-color: #1F1F1F;
 			--input-bg: #FFFFFF;
 			--input-border: #CECECE;
-			--secondary-text: #616161;
+			--secondary-text: #555555;
 			--accent-color: #0078D4;
 			--button-bg: #111111;
 			--button-hover: #000000;
@@ -811,11 +816,60 @@
 			transform: translateY(0);
 		}
 
+		.why-section {
+			padding: 3rem 0;
+			text-align: center;
+		}
+
+		.why-section h2 {
+			font-size: clamp(1.8rem, 4vw, 2.8rem);
+			margin-bottom: 2rem;
+			color: var(--title-color);
+		}
+
+		.why-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+			gap: 2rem;
+			margin-top: 2rem;
+		}
+
+		.why-card {
+			padding: 1.5rem;
+			border-radius: 1rem;
+			border: 1px solid var(--border-color);
+			background: color-mix(in srgb, var(--sidebar-color) 60%, transparent);
+			transition: all 0.3s ease;
+		}
+
+		.why-card:hover {
+			border-color: var(--accent-color);
+			background: color-mix(in srgb, var(--sidebar-color) 80%, transparent);
+			transform: translateY(-2px);
+		}
+
+		.why-card h3 {
+			margin: 0 0 0.8rem 0;
+			font-size: 1.1rem;
+			color: var(--title-color);
+		}
+
+		.why-card p {
+			margin: 0;
+			color: var(--secondary-text);
+			line-height: 1.6;
+		}
+
 		@media (max-width: 880px) {
 			.footer-row {
 				flex-direction: column;
 				justify-content: center;
 				padding: 1rem 0;
+			}
+
+			.why-grid {
+				grid-template-columns: 1fr;
+				gap: 1.5rem;
 			}
 		}
 
@@ -832,12 +886,38 @@
 				"@type": "SoftwareApplication",
 				"name": "Cockpit",
 				"description": "Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.",
+				"image": "https://ieuanwalker.github.io/Cockpit/assets/app-preview.png",
+				"author": {
+					"@type": "Person",
+					"name": "Ieuan Walker"
+				},
+				"offers": {
+					"@type": "Offer",
+					"price": "0",
+					"priceCurrency": "USD",
+					"availability": "https://schema.org/InStock"
+				},
 				"operatingSystem": "Windows 10+, macOS 15+",
 				"applicationCategory": "DeveloperApplication",
 				"url": "https://ieuanwalker.github.io/Cockpit/",
 				"downloadUrl": "https://github.com/IeuanWalker/Cockpit/releases/latest",
-				"codeRepository": "https://github.com/IeuanWalker/Cockpit"
+				"codeRepository": "https://github.com/IeuanWalker/Cockpit",
+				"softwareVersion": "Latest"
 			}
+		</script>
+		<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@type": "WebSite",
+			"url": "https://ieuanwalker.github.io/Cockpit/",
+			"name": "Cockpit",
+			"description": "GUI for GitHub Copilot CLI",
+			"creator": {
+				"@type": "Person",
+				"name": "Ieuan Walker",
+				"url": "https://github.com/IeuanWalker"
+			}
+		}
 		</script>
 	</head>
 	<body>
@@ -893,6 +973,26 @@
 		</div>
 	</header>
 
+	<section class="why-section">
+		<div class="container">
+			<h2>Why Cockpit?</h2>
+			<div class="why-grid">
+				<div class="why-card">
+					<h3>Free and Open Source</h3>
+					<p>No licensing costs, no vendor lock-in. Full transparency into how your AI workflows operate with community-driven development.</p>
+				</div>
+				<div class="why-card">
+					<h3>Fully Customizable</h3>
+					<p>Tailor the interface, theme, layout, and workflows to match your personal setup. Extend with plugins for your team's specific needs. (coming soon)</p>
+				</div>
+				<div class="why-card">
+					<h3>Transparent & Traceable</h3>
+					<p>See every decision the AI makes. Comprehensive activity logs, token usage tracking, and audit trails keep you in control and informed.</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
 	<section class="features" id="features">
 		<div class="container">
 			<h2>Features</h2>
@@ -902,7 +1002,7 @@
 	</main>
 
 	<div class="modal-backdrop" id="featureModal" aria-hidden="true">
-		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
+		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody" aria-live="polite" aria-atomic="true">
 			<div class="modal-head">
 				<h3 id="modalTitle"></h3>
 				<button class="close-btn" type="button" id="modalClose" aria-label="Close">
@@ -912,7 +1012,7 @@
 			<p id="modalBody"></p>
 			<a id="modalDocLink" class="modal-doc-link" href="#" target="_blank" rel="noopener noreferrer">Official documentation</a>
 			<div class="modal-media" id="modalMedia">
-				<img id="modalImage" alt="" width="1918" height="1030" loading="lazy" decoding="async">
+				<img id="modalImage" alt="Feature preview image" width="1918" height="1030" loading="lazy" decoding="async">
 				<video id="modalVideo" controls preload="metadata"></video>
 				<div class="modal-carousel" id="modalCarousel">
 					<div class="modal-carousel-track" id="modalCarouselTrack"></div>
@@ -934,7 +1034,7 @@
 		<div class="container footer-row">
 			<div class="footer-left">
 				<img src="assets/logo.png" alt="Cockpit logo" width="512" height="512" loading="lazy" decoding="async">
-				<span>&copy; 2026 Cockpit</span>
+				<span>Ieuan Walker &copy; 2026 Cockpit</span>
 			</div>
 			<div class="footer-links">
 				<a href="https://github.com/IeuanWalker/Cockpit" target="_blank">GitHub</a>
@@ -947,7 +1047,7 @@
 		<button class="lightbox-close" type="button" id="lightboxClose" aria-label="Close full size image">
 			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path></svg>
 		</button>
-		<img id="lightboxImage" alt="">
+		<img id="lightboxImage" alt="Full size application preview">
 	</div>
 
 	<script>
@@ -1225,15 +1325,15 @@
 			},
 			canvas: {
 				title: "Canvas support",
-				shortDescription: "Render diagrams, charts, and interactive dashboards in context.",
-				body: "Render diagrams, charts, and interactive outputs inside the workflow so architecture and data discussions stay visual and actionable.",
+				shortDescription: "Visualize architectural decisions, data flows, and UI designs inline.",
+				body: "Visualize architectural decisions, data flows, and UI designs inline — keep architecture discussions interactive and actionable.",
 				imageAlt: "Cockpit canvas-style visual output",
 				isPartialSupport: true
 			},
 			byok: {
 				title: "Bring your own key (BYOK)",
 				shortDescription: "Use custom model/provider configs with secure key handling.",
-				body: "Configure BYOK providers and model profiles, including:\n- Provider type and model ID\n- Base URL and wire API compatibility\n- Capability hints (vision support, reasoning support, max context tokens)\n- Secure secret handling for API keys/tokens\n\nBYOK metadata is stored separately from secrets so model settings can be shared without exposing credentials.\n\nExapand the models list, click the info button (top right), then add model ",
+				body: "Configure BYOK providers and model profiles, including:\n- Provider type and model ID\n- Base URL and wire API compatibility\n- Capability hints (vision support, reasoning support, max context tokens)\n- Secure secret handling for API keys/tokens\n\nBYOK metadata is stored separately from secrets so model settings can be shared without exposing credentials.\n\nExpand the models list, click the info button (top right), then add your model configuration, select provider type, and paste your API key securely.",
 				docsUrl: "https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/byok",
 				image: "assets/byok-feature.png",
 				imageAlt: "Cockpit model configuration preview"
@@ -1252,14 +1352,14 @@
 			},
 			telemetry: {
 				title: "OpenTelemetry diagnostics",
-				shortDescription: "Deep visibility into session performance with time and token usage breakdown by operation.",
-				body: "Get deep visibility into session performance with a dedicated telemetry dashboard. Track:\n\n• Time spent per operation (tokens, thinking, tool execution)\n• Token consumption breakdown by message and span\n• Performance metrics across trace spans\n• Session-by-session diagnostics for optimization\n\nExport and analyze telemetry data to understand bottlenecks, optimize prompts, and improve agent performance.",
+				shortDescription: "Diagnose performance by tracking token usage and time per operation.",
+				body: "Diagnose why an AI session took 5 minutes vs. 30 seconds — see token usage and time per operation to optimize prompts and reduce costs.\n\nGet deep visibility into session performance with a dedicated telemetry dashboard. Track:\n\n• Time spent per operation (tokens, thinking, tool execution)\n• Token consumption breakdown by message and span\n• Performance metrics across trace spans\n• Session-by-session diagnostics for optimization\n\nExport and analyze telemetry data to understand bottlenecks, optimize prompts, and improve agent performance.",
 				video: "assets/OpenTelemarty-Feature.mp4"
 			},
 			plugins: {
 				title: "Plugins",
-				shortDescription: "Extend Cockpit with custom integrations and workflow modules.",
-				body: "A plugin system is planned so teams can add custom integrations, automation hooks, and UI extensions tailored to their own development workflows.",
+				shortDescription: "Extend Cockpit with custom integrations for your team's tools.",
+				body: "Coming soon: Extend Cockpit with custom integrations for your team's tools (Jira, Slack, GitHub Actions, etc.) — automate workflows without leaving the app",
 				isComingSoon: true
 			},
 			worktrees: {
@@ -1289,6 +1389,7 @@
 			button.className = "feature-card";
 			button.type = "button";
 			button.setAttribute("data-feature", featureKey);
+				button.setAttribute("aria-label", `${feature.title}: ${feature.shortDescription}`);
 
 			if (feature.isPartialSupport) {
 				button.classList.add("partial-support");
