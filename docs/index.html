@@ -310,6 +310,7 @@
 			border-radius: 0.85rem;
 			border: 1px solid var(--border-color);
 			background: var(--sidebar-color);
+			cursor: zoom-in;
 		}
 
 		.features {
@@ -395,6 +396,11 @@
 			border-color: color-mix(in srgb, var(--accent-color) 70%, var(--border-color));
 		}
 
+		.feature-card.partial-support {
+			border-style: dashed;
+			border-color: color-mix(in srgb, var(--neon-violet) 70%, var(--border-color));
+		}
+
 		.tag {
 			display: inline-block;
 			margin-bottom: 0.5rem;
@@ -406,6 +412,11 @@
 			border-radius: 999px;
 			background: color-mix(in srgb, var(--accent-color) 18%, transparent);
 			color: var(--accent-color);
+		}
+
+		.tag--purple {
+			background: color-mix(in srgb, var(--neon-violet) 18%, transparent);
+			color: var(--neon-violet);
 		}
 
 		.modal-backdrop {
@@ -498,6 +509,148 @@
 		.modal-media img.show,
 		.modal-media video.show {
 			display: block;
+		}
+
+		.modal-media img.show {
+			cursor: zoom-in;
+		}
+
+		.modal-carousel {
+			display: none;
+			flex-direction: column;
+		}
+
+		.modal-carousel.show {
+			display: flex;
+		}
+
+		.modal-carousel-track {
+			position: relative;
+			overflow: hidden;
+		}
+
+		.modal-carousel-track img {
+			display: none;
+			width: 100%;
+			height: auto;
+			max-height: 420px;
+			object-fit: contain;
+			background: #000;
+			cursor: zoom-in;
+		}
+
+		.modal-carousel-track img.active {
+			display: block;
+		}
+
+		.modal-carousel-nav {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.6rem;
+			padding: 0.55rem 0.75rem 0.6rem;
+			background: var(--sidebar-color);
+		}
+
+		.carousel-btn {
+			border: 1px solid var(--border-color);
+			background: var(--hover-color);
+			color: var(--title-color);
+			border-radius: 0.5rem;
+			width: 1.8rem;
+			height: 1.8rem;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			padding: 0;
+			flex-shrink: 0;
+		}
+
+		.carousel-btn:hover {
+			background: var(--active-color);
+		}
+
+		.carousel-btn svg {
+			width: 0.85rem;
+			height: 0.85rem;
+			fill: currentColor;
+		}
+
+		.carousel-dots {
+			display: flex;
+			gap: 0.4rem;
+			align-items: center;
+		}
+
+		.carousel-dot {
+			width: 6px;
+			height: 6px;
+			border-radius: 999px;
+			background: var(--border-color);
+			transition: background 0.2s ease, width 0.2s ease;
+			cursor: pointer;
+			border: none;
+			padding: 0;
+		}
+
+		.carousel-dot.active {
+			background: var(--accent-color);
+			width: 16px;
+		}
+
+		.lightbox {
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, 0.92);
+			display: none;
+			align-items: center;
+			justify-content: center;
+			z-index: 100;
+			padding: 1rem;
+			cursor: zoom-out;
+		}
+
+		.lightbox.show {
+			display: flex;
+			animation: fadeIn 0.2s ease;
+		}
+
+		.lightbox img {
+			max-width: 100%;
+			max-height: 100%;
+			object-fit: contain;
+			border-radius: 0.5rem;
+			box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+			pointer-events: none;
+			user-select: none;
+		}
+
+		.lightbox-close {
+			position: absolute;
+			top: 1rem;
+			right: 1rem;
+			border: 1px solid rgba(255, 255, 255, 0.2);
+			background: rgba(255, 255, 255, 0.08);
+			color: #fff;
+			border-radius: 0.6rem;
+			width: 2rem;
+			height: 2rem;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			padding: 0;
+		}
+
+		.lightbox-close:hover {
+			background: rgba(255, 255, 255, 0.16);
+		}
+
+		.lightbox-close svg {
+			width: 1rem;
+			height: 1rem;
+			fill: currentColor;
 		}
 
 		.close-btn {
@@ -734,7 +887,7 @@
 					</a>
 				</div>
 				<div class="preview-wrap" id="previewWrap">
-					<img class="preview" src="assets/app-preview.png" alt="Cockpit app interface preview" width="1918" height="1030" loading="eager" fetchpriority="high" decoding="async">
+						<img class="preview" src="assets/app-preview.png" alt="Cockpit app interface preview" width="1918" height="1030" loading="eager" fetchpriority="high" decoding="async" role="button" tabindex="0" aria-label="View full size preview">
 				</div>
 			</div>
 		</div>
@@ -768,7 +921,8 @@
 					<h3>Fine-grained permissions</h3>
 					<p>Control autonomy globally, per session, or with YOLO mode.</p>
 				</button>
-				<button class="feature-card" type="button" data-feature="canvas">
+				<button class="feature-card partial-support" type="button" data-feature="canvas">
+					<span class="tag tag--purple">Partial support</span>
 					<h3>Canvas support</h3>
 					<p>Render diagrams, charts, and interactive dashboards in context.</p>
 				</button>
@@ -783,6 +937,10 @@
 				<button class="feature-card" type="button" data-feature="systemmessage">
 					<h3>System message customisation</h3>
 					<p>Control prompt sections with replace, remove, append, or prepend overrides.</p>
+				</button>
+				<button class="feature-card" type="button" data-feature="telemetry">
+					<h3>OpenTelemetry diagnostics</h3>
+					<p>Deep visibility into session performance with time and token usage breakdown by operation.</p>
 				</button>
 				<button class="feature-card coming-soon" type="button" data-feature="plugins">
 					<span class="tag">Coming soon</span>
@@ -817,6 +975,18 @@
 			<div class="modal-media" id="modalMedia">
 				<img id="modalImage" alt="" width="1918" height="1030" loading="lazy" decoding="async">
 				<video id="modalVideo" controls preload="metadata"></video>
+				<div class="modal-carousel" id="modalCarousel">
+					<div class="modal-carousel-track" id="modalCarouselTrack"></div>
+					<div class="modal-carousel-nav">
+						<button class="carousel-btn" type="button" id="carouselPrev" aria-label="Previous image">
+							<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.78 3.22a.75.75 0 0 1 0 1.06L6.56 7.5l3.22 3.22a.75.75 0 1 1-1.06 1.06L4.94 8a.75.75 0 0 1 0-1.06l3.78-3.78a.75.75 0 0 1 1.06 0Z"/></svg>
+						</button>
+						<div class="carousel-dots" id="carouselDots"></div>
+						<button class="carousel-btn" type="button" id="carouselNext" aria-label="Next image">
+							<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.22 3.22a.75.75 0 0 0 0 1.06L9.44 7.5 6.22 10.72a.75.75 0 1 0 1.06 1.06L11.06 8a.75.75 0 0 0 0-1.06L7.28 3.22a.75.75 0 0 0-1.06 0Z"/></svg>
+						</button>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -833,6 +1003,13 @@
 			</div>
 		</div>
 	</footer>
+
+	<div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Full size image">
+		<button class="lightbox-close" type="button" id="lightboxClose" aria-label="Close full size image">
+			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path></svg>
+		</button>
+		<img id="lightboxImage" alt="">
+	</div>
 
 	<script>
 		const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
@@ -1109,21 +1286,27 @@
 			},
 			terminal: {
 				title: "Integrated terminal",
-				body: "Use command-line tools directly inside Cockpit so agent output and manual commands stay in one place. This reduces context switching while preserving familiar CLI power."
+				body: "Run commands in a built-in terminal and attach the output directly to your next message. Quickly share command results with Copilot without leaving Cockpit.",
+				video: "assets/Terminal-feature.mp4"
 			},
 			gitdiff: {
 				title: "Git diff viewer",
-				body: "Inspect generated changes before accepting them. Review file-level diffs quickly so you can stay in control of code quality and merge confidence."
+				body: "Inspect generated changes before accepting them. Review file-level diffs quickly so you can stay in control of code quality and merge confidence.",
+				image: "assets/gitdiff-feature.png",
+				imageAlt: "Cockpit git diff viewer showing side-by-side code changes"
 			},
 			attachments: {
 				title: "Image & attachment support",
 				body: "Attach files and visuals to give agents richer context for debugging, UI work, and documentation-heavy tasks.",
-				image: "assets/app-preview.png",
 				imageAlt: "Cockpit interface showing rich context"
 			},
 			history: {
 				title: "Transparent chat history",
-				body: "Get a clean, complete conversation record with no hidden steps. It is easier to audit decisions and understand exactly what the agent changed."
+				body: "Get a clean, complete conversation record with no hidden steps. It is easier to audit decisions and understand exactly what the agent changed.",
+				images: [
+					{ src: "assets/chatHistory-1-feature.png", alt: "Cockpit chat history showing collapsed operations" },
+					{ src: "assets/chatHistory-2-feature.png", alt: "Cockpit chat history showing expanded operations detail" }
+				]
 			},
 			permissions: {
 				title: "Fine-grained permissions",
@@ -1132,23 +1315,29 @@
 			canvas: {
 				title: "Canvas support",
 				body: "Render diagrams, charts, and interactive outputs inside the workflow so architecture and data discussions stay visual and actionable.",
-				image: "assets/app-preview.png",
 				imageAlt: "Cockpit canvas-style visual output"
+			},
+			byok: {
+				title: "Bring your own key (BYOK)",
+				body: "Configure BYOK providers and model profiles, including:\n- Provider type and model ID\n- Base URL and wire API compatibility\n- Capability hints (vision support, reasoning support, max context tokens)\n- Secure secret handling for API keys/tokens\n\nBYOK metadata is stored separately from secrets so model settings can be shared without exposing credentials.\n\nExapand the models list, click the info button (top right), then add model ",
+				docsUrl: "https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/byok",
+				image: "assets/byok-feature.png",
+				imageAlt: "Cockpit model configuration preview"
+			},
+			systemmessage: {
+				title: "System message customisation",
+				body: "Customize system prompt sections directly in Cockpit with section-level actions: Replace, Remove, Append, and Prepend.\n\nDefaults are captured from the runtime and can be overridden per section, giving teams consistent behavior while still allowing targeted prompt tuning.",
+				image: "assets/systemMessage-feature.png",
+				imageAlt: "Cockpit system message customization preview"
 			},
 			continuity: {
 				title: "CLI + GUI continuity",
 				body: "Start in GitHub Copilot CLI and continue in Cockpit (and vice versa) without losing momentum or rebuilding context."
 			},
-			byok: {
-				title: "Bring your own key (BYOK)",
-				body: "Configure BYOK providers and model profiles, including:\n- Provider type and model ID\n- Base URL and wire API compatibility\n- Capability hints (vision support, reasoning support, max context tokens)\n- Secure secret handling for API keys/tokens\n\nBYOK metadata is stored separately from secrets so model settings can be shared without exposing credentials.",
-				docsUrl: "https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/byok",
-				image: "assets/app-preview.png",
-				imageAlt: "Cockpit model configuration preview"
-			},
-			systemmessage: {
-				title: "System message customisation",
-				body: "Customize system prompt sections directly in Cockpit with section-level actions: Replace, Remove, Append, and Prepend.\n\nDefaults are captured from the runtime and can be overridden per section, giving teams consistent behavior while still allowing targeted prompt tuning."
+			telemetry: {
+				title: "OpenTelemetry diagnostics",
+				body: "Get deep visibility into session performance with a dedicated telemetry dashboard. Track:\n\n• Time spent per operation (tokens, thinking, tool execution)\n• Token consumption breakdown by message and span\n• Performance metrics across trace spans\n• Session-by-session diagnostics for optimization\n\nExport and analyze telemetry data to understand bottlenecks, optimize prompts, and improve agent performance.",
+				video: "assets/OpenTelemarty-Feature.mp4",
 			},
 			plugins: {
 				title: "Plugins (Coming soon)",
@@ -1170,10 +1359,17 @@
 		const modalMedia = document.getElementById("modalMedia");
 		const modalImage = document.getElementById("modalImage");
 		const modalVideo = document.getElementById("modalVideo");
+		const modalCarousel = document.getElementById("modalCarousel");
+		const modalCarouselTrack = document.getElementById("modalCarouselTrack");
+		const carouselDots = document.getElementById("carouselDots");
+		const carouselPrev = document.getElementById("carouselPrev");
+		const carouselNext = document.getElementById("carouselNext");
 		const modalDocLink = document.getElementById("modalDocLink");
 		const closeBtn = document.getElementById("modalClose");
 		const modalFocusableSelector = "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])";
 		let lastModalTrigger = null;
+		let carouselIndex = 0;
+		let carouselImages = [];
 
 		function getModalFocusableElements() {
 			return [...modal.querySelectorAll(modalFocusableSelector)].filter((element) => element.offsetParent !== null);
@@ -1191,8 +1387,25 @@
 			modalVideo.removeAttribute("poster");
 			modalVideo.load();
 
+			modalCarousel.classList.remove("show");
+			modalCarouselTrack.innerHTML = "";
+			carouselDots.innerHTML = "";
+			carouselImages = [];
+			carouselIndex = 0;
+
 			modalDocLink.classList.remove("show");
 			modalDocLink.removeAttribute("href");
+		}
+
+		function setCarouselSlide(index) {
+			carouselIndex = index;
+			[...modalCarouselTrack.querySelectorAll("img")].forEach((img, i) => {
+				img.classList.toggle("active", i === index);
+			});
+			[...carouselDots.querySelectorAll(".carousel-dot")].forEach((dot, i) => {
+				dot.classList.toggle("active", i === index);
+				dot.setAttribute("aria-current", i === index ? "true" : "false");
+			});
 		}
 
 		function openModal(featureKey, trigger) {
@@ -1218,6 +1431,32 @@
 				}
 				modalVideo.classList.add("show");
 				modalMedia.classList.add("show");
+			} else if (detail.images && detail.images.length > 1) {
+				carouselImages = detail.images;
+				detail.images.forEach((item, i) => {
+					const img = document.createElement("img");
+					img.src = item.src;
+					img.alt = item.alt || detail.title;
+					img.width = 1918;
+					img.height = 1030;
+					img.loading = "lazy";
+					img.decoding = "async";
+					if (i === 0) {
+						img.classList.add("active");
+					}
+					img.addEventListener("click", () => openLightbox(img.src, img.alt, img));
+					modalCarouselTrack.appendChild(img);
+
+					const dot = document.createElement("button");
+					dot.type = "button";
+					dot.className = "carousel-dot" + (i === 0 ? " active" : "");
+					dot.setAttribute("aria-label", `Image ${i + 1} of ${detail.images.length}`);
+					dot.setAttribute("aria-current", i === 0 ? "true" : "false");
+					dot.addEventListener("click", () => setCarouselSlide(i));
+					carouselDots.appendChild(dot);
+				});
+				modalCarousel.classList.add("show");
+				modalMedia.classList.add("show");
 			} else if (detail.image) {
 				modalImage.src = detail.image;
 				modalImage.alt = detail.imageAlt || detail.title;
@@ -1236,6 +1475,11 @@
 			modal.setAttribute("aria-hidden", "true");
 			document.body.style.overflow = "";
 			resetModalMedia();
+			const lb = document.getElementById("lightbox");
+			if (lb && lb.classList.contains("show")) {
+				lb.classList.remove("show");
+				lb.setAttribute("aria-hidden", "true");
+			}
 			if (lastModalTrigger) {
 				lastModalTrigger.focus();
 			}
@@ -1283,6 +1527,71 @@
 					event.preventDefault();
 					firstElement.focus();
 				}
+			}
+		});
+
+		const lightbox = document.getElementById("lightbox");
+		const lightboxImage = document.getElementById("lightboxImage");
+		const lightboxClose = document.getElementById("lightboxClose");
+		let lastLightboxTrigger = null;
+
+		function openLightbox(src, alt, trigger) {
+			lightboxImage.src = src;
+			lightboxImage.alt = alt;
+			lastLightboxTrigger = trigger || document.activeElement;
+			lightbox.classList.add("show");
+			lightbox.setAttribute("aria-hidden", "false");
+			lightboxClose.focus();
+		}
+
+		function closeLightbox() {
+			lightbox.classList.remove("show");
+			lightbox.setAttribute("aria-hidden", "true");
+			if (lastLightboxTrigger) {
+				lastLightboxTrigger.focus();
+			}
+			lastLightboxTrigger = null;
+		}
+
+		carouselPrev.addEventListener("click", () => {
+			const count = modalCarouselTrack.querySelectorAll("img").length;
+			setCarouselSlide((carouselIndex - 1 + count) % count);
+		});
+
+		carouselNext.addEventListener("click", () => {
+			const count = modalCarouselTrack.querySelectorAll("img").length;
+			setCarouselSlide((carouselIndex + 1) % count);
+		});
+
+		modalImage.addEventListener("click", () => {
+			if (modalImage.src) {
+				openLightbox(modalImage.src, modalImage.alt, modalImage);
+			}
+		});
+
+		const heroImage = document.querySelector(".preview");
+		heroImage.addEventListener("click", () => openLightbox(heroImage.src, heroImage.alt, heroImage));
+		heroImage.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" || event.key === " ") {
+				event.preventDefault();
+				openLightbox(heroImage.src, heroImage.alt, heroImage);
+			}
+		});
+
+		lightboxClose.addEventListener("click", closeLightbox);
+		lightbox.addEventListener("click", (event) => {
+			if (event.target === lightbox) {
+				closeLightbox();
+			}
+		});
+
+		window.addEventListener("keydown", (event) => {
+			if (!lightbox.classList.contains("show")) {
+				return;
+			}
+			if (event.key === "Escape") {
+				event.preventDefault();
+				closeLightbox();
 			}
 		});
 	</script>
