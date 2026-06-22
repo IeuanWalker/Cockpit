@@ -25,14 +25,6 @@
                     </button>
                 }
             </div>
-            <button @onclick="ToggleGroupByPanel"
-                    class="p-1 rounded flex-shrink-0 @(_showGroupByPanel || IsGroupingByProject ? "hover:opacity-75" : "hover:bg-app-hover")"
-                    style="@(_showGroupByPanel || IsGroupingByProject ? "background-color: var(--accent-color);" : string.Empty)"
-                    title="Group by">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M8 12h8M10 18h4" />
-                </svg>
-            </button>
             <button @onclick="ToggleFilterPanel"
                     class="p-1 rounded flex-shrink-0 @(_showFilterPanel || HasActiveFilters ? "hover:opacity-75" : "hover:bg-app-hover")"
                     style="@(_showFilterPanel || HasActiveFilters ? "background-color: var(--accent-color);" : string.Empty)"
@@ -42,38 +34,6 @@
                 </svg>
             </button>
         </div>
-        @if(_showGroupByPanel)
-        {
-            <div class="mt-1.5 border border-app-border rounded p-2 text-xs" style="background-color: var(--sidebar-color);">
-                <div class="secondary-text font-medium mb-1 uppercase tracking-wide" style="font-size: 10px;">Group by</div>
-                <button @onclick="() => SetGroupByMode(GroupByModeEnum.Project)"
-                        class="w-full flex items-center gap-1.5 py-1 px-1 hover:bg-app-hover rounded text-left">
-                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        @if(IsGroupingByProject)
-                        {
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12l4 4L19 6" />
-                        }
-                    </svg>
-                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-                    </svg>
-                    <span class="text-xs text-app-title">Project</span>
-                </button>
-                <button @onclick="() => SetGroupByMode(GroupByModeEnum.Updated)"
-                        class="w-full flex items-center gap-1.5 py-1 px-1 hover:bg-app-hover rounded text-left">
-                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        @if(!IsGroupingByProject)
-                        {
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12l4 4L19 6" />
-                        }
-                    </svg>
-                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                    </svg>
-                    <span class="text-xs text-app-title">Updated</span>
-                </button>
-            </div>
-        }
         @if(_showFilterPanel)
         {
             <div class="mt-1.5 border border-app-border rounded p-2 text-xs space-y-1" style="background-color: var(--sidebar-color);">
@@ -188,6 +148,41 @@
                 }
             </div>
         }
+    </div>
+}
+
+@if(_showGroupByPanel)
+{
+    <div class="px-2 py-1.5 border-b border-app-border">
+        <div class="border border-app-border rounded p-2 text-xs" style="background-color: var(--sidebar-color);">
+            <div class="secondary-text font-medium mb-1 uppercase tracking-wide" style="font-size: 10px;">Group by</div>
+            <button @onclick="() => SetGroupByMode(GroupByModeEnum.Project)"
+                    class="w-full flex items-center gap-1.5 py-1 px-1 hover:bg-app-hover rounded text-left">
+                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    @if(IsGroupingByProject)
+                    {
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12l4 4L19 6" />
+                    }
+                </svg>
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                </svg>
+                <span class="text-xs text-app-title">Project</span>
+            </button>
+            <button @onclick="() => SetGroupByMode(GroupByModeEnum.Updated)"
+                    class="w-full flex items-center gap-1.5 py-1 px-1 hover:bg-app-hover rounded text-left">
+                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    @if(!IsGroupingByProject)
+                    {
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12l4 4L19 6" />
+                    }
+                </svg>
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <span class="text-xs text-app-title">Updated</span>
+            </button>
+        </div>
     </div>
 }
 

@@ -13,6 +13,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	[Parameter] public DeleteSessionPopup? DeletePopup { get; set; }
 	[Parameter] public bool ShowSearch { get; set; }
 	[Parameter] public EventCallback<string?> OnCreateSessionFromPath { get; set; }
+	[Parameter] public EventCallback<bool> OnGroupByPanelOpenChanged { get; set; }
 
 	readonly ITimestampFeature _timestampFeature;
 	readonly IUIStateFeature _uiStateFeature;
@@ -52,7 +53,6 @@ public partial class SessionList : ComponentBase, IDisposable
 			_filterCwds.Clear();
 			_filterRepos.Clear();
 			_showFilterPanel = false;
-			_showGroupByPanel = false;
 		}
 	}
 
@@ -124,29 +124,37 @@ public partial class SessionList : ComponentBase, IDisposable
 			? string.Empty
 			: path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-	void ToggleFilterPanel()
+	async Task ToggleFilterPanel()
 	{
 		_showFilterPanel = !_showFilterPanel;
 		if(_showFilterPanel)
 		{
-			_showGroupByPanel = false;
+			await SetGroupByPanelOpen(false);
 		}
 	}
 
-	void ToggleGroupByPanel()
+	public Task ToggleGroupByPanelFromHeader() => SetGroupByPanelOpen(!_showGroupByPanel);
+
+	public bool IsGroupByPanelOpen => _showGroupByPanel;
+
+	Task ToggleGroupByPanel() => SetGroupByPanelOpen(!_showGroupByPanel);
+
+	async Task SetGroupByPanelOpen(bool isOpen)
 	{
-		_showGroupByPanel = !_showGroupByPanel;
+		_showGroupByPanel = isOpen;
 		if(_showGroupByPanel)
 		{
 			_showFilterPanel = false;
 		}
+
+		await OnGroupByPanelOpenChanged.InvokeAsync(_showGroupByPanel);
 	}
 
-	void SetGroupByMode(GroupByModeEnum mode)
+	async Task SetGroupByMode(GroupByModeEnum mode)
 	{
 		_groupByMode = mode;
 		_appSettingsFeature.SessionListGroupBy = mode.ToString();
-		_showGroupByPanel = false;
+		await SetGroupByPanelOpen(false);
 	}
 
 	public Task FocusSearchAsync()
