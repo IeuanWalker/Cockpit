@@ -461,6 +461,39 @@
 			margin-bottom: 0.55rem;
 		}
 
+		.modal-title-row {
+			display: flex;
+			align-items: center;
+			gap: 0.6rem;
+			flex: 1;
+		}
+
+		.modal-badges {
+			display: flex;
+			gap: 0.4rem;
+			flex-wrap: wrap;
+			align-items: center;
+		}
+
+		.tag {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.3rem;
+			padding: 0.25rem 0.6rem;
+			border-radius: 999px;
+			font-size: 0.75rem;
+			font-weight: 600;
+			border: 1px solid var(--accent-color);
+			background: color-mix(in srgb, var(--accent-color) 14%, transparent);
+			color: var(--accent-color);
+		}
+
+		.tag--purple {
+			background: color-mix(in srgb, var(--neon-violet) 14%, transparent);
+			border-color: var(--neon-violet);
+			color: var(--neon-violet);
+		}
+
 		.modal h3 {
 			margin: 0;
 			font-size: 1.2rem;
@@ -1004,7 +1037,10 @@
 	<div class="modal-backdrop" id="featureModal" aria-hidden="true">
 		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody" aria-live="polite" aria-atomic="true">
 			<div class="modal-head">
-				<h3 id="modalTitle"></h3>
+				<div class="modal-title-row">
+					<h3 id="modalTitle"></h3>
+					<div id="modalBadges" class="modal-badges"></div>
+				</div>
 				<button class="close-btn" type="button" id="modalClose" aria-label="Close">
 					<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path></svg>
 				</button>
@@ -1521,6 +1557,22 @@
 			modalTitle.textContent = detail.title;
 			modalBody.textContent = detail.body;
 			resetModalMedia();
+
+			// Add badges
+			const modalBadges = document.getElementById("modalBadges");
+			modalBadges.innerHTML = "";
+			if (detail.isPartialSupport) {
+				const partialBadge = document.createElement("span");
+				partialBadge.className = "tag tag--purple";
+				partialBadge.textContent = "Partial support";
+				modalBadges.appendChild(partialBadge);
+			}
+			if (detail.isComingSoon) {
+				const soonBadge = document.createElement("span");
+				soonBadge.className = "tag";
+				soonBadge.textContent = "Coming soon";
+				modalBadges.appendChild(soonBadge);
+			}
 
 			if (detail.docsUrl) {
 				modalDocLink.href = detail.docsUrl;
