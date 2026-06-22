@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Pages/">
+    <File Path="docs/index.html" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="CLA.md" />
