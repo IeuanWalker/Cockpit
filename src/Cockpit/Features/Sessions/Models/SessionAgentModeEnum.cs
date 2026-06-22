@@ -22,6 +22,6 @@ public static class SessionAgentModeExtensions
 	{
 		SessionAgentModeEnum.Plan => "Plan",
 		SessionAgentModeEnum.Autopilot => "Autopilot",
-		_ => "Default"
+		_ => "Interactive"
 	};
 }

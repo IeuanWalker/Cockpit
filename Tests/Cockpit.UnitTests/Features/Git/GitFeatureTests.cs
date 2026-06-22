@@ -196,6 +196,7 @@ public sealed class GitFeatureTests
 	[Fact]
 	public async Task GetContext_ValidRepo_PopulatesAllFields()
 	{
+		string workingDirectory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"gitfeature-{Guid.NewGuid():N}")).FullName;
 		GitFeature feature = Create((_, args) => args[0] switch
 		{
 			"rev-parse" when args[1] == "--show-toplevel" => Task.FromResult<string?>("/repo"),
@@ -204,16 +205,25 @@ public sealed class GitFeatureTests
 			_                                              => Task.FromResult<string?>(null)
 		});
 
-		GitContext ctx = await feature.GetContext("/repo/sub");
+		try
+		{
+			GitContext? ctx = await feature.GetContext(workingDirectory);
 
-		ctx.IsGitRepo.ShouldBeTrue();
-		ctx.Branch.ShouldBe("feature/my-branch");
-		ctx.Repository.ShouldBe("repo");
+			ctx.ShouldNotBeNull();
+			ctx.IsGitRepo.ShouldBeTrue();
+			ctx.Branch.ShouldBe("feature/my-branch");
+			ctx.Repository.ShouldBe("repo");
+		}
+		finally
+		{
+			Directory.Delete(workingDirectory);
+		}
 	}
 
 	[Fact]
 	public async Task GetContext_SshRemoteUrl_ParsesRepositoryName()
 	{
+		string workingDirectory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"gitfeature-{Guid.NewGuid():N}")).FullName;
 		GitFeature feature = Create((_, args) => args[0] switch
 		{
 			"rev-parse" when args[1] == "--show-toplevel" => Task.FromResult<string?>("/repo"),
@@ -222,27 +232,45 @@ public sealed class GitFeatureTests
 			_                                              => Task.FromResult<string?>(null)
 		});
 
-		GitContext ctx = await feature.GetContext("/repo");
+		try
+		{
+			GitContext? ctx = await feature.GetContext(workingDirectory);
 
-		ctx.Repository.ShouldBe("my-project");
+			ctx.ShouldNotBeNull();
+			ctx.Repository.ShouldBe("my-project");
+		}
+		finally
+		{
+			Directory.Delete(workingDirectory);
+		}
 	}
 
 	[Fact]
 	public async Task GetContext_NotARepo_ReturnsEmptyContext()
 	{
+		string workingDirectory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"gitfeature-{Guid.NewGuid():N}")).FullName;
 		GitFeature feature = Create((_, _) => Task.FromResult<string?>(null));
 
-		GitContext ctx = await feature.GetContext("C:\\notarepo");
+		try
+		{
+			GitContext? ctx = await feature.GetContext(workingDirectory);
 
-		ctx.IsGitRepo.ShouldBeFalse();
-		ctx.Branch.ShouldBeNull();
-		ctx.Repository.ShouldBeNull();
-		ctx.GitRoot.ShouldBeNull();
+			ctx.ShouldNotBeNull();
+			ctx.IsGitRepo.ShouldBeFalse();
+			ctx.Branch.ShouldBeNull();
+			ctx.Repository.ShouldBeNull();
+			ctx.GitRoot.ShouldBeNull();
+		}
+		finally
+		{
+			Directory.Delete(workingDirectory);
+		}
 	}
 
 	[Fact]
 	public async Task GetContext_NoRemote_RepositoryIsNull()
 	{
+		string workingDirectory = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), $"gitfeature-{Guid.NewGuid():N}")).FullName;
 		GitFeature feature = Create((_, args) => args[0] switch
 		{
 			"rev-parse" when args[1] == "--show-toplevel" => Task.FromResult<string?>("/repo"),
@@ -250,10 +278,29 @@ public sealed class GitFeatureTests
 			_                                              => Task.FromResult<string?>(null) // no remote
 		});
 
-		GitContext ctx = await feature.GetContext("/repo");
+		try
+		{
+			GitContext? ctx = await feature.GetContext(workingDirectory);
 
-		ctx.Repository.ShouldBeNull();
-		ctx.Branch.ShouldBe("main");
+			ctx.ShouldNotBeNull();
+			ctx.Repository.ShouldBeNull();
+			ctx.Branch.ShouldBe("main");
+		}
+		finally
+		{
+			Directory.Delete(workingDirectory);
+		}
+	}
+
+	[Fact]
+	public async Task GetContext_NonExistentDirectory_ReturnsNull()
+	{
+		GitFeature feature = Create((_, _) => Task.FromResult<string?>(null));
+		string missingPath = Path.Combine(Path.GetTempPath(), $"gitfeature-missing-{Guid.NewGuid():N}");
+
+		GitContext? ctx = await feature.GetContext(missingPath);
+
+		ctx.ShouldBeNull();
 	}
 
 	// ---------------------------------------------------------------------------

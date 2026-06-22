@@ -60,6 +60,8 @@ public sealed partial class SessionFeature
 
 				try
 				{
+					string? cwd = SessionWorkingDirectoryNormalizer.Normalize(metadata.Context?.WorkingDirectory);
+
 					SessionModel chatSession = new()
 					{
 						Id = metadata.SessionId,
@@ -71,13 +73,15 @@ public sealed partial class SessionFeature
 						ReasoningEffort = defaultModel.DefaultReasoningEffort,
 						Context = new()
 						{
-							CurrentWorkingDirectory = metadata.Context?.WorkingDirectory ?? string.Empty,
+							CurrentWorkingDirectory = cwd,
 							WorkspacePath = null,
-							GitRoot = metadata.Context?.GitRoot,
-							Repository = metadata.Context?.Repository,
-							Branch = metadata.Context?.Branch
+							GitRoot = cwd is null ? null : metadata.Context?.GitRoot,
+							Repository = cwd is null ? null : metadata.Context?.Repository,
+							Branch = cwd is null ? null : metadata.Context?.Branch
 						}
 					};
+
+					SessionWorkingDirectoryNormalizer.ApplyContextConsistency(chatSession.Context);
 
 					_sessionListFeature.AddSession(chatSession);
 					_logger.LogInformation("Loaded session {SessionId}", chatSession.Id);
@@ -97,13 +101,19 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	public async Task<SessionModel> CreateSession(string workingDirectory)
+	public async Task<SessionModel> CreateSession(string? workingDirectory, CancellationToken cancellationToken = default)
 	{
+		CopilotClient? client = null;
+		CopilotSession? sdkSession = null;
+		bool sdkSessionRegistered = false;
+
 		try
 		{
-			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
-			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id);
-			GitContext gitContext = await _gitFeature.GetContext(workingDirectory);
+			cancellationToken.ThrowIfCancellationRequested();
+
+			ModelInfo defaultModel = await _modelFeature.GetDefaultModel(cancellationToken);
+			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id, cancellationToken);
+			GitContext? gitContext = await _gitFeature.GetContext(workingDirectory);
 
 			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
 			string? effectiveReasoningEffort = providerConfig is null ? defaultModel.DefaultReasoningEffort : null;
@@ -139,78 +149,56 @@ public sealed partial class SessionFeature
 				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
 			}
 
-			// Apply system message section overrides if any are configured
-			Dictionary<SystemMessageSection, SectionOverride> sections = [];
-			foreach(KeyValuePair<string, SystemMessageSectionSetting> kvp in _appSettingsFeature.SystemMessageSectionOverrides)
+			ApplySystemMessageCustomization(config, defaultModel);
+
+			cancellationToken.ThrowIfCancellationRequested();
+
+			client = await _clientFeature.GetClientAsync(cancellationToken);
+			CopilotSession createdSession = await client.CreateSessionAsync(config, cancellationToken);
+			sdkSession = createdSession;
+
+			if(cancellationToken.IsCancellationRequested)
 			{
-				SectionOverride? sectionOverride = MapToSectionOverride(kvp.Value);
-				if(sectionOverride is not null)
-				{
-					sections[new SystemMessageSection(kvp.Key)] = sectionOverride;
-				}
+				await client.DeleteSessionAsync(createdSession.SessionId, CancellationToken.None);
+				await createdSession.DisposeAsync();
+				sdkSession = null;
+				cancellationToken.ThrowIfCancellationRequested();
 			}
 
-			sections[new SystemMessageSection("Identity")] = new SectionOverride()
+			_sdkRegistry.Register(createdSession, evt =>
 			{
-				Action = SectionOverrideAction.Replace,
-				Content = $"""
-					You are Cockpit, a desktop application that provides a graphical interface for GitHub Copilot CLI. You are an interactive AI assistant that helps users with software engineering tasks through a desktop GUI experience.
-
-					# Search and delegation
-
-					* When prompting sub-agents, provide comprehensive context — brevity rules do not apply to sub-agent prompts.
-					* When searching the file system for files or text, stay in the current working directory or child directories of the cwd unless absolutely necessary.
-					* When searching code, the preference order for tools to use is: code intelligence tools (if available) > LSP-based tools (if available) > glob > rg with glob pattern > powershell tool.
-
-					Powered by <model name="{defaultModel.Name}" id="{defaultModel.Id}" />.
-
-					When asked who you are, reply with something like: "I'm Cockpit, a desktop application that provides a graphical interface for GitHub Copilot CLI, powered by GPT-5.4 mini (model ID: gpt-5.4-mini)."
-
-					When asked which model is being used, reply with something like: "I'm powered by {defaultModel.Name} (model ID: {defaultModel.Id})."
-
-					If the model was changed during the conversation, acknowledge the change and respond accordingly.
-
-					Your job is to perform the task the user requested while providing a desktop-first experience through Cockpit.
-				"""
-			};
-
-			config.SystemMessage = new SystemMessageConfig
-			{
-				Mode = SystemMessageMode.Customize,
-				Sections = sections
-			};
-
-			CopilotClient client = await _clientFeature.GetClientAsync();
-			CopilotSession sdkSession = await client.CreateSessionAsync(config);
-			_sdkRegistry.Register(sdkSession, evt =>
-			{
-				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
-				HandleSessionEvent(sdkSession.SessionId, evt);
+				_logger.LogDebug("Session {SessionId} event: {EventType}", createdSession.SessionId, evt.Type);
+				HandleSessionEvent(createdSession.SessionId, evt);
 			});
+			sdkSessionRegistered = true;
 
 			SessionModel chatSession = new()
 			{
-				Id = sdkSession.SessionId,
-				Title = !string.IsNullOrEmpty(workingDirectory)
-					? Path.GetFileName(workingDirectory)
-					: "New Session",
+				Id = createdSession.SessionId,
+				Title = "New Session",
 				CreatedAt = DateTime.UtcNow,
 				LastActivity = DateTime.UtcNow,
 				Status = SessionStatusEnum.Idle,
 				Context = new()
 				{
 					CurrentWorkingDirectory = workingDirectory,
-					WorkspacePath = sdkSession.WorkspacePath,
-					GitRoot = gitContext.GitRoot,
-					Repository = gitContext.Repository,
-					Branch = gitContext.Branch
+					WorkspacePath = createdSession.WorkspacePath,
+					GitRoot = gitContext?.GitRoot,
+					Repository = gitContext?.Repository,
+					Branch = gitContext?.Branch
 				},
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				SdkState = SdkSessionStateEnum.Resumed
 			};
 
-			await LoadContextPanelDataAsync(chatSession, sdkSession);
+			SessionWorkingDirectoryNormalizer.ApplyContextConsistency(chatSession.Context);
+
+			cancellationToken.ThrowIfCancellationRequested();
+
+			await LoadContextPanelDataAsync(chatSession, createdSession);
+
+			cancellationToken.ThrowIfCancellationRequested();
 
 			_sdkSessionByokId[chatSession.Id] = chatSession.ByokConfigId;
 
@@ -218,11 +206,36 @@ public sealed partial class SessionFeature
 
 			await _modelFeature.SaveSessionModel(chatSession);
 			await _agentPersistence.SaveSessionAgent(chatSession);
-			await _sessionModePersistence.SaveSessionMode(chatSession);
+			await _sessionModePersistence.SaveSessionMode(chatSession, cancellationToken);
 
 			await SwitchCurrentSessionAsync(chatSession);
 
 			return chatSession;
+		}
+		catch(OperationCanceledException)
+		{
+			if(client is not null && sdkSession is not null)
+			{
+				string sessionId = sdkSession.SessionId;
+				try
+				{
+					await client.DeleteSessionAsync(sessionId, CancellationToken.None);
+
+					if(sdkSessionRegistered)
+					{
+						_sdkRegistry.Remove(sessionId);
+					}
+
+					await sdkSession.DisposeAsync();
+					sdkSession = null;
+				}
+				catch(Exception cleanupEx)
+				{
+					_logger.LogWarning(cleanupEx, "Failed to cleanup canceled session {SessionId}", sessionId);
+				}
+			}
+
+			throw;
 		}
 		catch(Exception ex)
 		{
@@ -265,12 +278,16 @@ public sealed partial class SessionFeature
 
 			_logger.LogInformation("Loading session {SessionId}", sessionId);
 
+			session.Context.CurrentWorkingDirectory = SessionWorkingDirectoryNormalizer.Normalize(session.Context.CurrentWorkingDirectory);
+
 			if(string.IsNullOrWhiteSpace(session.Context.CurrentWorkingDirectory) || !Directory.Exists(session.Context.CurrentWorkingDirectory))
 			{
 				session.Context.CurrentWorkingDirectory = null;
 			}
 
-			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+			SessionWorkingDirectoryNormalizer.ApplyContextConsistency(session.Context);
+
+			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 
 			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
 			// This also guards against stale "medium" values loaded from pre-switch sessions before
@@ -292,6 +309,8 @@ public sealed partial class SessionFeature
 				Hooks = _hooksFactory.CreateHooks(session.Model.Id, effectiveReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
 				Provider = providerConfig
 			};
+
+			ApplySystemMessageCustomization(config, session.Model);
 
 			if(_appSettingsFeature.CanvasEnabled)
 			{
@@ -456,7 +475,7 @@ public sealed partial class SessionFeature
 		return true;
 	}
 
-	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
+	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, GitHub.Copilot.ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -492,6 +511,9 @@ public sealed partial class SessionFeature
 					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
 					Provider = providerConfig
 				};
+
+				ApplySystemMessageCustomization(resumeConfig, chatSession?.Model, newModelId);
+
 				if(_appSettingsFeature.CanvasEnabled)
 				{
 					resumeConfig.RequestCanvasRenderer = true;
@@ -524,6 +546,9 @@ public sealed partial class SessionFeature
 					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
 					Provider = providerConfig
 				};
+
+				ApplySystemMessageCustomization(createConfig, chatSession?.Model, newModelId);
+
 				if(_appSettingsFeature.CanvasEnabled)
 				{
 					createConfig.RequestCanvasRenderer = true;
@@ -623,7 +648,7 @@ public sealed partial class SessionFeature
 	{
 		try
 		{
-			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 
 			_logger.LogInformation(
 				"Restarting session {SessionId} with model {Model} and reasoning effort {ReasoningEffort}",
@@ -764,7 +789,7 @@ public sealed partial class SessionFeature
 	async Task LoadContextPanelDataAsync(SessionModel session, CopilotSession sdkSession)
 	{
 		Task<List<AgentProfile>> agentsTask = _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
-		Task<List<InstructionsSources>> instructionsTask = _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
+		Task<List<InstructionSource>> instructionsTask = _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
 		Task<List<McpServer>> mcpTask = _mcpFeature.LoadSessionMcpServersAsync(sdkSession);
 		Task<List<Skill>> skillsTask = _skillsFeature.LoadSessionSkillsAsync(sdkSession);
 		Task<List<SdkPlugin>> pluginsTask = _pluginsFeature.LoadSessionPluginsAsync(sdkSession);
@@ -809,4 +834,59 @@ public sealed partial class SessionFeature
 				}
 			})
 		};
+
+	void ApplySystemMessageCustomization(SessionConfig config, ModelInfo model)
+		=> config.SystemMessage = CreateSystemMessageConfig(model.Name, model.Id);
+
+	void ApplySystemMessageCustomization(ResumeSessionConfig config, ModelInfo model)
+		=> config.SystemMessage = CreateSystemMessageConfig(model.Name, model.Id);
+
+	void ApplySystemMessageCustomization(SessionConfig config, ModelInfo? model, string fallbackModelId)
+		=> config.SystemMessage = CreateSystemMessageConfig(model?.Name ?? fallbackModelId, model?.Id ?? fallbackModelId);
+
+	void ApplySystemMessageCustomization(ResumeSessionConfig config, ModelInfo? model, string fallbackModelId)
+		=> config.SystemMessage = CreateSystemMessageConfig(model?.Name ?? fallbackModelId, model?.Id ?? fallbackModelId);
+
+	SystemMessageConfig CreateSystemMessageConfig(string modelName, string modelId)
+	{
+		Dictionary<SystemMessageSection, SectionOverride> sections = [];
+		foreach(KeyValuePair<string, SystemMessageSectionSetting> kvp in _appSettingsFeature.SystemMessageSectionOverrides)
+		{
+			SectionOverride? sectionOverride = MapToSectionOverride(kvp.Value);
+			if(sectionOverride is not null)
+			{
+				sections[new SystemMessageSection(kvp.Key)] = sectionOverride;
+			}
+		}
+
+		sections[SystemMessageSection.Identity] = new SectionOverride()
+		{
+			Action = SectionOverrideAction.Replace,
+			Content = $"""
+				You are Cockpit, a desktop application that provides a graphical interface for GitHub Copilot CLI. You are an interactive AI assistant that helps users with software engineering tasks through a desktop GUI experience.
+
+				# Search and delegation
+
+				* When prompting sub-agents, provide comprehensive context — brevity rules do not apply to sub-agent prompts.
+				* When searching the file system for files or text, stay in the current working directory or child directories of the cwd unless absolutely necessary.
+				* When searching code, the preference order for tools to use is: code intelligence tools (if available) > LSP-based tools (if available) > glob > rg with glob pattern > powershell tool.
+
+				Powered by <model name="{modelName}" id="{modelId}" />.
+
+				When asked who you are, reply with something like: "I'm Cockpit, a desktop application that provides a graphical interface for GitHub Copilot CLI, powered by GPT-5.4 mini (model ID: gpt-5.4-mini)."
+
+				When asked which model is being used, reply with something like: "I'm powered by {modelName} (model ID: {modelId})."
+
+				If the model was changed during the conversation, acknowledge the change and respond accordingly.
+
+				Your job is to perform the task the user requested while providing a desktop-first experience through Cockpit.
+			"""
+		};
+
+		return new SystemMessageConfig
+		{
+			Mode = SystemMessageMode.Customize,
+			Sections = sections
+		};
+	}
 }

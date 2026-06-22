@@ -163,6 +163,12 @@ public sealed class AppSettingsFeature : IAppSettingsFeature
 		set => _settings.CanvasEnabled = value;
 	}
 
+	public string SessionListGroupBy
+	{
+		get => _settings.SessionListGroupBy;
+		set => _settings.SessionListGroupBy = value;
+	}
+
 	public Dictionary<string, SystemMessageSectionSetting> SystemMessageSectionOverrides
 	{
 		get => _settings.SystemMessageSectionOverrides;

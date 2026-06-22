@@ -64,7 +64,7 @@ public sealed class InstructionsFeatureTests
 	[Fact]
 	public void GroupByLocation_EmptyList_ReturnsEmptyDictionary()
 	{
-		IReadOnlyDictionary<string, List<InstructionsSources>> result = InstructionsFeature.GroupByLocation([]);
+		IReadOnlyDictionary<string, List<InstructionSource>> result = InstructionsFeature.GroupByLocation([]);
 
 		result.ShouldBeEmpty();
 	}
@@ -74,12 +74,12 @@ public sealed class InstructionsFeatureTests
 	[Fact]
 	public void GroupByLocation_SingleSource_ReturnsSingleGroup()
 	{
-		InstructionsSources source = new() { Id = "a", Label = "A", Location = InstructionsSourcesLocation.User };
+		InstructionSource source = new() { Id = "a", Label = "A", Location = InstructionSourceLocation.User };
 
-		IReadOnlyDictionary<string, List<InstructionsSources>> result = InstructionsFeature.GroupByLocation([source]);
+		IReadOnlyDictionary<string, List<InstructionSource>> result = InstructionsFeature.GroupByLocation([source]);
 
 		result.Count.ShouldBe(1);
-		result[InstructionsSourcesLocation.User.ToString()].ShouldHaveSingleItem();
+		result[InstructionSourceLocation.User.ToString()].ShouldHaveSingleItem();
 	}
 
 	// ── GroupByLocation — same location → single group with all items ─────────
@@ -87,16 +87,16 @@ public sealed class InstructionsFeatureTests
 	[Fact]
 	public void GroupByLocation_MultipleSourcesSameLocation_GroupedTogether()
 	{
-		List<InstructionsSources> sources =
+		List<InstructionSource> sources =
 		[
-			new() { Id = "a", Label = "A", Location = InstructionsSourcesLocation.Repository },
-			new() { Id = "b", Label = "B", Location = InstructionsSourcesLocation.Repository },
+			new() { Id = "a", Label = "A", Location = InstructionSourceLocation.Repository },
+			new() { Id = "b", Label = "B", Location = InstructionSourceLocation.Repository },
 		];
 
-		IReadOnlyDictionary<string, List<InstructionsSources>> result = InstructionsFeature.GroupByLocation(sources);
+		IReadOnlyDictionary<string, List<InstructionSource>> result = InstructionsFeature.GroupByLocation(sources);
 
 		result.Count.ShouldBe(1);
-		result[InstructionsSourcesLocation.Repository.ToString()].Count.ShouldBe(2);
+		result[InstructionSourceLocation.Repository.ToString()].Count.ShouldBe(2);
 	}
 
 	// ── GroupByLocation — different locations → separate groups ───────────────
@@ -104,19 +104,19 @@ public sealed class InstructionsFeatureTests
 	[Fact]
 	public void GroupByLocation_MultipleSourcesDifferentLocations_SeparateGroups()
 	{
-		List<InstructionsSources> sources =
+		List<InstructionSource> sources =
 		[
-			new() { Id = "a", Label = "A", Location = InstructionsSourcesLocation.User },
-			new() { Id = "b", Label = "B", Location = InstructionsSourcesLocation.Repository },
-			new() { Id = "c", Label = "C", Location = InstructionsSourcesLocation.WorkingDirectory },
+			new() { Id = "a", Label = "A", Location = InstructionSourceLocation.User },
+			new() { Id = "b", Label = "B", Location = InstructionSourceLocation.Repository },
+			new() { Id = "c", Label = "C", Location = InstructionSourceLocation.WorkingDirectory },
 		];
 
-		IReadOnlyDictionary<string, List<InstructionsSources>> result = InstructionsFeature.GroupByLocation(sources);
+		IReadOnlyDictionary<string, List<InstructionSource>> result = InstructionsFeature.GroupByLocation(sources);
 
 		result.Count.ShouldBe(3);
-		result[InstructionsSourcesLocation.User.ToString()].ShouldHaveSingleItem();
-		result[InstructionsSourcesLocation.Repository.ToString()].ShouldHaveSingleItem();
-		result[InstructionsSourcesLocation.WorkingDirectory.ToString()].ShouldHaveSingleItem();
+		result[InstructionSourceLocation.User.ToString()].ShouldHaveSingleItem();
+		result[InstructionSourceLocation.Repository.ToString()].ShouldHaveSingleItem();
+		result[InstructionSourceLocation.WorkingDirectory.ToString()].ShouldHaveSingleItem();
 	}
 
 	// ── GroupByLocation — OrdinalIgnoreCase key lookup works ──────────────────
@@ -124,9 +124,9 @@ public sealed class InstructionsFeatureTests
 	[Fact]
 	public void GroupByLocation_IsCaseInsensitive()
 	{
-		InstructionsSources source = new() { Id = "a", Label = "A", Location = InstructionsSourcesLocation.User };
+		InstructionSource source = new() { Id = "a", Label = "A", Location = InstructionSourceLocation.User };
 
-		IReadOnlyDictionary<string, List<InstructionsSources>> result = InstructionsFeature.GroupByLocation([source]);
+		IReadOnlyDictionary<string, List<InstructionSource>> result = InstructionsFeature.GroupByLocation([source]);
 
 		// The dictionary uses OrdinalIgnoreCase — both casings resolve to the same group.
 		result.ContainsKey("user").ShouldBeTrue();
@@ -139,12 +139,12 @@ public sealed class InstructionsFeatureTests
 	[Fact]
 	public void GroupByLocation_PreservesSourceOrder()
 	{
-		InstructionsSources first = new() { Id = "a", Label = "A", Location = InstructionsSourcesLocation.Repository };
-		InstructionsSources second = new() { Id = "b", Label = "B", Location = InstructionsSourcesLocation.Repository };
+		InstructionSource first = new() { Id = "a", Label = "A", Location = InstructionSourceLocation.Repository };
+		InstructionSource second = new() { Id = "b", Label = "B", Location = InstructionSourceLocation.Repository };
 
-		IReadOnlyDictionary<string, List<InstructionsSources>> result = InstructionsFeature.GroupByLocation([first, second]);
+		IReadOnlyDictionary<string, List<InstructionSource>> result = InstructionsFeature.GroupByLocation([first, second]);
 
-		List<InstructionsSources> group = result[InstructionsSourcesLocation.Repository.ToString()];
+		List<InstructionSource> group = result[InstructionSourceLocation.Repository.ToString()];
 		group[0].ShouldBeSameAs(first);
 		group[1].ShouldBeSameAs(second);
 	}

@@ -14,7 +14,7 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 		_sessionListFeature = sessionListFeature;
 	}
 
-	List<InstructionsSources> _allInstructions = [];
+	List<InstructionSource> _allInstructions = [];
 
 	int TotalCount => _allInstructions.Count;
 
@@ -29,14 +29,14 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 		InvokeAsync(() => { Refresh(); StateHasChanged(); });
 	}
 
-	void ShowInstructionInfo(InstructionsSources instruction)
+	void ShowInstructionInfo(InstructionSource instruction)
 	{
 		Features.Sessions.Models.SessionContext? ctx = _sessionListFeature.CurrentSession?.Context;
 		string? repoRoot = ctx?.GitRoot ?? ctx?.CurrentWorkingDirectory;
 		_instructionInfoPopup?.Open(_allInstructions, instruction, repoRoot);
 	}
 
-	List<InstructionsSources> _renderedInstructions = [];
+	List<InstructionSource> _renderedInstructions = [];
 
 	protected override bool ShouldRender()
 	{

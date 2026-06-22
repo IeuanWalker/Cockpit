@@ -20,21 +20,20 @@ public partial class CreateSessionPopup : ComponentBase
 		_toastService = toastService;
 	}
 
-	public string SelectedPath { get; set; } = string.Empty;
 	public string ErrorMessage { get; set; } = string.Empty;
 	public List<string> RecentDirectories { get; set; } = [];
 	bool _isCreating;
+	CancellationTokenSource? _createSessionCts;
 	PopupBase _popup = default!;
 
 	public void Open()
 	{
-		SelectedPath = string.Empty;
 		ErrorMessage = string.Empty;
 		RecentDirectories = [.. _sessionFeature.Sessions
 			.OrderByDescending(s => s.LastActivity)
 			.Where(x => !string.IsNullOrWhiteSpace(x.Context.CurrentWorkingDirectory))
 			.Select(s => s.Context.CurrentWorkingDirectory!)
-			.Distinct()
+			.Distinct(StringComparer.OrdinalIgnoreCase)
 			.Take(5)];
 
 		_popup.Open();
@@ -42,11 +41,14 @@ public partial class CreateSessionPopup : ComponentBase
 		StateHasChanged();
 	}
 
-	void SelectPath(string path)
+	Task CreateQuickChat() => CreateSession(null);
+
+	Task CreateFromRecent(string path) => CreateSession(path);
+
+	public Task OpenAndCreateFromPathAsync(string? path)
 	{
-		SelectedPath = path;
-		ErrorMessage = string.Empty;
-		StateHasChanged();
+		Open();
+		return CreateSession(path);
 	}
 
 	async Task BrowseDirectory()
@@ -57,8 +59,7 @@ public partial class CreateSessionPopup : ComponentBase
 			FolderPickerResult result = await FolderPicker.Default.PickAsync();
 			if(result.IsSuccessful)
 			{
-				SelectedPath = result.Folder.Path;
-				ErrorMessage = string.Empty;
+				await CreateSession(result.Folder.Path);
 			}
 			else
 			{
@@ -83,16 +84,16 @@ public partial class CreateSessionPopup : ComponentBase
 #endif
 	}
 
-	bool IsValidDirectory()
+	bool IsValidDirectory(string? directoryPath)
 	{
-		if(string.IsNullOrWhiteSpace(SelectedPath))
+		if(string.IsNullOrWhiteSpace(directoryPath))
 		{
 			return false;
 		}
 
 		try
 		{
-			return Directory.Exists(SelectedPath);
+			return Directory.Exists(directoryPath);
 		}
 		catch
 		{
@@ -100,14 +101,14 @@ public partial class CreateSessionPopup : ComponentBase
 		}
 	}
 
-	async Task Confirm()
+	async Task CreateSession(string? workingDirectory)
 	{
 		if(_isCreating)
 		{
 			return;
 		}
 
-		if(!IsValidDirectory())
+		if(!string.IsNullOrWhiteSpace(workingDirectory) && !IsValidDirectory(workingDirectory))
 		{
 			ErrorMessage = "Please select a valid directory";
 			return;
@@ -115,13 +116,18 @@ public partial class CreateSessionPopup : ComponentBase
 
 		_isCreating = true;
 		ErrorMessage = string.Empty;
+		_createSessionCts = new CancellationTokenSource();
 		StateHasChanged();
 
-		string pathToCreate = SelectedPath;
+		string? pathToCreate = workingDirectory;
 		try
 		{
-			await _sessionFeature.CreateSession(pathToCreate);
+			await _sessionFeature.CreateSession(pathToCreate, _createSessionCts.Token);
 			_popup.Close();
+		}
+		catch(OperationCanceledException)
+		{
+			ErrorMessage = "Session creation cancelled";
 		}
 		catch(Exception ex)
 		{
@@ -130,10 +136,16 @@ public partial class CreateSessionPopup : ComponentBase
 		}
 		finally
 		{
+			_createSessionCts?.Dispose();
+			_createSessionCts = null;
 			_isCreating = false;
 			StateHasChanged();
 		}
 	}
 
-	void Cancel() => _popup.Close();
+	void Cancel()
+	{
+		_createSessionCts?.Cancel();
+		_popup.Close();
+	}
 }

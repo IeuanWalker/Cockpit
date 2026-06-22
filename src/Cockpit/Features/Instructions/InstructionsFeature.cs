@@ -15,7 +15,7 @@ public sealed class InstructionsFeature
 		_logger = logger;
 	}
 
-	public async Task<List<InstructionsSources>> LoadSessionInstructionsAsync(CopilotSession sdkSession, CancellationToken cancellationToken = default)
+	public async Task<List<InstructionSource>> LoadSessionInstructionsAsync(CopilotSession sdkSession, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -39,7 +39,7 @@ public sealed class InstructionsFeature
 			: label;
 
 	/// <summary>Groups instruction sources by their location for display purposes.</summary>
-	public static IReadOnlyDictionary<string, List<InstructionsSources>> GroupByLocation(IEnumerable<InstructionsSources> sources)
+	public static IReadOnlyDictionary<string, List<InstructionSource>> GroupByLocation(IEnumerable<InstructionSource> sources)
 		=> sources
 			.GroupBy(s => s.Location.ToString(), StringComparer.OrdinalIgnoreCase)
 			.ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);

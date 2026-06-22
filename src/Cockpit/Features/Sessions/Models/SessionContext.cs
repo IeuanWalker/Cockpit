@@ -31,7 +31,7 @@ public class SessionContext
 	public SessionAgentModeEnum SelectedAgentMode { get; set; } = SessionAgentModeEnum.Interactive;
 
 	/// <summary>All instruction sources discovered for this session via the SDK.</summary>
-	public List<InstructionsSources> Instructions { get; set; } = [];
+	public List<InstructionSource> Instructions { get; set; } = [];
 
 	/// <summary>All MCP servers discovered for this session via the SDK.</summary>
 	public List<McpServer> McpServers { get; set; } = [];
