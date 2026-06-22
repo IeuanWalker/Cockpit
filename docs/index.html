@@ -896,68 +896,7 @@
 	<section class="features" id="features">
 		<div class="container">
 			<h2>Features</h2>
-			<div class="feature-grid">
-				<button class="feature-card" type="button" data-feature="sessions">
-					<h3>Multi-session management</h3>
-					<p>Run and switch between multiple AI coding threads without losing context.</p>
-				</button>
-				<button class="feature-card" type="button" data-feature="terminal">
-					<h3>Integrated terminal</h3>
-					<p>Stay close to shell-based workflows while using a polished interface.</p>
-				</button>
-				<button class="feature-card" type="button" data-feature="gitdiff">
-					<h3>Git diff viewer</h3>
-					<p>Inspect changes quickly and keep code review in your loop.</p>
-				</button>
-				<button class="feature-card" type="button" data-feature="attachments">
-					<h3>Image & attachment support</h3>
-					<p>Bring richer context into prompts and discussions.</p>
-				</button>
-				<button class="feature-card" type="button" data-feature="history">
-					<h3>Transparent chat history</h3>
-					<p>Clean, complete history with no hidden steps or collapsed behavior.</p>
-				</button>
-				<button class="feature-card" type="button" data-feature="permissions">
-					<h3>Fine-grained permissions</h3>
-					<p>Control autonomy globally, per session, or with YOLO mode.</p>
-				</button>
-				<button class="feature-card partial-support" type="button" data-feature="canvas">
-					<span class="tag tag--purple">Partial support</span>
-					<h3>Canvas support</h3>
-					<p>Render diagrams, charts, and interactive dashboards in context.</p>
-				</button>
-				<button class="feature-card" type="button" data-feature="continuity">
-					<h3>CLI + GUI continuity</h3>
-					<p>Start a session in CLI and continue it in Cockpit (and vice versa).</p>
-				</button>
-				<button class="feature-card" type="button" data-feature="byok">
-					<h3>Bring your own key (BYOK)</h3>
-					<p>Use custom model/provider configs with secure key handling.</p>
-				</button>
-				<button class="feature-card" type="button" data-feature="systemmessage">
-					<h3>System message customisation</h3>
-					<p>Control prompt sections with replace, remove, append, or prepend overrides.</p>
-				</button>
-				<button class="feature-card" type="button" data-feature="telemetry">
-					<h3>OpenTelemetry diagnostics</h3>
-					<p>Deep visibility into session performance with time and token usage breakdown by operation.</p>
-				</button>
-				<button class="feature-card coming-soon" type="button" data-feature="plugins">
-					<span class="tag">Coming soon</span>
-					<h3>Plugins</h3>
-					<p>Extend Cockpit with custom integrations and workflow modules.</p>
-				</button>
-				<button class="feature-card coming-soon" type="button" data-feature="worktrees">
-					<span class="tag">Coming soon</span>
-					<h3>Git worktrees</h3>
-					<p>Work in multiple branches at once with isolated checkouts inside Cockpit workflows.</p>
-				</button>
-				<button class="feature-card coming-soon" type="button" data-feature="themecustomisation">
-					<span class="tag">Coming soon</span>
-					<h3>Full theme customisation</h3>
-					<p>Fine-tune colors, contrast, and layout styling to match your personal setup.</p>
-				</button>
-			</div>
+			<div class="feature-grid" id="featureGrid"></div>
 		</div>
 	</section>
 	</main>
@@ -1053,6 +992,9 @@
 		let currentRotateY = 0;
 		let previewTiltRunning = false;
 
+		// Declare featureCards early - will be populated after card generation
+		let featureCards = [];
+
 		function animatePreviewTilt() {
 			if (reduceMotionEnabled) {
 				previewTiltRunning = false;
@@ -1088,8 +1030,6 @@
 			animatePreviewTilt();
 		}
 
-		const featureCards = [...document.querySelectorAll(".feature-card")];
-
 		function clampPercent(value) {
 			return Math.max(0, Math.min(100, value));
 		}
@@ -1112,44 +1052,9 @@
 			});
 		}
 
-		document.addEventListener("pointermove", (event) => {
-			if (reduceMotionEnabled) {
-				return;
-			}
-
-			updateFeatureCardGlow(event.clientX, event.clientY);
-		});
-
-		document.addEventListener("pointerleave", () => {
-			featureCards.forEach((card) => {
-				card.style.setProperty("--glow-strength", "0%");
-			});
-		});
-
-		if (!reduceMotionEnabled) {
-			updateFeatureCardGlow(window.innerWidth / 2, window.innerHeight / 2);
-		}
-
-		featureCards.forEach((card) => {
-			card.addEventListener("pointermove", (event) => {
-				if (reduceMotionEnabled) {
-					return;
-				}
-
-				const rect = card.getBoundingClientRect();
-				const x = ((event.clientX - rect.left) / rect.width) * 100;
-				const y = ((event.clientY - rect.top) / rect.height) * 100;
-				const rotateY = ((x / 100) - 0.5) * 8;
-				const rotateX = (0.5 - (y / 100)) * 8;
-				card.style.transform = `translateY(-3px) perspective(900px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg)`;
-				card.classList.add("is-tilting");
-			});
-
-			card.addEventListener("pointerleave", () => {
-				card.style.removeProperty("transform");
-				card.classList.remove("is-tilting");
-			});
-		});
+		// Feature card effects will be initialized after cards are generated
+		// document.addEventListener("pointermove", ...)
+		// ... (moved to after featureCards definition)
 
 		const revealTargets = document.querySelectorAll(".hero-content, .features h2, .feature-card, .footer-row");
 		const revealObserver = new IntersectionObserver((entries) => {
@@ -1282,26 +1187,31 @@
 		const featureDetails = {
 			sessions: {
 				title: "Multi-session management",
+				shortDescription: "Run and switch between multiple AI coding threads without losing context.",
 				body: "Keep separate coding workflows active at once and switch instantly between tasks. Each session keeps its own context so you can run parallel AI work without cross-contamination."
 			},
 			terminal: {
 				title: "Integrated terminal",
+				shortDescription: "Stay close to shell-based workflows while using a polished interface.",
 				body: "Run commands in a built-in terminal and attach the output directly to your next message. Quickly share command results with Copilot without leaving Cockpit.",
 				video: "assets/Terminal-feature.mp4"
 			},
 			gitdiff: {
 				title: "Git diff viewer",
+				shortDescription: "Inspect changes quickly and keep code review in your loop.",
 				body: "Inspect generated changes before accepting them. Review file-level diffs quickly so you can stay in control of code quality and merge confidence.",
 				image: "assets/gitdiff-feature.png",
 				imageAlt: "Cockpit git diff viewer showing side-by-side code changes"
 			},
 			attachments: {
 				title: "Image & attachment support",
+				shortDescription: "Bring richer context into prompts and discussions.",
 				body: "Attach files and visuals to give agents richer context for debugging, UI work, and documentation-heavy tasks.",
 				imageAlt: "Cockpit interface showing rich context"
 			},
 			history: {
 				title: "Transparent chat history",
+				shortDescription: "Clean, complete history with no hidden steps or collapsed behavior.",
 				body: "Get a clean, complete conversation record with no hidden steps. It is easier to audit decisions and understand exactly what the agent changed.",
 				images: [
 					{ src: "assets/chatHistory-1-feature.png", alt: "Cockpit chat history showing collapsed operations" },
@@ -1310,15 +1220,19 @@
 			},
 			permissions: {
 				title: "Fine-grained permissions",
+				shortDescription: "Control autonomy globally, per session, or with YOLO mode.",
 				body: "Set defaults globally, tune controls per session, or intentionally move faster with YOLO mode. Choose the right safety level per workflow."
 			},
 			canvas: {
 				title: "Canvas support",
+				shortDescription: "Render diagrams, charts, and interactive dashboards in context.",
 				body: "Render diagrams, charts, and interactive outputs inside the workflow so architecture and data discussions stay visual and actionable.",
-				imageAlt: "Cockpit canvas-style visual output"
+				imageAlt: "Cockpit canvas-style visual output",
+				isPartialSupport: true
 			},
 			byok: {
 				title: "Bring your own key (BYOK)",
+				shortDescription: "Use custom model/provider configs with secure key handling.",
 				body: "Configure BYOK providers and model profiles, including:\n- Provider type and model ID\n- Base URL and wire API compatibility\n- Capability hints (vision support, reasoning support, max context tokens)\n- Secure secret handling for API keys/tokens\n\nBYOK metadata is stored separately from secrets so model settings can be shared without exposing credentials.\n\nExapand the models list, click the info button (top right), then add model ",
 				docsUrl: "https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/byok",
 				image: "assets/byok-feature.png",
@@ -1326,32 +1240,120 @@
 			},
 			systemmessage: {
 				title: "System message customisation",
+				shortDescription: "Control prompt sections with replace, remove, append, or prepend overrides.",
 				body: "Customize system prompt sections directly in Cockpit with section-level actions: Replace, Remove, Append, and Prepend.\n\nDefaults are captured from the runtime and can be overridden per section, giving teams consistent behavior while still allowing targeted prompt tuning.",
 				image: "assets/systemMessage-feature.png",
 				imageAlt: "Cockpit system message customization preview"
 			},
 			continuity: {
 				title: "CLI + GUI continuity",
+				shortDescription: "Start a session in CLI and continue it in Cockpit (and vice versa).",
 				body: "Start in GitHub Copilot CLI and continue in Cockpit (and vice versa) without losing momentum or rebuilding context."
 			},
 			telemetry: {
 				title: "OpenTelemetry diagnostics",
+				shortDescription: "Deep visibility into session performance with time and token usage breakdown by operation.",
 				body: "Get deep visibility into session performance with a dedicated telemetry dashboard. Track:\n\n• Time spent per operation (tokens, thinking, tool execution)\n• Token consumption breakdown by message and span\n• Performance metrics across trace spans\n• Session-by-session diagnostics for optimization\n\nExport and analyze telemetry data to understand bottlenecks, optimize prompts, and improve agent performance.",
-				video: "assets/OpenTelemarty-Feature.mp4",
+				video: "assets/OpenTelemarty-Feature.mp4"
 			},
 			plugins: {
-				title: "Plugins (Coming soon)",
-				body: "A plugin system is planned so teams can add custom integrations, automation hooks, and UI extensions tailored to their own development workflows."
+				title: "Plugins",
+				shortDescription: "Extend Cockpit with custom integrations and workflow modules.",
+				body: "A plugin system is planned so teams can add custom integrations, automation hooks, and UI extensions tailored to their own development workflows.",
+				isComingSoon: true
 			},
 			worktrees: {
-				title: "Git worktrees (Coming soon)",
-				body: "Git worktree support is planned so you can run parallel feature branches in separate working directories without cloning the repository again."
+				title: "Git worktrees",
+				shortDescription: "Work in multiple branches at once with isolated checkouts inside Cockpit workflows.",
+				body: "Git worktree support is planned so you can run parallel feature branches in separate working directories without cloning the repository again.",
+				isComingSoon: true
 			},
 			themecustomisation: {
-				title: "Full theme customisation (Coming soon)",
-				body: "Full theme customization is planned to let you control palette, contrast, and visual density for a workspace appearance tailored to your preferences."
+				title: "Full theme customisation",
+				shortDescription: "Fine-tune colors, contrast, and layout styling to match your personal setup.",
+				body: "Full theme customization is planned to let you control palette, contrast, and visual density for a workspace appearance tailored to your preferences.",
+				isComingSoon: true
 			}
 		};
+
+		// Feature ordering - define which features appear and in what order
+		const featureOrder = ["sessions", "terminal", "gitdiff", "attachments", "history", "permissions", "canvas", "byok", "systemmessage", "continuity", "telemetry", "plugins", "worktrees", "themecustomisation"];
+
+		// Generate feature cards from featureDetails
+		const featureGrid = document.getElementById("featureGrid");
+		featureOrder.forEach(featureKey => {
+			const feature = featureDetails[featureKey];
+			if (!feature) return;
+
+			const button = document.createElement("button");
+			button.className = "feature-card";
+			button.type = "button";
+			button.setAttribute("data-feature", featureKey);
+
+			if (feature.isPartialSupport) {
+				button.classList.add("partial-support");
+			}
+			if (feature.isComingSoon) {
+				button.classList.add("coming-soon");
+			}
+
+			let html = "";
+			if (feature.isPartialSupport) {
+				html += '<span class="tag tag--purple">Partial support</span>';
+			}
+			if (feature.isComingSoon) {
+				html += '<span class="tag">Coming soon</span>';
+			}
+
+			html += `<h3>${feature.title}</h3>`;
+			html += `<p>${feature.shortDescription}</p>`;
+
+			button.innerHTML = html;
+			featureGrid.appendChild(button);
+		});
+
+		// Populate featureCards after they're generated
+		featureCards = [...document.querySelectorAll(".feature-card")];
+
+		// Initialize feature card effects
+		document.addEventListener("pointermove", (event) => {
+			if (reduceMotionEnabled) {
+				return;
+			}
+
+			updateFeatureCardGlow(event.clientX, event.clientY);
+		});
+
+		document.addEventListener("pointerleave", () => {
+			featureCards.forEach((card) => {
+				card.style.setProperty("--glow-strength", "0%");
+			});
+		});
+
+		if (!reduceMotionEnabled) {
+			updateFeatureCardGlow(window.innerWidth / 2, window.innerHeight / 2);
+		}
+
+		featureCards.forEach((card) => {
+			card.addEventListener("pointermove", (event) => {
+				if (reduceMotionEnabled) {
+					return;
+				}
+
+				const rect = card.getBoundingClientRect();
+				const x = ((event.clientX - rect.left) / rect.width) * 100;
+				const y = ((event.clientY - rect.top) / rect.height) * 100;
+				const rotateY = ((x / 100) - 0.5) * 8;
+				const rotateX = (0.5 - (y / 100)) * 8;
+				card.style.transform = `translateY(-3px) perspective(900px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg)`;
+				card.classList.add("is-tilting");
+			});
+
+			card.addEventListener("pointerleave", () => {
+				card.style.removeProperty("transform");
+				card.classList.remove("is-tilting");
+			});
+		});
 
 		const modal = document.getElementById("featureModal");
 		const modalTitle = document.getElementById("modalTitle");
