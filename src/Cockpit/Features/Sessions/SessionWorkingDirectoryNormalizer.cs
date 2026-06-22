@@ -2,7 +2,10 @@ using Cockpit.Features.Sessions.Models;
 
 namespace Cockpit.Features.Sessions;
 
-internal static class SessionWorkingDirectoryNormalizer
+/// <summary>
+/// Workaround for - https://github.com/github/copilot-sdk/issues/1735
+/// </summary>
+static class SessionWorkingDirectoryNormalizer
 {
 	internal static string? Normalize(string? workingDirectory)
 	{
@@ -14,9 +17,7 @@ internal static class SessionWorkingDirectoryNormalizer
 		try
 		{
 			string normalizedWorkingDirectory = Path.GetFullPath(workingDirectory);
-			string currentProcessWorkingDirectory = Path.GetFullPath(Directory.GetCurrentDirectory());
-
-			return string.Equals(normalizedWorkingDirectory, currentProcessWorkingDirectory, StringComparison.OrdinalIgnoreCase)
+			return IsLaunchWorkingDirectory(normalizedWorkingDirectory)
 				? null
 				: normalizedWorkingDirectory;
 		}
@@ -26,11 +27,29 @@ internal static class SessionWorkingDirectoryNormalizer
 		}
 	}
 
+	static bool IsLaunchWorkingDirectory(string normalizedWorkingDirectory)
+	{
+		string appLaunchDirectory = NormalizeDirectoryPath(AppContext.BaseDirectory);
+		string currentProcessDirectory = NormalizeDirectoryPath(Directory.GetCurrentDirectory());
+		string candidateDirectory = NormalizeDirectoryPath(normalizedWorkingDirectory);
+
+		return string.Equals(candidateDirectory, appLaunchDirectory, StringComparison.OrdinalIgnoreCase)
+			|| string.Equals(candidateDirectory, currentProcessDirectory, StringComparison.OrdinalIgnoreCase);
+	}
+
+	static string NormalizeDirectoryPath(string path)
+	{
+		string normalized = Path.GetFullPath(path);
+		return normalized.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+	}
+
 	internal static void ApplyContextConsistency(SessionContext context)
 	{
 		context.CurrentWorkingDirectory = Normalize(context.CurrentWorkingDirectory);
 		if(context.CurrentWorkingDirectory is null)
 		{
+			context.GitRoot = null;
+			context.Repository = null;
 			context.Branch = null;
 			context.EditedFiles = [];
 		}
