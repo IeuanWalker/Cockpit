@@ -59,7 +59,8 @@ public sealed partial class GitFeature
 
 	/// <summary>
 	/// Resolves git context (root, repository, branch) for a given working directory.
-	/// Returns a <see cref="GitContext"/> with null fields if the directory is not a git repo.
+	/// Returns <see langword="null"/> when the working directory is null/empty or does not exist.
+	/// Returns a <see cref="GitContext"/> (with null fields when not in a git repo) for valid directories.
 	/// </summary>
 	public async Task<GitContext?> GetContext(string? workingDirectory)
 	{

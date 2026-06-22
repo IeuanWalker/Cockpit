@@ -105,6 +105,7 @@ public sealed partial class SessionFeature
 	{
 		CopilotClient? client = null;
 		CopilotSession? sdkSession = null;
+		bool sdkSessionRegistered = false;
 
 		try
 		{
@@ -159,6 +160,7 @@ public sealed partial class SessionFeature
 			if(cancellationToken.IsCancellationRequested)
 			{
 				await client.DeleteSessionAsync(createdSession.SessionId, CancellationToken.None);
+				await createdSession.DisposeAsync();
 				sdkSession = null;
 				cancellationToken.ThrowIfCancellationRequested();
 			}
@@ -168,6 +170,7 @@ public sealed partial class SessionFeature
 				_logger.LogDebug("Session {SessionId} event: {EventType}", createdSession.SessionId, evt.Type);
 				HandleSessionEvent(createdSession.SessionId, evt);
 			});
+			sdkSessionRegistered = true;
 
 			SessionModel chatSession = new()
 			{
@@ -218,6 +221,14 @@ public sealed partial class SessionFeature
 				try
 				{
 					await client.DeleteSessionAsync(sdkSession.SessionId, CancellationToken.None);
+
+					if(sdkSessionRegistered)
+					{
+						_sdkRegistry.Remove(sdkSession.SessionId);
+					}
+
+					await sdkSession.DisposeAsync();
+					sdkSession = null;
 				}
 				catch(Exception cleanupEx)
 				{
