@@ -510,13 +510,20 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 	}
 
 	/// <summary>
-	/// Returns environment variables for the SDK process with common GitHub CLI install
-	/// directories prepended to PATH, ensuring the bundled copilot binary can locate
-	/// <c>gh</c> even when the MAUI app launches with a restricted PATH.
+	/// Returns the full current environment with common GitHub CLI install directories
+	/// prepended to PATH. <see cref="CopilotClientOptions.Environment"/> replaces the
+	/// child process environment entirely, so all existing variables must be copied first
+	/// or Node.js will crash (e.g. missing SYSTEMROOT breaks OpenSSL CSPRNG init).
 	/// </summary>
 	static IReadOnlyDictionary<string, string> BuildAugmentedEnvironment()
 	{
-		string currentPath = System.Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+		// Start with a full copy of the current process environment — equivalent to
+		// Cooper's { ...process.env, PATH: augmentedPath } pattern.
+		Dictionary<string, string> env = System.Environment.GetEnvironmentVariables()
+			.Cast<System.Collections.DictionaryEntry>()
+			.ToDictionary(e => (string)e.Key, e => (string?)e.Value ?? "", StringComparer.OrdinalIgnoreCase);
+
+		string currentPath = env.TryGetValue("PATH", out string? existingPath) ? existingPath : string.Empty;
 
 		List<string> extraPaths =
 		[
@@ -537,13 +544,10 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 			Path.PathSeparator.ToString(),
 			extraPaths.Where(Directory.Exists));
 
-		string augmentedPath = string.IsNullOrEmpty(extra)
+		env["PATH"] = string.IsNullOrEmpty(extra)
 			? currentPath
 			: $"{extra}{Path.PathSeparator}{currentPath}";
 
-		return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-		{
-			["PATH"] = augmentedPath
-		};
+		return env;
 	}
 }
