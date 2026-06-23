@@ -4,7 +4,7 @@ using Cockpit.Features.Sdk;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Splash;
 using Cockpit.Features.Theme;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
@@ -291,8 +291,8 @@ public partial class MainPage : ContentPage
 		enterpriseOption.Stroke = new SolidColorBrush(_isEnterprise ? Color.FromArgb("#3B82F6") : Color.FromArgb("#374151"));
 
 		// Update label colors
-		((Label)githubComOption.Content).TextColor = _isEnterprise ? Color.FromArgb("#9CA3AF") : Colors.White;
-		((Label)enterpriseOption.Content).TextColor = _isEnterprise ? Colors.White : Color.FromArgb("#9CA3AF");
+		((Label?)githubComOption.Content)?.TextColor = _isEnterprise ? Color.FromArgb("#9CA3AF") : Colors.White;
+		((Label?)enterpriseOption.Content)?.TextColor = _isEnterprise ? Colors.White : Color.FromArgb("#9CA3AF");
 
 		enterpriseHostSection.IsVisible = _isEnterprise;
 	}

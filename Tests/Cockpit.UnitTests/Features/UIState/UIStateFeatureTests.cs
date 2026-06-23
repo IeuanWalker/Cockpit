@@ -683,4 +683,5 @@ sealed class MockAppSettings : IAppSettingsFeature
 	public bool KeepAlive { get; set; }
 	public bool CanvasEnabled { get; set; } = true;
 	public Dictionary<string, Cockpit.Features.SystemMessage.SystemMessageSectionSetting> SystemMessageSectionOverrides { get; set; } = [];
+	public string SessionListGroupBy { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 }
