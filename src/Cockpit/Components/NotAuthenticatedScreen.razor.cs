@@ -48,11 +48,11 @@ public partial class NotAuthenticatedScreen : ComponentBase
 		}
 	}
 
-	void OpenGhDocs()
+	async Task OpenGhDocs()
 	{
 		try
 		{
-			Launcher.OpenAsync(new Uri("https://cli.github.com"));
+			await Launcher.OpenAsync(new Uri("https://cli.github.com"));
 		}
 		catch(Exception ex)
 		{

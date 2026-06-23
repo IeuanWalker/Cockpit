@@ -2,8 +2,8 @@ namespace Cockpit.Features.Splash;
 
 /// <summary>
 /// Base splash feature for MAUI windows. Provides fire-once notifications for Blazor
-/// readiness, status text updates, and final splash dismissal.
-/// Thread-safe: event handlers are cleared after first invocation.
+/// readiness and final splash dismissal, plus a multi-fire status update event.
+/// Thread-safe: OnBlazorReady/OnSplashHide handlers are cleared after first invocation.
 /// </summary>
 public abstract class WindowSplashFeature
 {
