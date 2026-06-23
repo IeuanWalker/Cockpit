@@ -4,6 +4,7 @@ using Blazor.Sonner.Services;
 using Cockpit.Features.Agents;
 using Cockpit.Features.Canvas;
 using Cockpit.Features.AppSettings;
+using Cockpit.Features.Auth;
 using Cockpit.Features.Connection;
 using Cockpit.Features.Git;
 using Cockpit.Features.Hooks;
@@ -117,6 +118,7 @@ public static class MauiProgram
 
 		// Copilot SDK and Permissions
 		builder.Services.AddSingleton<CopilotClientFeature>();
+		builder.Services.AddSingleton<AuthFeature>();
 		builder.Services.AddSingleton<ICopilotPingService>(sp => sp.GetRequiredService<CopilotClientFeature>());
 		builder.Services.AddSingleton<ConnectionFeature>();
 		builder.Services.AddSingleton<GlobalPermissionFeature>();

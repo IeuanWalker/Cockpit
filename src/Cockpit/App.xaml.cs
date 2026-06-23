@@ -1,7 +1,10 @@
 ﻿using Cockpit.Controls;
+using Cockpit.Features.Auth;
+using Cockpit.Features.Sdk;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Splash;
 using Cockpit.Features.Theme;
+using Microsoft.Extensions.Logging;
 
 namespace Cockpit;
 
@@ -12,22 +15,31 @@ public partial class App : Application
 	readonly SplashFeature _splashFeature;
 	readonly SessionFeature _sessionFeature;
 	readonly ThemeStateFeature _themeStateFeature;
+	readonly CopilotClientFeature _copilotClientFeature;
+	readonly AuthFeature _authFeature;
+	readonly ILogger<MainPage> _mainPageLogger;
 
 	public App(
 		SplashFeature splashFeature,
 		SessionFeature sessionFeature,
-		ThemeStateFeature themeStateFeature)
+		ThemeStateFeature themeStateFeature,
+		CopilotClientFeature copilotClientFeature,
+		AuthFeature authFeature,
+		ILogger<MainPage> mainPageLogger)
 	{
 		InitializeComponent();
 
 		_splashFeature = splashFeature;
 		_sessionFeature = sessionFeature;
 		_themeStateFeature = themeStateFeature;
+		_copilotClientFeature = copilotClientFeature;
+		_authFeature = authFeature;
+		_mainPageLogger = mainPageLogger;
 	}
 
 	protected override Window CreateWindow(IActivationState? activationState)
 	{
-		_mainWindow = new Window(new MainPage(_splashFeature, _sessionFeature, _themeStateFeature))
+		_mainWindow = new Window(new MainPage(_splashFeature, _sessionFeature, _themeStateFeature, _copilotClientFeature, _authFeature, _mainPageLogger))
 		{
 			Title = "Cockpit",
 			TitleBar = new TitleBar
