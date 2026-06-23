@@ -62,9 +62,13 @@
                     <source src="@_mediaDataUrl" />
                 </video>
             }
-            else
+            else if(_mediaTooBig)
             {
                 <span class="text-sm secondary-text">Video is too large to preview</span>
+            }
+            else
+            {
+                <span class="text-sm secondary-text">Video cannot be displayed</span>
             }
         </div>
     }

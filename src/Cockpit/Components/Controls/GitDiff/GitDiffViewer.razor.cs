@@ -30,6 +30,7 @@ public partial class GitDiffViewer : ComponentBase
 	FileCategory _fileCategory;
 	string? _mediaDataUrl;
 	bool _mediaLoading;
+	bool _mediaTooBig;
 
 	string? _prevDiff;
 	string? _prevFilePath;
@@ -392,13 +393,13 @@ public partial class GitDiffViewer : ComponentBase
 	{
 		if(Diff != _prevDiff || FilePath != _prevFilePath || SplitView != _prevSplitView)
 		{
-			_fileCategory = GetFileCategory(FilePath);
-			_prevDiff = Diff;
-			_prevFilePath = FilePath;
-			_prevSplitView = SplitView;
-			_pendingFilePath = FilePath;
+			_parsedDiff = null;
+			_splitRows = [];
+			_inlineSpans = [];
+			_fileLines = null;
 			_mediaDataUrl = null;
 			_mediaLoading = false;
+			_mediaTooBig = false;
 			_hunkExpansion.Clear();
 
 			if(_fileCategory == FileCategory.Binary)
@@ -435,6 +436,7 @@ public partial class GitDiffViewer : ComponentBase
 	async Task LoadMediaAsync(string? filePath)
 	{
 		string? dataUrl = null;
+		bool tooBig = false;
 
 		if(filePath is not null && File.Exists(filePath))
 		{
@@ -451,6 +453,10 @@ public partial class GitDiffViewer : ComponentBase
 						: GetVideoMimeType(ext);
 					dataUrl = $"data:{mimeType};base64,{Convert.ToBase64String(bytes)}";
 				}
+				else
+				{
+					tooBig = true;
+				}
 			}
 			catch { }
 		}
@@ -458,6 +464,7 @@ public partial class GitDiffViewer : ComponentBase
 		if(filePath == _pendingFilePath)
 		{
 			_mediaDataUrl = dataUrl;
+			_mediaTooBig = tooBig;
 			_mediaLoading = false;
 			await InvokeAsync(StateHasChanged);
 		}
