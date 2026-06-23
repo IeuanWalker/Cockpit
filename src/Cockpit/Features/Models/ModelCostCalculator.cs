@@ -107,6 +107,27 @@ public static class ModelCostCalculator
 	}
 
 	/// <summary>
+	/// Returns the cheapest model based on input token price, or <see langword="null"/> if no model has pricing information.
+	/// </summary>
+	public static ModelInfo? GetCheapestModel(IReadOnlyList<ModelInfo> models)
+	{
+		ModelInfo? cheapest = null;
+		double cheapestPrice = double.MaxValue;
+
+		foreach(ModelInfo m in models)
+		{
+			double? price = ExtractPrice(m);
+			if(price is not null && price.Value < cheapestPrice)
+			{
+				cheapestPrice = price.Value;
+				cheapest = m;
+			}
+		}
+
+		return cheapest;
+	}
+
+	/// <summary>
 	/// Extracts the pricing value from a model for comparison.
 	/// </summary>
 	static double? ExtractPrice(ModelInfo model)

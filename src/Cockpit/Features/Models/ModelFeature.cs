@@ -68,8 +68,9 @@ public sealed partial class ModelFeature : IModelFeature
 	}
 
 	/// <summary>
-	/// Selects the default model from <paramref name="models"/> using the free-tier preference
-	/// heuristic: second free model → first free model → first model overall.
+	/// Selects the default model from <paramref name="models"/>:
+	/// prefers the <c>auto</c> model if available, otherwise falls back to the cheapest
+	/// model by input token price, and finally to the first model in the list.
 	/// Extracted as an <see langword="internal"/> static so unit tests can verify the logic
 	/// without requiring a live SDK connection.
 	/// </summary>
@@ -80,26 +81,15 @@ public sealed partial class ModelFeature : IModelFeature
 			throw new InvalidOperationException("No models available from the Copilot API.");
 		}
 
-		// Single-pass scan: track first and second free-tier models to avoid allocating
-		// an intermediate list just for index access.
-		ModelInfo? firstFree = null;
-		ModelInfo? secondFree = null;
-
 		foreach(ModelInfo m in models)
 		{
-			if(firstFree is null)
+			if(string.Equals(m.Id, "auto", StringComparison.OrdinalIgnoreCase))
 			{
-				firstFree = m;
-			}
-			else
-			{
-				secondFree = m;
-				break;
+				return m;
 			}
 		}
 
-		// Prefer second free-tier → first free-tier → first model overall.
-		return secondFree ?? firstFree ?? models[0];
+		return ModelCostCalculator.GetCheapestModel(models) ?? models[0];
 	}
 
 	/// <inheritdoc />
