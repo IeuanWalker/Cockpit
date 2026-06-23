@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Cockpit.Components.Controls;
 using Cockpit.Extensions;
 using Cockpit.Features.UserInputRequests;
@@ -15,9 +16,14 @@ public partial class UserInputRequestDetailsPopup
 
 	static string FormatAsJson(string input)
 	{
+		if(string.IsNullOrWhiteSpace(input))
+		{
+			return input;
+		}
+
 		try
 		{
-			return input.SerializeJson() ?? input;
+			return JsonSerializer.Deserialize<JsonElement>(input).SerializeJson() ?? input;
 		}
 		catch
 		{

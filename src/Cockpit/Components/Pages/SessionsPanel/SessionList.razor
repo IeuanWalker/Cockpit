@@ -241,7 +241,7 @@ else
                 </button>
                 <button @onclick="() => CreateSessionFromGroup(group)"
                         class="flex-shrink-0 p-1 mr-1 rounded hover:bg-app-hover opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Create new session in this project">
+                        title="@(group.IsQuickChat ? "Create new quick chat session" : "Create new session in this project")">
                     <svg class="w-3 h-3 secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
