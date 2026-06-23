@@ -12,6 +12,7 @@ public partial class MainLayout : IDisposable
 {
 	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionListFeature _sessionListFeature;
+	readonly SessionFeature _sessionFeature;
 	readonly IThemeFeature _themeFeature;
 	readonly IJSRuntime _jsRuntime;
 	readonly SplashFeature _splashFeature;
@@ -20,6 +21,7 @@ public partial class MainLayout : IDisposable
 	public MainLayout(
 		IUIStateFeature uiStateFeature,
 		SessionListFeature sessionListFeature,
+		SessionFeature sessionFeature,
 		IThemeFeature themeFeature,
 		IJSRuntime jsRuntime,
 		SplashFeature splashFeature,
@@ -27,6 +29,7 @@ public partial class MainLayout : IDisposable
 	{
 		_uiStateFeature = uiStateFeature;
 		_sessionListFeature = sessionListFeature;
+		_sessionFeature = sessionFeature;
 		_themeFeature = themeFeature;
 		_jsRuntime = jsRuntime;
 		_splashFeature = splashFeature;
@@ -53,7 +56,20 @@ public partial class MainLayout : IDisposable
 			await _jsRuntime.InvokeVoidAsync("cockpit.setMainLayoutRef", _dotNetRef);
 			_splashFeature.NotifyBlazorReady();
 
+			// Auth check — splash stays visible with status text
+			_splashFeature.UpdateStatus("Checking authentication…");
 			await _authCheckFeature.CheckAuthAsync();
+
+			if(_authCheckFeature.State == AuthState.Authenticated)
+			{
+				// Preload sessions before revealing the UI so the sidebar isn't empty
+				_splashFeature.UpdateStatus("Loading sessions…");
+				await _sessionFeature.LoadExistingSessions();
+			}
+
+			// Hide the splash regardless of auth outcome — either the app loads or the
+			// auth guide shows. Both are ready to display at this point.
+			_splashFeature.NotifyReady();
 		}
 	}
 

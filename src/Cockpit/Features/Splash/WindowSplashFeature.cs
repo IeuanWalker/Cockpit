@@ -1,15 +1,15 @@
 namespace Cockpit.Features.Splash;
 
 /// <summary>
-/// Base splash feature for MAUI windows. Implements a fire-once notification:
-/// <see cref="NotifyBlazorReady"/> invokes all subscribers in registration order, then clears them.
-/// Subsequent calls after the first are no-ops unless new handlers are registered.
-/// Thread-safe: concurrent calls to <see cref="NotifyBlazorReady"/> will only fire handlers once.
+/// Base splash feature for MAUI windows. Provides fire-once notifications for Blazor
+/// readiness, status text updates, and final splash dismissal.
+/// Thread-safe: event handlers are cleared after first invocation.
 /// </summary>
 public abstract class WindowSplashFeature
 {
 	readonly Lock _lock = new();
 	Action? _onBlazorReady;
+	Action? _onSplashHide;
 
 	public event Action? OnBlazorReady
 	{
@@ -17,10 +17,19 @@ public abstract class WindowSplashFeature
 		remove { lock(_lock) { _onBlazorReady -= value; } }
 	}
 
+	/// <summary>Raised when the splash should be dismissed.</summary>
+	public event Action? OnSplashHide
+	{
+		add { lock(_lock) { _onSplashHide += value; } }
+		remove { lock(_lock) { _onSplashHide -= value; } }
+	}
+
+	/// <summary>Raised with a status string to display in the splash overlay.</summary>
+	public event Action<string>? OnStatusUpdate;
+
 	/// <summary>
-	/// Invokes all registered <see cref="OnBlazorReady"/> handlers in registration order, then clears them.
-	/// Safe to call multiple times; subsequent calls with no subscribers are no-ops.
-	/// If a handler throws, remaining handlers in the same invocation list are not called (standard multicast delegate behaviour).
+	/// Signals that Blazor has rendered. Fires <see cref="OnBlazorReady"/> handlers once
+	/// then clears them. Does not hide the splash — call <see cref="NotifyReady"/> for that.
 	/// </summary>
 	public void NotifyBlazorReady()
 	{
@@ -29,6 +38,25 @@ public abstract class WindowSplashFeature
 		{
 			handler = _onBlazorReady;
 			_onBlazorReady = null;
+		}
+
+		handler?.Invoke();
+	}
+
+	/// <summary>Updates the status label shown in the splash overlay.</summary>
+	public void UpdateStatus(string message) => OnStatusUpdate?.Invoke(message);
+
+	/// <summary>
+	/// Signals that startup is complete and the splash should be dismissed.
+	/// Fires <see cref="OnSplashHide"/> handlers once then clears them.
+	/// </summary>
+	public void NotifyReady()
+	{
+		Action? handler;
+		lock(_lock)
+		{
+			handler = _onSplashHide;
+			_onSplashHide = null;
 		}
 
 		handler?.Invoke();

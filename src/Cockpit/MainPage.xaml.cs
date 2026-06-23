@@ -29,9 +29,11 @@ public partial class MainPage : ContentPage
 #endif
 
 		_splashFeature.OnBlazorReady += OnBlazorReady;
+		_splashFeature.OnStatusUpdate += OnSplashStatusUpdate;
+		_splashFeature.OnSplashHide += OnSplashHide;
 
-		// Safety timeout - hide splash after 15 seconds
-		Dispatcher.StartTimer(TimeSpan.FromSeconds(15), () =>
+		// Safety timeout — force-hide splash after 30 seconds in case startup hangs
+		Dispatcher.StartTimer(TimeSpan.FromSeconds(30), () =>
 		{
 			_ = HideSplash();
 			return false;
@@ -42,12 +44,20 @@ public partial class MainPage : ContentPage
 	{
 		Dispatcher.Dispatch(() =>
 		{
-			_ = HideSplash();
-
 #if DEBUG
 			DiagnosticsSettings.OpenLogViewer(_themeStateFeature.IsLightTheme);
 #endif
 		});
+	}
+
+	void OnSplashStatusUpdate(string message)
+	{
+		Dispatcher.Dispatch(() => statusLabel.Text = message);
+	}
+
+	void OnSplashHide()
+	{
+		Dispatcher.Dispatch(() => _ = HideSplash());
 	}
 
 	async Task HideSplash()
@@ -70,14 +80,14 @@ public partial class MainPage : ContentPage
 #if WINDOWS
 		ConfigureWindowsContextMenuOnAppearing();
 #endif
-		// Fire and forget — starts loading sessions before Blazor is ready
-		_ = _sessionFeature.LoadExistingSessions();
 	}
 
 	protected override void OnDisappearing()
 	{
 		base.OnDisappearing();
 		_splashFeature.OnBlazorReady -= OnBlazorReady;
+		_splashFeature.OnStatusUpdate -= OnSplashStatusUpdate;
+		_splashFeature.OnSplashHide -= OnSplashHide;
 #if WINDOWS
 		TeardownWindowsContextMenu();
 #endif

@@ -1,13 +1,12 @@
 @using Cockpit.Features.Auth
 
-<div class="flex flex-col items-center justify-center h-full bg-app-bg overflow-y-auto py-10">
-    <div class="w-full max-w-lg px-6">
+<div class="auth-screen">
+    <div class="w-full max-w-lg px-6 py-10">
 
         <div class="text-center mb-8">
-            <img src="/images/logo.png" class="logo-responsive mx-auto mb-4" alt="Cockpit logo" />
             <h1 class="text-2xl font-semibold text-app-title mb-2">Sign in to GitHub Copilot</h1>
             <p class="text-app-secondary text-sm">
-                Cockpit requires the <strong>GitHub CLI</strong> to authenticate.
+                Cockpit requires the <strong class="text-app-title">GitHub CLI</strong> to authenticate.
                 Follow the steps below, then click <em>Check Again</em>.
             </p>
         </div>
@@ -15,53 +14,44 @@
         <!-- Step 1: Install gh -->
         <div class="mb-4 rounded-lg border border-app-border bg-app-sidebar p-4">
             <div class="flex items-center gap-2 mb-3">
-                <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background-color: var(--accent-color);">1</span>
+                <span class="step-badge">1</span>
                 <h2 class="font-semibold text-app-title">Install the GitHub CLI</h2>
             </div>
-            <p class="text-sm text-app-secondary mb-3">
-                Open a terminal and run the command for your platform:
-            </p>
+            <p class="text-sm text-app-secondary mb-3">Open a terminal and run:</p>
             @if(_isWindows)
             {
-                <div class="rounded bg-app-bg border border-app-border px-3 py-2 font-mono text-sm text-app-title select-all">
-                    winget install GitHub.cli
-                </div>
+                <code class="code-line">winget install GitHub.cli</code>
             }
             else
             {
-                <div class="rounded bg-app-bg border border-app-border px-3 py-2 font-mono text-sm text-app-title select-all">
-                    brew install gh
-                </div>
+                <code class="code-line">brew install gh</code>
             }
             <p class="text-xs text-app-secondary mt-2">
-                Already installed? Skip to step 2.
-                Visit <a href="#" @onclick="OpenGhDocs" @onclick:preventDefault class="underline hover:text-app-title">cli.github.com</a> for other install options.
+                Already installed? Skip to step 2. Visit
+                <a href="#" @onclick="OpenGhDocs" @onclick:preventDefault class="underline hover:text-app-title">cli.github.com</a>
+                for other options.
             </p>
         </div>
 
         <!-- Step 2: Log in -->
         <div class="mb-4 rounded-lg border border-app-border bg-app-sidebar p-4">
             <div class="flex items-center gap-2 mb-3">
-                <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background-color: var(--accent-color);">2</span>
+                <span class="step-badge">2</span>
                 <h2 class="font-semibold text-app-title">Sign in to GitHub</h2>
             </div>
             <p class="text-sm text-app-secondary mb-3">In a terminal, run:</p>
-            <div class="rounded bg-app-bg border border-app-border px-3 py-2 font-mono text-sm text-app-title select-all">
-                gh auth login
-            </div>
-            <p class="text-xs text-app-secondary mt-2">
-                Follow the prompts to authenticate via your browser.
-            </p>
+            <code class="code-line">gh auth login</code>
+            <p class="text-xs text-app-secondary mt-2">Follow the prompts to authenticate via your browser.</p>
         </div>
 
         <!-- Step 3: Check again -->
-        <div class="mb-6 rounded-lg border border-app-border bg-app-sidebar p-4">
+        <div class="rounded-lg border border-app-border bg-app-sidebar p-4">
             <div class="flex items-center gap-2 mb-3">
-                <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style="background-color: var(--accent-color);">3</span>
+                <span class="step-badge">3</span>
                 <h2 class="font-semibold text-app-title">Check again</h2>
             </div>
             <p class="text-sm text-app-secondary mb-3">
-                Once signed in, click the button below. Cockpit will restart its connection and verify your credentials.
+                Once signed in, click below. Cockpit will restart its connection and verify your credentials.
             </p>
             <button @onclick="CheckAgain"
                     disabled="@_isChecking"
