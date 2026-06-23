@@ -1,16 +1,16 @@
 using Cockpit.Components.Controls;
 using Cockpit.Utilities;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot.Rpc;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
-public partial class InstructionInfoPopup : ComponentBase
+public sealed partial class InstructionInfoPopup : ComponentBase
 {
 	PopupBase? _popup;
-	InstructionsSources? _selectedInstruction;
-	List<InstructionsSources> _instructions = [];
+	InstructionSource? _selectedInstruction;
+	List<InstructionSource> _instructions = [];
 	string? _workspacePath;
 	bool _needsSplitInit;
 
@@ -21,16 +21,16 @@ public partial class InstructionInfoPopup : ComponentBase
 		_jsRuntime = jsRuntime;
 	}
 
-	public void Open(IReadOnlyList<InstructionsSources> instructions, InstructionsSources selectedInstruction, string? workspacePath = null)
+	public void Open(IReadOnlyList<InstructionSource> instructions, InstructionSource selectedInstruction, string? workspacePath = null)
 	{
-		_instructions = [.. instructions];
+		_instructions = [.. instructions.OrderBy(i => i.Label, StringComparer.OrdinalIgnoreCase)];
 		_workspacePath = workspacePath;
 		_needsSplitInit = true;
 		_popup?.Open();
 		SelectInstruction(selectedInstruction);
 	}
 
-	void SelectInstruction(InstructionsSources instruction)
+	void SelectInstruction(InstructionSource instruction)
 	{
 		_selectedInstruction = instruction;
 		StateHasChanged();

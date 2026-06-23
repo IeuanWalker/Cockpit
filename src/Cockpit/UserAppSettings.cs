@@ -1,176 +1,276 @@
-﻿using Cockpit.Features.MessageMode;
+using System.Text.Json;
+using Cockpit.Features.AppSettings;
+using Cockpit.Features.MessageMode;
+using Cockpit.Features.SystemMessage;
 using Cockpit.Features.TextToSpeech;
 using Cockpit.Features.Theme;
 
 namespace Cockpit;
 
-public static class UserAppSettings
+/// <summary>
+/// Persistence layer for all user-configurable application settings.
+/// Delegates storage to an <see cref="IPreferencesStorage"/> so the class is testable
+/// without requiring a MAUI platform host.
+/// </summary>
+public class UserAppSettings
 {
-	public static ThemeEnum Theme
+	static class Keys
+	{
+		internal const string theme = "Theme";
+		internal const string accentColor = "AccentColor";
+		internal const string accentHoverColor = "AccentHoverColor";
+		internal const string messageTurnMode = "MessageTurnMode";
+		internal const string sendOnEnter = "SendOnEnter";
+		internal const string leftSidebarWidth = "LeftSidebarWidth";
+		internal const string rightSidebarWidth = "RightSidebarWidth";
+		internal const string textToSpeechEnabled = "TextToSpeechEnabled";
+		internal const string voiceVolume = "VoiceVolume";
+		internal const string voicePitch = "VoicePitch";
+		internal const string voiceRate = "VoiceRate";
+		internal const string voiceLocale = "VoiceLocale";
+		internal const string diffSplitView = "DiffSplitView";
+		internal const string diffTreeView = "DiffTreeView";
+		internal const string soundPermissionEnabled = "SoundPermissionEnabled";
+		internal const string soundPermissionVolume = "SoundPermissionVolume";
+		internal const string soundUserInputEnabled = "SoundUserInputEnabled";
+		internal const string soundUserInputVolume = "SoundUserInputVolume";
+		internal const string soundFinishedEnabled = "SoundFinishedEnabled";
+		internal const string soundFinishedVolume = "SoundFinishedVolume";
+		internal const string soundPermissionCustomFileName = "SoundPermissionCustomFileName";
+		internal const string soundUserInputCustomFileName = "SoundUserInputCustomFileName";
+		internal const string soundFinishedCustomFileName = "SoundFinishedCustomFileName";
+		internal const string sdkLogLevel = "SdkLogLevel";
+		internal const string telemetryEnabled = "TelemetryEnabled";
+		internal const string keepAlive = "KeepAlive";
+		internal const string canvasEnabled = "CanvasEnabled";
+		internal const string sessionListGroupBy = "SessionListGroupBy";
+		internal const string systemMessageSectionOverrides = "SystemMessageSectionOverrides";
+	}
+
+	readonly IPreferencesStorage _preferences;
+
+	public UserAppSettings(IPreferencesStorage preferences)
+	{
+		_preferences = preferences;
+	}
+
+	public ThemeEnum Theme
 	{
 		get
 		{
-			string? result = Preferences.Default.Get("Theme", (string?)null);
-
-			if(result is null)
-			{
-				return ThemeEnum.Dark;
-			}
-
-			if(!Enum.IsDefined(typeof(ThemeEnum), result))
-			{
-				return ThemeEnum.Dark;
-			}
-
-			return Enum.Parse<ThemeEnum>(result);
+			string? stored = _preferences.Get<string?>(Keys.theme, null);
+			return Enum.TryParse(stored, true, out ThemeEnum parsed) && Enum.IsDefined(parsed)
+				? parsed
+				: ThemeEnum.Dark;
 		}
-
-		set => Preferences.Default.Set("Theme", value.ToString());
-	}
-	public static string AccentColor
-	{
-		get => Preferences.Default.Get("AccentColor", "#005FB8");
-		set => Preferences.Default.Set("AccentColor", value);
-	}
-	public static string AccentHoverColor
-	{
-		get => Preferences.Default.Get("AccentHoverColor", "#0050a0");
-		set => Preferences.Default.Set("AccentHoverColor", value);
+		set => _preferences.Set(Keys.theme, value.ToString());
 	}
 
-	public static MessageTurnModeEnum MessageTurnMode
+	public string AccentColor
+	{
+		get => _preferences.Get(Keys.accentColor, "#005FB8");
+		set => _preferences.Set(Keys.accentColor, value);
+	}
+
+	public string AccentHoverColor
+	{
+		get => _preferences.Get(Keys.accentHoverColor, "#0050a0");
+		set => _preferences.Set(Keys.accentHoverColor, value);
+	}
+
+	public MessageTurnModeEnum MessageTurnMode
 	{
 		get
 		{
-			string? result = Preferences.Default.Get("MessageTurnMode", (string?)null);
-
-			if(result is null)
-			{
-				return MessageTurnModeEnum.Immediate;
-			}
-
-			if(!Enum.TryParse(result, true, out MessageTurnModeEnum mode) || !Enum.IsDefined(mode))
-			{
-				return MessageTurnModeEnum.Immediate;
-			}
-
-			return mode;
+			string? stored = _preferences.Get<string?>(Keys.messageTurnMode, null);
+			return Enum.TryParse(stored, true, out MessageTurnModeEnum parsed) && Enum.IsDefined(parsed)
+				? parsed
+				: MessageTurnModeEnum.Immediate;
 		}
-
-		set => Preferences.Default.Set("MessageTurnMode", value.ToString());
+		set => _preferences.Set(Keys.messageTurnMode, value.ToString());
 	}
 
-	public static bool SendOnEnter
+	public bool SendOnEnter
 	{
-		get => Preferences.Default.Get("SendOnEnter", true);
-		set => Preferences.Default.Set("SendOnEnter", value);
+		get => _preferences.Get(Keys.sendOnEnter, true);
+		set => _preferences.Set(Keys.sendOnEnter, value);
 	}
 
-	public static int LeftSidebarWidth
+	public int LeftSidebarWidth
 	{
-		get => Preferences.Default.Get("LeftSidebarWidth", 224);
-		set => Preferences.Default.Set("LeftSidebarWidth", value);
+		get => _preferences.Get(Keys.leftSidebarWidth, 224);
+		set => _preferences.Set(Keys.leftSidebarWidth, value);
 	}
 
-	public static int RightSidebarWidth
+	public int RightSidebarWidth
 	{
-		get => Preferences.Default.Get("RightSidebarWidth", 256);
-		set => Preferences.Default.Set("RightSidebarWidth", value);
+		get => _preferences.Get(Keys.rightSidebarWidth, 256);
+		set => _preferences.Set(Keys.rightSidebarWidth, value);
 	}
 
-	public static bool TextToSpeechEnabled
+	public bool TextToSpeechEnabled
 	{
-		get => Preferences.Default.Get("TextToSpeechEnabled", false);
-		set => Preferences.Default.Set("TextToSpeechEnabled", value);
+		get => _preferences.Get(Keys.textToSpeechEnabled, false);
+		set => _preferences.Set(Keys.textToSpeechEnabled, value);
 	}
 
-	public static float VoiceVolume
+	public float VoiceVolume
 	{
-		get => Preferences.Default.Get("VoiceVolume", TextToSpeechFeature.DefaultVoiceVolume);
-		set => Preferences.Default.Set("VoiceVolume", value);
+		get => _preferences.Get(Keys.voiceVolume, TextToSpeechFeature.DefaultVoiceVolume);
+		set => _preferences.Set(Keys.voiceVolume, value);
 	}
 
-	public static float VoicePitch
+	public float VoicePitch
 	{
-		get => Preferences.Default.Get("VoicePitch", TextToSpeechFeature.DefaultVoicePitch);
-		set => Preferences.Default.Set("VoicePitch", value);
+		get => _preferences.Get(Keys.voicePitch, TextToSpeechFeature.DefaultVoicePitch);
+		set => _preferences.Set(Keys.voicePitch, value);
 	}
 
-	public static float VoiceRate
+	public float VoiceRate
 	{
-		get => Preferences.Default.Get("VoiceRate", TextToSpeechFeature.DefaultVoiceRate);
-		set => Preferences.Default.Set("VoiceRate", value);
+		get => _preferences.Get(Keys.voiceRate, TextToSpeechFeature.DefaultVoiceRate);
+		set => _preferences.Set(Keys.voiceRate, value);
 	}
 
-	public static string VoiceLocale
+	public string VoiceLocale
 	{
-		get => Preferences.Default.Get("VoiceLocale", string.Empty);
-		set => Preferences.Default.Set("VoiceLocale", value);
+		get => _preferences.Get(Keys.voiceLocale, string.Empty);
+		set => _preferences.Set(Keys.voiceLocale, value);
 	}
 
-	public static bool DiffSplitView
+	public bool DiffSplitView
 	{
-		get => Preferences.Default.Get("DiffSplitView", false);
-		set => Preferences.Default.Set("DiffSplitView", value);
+		get => _preferences.Get(Keys.diffSplitView, false);
+		set => _preferences.Set(Keys.diffSplitView, value);
 	}
 
-	public static bool DiffTreeView
+	public bool DiffTreeView
 	{
-		get => Preferences.Default.Get("DiffTreeView", true);
-		set => Preferences.Default.Set("DiffTreeView", value);
+		get => _preferences.Get(Keys.diffTreeView, true);
+		set => _preferences.Set(Keys.diffTreeView, value);
 	}
 
-	public static bool SoundPermissionEnabled
+	public bool SoundPermissionEnabled
 	{
-		get => Preferences.Default.Get("SoundPermissionEnabled", true);
-		set => Preferences.Default.Set("SoundPermissionEnabled", value);
+		get => _preferences.Get(Keys.soundPermissionEnabled, true);
+		set => _preferences.Set(Keys.soundPermissionEnabled, value);
 	}
 
-	public static float SoundPermissionVolume
+	public float SoundPermissionVolume
 	{
-		get => Preferences.Default.Get("SoundPermissionVolume", 0.5f);
-		set => Preferences.Default.Set("SoundPermissionVolume", value);
+		get => _preferences.Get(Keys.soundPermissionVolume, 0.5f);
+		set => _preferences.Set(Keys.soundPermissionVolume, value);
 	}
 
-	public static bool SoundUserInputEnabled
+	public bool SoundUserInputEnabled
 	{
-		get => Preferences.Default.Get("SoundUserInputEnabled", true);
-		set => Preferences.Default.Set("SoundUserInputEnabled", value);
+		get => _preferences.Get(Keys.soundUserInputEnabled, true);
+		set => _preferences.Set(Keys.soundUserInputEnabled, value);
 	}
 
-	public static float SoundUserInputVolume
+	public float SoundUserInputVolume
 	{
-		get => Preferences.Default.Get("SoundUserInputVolume", 0.5f);
-		set => Preferences.Default.Set("SoundUserInputVolume", value);
+		get => _preferences.Get(Keys.soundUserInputVolume, 0.5f);
+		set => _preferences.Set(Keys.soundUserInputVolume, value);
 	}
 
-	public static bool SoundFinishedEnabled
+	public bool SoundFinishedEnabled
 	{
-		get => Preferences.Default.Get("SoundFinishedEnabled", true);
-		set => Preferences.Default.Set("SoundFinishedEnabled", value);
+		get => _preferences.Get(Keys.soundFinishedEnabled, true);
+		set => _preferences.Set(Keys.soundFinishedEnabled, value);
 	}
 
-	public static float SoundFinishedVolume
+	public float SoundFinishedVolume
 	{
-		get => Preferences.Default.Get("SoundFinishedVolume", 0.5f);
-		set => Preferences.Default.Set("SoundFinishedVolume", value);
+		get => _preferences.Get(Keys.soundFinishedVolume, 0.5f);
+		set => _preferences.Set(Keys.soundFinishedVolume, value);
 	}
 
-	public static string SoundPermissionCustomFileName
+	public string SoundPermissionCustomFileName
 	{
-		get => Preferences.Default.Get("SoundPermissionCustomFileName", string.Empty);
-		set => Preferences.Default.Set("SoundPermissionCustomFileName", value);
+		get => _preferences.Get(Keys.soundPermissionCustomFileName, string.Empty);
+		set => _preferences.Set(Keys.soundPermissionCustomFileName, value);
 	}
 
-	public static string SoundUserInputCustomFileName
+	public string SoundUserInputCustomFileName
 	{
-		get => Preferences.Default.Get("SoundUserInputCustomFileName", string.Empty);
-		set => Preferences.Default.Set("SoundUserInputCustomFileName", value);
+		get => _preferences.Get(Keys.soundUserInputCustomFileName, string.Empty);
+		set => _preferences.Set(Keys.soundUserInputCustomFileName, value);
 	}
 
-	public static string SoundFinishedCustomFileName
+	public string SoundFinishedCustomFileName
 	{
-		get => Preferences.Default.Get("SoundFinishedCustomFileName", string.Empty);
-		set => Preferences.Default.Set("SoundFinishedCustomFileName", value);
+		get => _preferences.Get(Keys.soundFinishedCustomFileName, string.Empty);
+		set => _preferences.Set(Keys.soundFinishedCustomFileName, value);
+	}
+
+	/// <summary>
+	/// SDK CLI log level passed to <see cref="GitHub.Copilot.CopilotClientOptions.LogLevel"/>.
+	/// Valid values: "error", "warn", "info", "debug". Default is "info".
+	/// Requires client restart to take effect.
+	/// </summary>
+	public string SdkLogLevel
+	{
+		get => _preferences.Get(Keys.sdkLogLevel, "info");
+		set => _preferences.Set(Keys.sdkLogLevel, value);
+	}
+
+	/// <summary>
+	/// When enabled, configures the SDK to export OpenTelemetry traces/metrics to a local
+	/// JSON-lines file for diagnostics. Requires client restart to take effect.
+	/// </summary>
+	public bool TelemetryEnabled
+	{
+		get => _preferences.Get(Keys.telemetryEnabled, false);
+		set => _preferences.Set(Keys.telemetryEnabled, value);
+	}
+
+	/// <summary>
+	/// When enabled, prevents the system from sleeping while an agent session is active.
+	/// </summary>
+	public bool KeepAlive
+	{
+		get => _preferences.Get(Keys.keepAlive, true);
+		set => _preferences.Set(Keys.keepAlive, value);
+	}
+
+	/// <summary>
+	/// When enabled, sessions declare canvas support to the Copilot SDK so the agent
+	/// can open interactive canvas windows. Requires app restart to take effect.
+	/// </summary>
+	public bool CanvasEnabled
+	{
+		get => _preferences.Get(Keys.canvasEnabled, true);
+		set => _preferences.Set(Keys.canvasEnabled, value);
+	}
+
+	public string SessionListGroupBy
+	{
+		get => _preferences.Get(Keys.sessionListGroupBy, "Project");
+		set => _preferences.Set(Keys.sessionListGroupBy, value);
+	}
+
+	/// <summary>
+	/// Per-section system message overrides, serialised as JSON.
+	/// </summary>
+	public Dictionary<string, SystemMessageSectionSetting> SystemMessageSectionOverrides
+	{
+		get
+		{
+			string? json = _preferences.Get<string?>(Keys.systemMessageSectionOverrides, null);
+			if (string.IsNullOrEmpty(json))
+			{
+				return [];
+			}
+			try
+			{
+				return JsonSerializer.Deserialize<Dictionary<string, SystemMessageSectionSetting>>(json) ?? [];
+			}
+			catch
+			{
+				return [];
+			}
+		}
+		set => _preferences.Set(Keys.systemMessageSectionOverrides, JsonSerializer.Serialize(value));
 	}
 }

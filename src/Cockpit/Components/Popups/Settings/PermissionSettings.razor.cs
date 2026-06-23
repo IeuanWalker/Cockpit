@@ -2,7 +2,7 @@ using Cockpit.Features.Permissions;
 
 namespace Cockpit.Components.Popups.Settings;
 
-public partial class PermissionSettings
+public sealed partial class PermissionSettings : IDisposable
 {
 	readonly GlobalPermissionFeature _globalPermissionFeature;
 	readonly GlobalDenyFeature _globalDenyFeature;
@@ -24,15 +24,20 @@ public partial class PermissionSettings
 	protected override void OnInitialized()
 	{
 		LoadPermissions();
-		_globalPermissionFeature.OnPermissionsChanged += LoadPermissions;
-		_globalDenyFeature.OnDenyListChanged += LoadPermissions;
+		_globalPermissionFeature.OnPermissionsChanged += OnExternalChange;
+		_globalDenyFeature.OnDenyListChanged += OnExternalChange;
 	}
+
+	void OnExternalChange() => InvokeAsync(() =>
+	{
+		LoadPermissions();
+		StateHasChanged();
+	});
 
 	void LoadPermissions()
 	{
 		_allowedCommands = [.. _globalPermissionFeature.GetAll()];
 		_deniedCommands = [.. _globalDenyFeature.GetAll()];
-		StateHasChanged();
 	}
 
 	// ---- Allow list ----
@@ -83,7 +88,7 @@ public partial class PermissionSettings
 
 	public void Dispose()
 	{
-		_globalPermissionFeature.OnPermissionsChanged -= LoadPermissions;
-		_globalDenyFeature.OnDenyListChanged -= LoadPermissions;
+		_globalPermissionFeature.OnPermissionsChanged -= OnExternalChange;
+		_globalDenyFeature.OnDenyListChanged -= OnExternalChange;
 	}
 }

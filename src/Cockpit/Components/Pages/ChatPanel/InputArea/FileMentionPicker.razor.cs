@@ -4,7 +4,7 @@ using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
-public partial class FileMentionPicker : ComponentBase
+public sealed partial class FileMentionPicker : ComponentBase
 {
 	readonly IJSRuntime _jsRuntime;
 
@@ -16,17 +16,38 @@ public partial class FileMentionPicker : ComponentBase
 	[Parameter] public bool Visible { get; set; }
 	[Parameter] public string Filter { get; set; } = string.Empty;
 	[Parameter] public IReadOnlyList<FileSearchResult> Files { get; set; } = [];
+	[Parameter] public IReadOnlyCollection<string> AttachedPaths { get; set; } = [];
 	[Parameter] public EventCallback<FileSearchResult> OnFileSelected { get; set; }
 	[Parameter] public EventCallback OnClose { get; set; }
 	[Parameter] public int SelectedIndex { get; set; }
 	[Parameter] public EventCallback<int> SelectedIndexChanged { get; set; }
 
-	IReadOnlyList<FileSearchResult> _filteredFiles = [];
-	int _lastScrolledIndex = -2; // -2 = never scrolled
+	readonly List<(FileSearchResult File, bool IsAttached)> _orderedFiles = [];
+
+	int _lastScrolledIndex = -2;
 
 	protected override void OnParametersSet()
 	{
-		_filteredFiles = Files;
+		if(!Visible)
+		{
+			_lastScrolledIndex = -2;
+		}
+
+		_orderedFiles.Clear();
+		foreach(FileSearchResult f in Files)
+		{
+			if(AttachedPaths.Contains(f.FullPath))
+			{
+				_orderedFiles.Add((f, true));
+			}
+		}
+		foreach(FileSearchResult f in Files)
+		{
+			if(!AttachedPaths.Contains(f.FullPath))
+			{
+				_orderedFiles.Add((f, false));
+			}
+		}
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -38,18 +59,15 @@ public partial class FileMentionPicker : ComponentBase
 			{
 				await _jsRuntime.InvokeVoidAsync("cockpit.scrollPickerItemIntoView", $"picker-item-{SelectedIndex}");
 			}
-			catch { /* picker may not be in DOM yet */ }
+			catch(Exception)
+			{
+				// Swallow - picker element may not yet be in the DOM, or component is mid-disposal
+			}
 		}
 	}
 
-	static string GetDisplayPath(FileSearchResult file)
-	{
-		string dir = Path.GetDirectoryName(file.RelativePath) ?? string.Empty;
-		return string.IsNullOrEmpty(dir) ? string.Empty : dir;
-	}
+	static string GetDisplayPath(FileSearchResult file) =>
+		Path.GetDirectoryName(file.RelativePath) ?? string.Empty;
 
-	async Task SelectFile(FileSearchResult file)
-	{
-		await OnFileSelected.InvokeAsync(file);
-	}
+	Task SelectFile(FileSearchResult file) => OnFileSelected.InvokeAsync(file);
 }

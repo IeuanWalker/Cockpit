@@ -1,6 +1,5 @@
 using Cockpit.Features.Sessions;
-using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot.Rpc;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
@@ -15,7 +14,7 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 		_sessionListFeature = sessionListFeature;
 	}
 
-	List<InstructionsSources> _allInstructions = [];
+	List<InstructionSource> _allInstructions = [];
 
 	int TotalCount => _allInstructions.Count;
 
@@ -30,14 +29,14 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 		InvokeAsync(() => { Refresh(); StateHasChanged(); });
 	}
 
-	void ShowInstructionInfo(InstructionsSources instruction)
+	void ShowInstructionInfo(InstructionSource instruction)
 	{
-		SessionContext? ctx = _sessionListFeature.CurrentSession?.Context;
+		Features.Sessions.Models.SessionContext? ctx = _sessionListFeature.CurrentSession?.Context;
 		string? repoRoot = ctx?.GitRoot ?? ctx?.CurrentWorkingDirectory;
 		_instructionInfoPopup?.Open(_allInstructions, instruction, repoRoot);
 	}
 
-	List<InstructionsSources> _renderedInstructions = [];
+	List<InstructionSource> _renderedInstructions = [];
 
 	protected override bool ShouldRender()
 	{
@@ -52,7 +51,7 @@ public sealed partial class Instructions : ComponentBase, IDisposable
 
 	void Refresh()
 	{
-		_allInstructions = [.. _sessionListFeature.CurrentSession?.Context.Instructions ?? []];
+		_allInstructions = [.. _sessionListFeature.CurrentSession?.Context?.Instructions ?? []];
 	}
 
 	public void Dispose()

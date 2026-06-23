@@ -1,9 +1,8 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.FileSearch;
 
-public class FileSearchFeature : IFileSearchFeature
+public sealed class FileSearchFeature : IFileSearchFeature
 {
 	readonly ILogger<FileSearchFeature> _logger;
 
@@ -15,19 +14,27 @@ public class FileSearchFeature : IFileSearchFeature
 		"packages", ".nuget"
 	};
 
+	static readonly TimeSpan indexTtl = TimeSpan.FromSeconds(60);
+	readonly Dictionary<string, FileIndex> _indexCache = new(StringComparer.OrdinalIgnoreCase);
+	readonly Lock _indexLock = new();
+
 	public FileSearchFeature(ILogger<FileSearchFeature> logger)
 	{
 		_logger = logger;
 	}
 
-	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = 50, CancellationToken cancellationToken = default)
+	public Task<IReadOnlyList<FileSearchResult>> SearchAsync(string workingDirectory, string filter, int maxResults = int.MaxValue, CancellationToken cancellationToken = default)
 	{
-		return Task.Run(() => Search(workingDirectory, filter, maxResults, cancellationToken), cancellationToken);
+		return Task.Run<IReadOnlyList<FileSearchResult>>(() => Search(workingDirectory, filter, maxResults, cancellationToken), cancellationToken);
 	}
 
-	[SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
-	IReadOnlyList<FileSearchResult> Search(string workingDirectory, string filter, int maxResults, CancellationToken cancellationToken)
+	List<FileSearchResult> Search(string workingDirectory, string filter, int maxResults, CancellationToken cancellationToken)
 	{
+		if(maxResults <= 0)
+		{
+			return [];
+		}
+
 		if(string.IsNullOrWhiteSpace(workingDirectory) || !Directory.Exists(workingDirectory))
 		{
 			return [];
@@ -35,32 +42,23 @@ public class FileSearchFeature : IFileSearchFeature
 
 		try
 		{
+			IReadOnlyList<FileSearchResult> allFiles = GetOrBuildIndex(workingDirectory, cancellationToken);
+
 			List<FileSearchResult> results = [];
-			EnumerateFiles(workingDirectory, workingDirectory, filter, results, maxResults, cancellationToken);
-
-			// Sort: exact filename prefix matches first, then contains matches, then by path length
-			string lowerFilter = filter.ToLowerInvariant();
-			results.Sort((a, b) =>
+			foreach(FileSearchResult entry in allFiles)
 			{
-				string aName = a.FileName.ToLowerInvariant();
-				string bName = b.FileName.ToLowerInvariant();
-				bool aPrefix = aName.StartsWith(lowerFilter);
-				bool bPrefix = bName.StartsWith(lowerFilter);
-				if(aPrefix != bPrefix)
+				cancellationToken.ThrowIfCancellationRequested();
+				if(string.IsNullOrEmpty(filter) || entry.FileName.Contains(filter, StringComparison.OrdinalIgnoreCase))
 				{
-					return aPrefix ? -1 : 1;
+					results.Add(entry);
 				}
-				// Within same tier, sort by path depth (shallower first) then alphabetically
-				int aDepth = a.RelativePath.Count(c => c == Path.DirectorySeparatorChar || c == '/');
-				int bDepth = b.RelativePath.Count(c => c == Path.DirectorySeparatorChar || c == '/');
-				if(aDepth != bDepth)
-				{
-					return aDepth.CompareTo(bDepth);
-				}
+			}
 
-				return string.Compare(a.RelativePath, b.RelativePath, StringComparison.OrdinalIgnoreCase);
-			});
-
+			SortResults(results, filter);
+			if(results.Count > maxResults)
+			{
+				results.RemoveRange(maxResults, results.Count - maxResults);
+			}
 			return results;
 		}
 		catch(OperationCanceledException)
@@ -74,41 +72,105 @@ public class FileSearchFeature : IFileSearchFeature
 		}
 	}
 
-	void EnumerateFiles(string root, string dir, string filter, List<FileSearchResult> results, int maxResults, CancellationToken cancellationToken)
+	IReadOnlyList<FileSearchResult> GetOrBuildIndex(string workingDirectory, CancellationToken cancellationToken)
 	{
-		if(results.Count >= maxResults)
+		lock(_indexLock)
+		{
+			if(_indexCache.TryGetValue(workingDirectory, out FileIndex? existing) && existing.ExpiresAt > DateTimeOffset.UtcNow)
+			{
+				return existing.AllFiles;
+			}
+		}
+
+		// Build outside the lock so filesystem I/O does not block other callers
+		List<FileSearchResult> allFiles = BuildIndex(workingDirectory, cancellationToken);
+		FileIndex index = new() { AllFiles = allFiles, ExpiresAt = DateTimeOffset.UtcNow + indexTtl };
+
+		lock(_indexLock)
+		{
+			_indexCache[workingDirectory] = index;
+		}
+
+		return index.AllFiles;
+	}
+
+	List<FileSearchResult> BuildIndex(string workingDirectory, CancellationToken cancellationToken)
+	{
+		List<FileSearchResult> allFiles = [];
+		EnumerateAllFiles(workingDirectory, workingDirectory, allFiles, cancellationToken);
+		return allFiles;
+	}
+
+	// Pre-computes per-result sort keys to avoid repeated ToLowerInvariant() and depth counting
+	// inside each comparison during sort. Results are bounded at maxResults (≤ 200 by default).
+	static void SortResults(List<FileSearchResult> results, string filter)
+	{
+		if(results.Count <= 1)
 		{
 			return;
 		}
 
+		string lowerFilter = filter.ToLowerInvariant();
+
+		(FileSearchResult Result, string LowerName, int Depth)[] keyed = new (FileSearchResult, string, int)[results.Count];
+		for(int i = 0; i < results.Count; i++)
+		{
+			FileSearchResult r = results[i];
+			keyed[i] = (r, r.FileName.ToLowerInvariant(), CountPathDepth(r.RelativePath));
+		}
+
+		// Sort: prefix matches first, then by depth (shallower first), then alphabetically
+		Array.Sort(keyed, (a, b) =>
+		{
+			bool aPrefix = a.LowerName.StartsWith(lowerFilter, StringComparison.Ordinal);
+			bool bPrefix = b.LowerName.StartsWith(lowerFilter, StringComparison.Ordinal);
+			if(aPrefix != bPrefix)
+			{
+				return aPrefix ? -1 : 1;
+			}
+			if(a.Depth != b.Depth)
+			{
+				return a.Depth.CompareTo(b.Depth);
+			}
+			return string.Compare(a.Result.RelativePath, b.Result.RelativePath, StringComparison.OrdinalIgnoreCase);
+		});
+
+		results.Clear();
+		foreach((FileSearchResult result, string _, int _) in keyed)
+		{
+			results.Add(result);
+		}
+	}
+
+	static int CountPathDepth(string relativePath)
+	{
+		int count = 0;
+		foreach(char c in relativePath)
+		{
+			if(c == Path.DirectorySeparatorChar || c == '/')
+			{
+				count++;
+			}
+		}
+		return count;
+	}
+
+	void EnumerateAllFiles(string root, string dir, List<FileSearchResult> results, CancellationToken cancellationToken)
+	{
 		cancellationToken.ThrowIfCancellationRequested();
 
 		try
 		{
 			foreach(string filePath in Directory.EnumerateFiles(dir))
 			{
-				if(results.Count >= maxResults)
-				{
-					return;
-				}
-
 				cancellationToken.ThrowIfCancellationRequested();
-
 				string fileName = Path.GetFileName(filePath);
-				if(string.IsNullOrEmpty(filter) || fileName.Contains(filter, StringComparison.OrdinalIgnoreCase))
-				{
-					string relativePath = Path.GetRelativePath(root, filePath);
-					results.Add(new FileSearchResult(fileName, relativePath, filePath));
-				}
+				string relativePath = Path.GetRelativePath(root, filePath);
+				results.Add(new FileSearchResult(fileName, relativePath, filePath));
 			}
 
 			foreach(string subDir in Directory.EnumerateDirectories(dir))
 			{
-				if(results.Count >= maxResults)
-				{
-					return;
-				}
-
 				cancellationToken.ThrowIfCancellationRequested();
 
 				string dirName = Path.GetFileName(subDir);
@@ -117,7 +179,9 @@ public class FileSearchFeature : IFileSearchFeature
 					continue;
 				}
 
-				EnumerateFiles(root, subDir, filter, results, maxResults, cancellationToken);
+				string relativeDirPath = Path.GetRelativePath(root, subDir);
+				results.Add(new FileSearchResult(dirName, relativeDirPath, subDir, IsDirectory: true));
+				EnumerateAllFiles(root, subDir, results, cancellationToken);
 			}
 		}
 		catch(OperationCanceledException)
@@ -126,11 +190,17 @@ public class FileSearchFeature : IFileSearchFeature
 		}
 		catch(UnauthorizedAccessException)
 		{
-			// Skip inaccessible directories
+			// Skip inaccessible directories silently
 		}
 		catch(Exception ex)
 		{
 			_logger.LogDebug(ex, "Could not enumerate {Directory}", dir);
 		}
+	}
+
+	sealed class FileIndex
+	{
+		public IReadOnlyList<FileSearchResult> AllFiles { get; init; } = [];
+		public DateTimeOffset ExpiresAt { get; init; }
 	}
 }

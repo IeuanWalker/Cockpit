@@ -2,73 +2,86 @@
 
 <PopupBase @ref="_popup">
     <TitleArea>
-        <div>
-            <h2 class="text-lg font-semibold text-app-title">Select Working Directory</h2>
-            <p class="text-sm text-app-secondary mt-1">Choose a directory for the Copilot session context</p>
-        </div>
+        @if(!_isCreating)
+        {
+            <div>
+                <h2 class="text-lg font-semibold text-app-title">Start session in</h2>
+                <p class="text-sm text-app-secondary mt-1">Choose how you want to start your Copilot session</p>
+            </div>
+        }
     </TitleArea>
     <Content>
         <div class="p-4">
-            <div class="space-y-4">
-                <!-- Current Path Display -->
-                <div>
-                    <label class="block text-sm font-medium text-app-title mb-2">Selected Directory</label>
-                    <div class="flex gap-2">
-                        <input type="text"
-                               @bind="SelectedPath"
-                               @bind:event="oninput"
-                               class="flex-1 px-3 py-2 rounded text-sm focus:outline-none"
-                               style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);"
-                               placeholder="Enter directory path or browse..." />
-                        <button @onclick="BrowseDirectory"
-                                class="btn-primary px-4 py-2 rounded">
-                            Browse
+            @if(_isCreating)
+            {
+                <div class="flex flex-col items-center justify-center gap-3 py-8">
+                    <svg class="animate-spin w-8 h-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <span class="text-sm text-app-secondary">Creating session...</span>
+                </div>
+            }
+            else
+            {
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-app-title mb-2">Chat</label>
+                        <button @onclick="CreateQuickChat"
+                                class="w-full text-left px-3 py-2 rounded hover:bg-app-hover text-sm flex items-center gap-2">
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12a8.25 8.25 0 018.25-8.25h3a8.25 8.25 0 010 16.5h-1.386a1.5 1.5 0 00-.948.337l-2.793 2.234A.75.75 0 017 22.485V20.25A8.25 8.25 0 012.25 12z" />
+                            </svg>
+                            <span>Quick chat</span>
                         </button>
                     </div>
-                </div>
 
-                <!-- Recent Directories -->
-                @if(RecentDirectories.Any())
-                {
-                    <div>
-                        <label class="block text-sm font-medium text-app-title mb-2">Recent</label>
-                        <div class="space-y-1">
-                            @foreach(var recent in RecentDirectories)
-                            {
-                                <button @onclick="() => SelectPath(recent)"
-                                        title="@recent"
-                                        class="w-full text-left px-3 py-2 rounded hover:bg-app-hover text-sm flex items-center gap-2">
-                                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                    </svg>
-                                    <span class="truncate flex-shrink-0" style="max-width: 65%;">@Path.GetFileName(recent)</span>
-                                    <span class="text-app-secondary text-xs truncate flex-1 text-right" style="min-width: 35%;">@recent</span>
-                                </button>
-                            }
+                    @if(RecentDirectories.Any())
+                    {
+                        <div>
+                            <label class="block text-sm font-medium text-app-title mb-2">Recent</label>
+                            <div class="space-y-1">
+                                @foreach(var recent in RecentDirectories)
+                                {
+                                    <button @onclick="() => CreateFromRecent(recent)"
+                                            title="@recent"
+                                            class="w-full text-left px-3 py-2 rounded hover:bg-app-hover text-sm flex items-center gap-2">
+                                        <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                                        </svg>
+                                        <span class="truncate flex-shrink-0" style="max-width: 65%;">@Path.GetFileName(recent)</span>
+                                        <span class="text-app-secondary text-xs truncate flex-1 text-right" style="min-width: 35%;">@recent</span>
+                                    </button>
+                                }
+                            </div>
                         </div>
+                    }
+                    <div>
+                        <label class="block text-sm font-medium text-app-title mb-2">Add project from</label>
+                        <button @onclick="BrowseDirectory"
+                                class="w-full text-left px-3 py-2 rounded hover:bg-app-hover text-sm flex items-center gap-2">
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                            </svg>
+                            <span>Local folder or repository...</span>
+                        </button>
                     </div>
-                }
 
-                @if(!string.IsNullOrEmpty(ErrorMessage))
-                {
-                    <div class="p-3 bg-red-500 bg-opacity-10 border border-red-500 rounded text-sm text-red-400">
-                        @ErrorMessage
-                    </div>
-                }
-            </div>
+                    @if(!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="p-3 bg-red-500 bg-opacity-10 border border-red-500 rounded text-sm text-red-400">
+                            @ErrorMessage
+                        </div>
+                    }
+                </div>
+            }
         </div>
     </Content>
     <Footer>
-        <div class="px-3 py-4 border-t border-app-border flex justify-end gap-3">
+        <div class="px-3 py-4 border-t border-app-border flex justify-end">
             <button @onclick="Cancel"
                     class="px-4 py-2 rounded text-sm hover:bg-app-hover">
                 Cancel
-            </button>
-            <button @onclick="Confirm"
-                    disabled="@(!IsValidDirectory())"
-                    class="px-4 py-2 rounded text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                    style="background-color: var(--accent-color); color: white;">
-                Select Directory
             </button>
         </div>
     </Footer>

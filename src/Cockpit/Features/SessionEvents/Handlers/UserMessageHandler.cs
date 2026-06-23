@@ -1,7 +1,7 @@
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Utilities;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 
 namespace Cockpit.Features.SessionEvents.Handlers;
 
@@ -13,13 +13,8 @@ static class UserMessageHandler
 	/// </summary>
 	static readonly HashSet<string> agentGeneratedSources = ["thinking-exhausted-continuation"];
 
-	internal static void Handle(SessionModel session, UserMessageEvent evt, bool wasAgentBusy = false)
+	internal static void Handle(SessionModel session, UserMessageEvent evt)
 	{
-		if(evt.Data is null)
-		{
-			return;
-		}
-
 		List<AttachmentModel>? attachments = ConvertAttachments(evt.Data.Attachments);
 
 		// Agent-synthesised messages (e.g. thinking-exhausted-continuation) are immediately
@@ -55,6 +50,11 @@ static class UserMessageHandler
 		}
 		else
 		{
+			// This path is only reached during session replay — live sessions add messages
+			// optimistically before the SDK echo arrives. In a completed/replayed session every
+			// user.message has already been processed; "Pending…" is a transient live-only state.
+			// The safety-net (SessionIdleHandler) will still fire when wasAgentBusy=true and
+			// insert the preceding activity group in the correct position before this message.
 			ChatMessageModel message = new()
 			{
 				Id = Guid.NewGuid().ToString(),
@@ -63,7 +63,7 @@ static class UserMessageHandler
 				Timestamp = evt.Timestamp,
 				Type = MessageTypeEnum.Text,
 				EventType = evt.Type,
-				IsPending = !isAgentGenerated && wasAgentBusy,
+				IsPending = false,
 				Attachments = attachments,
 				EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 			};
@@ -73,7 +73,7 @@ static class UserMessageHandler
 		session.Status = SessionStatusEnum.Running;
 	}
 
-	static List<AttachmentModel>? ConvertAttachments(UserMessageAttachment[]? items)
+	static List<AttachmentModel>? ConvertAttachments(Attachment[]? items)
 	{
 		if(items is null || items.Length == 0)
 		{
@@ -81,9 +81,9 @@ static class UserMessageHandler
 		}
 
 		List<AttachmentModel> result = [];
-		foreach(UserMessageAttachment item in items)
+		foreach(Attachment item in items)
 		{
-			if(item is UserMessageAttachmentFile file)
+			if(item is AttachmentFile file)
 			{
 				string filePath = file.Path ?? string.Empty;
 				string fileName = file.DisplayName ?? Path.GetFileName(filePath);
@@ -93,6 +93,13 @@ static class UserMessageHandler
 				// read the file from disk at render time, avoiding a blocking read on the SDK event thread.
 
 				result.Add(new AttachmentModel(fileName, filePath, null, mimeType));
+			}
+			else if(item is AttachmentDirectory dir)
+			{
+				string dirPath = dir.Path ?? string.Empty;
+				string dirName = dir.DisplayName ?? Path.GetFileName(dirPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+
+				result.Add(new AttachmentModel(dirName, dirPath, null, string.Empty, isDirectory: true));
 			}
 		}
 

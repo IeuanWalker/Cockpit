@@ -1,3 +1,5 @@
+using Cockpit.Features.MessageMode;
+using Cockpit.Features.SystemMessage;
 using Cockpit.Features.Theme;
 
 namespace Cockpit.Features.AppSettings;
@@ -7,6 +9,7 @@ public interface IAppSettingsFeature
 	ThemeEnum Theme { get; set; }
 	string AccentColor { get; set; }
 	string AccentHoverColor { get; set; }
+	MessageTurnModeEnum MessageTurnMode { get; set; }
 	bool SendOnEnter { get; set; }
 	int LeftSidebarWidth { get; set; }
 	int RightSidebarWidth { get; set; }
@@ -26,4 +29,8 @@ public interface IAppSettingsFeature
 	float VoicePitch { get; set; }
 	float VoiceRate { get; set; }
 	string VoiceLocale { get; set; }
+	bool KeepAlive { get; set; }
+	bool CanvasEnabled { get; set; }
+	string SessionListGroupBy { get; set; }
+	Dictionary<string, SystemMessageSectionSetting> SystemMessageSectionOverrides { get; set; }
 }

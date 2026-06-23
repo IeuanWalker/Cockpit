@@ -1,7 +1,8 @@
 using System.Collections.Concurrent;
+using Cockpit.Features.ElicitationRequests;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.SessionEvents.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Cockpit.Features.UserInputRequests;
 
 namespace Cockpit.Features.Sessions.Models;
@@ -12,7 +13,7 @@ public class SessionModel
 	public required string Title { get; set; }
 	public required DateTime CreatedAt { get; set; }
 	public required DateTime LastActivity { get; set; }
-	public SessionStatusEnum Status { get; set; } = SessionStatusEnum.Active;
+	public SessionStatusEnum Status { get; set; } = SessionStatusEnum.Idle;
 	List<ChatMessageModel> _messages = [];
 	public List<ChatMessageModel> Messages
 	{
@@ -33,6 +34,12 @@ public class SessionModel
 	public required SessionContext Context { get; set; }
 	public required ModelInfo Model { get; set; }
 	public string? ReasoningEffort { get; set; }
+
+	/// <summary>
+	/// When set, identifies the <see cref="ByokModelConfig"/> that provides the active model.
+	/// Null for built-in Copilot models.
+	/// </summary>
+	public string? ByokConfigId { get; set; }
 	public ActivityGroupModel? ActiveWorkingGroup { get; set; }
 	public Dictionary<string, ChatMessageModel> StreamingMessages { get; } = [];
 
@@ -55,6 +62,12 @@ public class SessionModel
 	/// Key: request.Id, Value: UserInputRequestModel
 	/// </summary>
 	public ConcurrentDictionary<string, UserInputRequestModel> PendingUserInputRequests { get; set; } = new();
+
+	/// <summary>
+	/// Pending elicitation requests for this session (supports multiple concurrent requests)
+	/// Key: request.Id, Value: ElicitationRequestModel
+	/// </summary>
+	public ConcurrentDictionary<string, ElicitationRequestModel> PendingElicitationRequests { get; set; } = new();
 
 	/// <summary>
 	/// History of statuses before blocking requests (permission/user-input).
@@ -111,4 +124,43 @@ public class SessionModel
 	/// Synchronizes live session event/message mutations to preserve ordering.
 	/// </summary>
 	public readonly Lock SessionEventLock = new();
+
+	/// <summary>
+	/// Number of messages queued while the agent is busy (enqueue mode).
+	/// Updated by <c>PendingMessagesModifiedEvent</c> processing.
+	/// </summary>
+	public int PendingMessageCount { get; set; }
+
+	/// <summary>
+	/// Latest token usage info received from <c>session.usage_info</c> events.
+	/// <see langword="null"/> until the first usage event is received.
+	/// </summary>
+	public TokenUsageInfoModel? TokenUsageInfo { get; set; }
+
+	/// <summary>
+	/// <see langword="true"/> while a context compaction operation is in progress.
+	/// Set to <see langword="true"/> on <c>session.compaction_start</c> and cleared on
+	/// <c>session.compaction_complete</c>.
+	/// </summary>
+	public bool IsCompacting { get; set; }
+
+	/// <summary>
+	/// Set to <see langword="true"/> by the <c>AssistantTurnEndEvent</c> case in
+	/// <see cref="SessionEvents.SessionEventProcessor"/> when the agent finishes its current
+	/// mini-turn. Cleared to <see langword="false"/> when a new <c>AssistantTurnStartEvent</c>
+	/// fires (meaning the agent has more work to do).
+	/// Consumed and reset by the safety-net (user.message) to decide whether to promote the
+	/// final summary out of the ops group: <see langword="true"/> means the agent's last
+	/// turn completed cleanly; <see langword="false"/> means it was mid-turn (interrupted).
+	/// </summary>
+	public bool AgentTurnCompleted { get; set; }
+
+	/// <summary>
+	/// Set to <see langword="true"/> by <c>SessionFeature.SendMessageAsync</c> when the user
+	/// sends a message in immediate (steering) mode while the agent is already processing a
+	/// turn. Consumed and cleared by <c>SessionIdleHandler</c> when it finalizes the prior
+	/// turn, to keep the working panel open and suppress the completion sound during the
+	/// brief gap before the next turn starts.
+	/// </summary>
+	public bool HasQueuedImmediateMessage { get; set; }
 }

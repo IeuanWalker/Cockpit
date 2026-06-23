@@ -1,15 +1,16 @@
 @using Cockpit.Components.Controls
 @using Cockpit.Features.SessionEvents.Models
-@using Cockpit.Features.SessionEvents
 
-@if(IsVisible && Group is not null)
+@if(IsVisible)
 {
-    var events = Group.GetEventsSnapshot();
     <div class="working-panel" style="max-height: 35%">
         <div class="working-header">
             <span class="working-title">Working...</span>
-            <span class="working-time">@GetElapsedTime()</span>
-            <span class="working-summary">@GenerateSummary()</span>
+            @if(Group is not null)
+            {
+                <span class="working-time">@GetElapsedTime()</span>
+                <span class="working-summary">@GenerateSummary()</span>
+            }
             <button @onclick="StopSession" class="stop-session-btn" title="Stop session">
                 <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -17,55 +18,59 @@
             </button>
         </div>
 
-        @if(events.Count > 0)
+        @if(Group is not null)
         {
-            <div class="working-content-wrapper">
-                <div id="workingContent" class="working-content">
-                    @foreach(var evt in events)
+            var events = Group.GetEventsSnapshot();
+            @if(events.Count > 0)
+            {
+                <div class="working-content-wrapper">
+                    <div id="workingContent" class="working-content">
+                        @foreach(var evt in events)
+                        {
+                            @if(evt.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrEmpty(evt.Message))
+                            {
+                                @if(evt.EventJson is not null && evt.EventJson.Count > 0)
+                                {
+                                    <div class="working-message" @onmousedown="OnThinkingMouseDown" @onmousemove="OnThinkingMouseMove" @onclick="() => ToggleEventExpandedIfNotSelecting(evt.Id ?? evt.Message ?? string.Empty)">
+                                        <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
+                                        @if(IsEventExpanded(evt.Id ?? evt.Message ?? string.Empty))
+                                        {
+                                            <div class="code-block-borderless mt-2" @onclick:stopPropagation="true">
+                                                <CodeBlock Code="@JsonUtil.FormatJsonList(evt.EventJson?.Select(j => j.Value))" Language="json" />
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="working-message">
+                                        <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
+                                    </div>
+                                }
+                            }
+                            else if(evt.Type == ThinkingEventTypeEnum.Tool && evt.Tool is not null)
+                            {
+                                <ToolExecutionDetail Tool="evt.Tool" IsLive="true" />
+                            }
+                            else if(evt.Type == ThinkingEventTypeEnum.Reasoning && !string.IsNullOrEmpty(evt.Message))
+                            {
+                                <div class="working-message working-reasoning">
+                                    <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    @if(_isUserScrolledUpFromWorking)
                     {
-                        @if(evt.Type == ThinkingEventTypeEnum.Message && !string.IsNullOrEmpty(evt.Message))
-                        {
-                            @if(evt.EventJson is not null && evt.EventJson.Count > 0)
-                            {
-                                <div class="working-message" @onmousedown="OnThinkingMouseDown" @onmousemove="OnThinkingMouseMove" @onclick="() => ToggleEventExpandedIfNotSelecting(evt.Id ?? evt.Message ?? string.Empty)">
-                                    <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
-                                    @if(IsEventExpanded(evt.Id ?? evt.Message ?? string.Empty))
-                                    {
-                                        <div class="code-block-borderless mt-2" @onclick:stopPropagation="true">
-                                            <CodeBlock Code="@JsonUtil.FormatJsonList(evt.EventJson?.Select(j => j.Value))" Language="json" />
-                                        </div>
-                                    }
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="working-message">
-                                    <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
-                                </div>
-                            }
-                        }
-                        else if(evt.Type == ThinkingEventTypeEnum.Tool && evt.Tool is not null)
-                        {
-                            <ToolExecutionDetail Tool="evt.Tool" IsLive="true" />
-                        }
-                        else if(evt.Type == ThinkingEventTypeEnum.Reasoning && !string.IsNullOrEmpty(evt.Message))
-                        {
-                            <div class="working-message working-reasoning">
-                                <MarkdownRenderer Content="@evt.Message" CssClass="text-sm" />
-                            </div>
-                        }
+                        <button class="scroll-to-bottom-btn working-scroll-btn" @onclick="ScrollToBottomAndResume" title="Scroll to bottom">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
                     }
                 </div>
-
-                @if(_isUserScrolledUpFromWorking)
-                {
-                    <button class="scroll-to-bottom-btn working-scroll-btn" @onclick="ScrollToBottomAndResume" title="Scroll to bottom">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-                }
-            </div>
+            }
         }
     </div>
 }

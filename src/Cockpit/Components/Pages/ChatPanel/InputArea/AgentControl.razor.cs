@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
-public partial class AgentControl : ComponentBase, IDisposable
+public sealed partial class AgentControl : ComponentBase, IDisposable
 {
 	readonly AgentPersistence _agentPersistence;
 	readonly SessionListFeature _sessionListFeature;
@@ -29,7 +29,11 @@ public partial class AgentControl : ComponentBase, IDisposable
 
 	void OnStateChanged()
 	{
-		InvokeAsync(() => { RefreshAgents(); StateHasChanged(); });
+		InvokeAsync(() =>
+		{
+			RefreshAgents();
+			StateHasChanged();
+		});
 	}
 
 	void RefreshAgents()
@@ -79,15 +83,6 @@ public partial class AgentControl : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
-	}
-
-	protected virtual void Dispose(bool disposing)
-	{
-		if(disposing)
-		{
-			_sessionListFeature.OnStateChanged -= OnStateChanged;
-		}
+		_sessionListFeature.OnStateChanged -= OnStateChanged;
 	}
 }

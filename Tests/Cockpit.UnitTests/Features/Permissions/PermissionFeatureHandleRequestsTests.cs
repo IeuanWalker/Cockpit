@@ -2,7 +2,8 @@ using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
@@ -19,8 +20,7 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 	const string sessionId = "session1";
 	const string workingDirectory = @"C:\projects\my-app";
 
-	// Disposables and temp files created by helpers; xUnit will call Dispose on the test class instance.
-	readonly List<IDisposable> _disposables = [];
+	// Temp files created by helpers; xUnit will call Dispose on the test class instance.
 	readonly List<string> _tempFiles = [];
 
 	// ── Helpers ──────────────────────────────────────────────────────────────
@@ -36,9 +36,7 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 		GlobalDenyFeature denyFeature = new(NullLogger<GlobalDenyFeature>.Instance, denyFile);
 		configureDeny?.Invoke(denyFeature);
 
-		// Track created disposables and temp files so xUnit can clean them up via Dispose.
-		_disposables.Add(globalPermissions);
-		_disposables.Add(denyFeature);
+		// Track created temp files so xUnit can clean them up via Dispose.
 		_tempFiles.Add(globalFile);
 		_tempFiles.Add(denyFile);
 
@@ -505,6 +503,18 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 			ToolName = "pre-commit",
 			HookMessage = string.Empty
 		},
+		[typeof(PermissionRequestExtensionManagement)] = new PermissionRequestExtensionManagement
+		{
+			ExtensionName = "my-extension",
+			Operation = "scaffold",
+			ToolCallId = "tc1"
+		},
+		[typeof(PermissionRequestExtensionPermissionAccess)] = new PermissionRequestExtensionPermissionAccess
+		{
+			ExtensionName = "my-extension",
+			Capabilities = [],
+			ToolCallId = "tc1"
+		},
 	};
 
 	/// <summary>
@@ -557,13 +567,15 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 			feature.ResolvePermissionRequest(model.Id, PermissionDecisionEnum.Once);
 		};
 
-		PermissionRequestResult result = await feature.HandlePermissionRequest(request, new PermissionInvocation { SessionId = "session1" })
+#pragma warning disable GHCP001
+		PermissionDecision result = await feature.HandlePermissionRequest(request, new PermissionInvocation { SessionId = "session1" })
 			.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+#pragma warning restore GHCP001
 
 		// If ToRequestModel hits the default case with ThrowOnUnhandledPermissionType=true, the exception is
 		// caught inside HandlePermissionRequest and returns DeniedCouldNotRequestFromUser instead of firing
 		// OnPermissionRequested.
-		result.Kind.ShouldNotBe(PermissionRequestResultKind.UserNotAvailable,
+		result.GetType().Name.ShouldNotBe("PermissionDecisionUserNotAvailable",
 			$"SDK type '{typeName}' hit the unhandled default case in ToRequestModel. " +
 			$"Add a switch case for it in PermissionFeature.HandleRequests.cs.");
 
@@ -620,15 +632,6 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 			return;
 		}
 
-		// Dispose in reverse creation order to avoid depending on disposed objects.
-		for(int i = _disposables.Count - 1; i >= 0; i--)
-		{
-			try
-			{
-				_disposables[i].Dispose();
-			}
-			catch { }
-		}
 
 		foreach(string f in _tempFiles)
 		{
@@ -651,6 +654,7 @@ public sealed class PermissionFeatureHandleRequestsTests : IDisposable
 
 		public void AddSession(SessionModel session) => _sessions.Add(session);
 		public IReadOnlyList<SessionModel> Sessions => _sessions;
+		public SessionModel? CurrentSession => _sessions.FirstOrDefault();
 		public void NotifyStateChanged() => OnStateChanged?.Invoke();
 		public event Action? OnStateChanged;
 	}

@@ -23,27 +23,50 @@
                     <span class="text-xs secondary-text">Allowlist, tools</span>
                 </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Input ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSectionEnum.Input)">
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Input)"
+                        aria-label="Select Input settings section">
                     <span class="text-sm font-medium text-app-title">Input settings</span>
                     <span class="text-xs secondary-text">Enter behavior</span>
                 </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.PreviewFeatures ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.PreviewFeatures)"
+                        aria-label="Select Preview features settings section">
+                    <span class="text-sm font-medium text-app-title">Preview features</span>
+                    <span class="text-xs secondary-text">Experimental, canvas</span>
+                </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Voice ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSectionEnum.Voice)">
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Voice)"
+                        aria-label="Select Voice settings section">
                     <span class="text-sm font-medium text-app-title">Voice</span>
                     <span class="text-xs secondary-text">Mic, transcription</span>
                 </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Sounds ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSectionEnum.Sounds)">
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Sounds)"
+                        aria-label="Select Sounds settings section">
                     <span class="text-sm font-medium text-app-title">Sounds</span>
                     <span class="text-xs secondary-text">Alerts, requests, finished</span>
                 </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.System ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.System)"
+                        aria-label="Select System settings section">
+                    <span class="text-sm font-medium text-app-title">System</span>
+                    <span class="text-xs secondary-text">Keep alive, sleep</span>
+                </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Diagnostics ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSectionEnum.Diagnostics)">
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Diagnostics)"
+                        aria-label="Select Diagnostics settings section">
                     <span class="text-sm font-medium text-app-title">Diagnostics</span>
                     <span class="text-xs secondary-text">Logs, telemetry, report an issue</span>
                 </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.CopilotSettings ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.CopilotSettings)"
+                        aria-label="Select Copilot Settings section">
+                    <span class="text-sm font-medium text-app-title">Copilot Settings</span>
+                    <span class="text-xs secondary-text">System message, sections</span>
+                </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.About ? "active" : "")"
-                        @onclick="() => SetActiveSection(SettingsSectionEnum.About)">
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.About)"
+                        aria-label="Select About settings section">
                     <span class="text-sm font-medium text-app-title">About app</span>
                     <span class="text-xs secondary-text">Version, updates, libraries</span>
                 </button>
@@ -66,11 +89,20 @@
                     case SettingsSectionEnum.Sounds:
                         <SoundSettings />
                         break;
+                    case SettingsSectionEnum.System:
+                        <SystemSettings />
+                        break;
                     case SettingsSectionEnum.Diagnostics:
                         <DiagnosticsSettings />
                         break;
+                    case SettingsSectionEnum.CopilotSettings:
+                        <CopilotSettings />
+                        break;
                     case SettingsSectionEnum.About:
                         <AboutSettings />
+                        break;
+                    case SettingsSectionEnum.PreviewFeatures:
+                        <PreviewFeaturesSettings />
                         break;
                 }
             </div>

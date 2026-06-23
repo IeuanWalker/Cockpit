@@ -1,6 +1,6 @@
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions;
-using Humanizer;
+using Cockpit.Features.Timestamp;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.Logging;
@@ -16,14 +16,18 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	readonly SessionFeature _sessionFeature;
 	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<WorkingPanel> _logger;
+	readonly ITimestampFeature _timestampFeature;
+
 	public WorkingPanel(
 		SessionFeature sessionFeature,
 		IJSRuntime jsRuntime,
-		ILogger<WorkingPanel> logger)
+		ILogger<WorkingPanel> logger,
+		ITimestampFeature timestampFeature)
 	{
 		_sessionFeature = sessionFeature;
 		_jsRuntime = jsRuntime;
 		_logger = logger;
+		_timestampFeature = timestampFeature;
 	}
 
 	Timer? _timer;
@@ -45,6 +49,10 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 		{
 			_isUserScrolledUpFromWorking = false; // Re-enable auto-scroll
 			_pendingScrollToBottom = true;
+			// Reset so OnAfterRenderAsync re-attaches scroll tracking to the new element.
+			// The working group change may cause #workingContent to be briefly removed and
+			// recreated (new group starts with empty events), invalidating any prior setup.
+			_scrollTrackingSetup = false;
 			_prevSessionId = currentSessionId;
 			_prevWorkingGroupId = currentWorkingGroupId;
 		}
@@ -75,11 +83,22 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 			return;
 		}
 
-		// Always re-setup scroll tracking when panel becomes visible or session/working group changes
-		if(IsVisible && _dotNetRef is not null)
+		// Setup scroll tracking when the panel becomes visible (but not on every subsequent render —
+		// re-registering on every render caused a render loop because the new JS implementation
+		// immediately fires the scroll-position callback on each registration).
+		// Only mark as set up if the element was found — the element is conditionally rendered
+		// and may not exist yet on the first render (when events are still empty). When that
+		// happens, leave _scrollTrackingSetup = false so the next render retries.
+		if(IsVisible && _dotNetRef is not null && !_scrollTrackingSetup)
 		{
-			await SetupSmartScroll();
-			_scrollTrackingSetup = true;
+			_scrollTrackingSetup = await SetupSmartScroll();
+			if(_scrollTrackingSetup)
+			{
+				// Ensure we start at bottom after the first successful setup, because the
+				// pending scroll-to-bottom from OnParametersSet may have been a no-op if
+				// the element didn't exist yet on that render.
+				_pendingScrollToBottom = true;
+			}
 		}
 
 		if(_pendingScrollToBottom && IsVisible)
@@ -89,15 +108,16 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 		}
 	}
 
-	async Task SetupSmartScroll()
+	async Task<bool> SetupSmartScroll()
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "workingContent", _dotNetRef, "OnWorkingPanelScrollPositionChanged");
+			return await _jsRuntime.InvokeAsync<bool>("cockpit.setupSmartScroll", "workingContent", _dotNetRef, "OnWorkingPanelScrollPositionChanged", nameof(WorkingPanel));
 		}
 		catch(Exception ex)
 		{
 			_logger.LogDebug(ex, "Failed to setup smart scroll for working panel");
+			return false;
 		}
 	}
 
@@ -124,7 +144,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "workingContent");
+			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "workingContent", nameof(WorkingPanel));
 		}
 		catch(Exception ex)
 		{
@@ -151,11 +171,8 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 			return string.Empty;
 		}
 
-		TimeSpan elapsed = Group.Status == GroupStatusEnum.Running
-			? DateTime.Now - Group.StartTime
-			: (Group.EndTime ?? DateTime.Now) - Group.StartTime;
-
-		return elapsed.Humanize();
+		DateTime? end = Group.Status == GroupStatusEnum.Running ? null : Group.EndTime;
+		return _timestampFeature.FormatDuration(Group.StartTime, end);
 	}
 
 	string GenerateSummary()

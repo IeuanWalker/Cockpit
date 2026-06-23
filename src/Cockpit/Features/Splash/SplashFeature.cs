@@ -1,8 +1,4 @@
 namespace Cockpit.Features.Splash;
 
-public class SplashFeature
-{
-	public event Action? OnBlazorReady;
-
-	public void NotifyBlazorReady() => OnBlazorReady?.Invoke();
-}
+/// <summary>Main-window splash feature. Inherits fire-once notification from <see cref="WindowSplashFeature"/>.</summary>
+public sealed class SplashFeature : WindowSplashFeature { }

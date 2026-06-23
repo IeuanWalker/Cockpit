@@ -9,16 +9,16 @@ namespace Cockpit.Components.Layout;
 
 public partial class MainLayout : IDisposable
 {
-	readonly UIStateFeature _uiStateFeature;
+	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionListFeature _sessionListFeature;
-	readonly ThemeFeature _themeFeature;
+	readonly IThemeFeature _themeFeature;
 	readonly IJSRuntime _jsRuntime;
 	readonly SplashFeature _splashFeature;
 
 	public MainLayout(
-		UIStateFeature uiStateFeature,
+		IUIStateFeature uiStateFeature,
 		SessionListFeature sessionListFeature,
-		ThemeFeature themeFeature,
+		IThemeFeature themeFeature,
 		IJSRuntime jsRuntime,
 		SplashFeature splashFeature)
 	{

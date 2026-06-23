@@ -1,18 +1,22 @@
+using System.Text.Json;
 using Cockpit.Features.Agents.Models;
+using Cockpit.Features.Canvas;
 using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using Cockpit.Features.SystemMessage;
+using GitHub.Copilot;
+using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging;
+using SdkPlugin = GitHub.Copilot.Rpc.Plugin;
+using SdkSessionMetadata = GitHub.Copilot.SessionMetadata;
 
 namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
-	const int immediateModeReplayOrderingThresholdMs = 100;
-
 	Task? _loadExistingSessionsTask;
 	readonly Lock _loadGate = new();
 
@@ -36,7 +40,7 @@ public sealed partial class SessionFeature
 			_logger.LogInformation("Loading existing sessions from SDK...");
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
-			IList<SessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
+			IList<SdkSessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
 
 			if(sessionMetadataList.Count == 0)
 			{
@@ -47,7 +51,7 @@ public sealed partial class SessionFeature
 			_logger.LogInformation("Found {Count} existing sessions", sessionMetadataList.Count);
 
 			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
-			foreach(SessionMetadata metadata in sessionMetadataList)
+			foreach(SdkSessionMetadata metadata in sessionMetadataList)
 			{
 				if(_sessionListFeature.Sessions.Any(s => s.Id == metadata.SessionId))
 				{
@@ -56,24 +60,28 @@ public sealed partial class SessionFeature
 
 				try
 				{
+					string? cwd = SessionWorkingDirectoryNormalizer.Normalize(metadata.Context?.WorkingDirectory);
+
 					SessionModel chatSession = new()
 					{
 						Id = metadata.SessionId,
 						Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
-						CreatedAt = metadata.StartTime,
-						LastActivity = metadata.ModifiedTime,
+						CreatedAt = metadata.StartTime.UtcDateTime,
+						LastActivity = metadata.ModifiedTime.UtcDateTime,
 						Status = SessionStatusEnum.Idle,
 						Model = defaultModel,
 						ReasoningEffort = defaultModel.DefaultReasoningEffort,
 						Context = new()
 						{
-							CurrentWorkingDirectory = metadata.Context?.Cwd ?? string.Empty,
+							CurrentWorkingDirectory = cwd,
 							WorkspacePath = null,
-							GitRoot = metadata.Context?.GitRoot,
-							Repository = metadata.Context?.Repository,
-							Branch = metadata.Context?.Branch
+							GitRoot = cwd is null ? null : metadata.Context?.GitRoot,
+							Repository = cwd is null ? null : metadata.Context?.Repository,
+							Branch = cwd is null ? null : metadata.Context?.Branch
 						}
 					};
+
+					SessionWorkingDirectoryNormalizer.ApplyContextConsistency(chatSession.Context);
 
 					_sessionListFeature.AddSession(chatSession);
 					_logger.LogInformation("Loaded session {SessionId}", chatSession.Id);
@@ -93,18 +101,28 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	public async Task<SessionModel> CreateSession(string workingDirectory)
+	public async Task<SessionModel> CreateSession(string? workingDirectory, CancellationToken cancellationToken = default)
 	{
+		CopilotClient? client = null;
+		CopilotSession? sdkSession = null;
+		bool sdkSessionRegistered = false;
+
 		try
 		{
-			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
-			GitContext gitContext = await _gitFeature.GetContext(workingDirectory);
+			cancellationToken.ThrowIfCancellationRequested();
+
+			ModelInfo defaultModel = await _modelFeature.GetDefaultModel(cancellationToken);
+			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id, cancellationToken);
+			GitContext? gitContext = await _gitFeature.GetContext(workingDirectory);
+
+			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
+			string? effectiveReasoningEffort = providerConfig is null ? defaultModel.DefaultReasoningEffort : null;
 
 			SessionConfig config = new()
 			{
 				ClientName = "Cockpit",
 				Model = defaultModel.Id,
-				ReasoningEffort = defaultModel.DefaultReasoningEffort,
+				ReasoningEffort = effectiveReasoningEffort,
 				Streaming = true,
 				InfiniteSessions = new InfiniteSessionConfig
 				{
@@ -113,50 +131,111 @@ public sealed partial class SessionFeature
 				WorkingDirectory = workingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
 				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
-				EnableConfigDiscovery = true
+				OnElicitationRequest = _elicitationHandler.HandleElicitationRequest,
+				Hooks = _hooksFactory.CreateHooks(defaultModel.Id, effectiveReasoningEffort, workingDirectory),
+				EnableConfigDiscovery = true,
+				Provider = providerConfig
 			};
 
-			CopilotClient client = await _clientFeature.GetClientAsync();
-			CopilotSession sdkSession = await client.CreateSessionAsync(config);
-			_sdkRegistry.Register(sdkSession, evt =>
+			if(_appSettingsFeature.CanvasEnabled)
 			{
-				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
-				HandleSessionEvent(sdkSession.SessionId, evt);
+				config.RequestCanvasRenderer = true;
+				config.RequestExtensions = true;
+				config.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+				config.Canvases =
+				[
+					CreateCockpitCanvasDeclaration()
+				];
+				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+			}
+
+			ApplySystemMessageCustomization(config, defaultModel);
+
+			cancellationToken.ThrowIfCancellationRequested();
+
+			client = await _clientFeature.GetClientAsync(cancellationToken);
+			CopilotSession createdSession = await client.CreateSessionAsync(config, cancellationToken);
+			sdkSession = createdSession;
+
+			if(cancellationToken.IsCancellationRequested)
+			{
+				await client.DeleteSessionAsync(createdSession.SessionId, CancellationToken.None);
+				await createdSession.DisposeAsync();
+				sdkSession = null;
+				cancellationToken.ThrowIfCancellationRequested();
+			}
+
+			_sdkRegistry.Register(createdSession, evt =>
+			{
+				_logger.LogDebug("Session {SessionId} event: {EventType}", createdSession.SessionId, evt.Type);
+				HandleSessionEvent(createdSession.SessionId, evt);
 			});
+			sdkSessionRegistered = true;
 
 			SessionModel chatSession = new()
 			{
-				Id = sdkSession.SessionId,
-				Title = !string.IsNullOrEmpty(workingDirectory)
-					? Path.GetFileName(workingDirectory)
-					: "New Session",
-				CreatedAt = DateTime.Now,
-				LastActivity = DateTime.Now,
+				Id = createdSession.SessionId,
+				Title = "New Session",
+				CreatedAt = DateTime.UtcNow,
+				LastActivity = DateTime.UtcNow,
 				Status = SessionStatusEnum.Idle,
 				Context = new()
 				{
 					CurrentWorkingDirectory = workingDirectory,
-					WorkspacePath = sdkSession.WorkspacePath,
-					GitRoot = gitContext.GitRoot,
-					Repository = gitContext.Repository,
-					Branch = gitContext.Branch
+					WorkspacePath = createdSession.WorkspacePath,
+					GitRoot = gitContext?.GitRoot,
+					Repository = gitContext?.Repository,
+					Branch = gitContext?.Branch
 				},
 				Model = defaultModel,
 				ReasoningEffort = defaultModel.DefaultReasoningEffort,
 				SdkState = SdkSessionStateEnum.Resumed
 			};
 
-			await LoadContextPanelDataAsync(chatSession, sdkSession);
+			SessionWorkingDirectoryNormalizer.ApplyContextConsistency(chatSession.Context);
+
+			cancellationToken.ThrowIfCancellationRequested();
+
+			await LoadContextPanelDataAsync(chatSession, createdSession);
+
+			cancellationToken.ThrowIfCancellationRequested();
+
+			_sdkSessionByokId[chatSession.Id] = chatSession.ByokConfigId;
 
 			_sessionListFeature.AddSession(chatSession);
 
 			await _modelFeature.SaveSessionModel(chatSession);
 			await _agentPersistence.SaveSessionAgent(chatSession);
-			await _sessionModePersistence.SaveSessionModeAsync(chatSession);
+			await _sessionModePersistence.SaveSessionMode(chatSession, cancellationToken);
 
 			await SwitchCurrentSessionAsync(chatSession);
 
 			return chatSession;
+		}
+		catch(OperationCanceledException)
+		{
+			if(client is not null && sdkSession is not null)
+			{
+				string sessionId = sdkSession.SessionId;
+				try
+				{
+					await client.DeleteSessionAsync(sessionId, CancellationToken.None);
+
+					if(sdkSessionRegistered)
+					{
+						_sdkRegistry.Remove(sessionId);
+					}
+
+					await sdkSession.DisposeAsync();
+					sdkSession = null;
+				}
+				catch(Exception cleanupEx)
+				{
+					_logger.LogWarning(cleanupEx, "Failed to cleanup canceled session {SessionId}", sessionId);
+				}
+			}
+
+			throw;
 		}
 		catch(Exception ex)
 		{
@@ -186,23 +265,64 @@ public sealed partial class SessionFeature
 			{
 				_logger.LogInformation("Session {SessionId} already loaded or loading, switching to it", sessionId);
 				await SwitchCurrentSessionAsync(session);
-				return true;
+
+				// Guard: eviction may have cleared the session between the state check and SwitchCurrentSessionAsync.
+				// If state is now NotLoaded, fall through to perform a full reload.
+				if(session.SdkState != SdkSessionStateEnum.NotLoaded)
+				{
+					return true;
+				}
+
+				_logger.LogInformation("Session {SessionId} was evicted during switch; performing full load", sessionId);
 			}
 
 			_logger.LogInformation("Loading session {SessionId}", sessionId);
+
+			session.Context.CurrentWorkingDirectory = SessionWorkingDirectoryNormalizer.Normalize(session.Context.CurrentWorkingDirectory);
+
+			if(string.IsNullOrWhiteSpace(session.Context.CurrentWorkingDirectory) || !Directory.Exists(session.Context.CurrentWorkingDirectory))
+			{
+				session.Context.CurrentWorkingDirectory = null;
+			}
+
+			SessionWorkingDirectoryNormalizer.ApplyContextConsistency(session.Context);
+
+			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+
+			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
+			// This also guards against stale "medium" values loaded from pre-switch sessions before
+			// TryRestoreModelSettings has had a chance to clear the effort.
+			string? effectiveReasoningEffort = providerConfig is null ? session.ReasoningEffort : null;
 
 			ResumeSessionConfig config = new()
 			{
 				ClientName = "Cockpit",
 				EnableConfigDiscovery = true,
 				Model = session.Model.Id,
-				ReasoningEffort = session.ReasoningEffort,
+				ReasoningEffort = effectiveReasoningEffort,
 				Streaming = true,
-				DisableResume = true,
+				SuppressResumeEvent = true,
 				WorkingDirectory = session.Context.CurrentWorkingDirectory,
 				OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
-				OnUserInputRequest = _userInputHandler.HandleUserInputRequest
+				OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+				OnElicitationRequest = _elicitationHandler.HandleElicitationRequest,
+				Hooks = _hooksFactory.CreateHooks(session.Model.Id, effectiveReasoningEffort, session.Context.CurrentWorkingDirectory, disableResume: true),
+				Provider = providerConfig
 			};
+
+			ApplySystemMessageCustomization(config, session.Model);
+
+			if(_appSettingsFeature.CanvasEnabled)
+			{
+				config.RequestCanvasRenderer = true;
+				config.RequestExtensions = true;
+				config.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+				config.Canvases =
+				[
+					CreateCockpitCanvasDeclaration()
+				];
+				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+			}
 
 			session.SdkState = SdkSessionStateEnum.Loading;
 			_sessionListFeature.NotifyStateChanged();
@@ -215,18 +335,8 @@ public sealed partial class SessionFeature
 			bool registered = false;
 			try
 			{
-				IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync();
+				IReadOnlyList<SessionEvent> events = await sdkSession.GetEventsAsync(CancellationToken.None);
 				_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
-
-				// Fix immediate-mode ordering: the SDK writes assistant.turn_start to the event
-				// log *before* the user.message echo for immediate-mode sends (both events share
-				// nearly the same timestamp). During live sessions this is fine because the
-				// optimistic message is already in the UI; during replay the turn_start fires
-				// first, creating a working group with no anchor, then the user.message triggers
-				// the safety-net which closes the group prematurely—displaying operations before
-				// the message that caused them. Swapping adjacent (turn_start → user.message)
-				// pairs that are within 100 ms of each other restores the correct logical order.
-				List<SessionEvent> orderedEvents = ReorderImmediateModeReplayEvents(events);
 
 				SessionModel tempSession = new()
 				{
@@ -243,7 +353,7 @@ public sealed partial class SessionFeature
 
 				await Task.Run(() =>
 				{
-					foreach(SessionEvent evt in orderedEvents)
+					foreach(SessionEvent evt in events)
 					{
 						_processor.Process(tempSession, evt);
 					}
@@ -276,13 +386,13 @@ public sealed partial class SessionFeature
 				session.Context.WorkspacePath = sdkSession.WorkspacePath;
 				SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 				await _modelFeature.TryRestoreModelSettings(session);
-				await _agentPersistence.TryRestoreSessionAgentAsync(session);
+				await _agentPersistence.TryRestoreSessionAgent(session);
 				if(session.Context.SelectedAgent is not null)
 				{
 					await sdkSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Name);
 				}
 
-				await _sessionModePersistence.TryRestoreSessionModeAsync(session);
+				await _sessionModePersistence.TryRestoreSessionMode(session);
 				if(session.Context.SelectedAgentMode != Models.SessionAgentModeEnum.Interactive)
 				{
 					await sdkSession.Rpc.Mode.SetAsync(session.Context.SelectedAgentMode.ToSdkSessionMode());
@@ -294,6 +404,7 @@ public sealed partial class SessionFeature
 					HandleSessionEvent(sdkSession.SessionId, evt);
 				});
 				registered = true;
+				_sdkSessionByokId[sessionId] = session.ByokConfigId;
 
 				await SwitchCurrentSessionAsync(session);
 				_logger.LogInformation("Successfully loaded session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
@@ -364,7 +475,7 @@ public sealed partial class SessionFeature
 		return true;
 	}
 
-	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, CancellationToken cancellationToken = default)
+	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, GitHub.Copilot.ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -381,18 +492,39 @@ public sealed partial class SessionFeature
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
 			CopilotSession newSdkSession;
 
+			// BYOK providers don't support Copilot-specific reasoning effort (e.g. KV-based "medium").
+			// Always pass null when a provider config is present so the SDK doesn't emit reasoning includes.
+			string? effectiveReasoningEffort = providerConfig is null ? newReasoningEffort : null;
+
 			bool hasMessages = chatSession?.Messages.Count > 0;
 			if(hasMessages)
 			{
 				ResumeSessionConfig resumeConfig = new()
 				{
 					Model = newModelId,
-					ReasoningEffort = newReasoningEffort,
+					ReasoningEffort = effectiveReasoningEffort,
 					Streaming = true,
 					EnableConfigDiscovery = true,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
-					OnUserInputRequest = _userInputHandler.HandleUserInputRequest
+					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+					OnElicitationRequest = _elicitationHandler.HandleElicitationRequest,
+					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
+					Provider = providerConfig
 				};
+
+				ApplySystemMessageCustomization(resumeConfig, chatSession?.Model, newModelId);
+
+				if(_appSettingsFeature.CanvasEnabled)
+				{
+					resumeConfig.RequestCanvasRenderer = true;
+					resumeConfig.RequestExtensions = true;
+					resumeConfig.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+					resumeConfig.Canvases =
+					[
+						CreateCockpitCanvasDeclaration()
+					];
+					resumeConfig.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+				}
 				newSdkSession = await client.ResumeSessionAsync(sessionId, resumeConfig, cancellationToken);
 			}
 			else
@@ -400,7 +532,7 @@ public sealed partial class SessionFeature
 				SessionConfig createConfig = new()
 				{
 					Model = newModelId,
-					ReasoningEffort = newReasoningEffort,
+					ReasoningEffort = effectiveReasoningEffort,
 					Streaming = true,
 					EnableConfigDiscovery = true,
 					InfiniteSessions = new InfiniteSessionConfig
@@ -409,13 +541,31 @@ public sealed partial class SessionFeature
 					},
 					WorkingDirectory = chatSession?.Context.CurrentWorkingDirectory,
 					OnPermissionRequest = _permissionHandler.HandlePermissionRequest,
-					OnUserInputRequest = _userInputHandler.HandleUserInputRequest
+					OnUserInputRequest = _userInputHandler.HandleUserInputRequest,
+					OnElicitationRequest = _elicitationHandler.HandleElicitationRequest,
+					Hooks = _hooksFactory.CreateHooks(newModelId, effectiveReasoningEffort, chatSession?.Context.CurrentWorkingDirectory),
+					Provider = providerConfig
 				};
+
+				ApplySystemMessageCustomization(createConfig, chatSession?.Model, newModelId);
+
+				if(_appSettingsFeature.CanvasEnabled)
+				{
+					createConfig.RequestCanvasRenderer = true;
+					createConfig.RequestExtensions = true;
+					createConfig.ExtensionInfo = new ExtensionInfo { Source = "cockpit", Name = "canvas-provider" };
+					createConfig.Canvases =
+					[
+						CreateCockpitCanvasDeclaration()
+					];
+					createConfig.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
+				}
 				newSdkSession = await client.CreateSessionAsync(createConfig, cancellationToken);
 
 				if(chatSession is not null)
 				{
 					_sdkRegistry.Remove(chatSession.Id);
+					_sdkSessionByokId.TryRemove(chatSession.Id, out _);
 					chatSession.Id = newSdkSession.SessionId;
 					chatSession.Context.WorkspacePath = newSdkSession.WorkspacePath;
 				}
@@ -450,6 +600,7 @@ public sealed partial class SessionFeature
 				_logger.LogDebug("Session {SessionId} event: {EventType}", newSdkSession.SessionId, evt.Type);
 				HandleSessionEvent(newSdkSession.SessionId, evt);
 			});
+			_sdkSessionByokId[newSdkSession.SessionId] = chatSession?.ByokConfigId;
 
 			_logger.LogInformation("Restarted session {SessionId} with model {Model}", sessionId, newModelId);
 		}
@@ -460,7 +611,7 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	public async Task DeleteSession(string sessionId)
+	public async Task DeleteSession(string sessionId, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -472,18 +623,20 @@ public sealed partial class SessionFeature
 			await _terminalFeature.CloseSessionAsync(sessionId);
 			_userInputHandler.CancelPendingRequestsForSession(sessionId);
 			_permissionHandler.CancelPendingRequestsForSession(sessionId);
+			_elicitationHandler.CancelPendingRequestsForSession(sessionId);
+			await _canvasWindowManager.CloseAllForSessionAsync(sessionId, cancellationToken);
 
-			CopilotClient client = await _clientFeature.GetClientAsync();
-			await client.DeleteSessionAsync(sessionId);
+			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
+			await client.DeleteSessionAsync(sessionId, cancellationToken);
 
 			_sessionListFeature.RemoveSession(sessionId);
-			_sessionListFeature.NotifyStateChanged();
+			_sdkSessionByokId.TryRemove(sessionId, out _);
 		}
 		catch(InvalidOperationException ex) when(ex.Message.Contains("Error: Session file not found"))
 		{
 			_logger.LogWarning(ex, "Session {SessionId} not found during deletion - it may have already been deleted", sessionId);
 			_sessionListFeature.RemoveSession(sessionId);
-			_sessionListFeature.NotifyStateChanged();
+			_sdkSessionByokId.TryRemove(sessionId, out _);
 		}
 		catch(Exception ex)
 		{
@@ -495,6 +648,8 @@ public sealed partial class SessionFeature
 	{
 		try
 		{
+			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
+
 			_logger.LogInformation(
 				"Restarting session {SessionId} with model {Model} and reasoning effort {ReasoningEffort}",
 				session.Id,
@@ -505,7 +660,8 @@ public sealed partial class SessionFeature
 			await RestartSession(
 				session.Id,
 				session.Model.Id,
-				session.ReasoningEffort
+				session.ReasoningEffort,
+				providerConfig
 			);
 
 			_logger.LogInformation("Session {SessionId} restarted successfully", session.Id);
@@ -537,9 +693,10 @@ public sealed partial class SessionFeature
 				}
 			}
 
-			// Cancel any pending permission/user-input requests so they are removed from the UI immediately
+			// Cancel any pending permission/user-input/elicitation requests so they are removed from the UI immediately
 			_permissionHandler.CancelPendingRequestsForSession(sessionId);
 			_userInputHandler.CancelPendingRequestsForSession(sessionId);
+			_elicitationHandler.CancelPendingRequestsForSession(sessionId);
 
 			await sdkSession.AbortAsync();
 		}
@@ -570,7 +727,7 @@ public sealed partial class SessionFeature
 
 		try
 		{
-			IReadOnlyList<SessionEvent> events = await sdkSession.GetMessagesAsync(cancellationToken);
+			IReadOnlyList<SessionEvent> events = await sdkSession.GetEventsAsync(cancellationToken);
 			_logger.LogInformation("Replaying {Count} events for session {SessionId}", events.Count, session.Id);
 
 			lock(session.SessionEventLock)
@@ -581,14 +738,12 @@ public sealed partial class SessionFeature
 			}
 			_sessionListFeature.NotifyStateChanged();
 
-			// Same immediate-mode ordering fix as LoadSession: swap adjacent (turn_start → user.message)
-			// pairs within 100 ms so the user message precedes the turn it triggered.
-			List<SessionEvent> orderedEvents = ReorderImmediateModeReplayEvents(events);
-
+			// Same parentId-based immediate-mode detection used during live sessions applies
+			// here — no pre-processing or reordering needed.
 			Task streamCallback(ChatMessageModel msg, string text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged);
 
 			DateTimeOffset? prevTimestamp = null;
-			foreach(SessionEvent evt in orderedEvents)
+			foreach(SessionEvent evt in events)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 
@@ -631,29 +786,13 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	static List<SessionEvent> ReorderImmediateModeReplayEvents(IReadOnlyList<SessionEvent> events)
-	{
-		List<SessionEvent> orderedEvents = [.. events];
-		for(int i = 0; i < orderedEvents.Count - 1; i++)
-		{
-			if(orderedEvents[i] is AssistantTurnStartEvent
-				&& orderedEvents[i + 1] is UserMessageEvent userMsgEvt
-				&& (userMsgEvt.Timestamp - orderedEvents[i].Timestamp).TotalMilliseconds is >= 0 and <= immediateModeReplayOrderingThresholdMs)
-			{
-				(orderedEvents[i], orderedEvents[i + 1]) = (orderedEvents[i + 1], orderedEvents[i]);
-			}
-		}
-
-		return orderedEvents;
-	}
-
 	async Task LoadContextPanelDataAsync(SessionModel session, CopilotSession sdkSession)
 	{
-		var agentsTask = _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
-		var instructionsTask = _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
-		var mcpTask = _mcpFeature.LoadSessionMcpServersAsync(sdkSession);
-		var skillsTask = _skillsFeature.LoadSessionSkillsAsync(sdkSession);
-		var pluginsTask = _pluginsFeature.LoadSessionPluginsAsync(sdkSession);
+		Task<List<AgentProfile>> agentsTask = _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
+		Task<List<InstructionSource>> instructionsTask = _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);
+		Task<List<McpServer>> mcpTask = _mcpFeature.LoadSessionMcpServersAsync(sdkSession);
+		Task<List<Skill>> skillsTask = _skillsFeature.LoadSessionSkillsAsync(sdkSession);
+		Task<List<SdkPlugin>> pluginsTask = _pluginsFeature.LoadSessionPluginsAsync(sdkSession);
 
 		await Task.WhenAll(agentsTask, instructionsTask, mcpTask, skillsTask, pluginsTask);
 
@@ -662,5 +801,92 @@ public sealed partial class SessionFeature
 		session.Context.McpServers = mcpTask.Result;
 		session.Context.Skills = skillsTask.Result;
 		session.Context.Plugins = pluginsTask.Result;
+	}
+
+	static SectionOverride? MapToSectionOverride(SystemMessageSectionSetting setting)
+		=> setting.Action switch
+		{
+			SystemMessageOverrideAction.Replace => new SectionOverride { Action = SectionOverrideAction.Replace, Content = setting.Content },
+			SystemMessageOverrideAction.Remove => new SectionOverride { Action = SectionOverrideAction.Remove },
+			SystemMessageOverrideAction.Append => new SectionOverride { Action = SectionOverrideAction.Append, Content = setting.Content },
+			SystemMessageOverrideAction.Prepend => new SectionOverride { Action = SectionOverrideAction.Prepend, Content = setting.Content },
+			_ => null  // None → skip
+		};
+
+	static CanvasDeclaration CreateCockpitCanvasDeclaration()
+		=> new()
+		{
+			Id = "cockpit-canvas",
+			DisplayName = "Cockpit Canvas",
+			Description = "Opens a visual canvas window alongside your message — it is an enhancement, NOT a replacement for your reply. IMPORTANT: you must ALWAYS write a complete, self-contained assistant message in addition to invoking this canvas. The canvas is ephemeral: it is not retained when the user resumes or revisits a session, so your text message is the durable record the user will rely on. Everything you show in the canvas must also be communicated meaningfully in your message (e.g. summarise a chart's findings, include the table data as markdown, restate the diagram as prose). Never rely on the canvas as the sole delivery of information. Provide a JSON object with \"html\" (required) containing styled HTML to render, and \"title\" (optional) for the window title. Content is rendered inside a sandboxed iframe (allow-scripts only) — scripts execute but have no access to the parent window, storage, or navigation. Tailwind CSS v3 is available (all utilities) and script tags execute in insertion order. External CDN script tags are NOT supported (the sandbox blocks network requests from the null origin); use only inline scripts and the preloaded libraries (Chart.js, Mermaid). CSS vars --bg-color, --text-color, --title-color, --secondary-text, --accent-color, --border-color, --sidebar-color, --hover-color are available for theming. Provide: \"html\" (required) rich interactive HTML; \"title\" (optional) window title.",
+			InputSchema = JsonSerializer.SerializeToElement(new
+			{
+				type = "object",
+				required = new[] { "html" },
+				properties = new
+				{
+					html = new
+					{
+						type = "string",
+						description = "Rich HTML rendered in a sandboxed iframe inside the canvas window. IMPORTANT: the canvas is a visual enhancement only — it is ephemeral and will NOT be visible when the user resumes this session later. You must always accompany this canvas invocation with a complete text message that conveys the same information (e.g. markdown table, prose summary, or code block) so the user retains full value even without the canvas. The sandbox allows script execution but blocks access to the parent window, cookies, storage, forms, popups, and navigation. The native window chrome already displays the canvas title, so do not duplicate it in the HTML unless you intentionally want a separate in-content heading. Tailwind CSS v3 and Cockpit app.css classes are available: bg-app-bg, bg-app-sidebar, border-app-border, bg-app-hover, bg-app-active, text-app-text, text-app-title, secondary-text, accent-btn, scrollbar-thin. Mermaid (strict security level) and Chart.js are preloaded locally — do NOT add CDN script tags for these or any other external libraries (the sandboxed iframe has a null origin and cannot fetch external resources). For Mermaid, use <div class=\"mermaid\">...</div> instead of markdown fences or raw code blocks. For Chart.js, create a canvas element and instantiate new Chart(...) in a following inline script; maintainAspectRatio is always enforced to true and cannot be overridden — do NOT set maintainAspectRatio to false. Inline scripts run in insertion order. CSS vars --bg-color, --sidebar-color, --border-color, --hover-color, --active-color, --text-color, --title-color, --secondary-text, --accent-color, --button-bg, --button-hover are available for theming."
+					},
+					title = new { type = "string", description = "Optional window title bar text." }
+				}
+			})
+		};
+
+	void ApplySystemMessageCustomization(SessionConfig config, ModelInfo model)
+		=> config.SystemMessage = CreateSystemMessageConfig(model.Name, model.Id);
+
+	void ApplySystemMessageCustomization(ResumeSessionConfig config, ModelInfo model)
+		=> config.SystemMessage = CreateSystemMessageConfig(model.Name, model.Id);
+
+	void ApplySystemMessageCustomization(SessionConfig config, ModelInfo? model, string fallbackModelId)
+		=> config.SystemMessage = CreateSystemMessageConfig(model?.Name ?? fallbackModelId, model?.Id ?? fallbackModelId);
+
+	void ApplySystemMessageCustomization(ResumeSessionConfig config, ModelInfo? model, string fallbackModelId)
+		=> config.SystemMessage = CreateSystemMessageConfig(model?.Name ?? fallbackModelId, model?.Id ?? fallbackModelId);
+
+	SystemMessageConfig CreateSystemMessageConfig(string modelName, string modelId)
+	{
+		Dictionary<SystemMessageSection, SectionOverride> sections = [];
+		foreach(KeyValuePair<string, SystemMessageSectionSetting> kvp in _appSettingsFeature.SystemMessageSectionOverrides)
+		{
+			SectionOverride? sectionOverride = MapToSectionOverride(kvp.Value);
+			if(sectionOverride is not null)
+			{
+				sections[new SystemMessageSection(kvp.Key)] = sectionOverride;
+			}
+		}
+
+		sections[SystemMessageSection.Identity] = new SectionOverride()
+		{
+			Action = SectionOverrideAction.Replace,
+			Content = $"""
+				You are Cockpit, a desktop application that provides a graphical interface for GitHub Copilot CLI. You are an interactive AI assistant that helps users with software engineering tasks through a desktop GUI experience.
+
+				# Search and delegation
+
+				* When prompting sub-agents, provide comprehensive context — brevity rules do not apply to sub-agent prompts.
+				* When searching the file system for files or text, stay in the current working directory or child directories of the cwd unless absolutely necessary.
+				* When searching code, the preference order for tools to use is: code intelligence tools (if available) > LSP-based tools (if available) > glob > rg with glob pattern > powershell tool.
+
+				Powered by <model name="{modelName}" id="{modelId}" />.
+
+				When asked who you are, reply with something like: "I'm Cockpit, a desktop application that provides a graphical interface for GitHub Copilot CLI, powered by GPT-5.4 mini (model ID: gpt-5.4-mini)."
+
+				When asked which model is being used, reply with something like: "I'm powered by {modelName} (model ID: {modelId})."
+
+				If the model was changed during the conversation, acknowledge the change and respond accordingly.
+
+				Your job is to perform the task the user requested while providing a desktop-first experience through Cockpit.
+			"""
+		};
+
+		return new SystemMessageConfig
+		{
+			Mode = SystemMessageMode.Customize,
+			Sections = sections
+		};
 	}
 }

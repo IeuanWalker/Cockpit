@@ -7,6 +7,8 @@ namespace Cockpit.Components.Controls.GitDiff;
 
 public partial class GitDiffViewer : ComponentBase
 {
+	enum FileCategory { Text, Image, Video, Binary }
+
 	[Parameter] public string? Diff { get; set; }
 	[Parameter] public string? FilePath { get; set; }
 	[Parameter] public bool SplitView { get; set; }
@@ -25,6 +27,11 @@ public partial class GitDiffViewer : ComponentBase
 	readonly Dictionary<DiffHunkModel, (int Above, int Below)> _hunkExpansion = [];
 	bool _needsHighlight;
 
+	FileCategory _fileCategory;
+	string? _mediaDataUrl;
+	bool _mediaLoading;
+	bool _mediaTooBig;
+
 	string? _prevDiff;
 	string? _prevFilePath;
 	bool _prevSplitView;
@@ -33,7 +40,40 @@ public partial class GitDiffViewer : ComponentBase
 	readonly string _diffSplitLeftId = $"diff-split-left-{Guid.NewGuid():N}";
 	readonly string _diffSplitRightId = $"diff-split-right-{Guid.NewGuid():N}";
 
-	string _fileName => string.IsNullOrEmpty(FilePath) ? string.Empty : Path.GetFileName(FilePath);
+	string FileName => string.IsNullOrEmpty(FilePath) ? string.Empty : Path.GetFileName(FilePath);
+
+	static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+	{
+		".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg", ".webp", ".tiff", ".tif"
+	};
+
+	static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
+	{
+		".mp4", ".avi", ".mov", ".wmv", ".flv", ".webm", ".mkv", ".m4v", ".ogv", ".ogg"
+	};
+
+	static readonly HashSet<string> BinaryExtensions = new(StringComparer.OrdinalIgnoreCase)
+	{
+		".dll", ".exe", ".pdb", ".obj", ".lib", ".bin", ".zip", ".rar", ".7z",
+		".tar", ".gz", ".bz2", ".xz", ".jar", ".war", ".ear", ".class",
+		".so", ".dylib", ".a", ".o", ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+		".ppt", ".pptx", ".nupkg", ".wasm", ".db", ".sqlite", ".mdb",
+		".ttf", ".otf", ".woff", ".woff2", ".eot", ".pyc", ".pyo"
+	};
+
+	static FileCategory GetFileCategory(string? filePath)
+	{
+		if(string.IsNullOrEmpty(filePath))
+		{
+			return FileCategory.Text;
+		}
+
+		string ext = Path.GetExtension(filePath);
+		if(ImageExtensions.Contains(ext)) { return FileCategory.Image; }
+		if(VideoExtensions.Contains(ext)) { return FileCategory.Video; }
+		if(BinaryExtensions.Contains(ext)) { return FileCategory.Binary; }
+		return FileCategory.Text;
+	}
 
 	static readonly Dictionary<string, string> extensionLanguageMap = new(StringComparer.OrdinalIgnoreCase)
 	{
@@ -353,22 +393,107 @@ public partial class GitDiffViewer : ComponentBase
 	{
 		if(Diff != _prevDiff || FilePath != _prevFilePath || SplitView != _prevSplitView)
 		{
-			_parsedDiff = DiffParser.Parse(Diff);
-			_splitRows = _parsedDiff?.Hunks.ToDictionary(h => h, DiffParser.BuildSplitRows) ?? [];
-			_inlineSpans = SplitView ? [] : ComputeInlineSpans(_parsedDiff);
+			_parsedDiff = null;
+			_splitRows = [];
+			_inlineSpans = [];
+			_fileLines = null;
+			_mediaDataUrl = null;
+			_mediaLoading = false;
+			_mediaTooBig = false;
 			_hunkExpansion.Clear();
 
-			_needsHighlight = true;
-
-			_prevDiff = Diff;
-			_prevFilePath = FilePath;
-			_prevSplitView = SplitView;
-
-			_fileLines = null;
-			_pendingFilePath = FilePath;
-			_ = LoadFileLinesAsync(FilePath);
+			if(_fileCategory == FileCategory.Binary)
+			{
+				_parsedDiff = null;
+				_splitRows = [];
+				_inlineSpans = [];
+				_fileLines = null;
+			}
+			else if(_fileCategory == FileCategory.Image || _fileCategory == FileCategory.Video)
+			{
+				_parsedDiff = null;
+				_splitRows = [];
+				_inlineSpans = [];
+				_fileLines = null;
+				_mediaLoading = true;
+				_ = LoadMediaAsync(FilePath);
+			}
+			else
+			{
+				_parsedDiff = DiffParser.Parse(Diff);
+				_splitRows = _parsedDiff?.Hunks.ToDictionary(h => h, DiffParser.BuildSplitRows) ?? [];
+				_inlineSpans = SplitView ? [] : ComputeInlineSpans(_parsedDiff);
+				_needsHighlight = true;
+				_fileLines = null;
+				_ = LoadFileLinesAsync(FilePath);
+			}
 		}
 	}
+
+	const long MaxImageBytes = 20 * 1024 * 1024;
+	const long MaxVideoBytes = 50 * 1024 * 1024;
+
+	async Task LoadMediaAsync(string? filePath)
+	{
+		string? dataUrl = null;
+		bool tooBig = false;
+
+		if(filePath is not null && File.Exists(filePath))
+		{
+			try
+			{
+				long maxBytes = _fileCategory == FileCategory.Image ? MaxImageBytes : MaxVideoBytes;
+				FileInfo info = new(filePath);
+				if(info.Length <= maxBytes)
+				{
+					byte[] bytes = await Task.Run(() => File.ReadAllBytes(filePath));
+					string ext = Path.GetExtension(filePath).ToLowerInvariant();
+					string mimeType = _fileCategory == FileCategory.Image
+						? GetImageMimeType(ext)
+						: GetVideoMimeType(ext);
+					dataUrl = $"data:{mimeType};base64,{Convert.ToBase64String(bytes)}";
+				}
+				else
+				{
+					tooBig = true;
+				}
+			}
+			catch { }
+		}
+
+		if(filePath == _pendingFilePath)
+		{
+			_mediaDataUrl = dataUrl;
+			_mediaTooBig = tooBig;
+			_mediaLoading = false;
+			await InvokeAsync(StateHasChanged);
+		}
+	}
+
+	static string GetImageMimeType(string ext) => ext switch
+	{
+		".jpg" or ".jpeg" => "image/jpeg",
+		".gif" => "image/gif",
+		".bmp" => "image/bmp",
+		".ico" => "image/x-icon",
+		".svg" => "image/svg+xml",
+		".webp" => "image/webp",
+		".tiff" or ".tif" => "image/tiff",
+		_ => "image/png"
+	};
+
+	static string GetVideoMimeType(string ext) => ext switch
+	{
+		".avi" => "video/x-msvideo",
+		".mov" => "video/quicktime",
+		".wmv" => "video/x-ms-wmv",
+		".flv" => "video/x-flv",
+		".webm" => "video/webm",
+		".mkv" => "video/x-matroska",
+		".m4v" => "video/x-m4v",
+		".ogv" or ".ogg" => "video/ogg",
+		_ => "video/mp4"
+	};
 
 	async Task LoadFileLinesAsync(string? filePath)
 	{

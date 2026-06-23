@@ -1,82 +1,132 @@
-using GitHub.Copilot.SDK;
+using Cockpit.Features.Byok;
+using Cockpit.Features.Sdk;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Models;
 
-public sealed partial class ModelFeature : IDisposable
+public sealed partial class ModelFeature : IModelFeature
 {
+	readonly CopilotClientFeature _clientFeature;
+	readonly IByokFeature _byokFeature;
 	readonly ILogger<ModelFeature> _logger;
-	public ModelFeature(ILogger<ModelFeature> logger)
+
+	public ModelFeature(
+		CopilotClientFeature clientFeature,
+		IByokFeature byokFeature,
+		ILogger<ModelFeature> logger)
 	{
+		_clientFeature = clientFeature;
+		_byokFeature = byokFeature;
 		_logger = logger;
 	}
 
-	IList<ModelInfo>? _models;
+	// volatile ensures the un-guarded early-exit read sees the latest value
+	// written under the semaphore without requiring a full lock acquire.
+	volatile IReadOnlyList<ModelInfo>? _models;
 	readonly SemaphoreSlim _fetchLock = new(1, 1);
 
-	/// <summary>
-	/// Get all models
-	/// </summary>
-	public async ValueTask<IList<ModelInfo>> GetModels()
+	/// <inheritdoc />
+	public async ValueTask<IReadOnlyList<ModelInfo>> GetModels(CancellationToken cancellationToken = default)
 	{
 		if(_models is not null)
 		{
-			return _models;
+			return BuildMergedModelList(_models);
 		}
 
-		await _fetchLock.WaitAsync();
+		await _fetchLock.WaitAsync(cancellationToken);
 		try
 		{
-			// Re-check after acquiring lock — another caller may have fetched already
+			// Re-check after acquiring lock — another caller may have populated it already.
 			if(_models is not null)
 			{
-				return _models;
+				return BuildMergedModelList(_models);
 			}
 
-			await using CopilotClient client = new();
-			_models = await client.ListModelsAsync();
+			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
+			IList<ModelInfo> fetched = await client.ListModelsAsync(cancellationToken);
+			_models = [.. fetched]; // snapshot to IReadOnlyList to prevent external mutation
+		}
+		catch(Exception ex) when(ex is not OperationCanceledException)
+		{
+			_logger.LogError(ex, "Failed to fetch model list from Copilot SDK");
+			throw;
 		}
 		finally
 		{
 			_fetchLock.Release();
 		}
 
-		return _models!;
+		return BuildMergedModelList(_models!);
+	}
+
+	/// <inheritdoc />
+	public async ValueTask<ModelInfo> GetDefaultModel(CancellationToken cancellationToken = default)
+	{
+		IReadOnlyList<ModelInfo> models = _models ?? await GetModels(cancellationToken);
+		return SelectDefaultModel(models);
 	}
 
 	/// <summary>
-	/// Get Default model
+	/// Selects the default model from <paramref name="models"/>:
+	/// prefers the <c>auto</c> model if available, otherwise falls back to the cheapest
+	/// model by input token price, and finally to the first model in the list.
+	/// Extracted as an <see langword="internal"/> static so unit tests can verify the logic
+	/// without requiring a live SDK connection.
 	/// </summary>
-	/// <remarks>
-	/// TODO: Implement functionality to allow the user to select the default model
-	/// </remarks>
-	public async ValueTask<ModelInfo> GetDefaultModel()
+	internal static ModelInfo SelectDefaultModel(IReadOnlyList<ModelInfo> models)
 	{
-		IList<ModelInfo> models = _models ?? await GetModels();
-
-		// Prefer the second free-tier model (index 1) if it exists, then the first free-tier, then the first model overall
-		List<ModelInfo> freeModels = [.. models.Where(x => x.Billing?.Multiplier == 0)];
-		if(freeModels.Count >= 2)
+		if(models.Count == 0)
 		{
-			return freeModels[1];
+			throw new InvalidOperationException("No models available from the Copilot API.");
 		}
 
-		if(freeModels.Count == 1)
+		foreach(ModelInfo m in models)
 		{
-			return freeModels[0];
+			if(string.Equals(m.Id, "auto", StringComparison.OrdinalIgnoreCase))
+			{
+				return m;
+			}
 		}
 
-		if(models.Count > 0)
-		{
-			return models[0];
-		}
-
-		throw new InvalidOperationException("No models available from the Copilot API.");
+		return ModelCostCalculator.GetCheapestModel(models) ?? models[0];
 	}
 
-	public void Dispose()
+	/// <inheritdoc />
+	public ValueTask<ProviderConfig?> GetProviderConfig(string modelId, CancellationToken cancellationToken = default)
 	{
-		_fetchLock.Dispose();
-		GC.SuppressFinalize(this);
+		ProviderConfig? config = _byokFeature.TryGetProviderConfig(modelId);
+		return ValueTask.FromResult(config);
+	}
+
+	List<ModelInfo> BuildMergedModelList(IReadOnlyList<ModelInfo> sdkModels)
+	{
+		IReadOnlyList<ByokModelConfig> byokConfigs = _byokFeature.GetAll();
+		if(byokConfigs.Count == 0)
+		{
+			return [.. sdkModels];
+		}
+
+		HashSet<string> byokModelIds = new(StringComparer.OrdinalIgnoreCase);
+		foreach(ByokModelConfig config in byokConfigs)
+		{
+			byokModelIds.Add(config.ModelId);
+		}
+
+		List<ModelInfo> merged = [];
+		foreach(ModelInfo model in sdkModels)
+		{
+			if(!byokModelIds.Contains(model.Id))
+			{
+				merged.Add(model);
+			}
+		}
+
+		foreach(ByokModelConfig config in byokConfigs)
+		{
+			merged.Add(config.ToModelInfo());
+		}
+
+		return merged;
 	}
 }

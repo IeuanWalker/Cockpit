@@ -1,12 +1,13 @@
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.SessionEvents.Handlers;
 
+[Collection("SessionIdleEvent")]
 public class SessionIdleHandlerTests
 {
 	static readonly ModelInfo testModel = new() { Id = "test", Name = "Test Model" };

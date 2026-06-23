@@ -7,6 +7,9 @@ public enum SettingsSectionEnum
 	Input,
 	Voice,
 	Sounds,
+	System,
 	Diagnostics,
+	PreviewFeatures,
+	CopilotSettings,
 	About
 }

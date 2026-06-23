@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;
 
-public class SessionListFeature : ISessionStateProvider
+public sealed class SessionListFeature : ISessionStateProvider
 {
 	readonly ILogger<SessionListFeature> _logger;
 	readonly List<SessionModel> _sessions = [];
@@ -45,6 +45,8 @@ public class SessionListFeature : ISessionStateProvider
 		{
 			CurrentSession = null;
 		}
+
+		NotifyStateChanged();
 	}
 
 	// Coalesce rapid burst notifications into a single render frame (~60 fps cap).
@@ -62,7 +64,7 @@ public class SessionListFeature : ISessionStateProvider
 	{
 		try
 		{
-			await Task.Delay(16).ConfigureAwait(false);
+			await Task.Delay(16, CancellationToken.None).ConfigureAwait(false);
 			Interlocked.Exchange(ref _notifyPending, 0);
 			OnStateChanged?.Invoke();
 		}

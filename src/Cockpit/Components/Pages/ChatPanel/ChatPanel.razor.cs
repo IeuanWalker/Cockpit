@@ -9,14 +9,14 @@ namespace Cockpit.Components.Pages.ChatPanel;
 
 public partial class ChatPanel : ComponentBase, IAsyncDisposable
 {
-	readonly TimestampFeature _timestampFeature;
-	readonly UIStateFeature _uiStateFeature;
+	readonly ITimestampFeature _timestampFeature;
+	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionFeature _sessionFeature;
 	readonly IJSRuntime _jsRuntime;
 	readonly ILogger<Main> _logger;
 	public ChatPanel(
-		TimestampFeature timestampFeature,
-		UIStateFeature uiStateFeature,
+		ITimestampFeature timestampFeature,
+		IUIStateFeature uiStateFeature,
 		SessionFeature sessionFeature,
 		IJSRuntime jsRuntime,
 		ILogger<Main> logger)
@@ -59,7 +59,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 			await SetupSmartScroll();
 
 			// Initialize message count
-			_lastMessageCount = _sessionFeature.CurrentSession?.Messages?.Count ?? 0;
+			_lastMessageCount = _sessionFeature.CurrentSession?.Messages.Count ?? 0;
 			_lastSessionId = _sessionFeature.CurrentSession?.Id;
 		}
 
@@ -74,7 +74,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	void OnStateChanged()
 	{
 		string? currentSessionId = _sessionFeature.CurrentSession?.Id;
-		int currentMessageCount = _sessionFeature.CurrentSession?.Messages?.Count ?? 0;
+		int currentMessageCount = _sessionFeature.CurrentSession?.Messages.Count ?? 0;
 
 		if(currentSessionId != _lastSessionId)
 		{
@@ -115,7 +115,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged");
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged", nameof(ChatPanel));
 		}
 		catch(Exception ex)
 		{
@@ -147,7 +147,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		// Cleanup smart scroll
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
+			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages", nameof(ChatPanel));
 		}
 		catch(Exception ex)
 		{

@@ -1,61 +1,95 @@
+using Cockpit.Components.Popups;
+using Cockpit.Features.Byok;
 using Cockpit.Features.Models;
 using Cockpit.Features.Sessions;
-using GitHub.Copilot.SDK;
+using Cockpit.Features.Sessions.Models;
+using GitHub.Copilot;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ChatPanel.InputArea;
 
 public partial class ModelControl : ComponentBase, IDisposable
 {
-	readonly ModelFeature _modelFeature;
+	readonly IModelFeature _modelFeature;
+	readonly IByokFeature _byokFeature;
 	readonly SessionListFeature _sessionListFeature;
-	public ModelControl(ModelFeature modelFeature, SessionListFeature sessionListFeature)
+	public ModelControl(
+		IModelFeature modelFeature,
+		IByokFeature byokFeature,
+		SessionListFeature sessionListFeature)
 	{
 		_modelFeature = modelFeature;
+		_byokFeature = byokFeature;
 		_sessionListFeature = sessionListFeature;
 	}
 
-	IList<ModelInfo> _availableModels = [];
+	IReadOnlyList<ModelInfo> _availableModels = [];
 	PickerControl _modelPicker = default!;
 	PickerControl? _reasoningPicker;
+	ModelInfoPopup _modelInfoPopup = default!;
 
 	protected override async Task OnInitializedAsync()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_byokFeature.OnChanged += OnByokChanged;
 
-		_availableModels = await _modelFeature.GetModels();
+		await RefreshModelsAsync();
 	}
 
 	void OnStateChanged()
 	{
-		InvokeAsync(StateHasChanged);
+		_ = InvokeAsync(StateHasChanged);
 	}
 
-	void SelectModel(ModelInfo model)
+	void OnByokChanged()
+	{
+		_ = InvokeAsync(async () =>
+		{
+			await RefreshModelsAsync();
+			StateHasChanged();
+		});
+	}
+
+	async Task RefreshModelsAsync()
+	{
+		_availableModels = await _modelFeature.GetModels();
+	}
+
+	void OpenModelInfoPopup()
+	{
+		_modelInfoPopup.Open();
+	}
+
+	async Task HandleModelSelectedFromPopup(ModelInfo model)
+	{
+		await SelectModel(model);
+	}
+
+	async Task SelectModel(ModelInfo model)
 	{
 		if(_sessionListFeature.CurrentSession is null)
 		{
 			return;
 		}
 
-		// Check if model actually changed
 		if(_sessionListFeature.CurrentSession.Model.Id == model.Id)
 		{
 			_modelPicker.Close();
 			return;
 		}
 
-		// Update model and mark session for restart
 		_sessionListFeature.CurrentSession.Model = model;
 		_sessionListFeature.CurrentSession.ModelChanged = true;
 
+		// Track BYOK config ID so the session layer knows to restart (not SetModelAsync) when switching providers
+		ByokModelConfig? byokConfig = _byokFeature.GetAll().FirstOrDefault(c => string.Equals(c.ModelId, model.Id, StringComparison.OrdinalIgnoreCase));
+		_sessionListFeature.CurrentSession.ByokConfigId = byokConfig?.Id;
+
 		_modelPicker.Close();
 
-		// Update reasoning effort based on new model's defaults
 		UpdateReasoningEffortForSelectedModel();
 
-		// Persist model selection immediately (best-effort, fire-and-forget)
-		_ = _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession);
+		await _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession);
 	}
 
 	void UpdateReasoningEffortForSelectedModel()
@@ -65,39 +99,55 @@ public partial class ModelControl : ComponentBase, IDisposable
 			return;
 		}
 
-		string newEffort = _sessionListFeature.CurrentSession.Model.DefaultReasoningEffort ?? string.Empty;
-		string currentEffort = _sessionListFeature.CurrentSession.ReasoningEffort ?? string.Empty;
+		string? newEffort = _sessionListFeature.CurrentSession.Model.DefaultReasoningEffort;
 
-		// Only mark for restart if reasoning effort actually changed
-		if(currentEffort != newEffort)
+		if(_sessionListFeature.CurrentSession.ReasoningEffort != newEffort)
 		{
 			_sessionListFeature.CurrentSession.ReasoningEffort = newEffort;
 			_sessionListFeature.CurrentSession.ModelChanged = true;
 		}
 	}
 
-	void SelectReasoningEffort(string effort)
+	async Task SelectReasoningEffort(string effort)
 	{
 		if(_sessionListFeature.CurrentSession is null)
 		{
 			return;
 		}
 
-		// Check if reasoning effort actually changed
+		// Ignore selections that are not supported by the current model.
+		if(_sessionListFeature.CurrentSession.Model.SupportedReasoningEfforts?.Contains(effort) != true)
+		{
+			return;
+		}
+
 		if(_sessionListFeature.CurrentSession.ReasoningEffort == effort)
 		{
 			_reasoningPicker?.Close();
 			return;
 		}
 
-		// Update reasoning effort and mark session for restart
 		_sessionListFeature.CurrentSession.ReasoningEffort = effort;
 		_sessionListFeature.CurrentSession.ModelChanged = true;
 
 		_reasoningPicker?.Close();
 
-		// Persist model selection immediately (best-effort, fire-and-forget)
-		_ = _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession);
+		await _modelFeature.SaveSessionModel(_sessionListFeature.CurrentSession);
+	}
+
+	string? GetModelPickerTooltip()
+	{
+		if(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running)
+		{
+			return "You can't change model while the agent is working";
+		}
+
+		if(_sessionListFeature.CurrentSession?.PendingPermissionRequests?.Count > 0)
+		{
+			return "You can't change model while a permission request is pending";
+		}
+
+		return null;
 	}
 
 	string GetSelectedReasoningEffortDisplay()
@@ -110,59 +160,48 @@ public partial class ModelControl : ComponentBase, IDisposable
 		return char.ToUpper(_sessionListFeature.CurrentSession.ReasoningEffort[0]) + _sessionListFeature.CurrentSession.ReasoningEffort[1..];
 	}
 
-	string GetDisplayModelMultiplier(ModelInfo? model)
+	bool IsReasoningEffortSelected(string effort)
 	{
-		if(model is null)
-		{
-			return "Unknown";
-		}
-
-		if(model.Id.Equals("Auto", StringComparison.InvariantCultureIgnoreCase))
-		{
-			return string.Empty;
-		}
-
-		if(model.Billing is null)
-		{
-			return "Unknown";
-		}
-
-		return $"{model.Billing.Multiplier:0.0}x";
+		return string.Equals(_sessionListFeature.CurrentSession?.ReasoningEffort, effort, StringComparison.OrdinalIgnoreCase);
 	}
 
-	string GetMultiplierColor(ModelInfo? model)
+	string GetReasoningEffortDisplayName(string effort)
 	{
-		if(_availableModels.Count == 0 || model?.Billing?.Multiplier is null)
+		string displayName = char.ToUpper(effort[0]) + effort[1..];
+		if(string.Equals(effort, _sessionListFeature.CurrentSession?.Model.DefaultReasoningEffort, StringComparison.OrdinalIgnoreCase))
 		{
-			return "#999999";
+			return $"{displayName} (default)";
 		}
 
-		double maxMultiplier = _availableModels.Max(m => m.Billing?.Multiplier ?? 0);
+		return displayName;
+	}
 
-		if(model.Billing.Multiplier == 0)
+	static string GetReasoningEffortDescription(string effort)
+	{
+		return effort.ToLowerInvariant() switch
 		{
-			return "#00ff00";
-		}
-		else if(model.Billing.Multiplier < 1)
+			"low" => "Faster responses with less reasoning",
+			"medium" => "Balanced reasoning and speed",
+			"high" => "Greater reasoning depth but slower",
+			"max" => "Absolute maximum capability with no constraints",
+			_ => "Higher reasoning depth for complex tasks"
+		};
+	}
+
+	double? GetNormalizedCost(ModelInfo? model)
+	{
+		if(model is null || model.Id.Equals("Auto", StringComparison.OrdinalIgnoreCase))
 		{
-			return "#00d000";
+			return null;
 		}
-		else if(model.Billing.Multiplier == 1)
-		{
-			return "#999999";
-		}
-		else if(model.Billing.Multiplier >= maxMultiplier)
-		{
-			return "#FF0000";
-		}
-		else if(model.Billing.Multiplier > 1)
-		{
-			return "#ff8c00";
-		}
-		else
-		{
-			return "#999999";
-		}
+
+		return ModelCostCalculator.GetNormalizedCost(model, _availableModels);
+	}
+
+	string? GetCostColor(ModelInfo? model)
+	{
+		double? cost = GetNormalizedCost(model);
+		return cost is not null ? ModelCostCalculator.GetGradientColor(cost) : null;
 	}
 
 	public void Dispose()
@@ -176,6 +215,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		if(disposing)
 		{
 			_sessionListFeature.OnStateChanged -= OnStateChanged;
+			_byokFeature.OnChanged -= OnByokChanged;
 		}
 	}
 }

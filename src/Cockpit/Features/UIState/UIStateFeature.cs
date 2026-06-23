@@ -3,28 +3,44 @@ using Cockpit.Features.TextToSpeech;
 
 namespace Cockpit.Features.UIState;
 
-public class UIStateFeature
+/// <inheritdoc />
+public sealed class UIStateFeature : IUIStateFeature
 {
-	readonly TextToSpeechFeature _textToSpeechFeature;
+	/// <summary>Minimum sidebar width in pixels.</summary>
+	public const int MinSidebarWidth = 150;
+
+	/// <summary>Maximum sidebar width in pixels.</summary>
+	public const int MaxSidebarWidth = 600;
+
+	readonly ITextToSpeechFeature _textToSpeechFeature;
 	readonly IAppSettingsFeature _appSettingsFeature;
 
-	public UIStateFeature(TextToSpeechFeature textToSpeechFeature, IAppSettingsFeature appSettingsFeature)
+	public UIStateFeature(ITextToSpeechFeature textToSpeechFeature, IAppSettingsFeature appSettingsFeature)
 	{
 		_textToSpeechFeature = textToSpeechFeature;
 		_appSettingsFeature = appSettingsFeature;
 
-		_leftSidebarWidth = appSettingsFeature.LeftSidebarWidth;
-		_rightSidebarWidth = appSettingsFeature.RightSidebarWidth;
+		LeftSidebarWidth = Math.Clamp(appSettingsFeature.LeftSidebarWidth, MinSidebarWidth, MaxSidebarWidth);
+		RightSidebarWidth = Math.Clamp(appSettingsFeature.RightSidebarWidth, MinSidebarWidth, MaxSidebarWidth);
 		_sendOnEnter = appSettingsFeature.SendOnEnter;
 		_textToSpeechEnabled = appSettingsFeature.TextToSpeechEnabled;
 	}
 
+	/// <inheritdoc />
 	public event Action? OnStateChanged;
 
+	/// <inheritdoc />
+	public event Action<string>? OnAppendChatInput;
+
+	/// <inheritdoc />
 	public bool LeftSidebarCollapsed { get; private set; } = false;
+
+	/// <inheritdoc />
 	public bool RightSidebarCollapsed { get; private set; } = false;
 
 	int _leftSidebarWidth;
+
+	/// <inheritdoc />
 	public int LeftSidebarWidth
 	{
 		get => _leftSidebarWidth;
@@ -36,6 +52,8 @@ public class UIStateFeature
 	}
 
 	int _rightSidebarWidth;
+
+	/// <inheritdoc />
 	public int RightSidebarWidth
 	{
 		get => _rightSidebarWidth;
@@ -46,9 +64,9 @@ public class UIStateFeature
 		}
 	}
 
-	public bool IsRecording { get; private set; } = false;
-
 	bool _sendOnEnter;
+
+	/// <inheritdoc />
 	public bool SendOnEnter
 	{
 		get => _sendOnEnter;
@@ -60,6 +78,8 @@ public class UIStateFeature
 	}
 
 	bool _textToSpeechEnabled;
+
+	/// <inheritdoc />
 	public bool TextToSpeechEnabled
 	{
 		get => _textToSpeechEnabled;
@@ -70,44 +90,66 @@ public class UIStateFeature
 		}
 	}
 
+	/// <inheritdoc />
 	public void ToggleLeftSidebar()
 	{
 		LeftSidebarCollapsed = !LeftSidebarCollapsed;
 		OnStateChanged?.Invoke();
 	}
 
+	/// <inheritdoc />
 	public void ToggleRightSidebar()
 	{
 		RightSidebarCollapsed = !RightSidebarCollapsed;
 		OnStateChanged?.Invoke();
 	}
 
+	/// <inheritdoc />
 	public void SetLeftSidebarWidth(int width)
 	{
-		LeftSidebarWidth = Math.Clamp(width, 150, 600);
+		int clamped = Math.Clamp(width, MinSidebarWidth, MaxSidebarWidth);
+		if(clamped == _leftSidebarWidth)
+		{
+			return;
+		}
+
+		LeftSidebarWidth = clamped;
 		OnStateChanged?.Invoke();
 	}
 
+	/// <inheritdoc />
 	public void SetRightSidebarWidth(int width)
 	{
-		RightSidebarWidth = Math.Clamp(width, 150, 600);
+		int clamped = Math.Clamp(width, MinSidebarWidth, MaxSidebarWidth);
+		if(clamped == _rightSidebarWidth)
+		{
+			return;
+		}
+
+		RightSidebarWidth = clamped;
 		OnStateChanged?.Invoke();
 	}
 
-	public void ToggleRecording()
-	{
-		IsRecording = !IsRecording;
-		OnStateChanged?.Invoke();
-	}
-
+	/// <inheritdoc />
 	public void SetEnterToSend(bool value)
 	{
+		if(value == _sendOnEnter)
+		{
+			return;
+		}
+
 		SendOnEnter = value;
 		OnStateChanged?.Invoke();
 	}
 
+	/// <inheritdoc />
 	public void SetTextToSpeechEnabled(bool value)
 	{
+		if(value == _textToSpeechEnabled)
+		{
+			return;
+		}
+
 		TextToSpeechEnabled = value;
 		if(!value)
 		{
@@ -117,8 +159,7 @@ public class UIStateFeature
 		OnStateChanged?.Invoke();
 	}
 
-	public event Action<string>? OnAppendChatInput;
-
+	/// <inheritdoc />
 	public void AppendChatInput(string text)
 	{
 		OnAppendChatInput?.Invoke(text);

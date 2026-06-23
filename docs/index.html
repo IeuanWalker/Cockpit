@@ -1,0 +1,1754 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Cockpit | GUI for GitHub Copilot CLI</title>
+	<meta name="description" content="Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.">
+	<meta name="author" content="Ieuan Walker">
+	<meta name="copyright" content="Copyright 2026 Ieuan Walker. All rights reserved.">
+	<meta name="keywords" content="GitHub Copilot GUI, AI coding assistant, multi-session workflows, developer tool, Windows IDE, code editor, AI agent interface, BYOK, diff viewer">
+	<link rel="canonical" href="https://ieuanwalker.github.io/Cockpit/">
+	<meta property="og:title" content="Cockpit | GUI for GitHub Copilot CLI">
+	<meta property="og:description" content="Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.">
+	<meta property="og:image" content="https://ieuanwalker.github.io/Cockpit/assets/app-preview.png">
+	<meta property="og:url" content="https://ieuanwalker.github.io/Cockpit/">
+	<meta property="og:type" content="website">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="Cockpit | GUI for GitHub Copilot CLI">
+	<meta name="twitter:description" content="Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.">
+	<meta name="twitter:image" content="https://ieuanwalker.github.io/Cockpit/assets/app-preview.png">
+	<meta name="twitter:site" content="@IeuanWalker">
+	<meta name="twitter:creator" content="@IeuanWalker">
+	<link rel="icon" type="image/png" href="assets/logo.png">
+	<style>
+		:root {
+			/* Cockpit app dark theme colors */
+			--bg-color: #1F1F1F;
+			--sidebar-color: #181818;
+			--border-color: #2B2B2B;
+			--hover-color: #2A2A2A;
+			--active-color: #37373D;
+			--text-color: #CCCCCC;
+			--title-color: #FFFFFF;
+			--input-bg: #313131;
+			--input-border: #3D3D3D;
+			--secondary-text: #7B7B7B;
+			--accent-color: #0078D4;
+			--button-bg: #FFFFFF;
+			--button-hover: #EDEDED;
+			--button-text: #111111;
+			--shadow: rgba(0, 0, 0, 0.35);
+			--grid-line: rgba(255, 255, 255, 0.05);
+			--overlay: rgba(6, 6, 8, 0.72);
+			--neon-cyan: #35D7FF;
+			--neon-violet: #8E7CFF;
+			--neon-pink: #FF66C4;
+		}
+
+		body.light-theme {
+			/* Cockpit app light theme colors */
+			--bg-color: #FFFFFF;
+			--sidebar-color: #F8F8F8;
+			--border-color: #E5E5E5;
+			--hover-color: #F0F0F0;
+			--active-color: #E4E6F1;
+			--text-color: #3B3B3B;
+			--title-color: #1F1F1F;
+			--input-bg: #FFFFFF;
+			--input-border: #CECECE;
+			--secondary-text: #555555;
+			--accent-color: #0078D4;
+			--button-bg: #111111;
+			--button-hover: #000000;
+			--button-text: #FFFFFF;
+			--shadow: rgba(0, 0, 0, 0.12);
+			--grid-line: rgba(0, 0, 0, 0.05);
+			--overlay: rgba(7, 12, 22, 0.38);
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		html,
+		body {
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+			color: var(--text-color);
+			background:
+				radial-gradient(1200px 560px at 50% -20%, color-mix(in srgb, var(--neon-violet) 28%, transparent), transparent 60%),
+				linear-gradient(180deg, var(--sidebar-color) 0%, var(--bg-color) 55%);
+			min-height: 100vh;
+			overflow-x: hidden;
+			position: relative;
+		}
+
+		body::before {
+			content: "";
+			position: fixed;
+			inset: 0;
+			pointer-events: none;
+			background:
+				linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+				linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+			background-size: 48px 48px;
+			mask-image: radial-gradient(circle at center, black 30%, transparent 92%);
+			z-index: -1;
+		}
+
+		#starfield {
+			position: fixed;
+			inset: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			z-index: -2;
+			opacity: 0.85;
+		}
+
+		.container {
+			width: min(1180px, 92%);
+			margin: 0 auto;
+		}
+
+		.skip-link {
+			position: absolute;
+			left: 1rem;
+			top: -3.2rem;
+			padding: 0.6rem 0.9rem;
+			border-radius: 0.6rem;
+			background: var(--button-bg);
+			color: var(--button-text);
+			border: 1px solid var(--input-border);
+			font-weight: 600;
+			text-decoration: none;
+			z-index: 100;
+		}
+
+		.skip-link:focus-visible {
+			top: 1rem;
+		}
+
+		a {
+			color: inherit;
+			text-decoration: underline;
+			text-underline-offset: 0.15rem;
+			text-decoration-thickness: 0.08em;
+		}
+
+		a.btn,
+		.brand {
+			text-decoration: none;
+		}
+
+		.top-nav {
+			padding: 1.2rem 0;
+			position: relative;
+			z-index: 3;
+			backdrop-filter: blur(8px);
+		}
+
+		.nav-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 1rem;
+		}
+
+		.brand {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.65rem;
+			font-weight: 700;
+			letter-spacing: 0.2px;
+			color: var(--title-color);
+		}
+
+		.brand img {
+			width: 1.8rem;
+			height: 1.8rem;
+			border-radius: 50%;
+			object-fit: cover;
+			border: 1px solid var(--input-border);
+		}
+
+		.top-actions {
+			display: flex;
+			align-items: center;
+			gap: 0.65rem;
+		}
+
+		.btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.45rem;
+			padding: 0.68rem 1rem;
+			border-radius: 0.75rem;
+			border: 1px solid transparent;
+			cursor: pointer;
+			font-weight: 650;
+			font-size: 0.94rem;
+			transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+		}
+
+		.btn svg {
+			width: 1rem;
+			height: 1rem;
+			fill: currentColor;
+			flex: 0 0 auto;
+		}
+
+		.btn:hover {
+			transform: translateY(-2px);
+		}
+
+		.btn:focus-visible,
+		.feature-card:focus-visible,
+		.close-btn:focus-visible,
+		.theme-toggle:focus-visible,
+		a:focus-visible {
+			outline: 2px solid var(--accent-color);
+			outline-offset: 2px;
+			box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-color) 26%, transparent);
+		}
+
+		.btn.primary {
+			background: var(--button-bg);
+			color: var(--button-text);
+			box-shadow: 0 10px 22px var(--shadow);
+		}
+
+		.btn.primary:hover {
+			background: var(--button-hover);
+		}
+
+		.btn.ghost {
+			border-color: var(--border-color);
+			background: color-mix(in srgb, var(--sidebar-color) 80%, transparent);
+			color: var(--title-color);
+		}
+
+		.btn.ghost:hover {
+			background: var(--hover-color);
+		}
+
+		.hero {
+			padding: 1.8rem 0 1.4rem;
+			position: relative;
+		}
+
+		.hero-content {
+			text-align: center;
+			padding: 2rem 0 1.2rem;
+			animation: rise 0.7s ease both;
+		}
+
+		.pill {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.35rem 0.8rem;
+			border-radius: 999px;
+			font-size: 0.84rem;
+			color: var(--secondary-text);
+			border: 1px solid var(--border-color);
+			background: color-mix(in srgb, var(--accent-color) 14%, transparent);
+		}
+
+		.hero h1 {
+			margin: 1rem auto 1rem;
+			font-size: clamp(2.2rem, 7vw, 5.2rem);
+			line-height: 1.02;
+			letter-spacing: -0.03em;
+			max-width: 17ch;
+			color: transparent;
+			background: linear-gradient(120deg, var(--title-color), var(--neon-cyan), var(--neon-violet), var(--title-color));
+			background-size: 220% 220%;
+			-webkit-background-clip: text;
+			background-clip: text;
+			animation: holoShift 10s linear infinite;
+			text-wrap: balance;
+		}
+
+		.hero-caption {
+			margin: 0 auto;
+			max-width: 62ch;
+			font-size: clamp(1rem, 2vw, 1.3rem);
+			color: var(--secondary-text);
+			text-wrap: pretty;
+		}
+
+		.hero-buttons {
+			margin-top: 1.5rem;
+			display: flex;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 0.8rem;
+		}
+
+		.preview-wrap {
+			margin: 2rem auto 0.2rem;
+			max-width: 1040px;
+			border-radius: 1.2rem;
+			border: 1px solid var(--input-border);
+			background: linear-gradient(180deg, color-mix(in srgb, var(--accent-color) 14%, transparent), transparent);
+			padding: 0.8rem;
+			box-shadow: 0 20px 50px var(--shadow);
+			animation: rise 0.9s ease both;
+			transform-style: preserve-3d;
+			will-change: transform;
+			transition: transform 0.16s ease-out;
+		}
+
+		.preview {
+			display: block;
+			width: 100%;
+			height: auto;
+			aspect-ratio: 1918 / 1030;
+			object-fit: contain;
+			border-radius: 0.85rem;
+			border: 1px solid var(--border-color);
+			background: var(--sidebar-color);
+			cursor: zoom-in;
+		}
+
+		.features {
+			padding: 3rem 0 5rem;
+		}
+
+		.features h2 {
+			margin: 0 0 1.4rem;
+			text-align: center;
+			font-size: clamp(1.7rem, 4vw, 2.7rem);
+			color: var(--title-color);
+		}
+
+		.feature-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+			gap: 0.9rem;
+		}
+
+		.feature-card {
+			text-align: left;
+			background:
+				radial-gradient(300px 90px at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--title-color) var(--glow-strength, 0%), transparent), transparent 58%),
+				radial-gradient(420px 120px at calc(var(--mx, 50%) + 8%) var(--my, 50%), color-mix(in srgb, var(--neon-cyan) var(--glow-strength, 0%), transparent), transparent 72%),
+				radial-gradient(420px 120px at calc(var(--mx, 50%) - 8%) calc(var(--my, 50%) + 3%), color-mix(in srgb, var(--neon-violet) var(--glow-strength, 0%), transparent), transparent 74%),
+				linear-gradient(160deg, color-mix(in srgb, var(--input-bg) 90%, transparent), var(--input-bg));
+			border: 1px solid var(--border-color);
+			border-radius: 1rem;
+			padding: 1rem;
+			color: var(--title-color);
+			cursor: pointer;
+			transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+			box-shadow: 0 10px 24px var(--shadow);
+			min-height: 140px;
+			transform-style: preserve-3d;
+			will-change: transform;
+			position: relative;
+			overflow: hidden;
+		}
+
+		.feature-card:hover {
+			transform: translateY(-3px);
+			border-color: color-mix(in srgb, var(--accent-color) 55%, var(--border-color));
+			box-shadow: 0 14px 28px var(--shadow), 0 0 24px color-mix(in srgb, var(--neon-violet) 22%, transparent);
+		}
+
+		.feature-card::before {
+			content: "";
+			position: absolute;
+			inset: -1px;
+			border-radius: inherit;
+			pointer-events: none;
+			background: linear-gradient(
+				120deg,
+				color-mix(in srgb, var(--title-color) 34%, transparent),
+				color-mix(in srgb, var(--neon-cyan) 35%, transparent),
+				color-mix(in srgb, var(--neon-violet) 35%, transparent),
+				color-mix(in srgb, var(--title-color) 28%, transparent)
+			);
+			opacity: 0;
+			transition: opacity 0.25s ease;
+			mix-blend-mode: screen;
+		}
+
+		.feature-card:hover::before,
+		.feature-card.is-tilting::before {
+			opacity: 0.38;
+		}
+
+		.feature-card h3 {
+			margin: 0 0 0.4rem;
+			font-size: 1rem;
+		}
+
+		.feature-card p {
+			margin: 0;
+			color: var(--secondary-text);
+			font-size: 0.94rem;
+		}
+
+		.feature-card.coming-soon {
+			border-style: dashed;
+			border-color: color-mix(in srgb, var(--accent-color) 70%, var(--border-color));
+		}
+
+		.feature-card.partial-support {
+			border-style: dashed;
+			border-color: color-mix(in srgb, var(--neon-violet) 70%, var(--border-color));
+		}
+
+		.tag {
+			display: inline-block;
+			margin-bottom: 0.5rem;
+			padding: 0.2rem 0.5rem;
+			font-size: 0.75rem;
+			font-weight: 700;
+			text-transform: uppercase;
+			letter-spacing: 0.08em;
+			border-radius: 999px;
+			background: color-mix(in srgb, var(--accent-color) 18%, transparent);
+			color: var(--accent-color);
+		}
+
+		.tag--purple {
+			background: color-mix(in srgb, var(--neon-violet) 18%, transparent);
+			color: var(--neon-violet);
+		}
+
+		.modal-backdrop {
+			position: fixed;
+			inset: 0;
+			background: var(--overlay);
+			backdrop-filter: blur(4px);
+			display: none;
+			align-items: center;
+			justify-content: center;
+			padding: 1rem;
+			z-index: 50;
+		}
+
+		.modal-backdrop.show {
+			display: flex;
+			animation: fadeIn 0.24s ease;
+		}
+
+		.modal {
+			width: min(720px, 96%);
+			background: var(--input-bg);
+			border: 1px solid var(--input-border);
+			border-radius: 1rem;
+			padding: 1rem 1rem 1.1rem;
+			box-shadow: 0 20px 45px var(--shadow);
+			transform: translateY(12px) scale(0.98);
+			opacity: 0;
+			animation: modalIn 0.25s ease forwards;
+		}
+
+		.modal-head {
+			display: flex;
+			align-items: flex-start;
+			justify-content: space-between;
+			gap: 1rem;
+			margin-bottom: 0.55rem;
+		}
+
+		.modal-title-row {
+			display: flex;
+			align-items: center;
+			gap: 0.6rem;
+			flex: 1;
+		}
+
+		.modal-badges {
+			display: flex;
+			gap: 0.4rem;
+			flex-wrap: wrap;
+			align-items: center;
+		}
+
+		.tag {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.3rem;
+			padding: 0.25rem 0.6rem;
+			border-radius: 999px;
+			font-size: 0.75rem;
+			font-weight: 600;
+			border: 1px solid var(--accent-color);
+			background: color-mix(in srgb, var(--accent-color) 14%, transparent);
+			color: var(--accent-color);
+		}
+
+		.tag--purple {
+			background: color-mix(in srgb, var(--neon-violet) 14%, transparent);
+			border-color: var(--neon-violet);
+			color: var(--neon-violet);
+		}
+
+		.modal h3 {
+			margin: 0;
+			font-size: 1.2rem;
+			color: var(--title-color);
+		}
+
+		.modal p {
+			margin: 0.3rem 0 0;
+			color: var(--text-color);
+			line-height: 1.6;
+			white-space: pre-line;
+		}
+
+		.modal-doc-link {
+			display: none;
+			margin-top: 0.8rem;
+			color: var(--accent-color);
+			font-weight: 600;
+			text-decoration: underline;
+			text-underline-offset: 0.18rem;
+		}
+
+		.modal-doc-link.show {
+			display: inline-flex;
+		}
+
+		.modal-media {
+			margin-top: 0.9rem;
+			border: 1px solid var(--border-color);
+			border-radius: 0.75rem;
+			overflow: hidden;
+			background: var(--sidebar-color);
+			display: none;
+		}
+
+		.modal-media.show {
+			display: block;
+			animation: rise 0.25s ease;
+		}
+
+		.modal-media img,
+		.modal-media video {
+			display: none;
+			width: 100%;
+			height: auto;
+			max-height: 420px;
+			object-fit: contain;
+			background: #000;
+		}
+
+		.modal-media img.show,
+		.modal-media video.show {
+			display: block;
+		}
+
+		.modal-media img.show {
+			cursor: zoom-in;
+		}
+
+		.modal-carousel {
+			display: none;
+			flex-direction: column;
+		}
+
+		.modal-carousel.show {
+			display: flex;
+		}
+
+		.modal-carousel-track {
+			position: relative;
+			overflow: hidden;
+		}
+
+		.modal-carousel-track img {
+			display: none;
+			width: 100%;
+			height: auto;
+			max-height: 420px;
+			object-fit: contain;
+			background: #000;
+			cursor: zoom-in;
+		}
+
+		.modal-carousel-track img.active {
+			display: block;
+		}
+
+		.modal-carousel-nav {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.6rem;
+			padding: 0.55rem 0.75rem 0.6rem;
+			background: var(--sidebar-color);
+		}
+
+		.carousel-btn {
+			border: 1px solid var(--border-color);
+			background: var(--hover-color);
+			color: var(--title-color);
+			border-radius: 0.5rem;
+			width: 1.8rem;
+			height: 1.8rem;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			padding: 0;
+			flex-shrink: 0;
+		}
+
+		.carousel-btn:hover {
+			background: var(--active-color);
+		}
+
+		.carousel-btn svg {
+			width: 0.85rem;
+			height: 0.85rem;
+			fill: currentColor;
+		}
+
+		.carousel-dots {
+			display: flex;
+			gap: 0.4rem;
+			align-items: center;
+		}
+
+		.carousel-dot {
+			width: 6px;
+			height: 6px;
+			border-radius: 999px;
+			background: var(--border-color);
+			transition: background 0.2s ease, width 0.2s ease;
+			cursor: pointer;
+			border: none;
+			padding: 0;
+		}
+
+		.carousel-dot.active {
+			background: var(--accent-color);
+			width: 16px;
+		}
+
+		.lightbox {
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, 0.92);
+			display: none;
+			align-items: center;
+			justify-content: center;
+			z-index: 100;
+			padding: 1rem;
+			cursor: zoom-out;
+		}
+
+		.lightbox.show {
+			display: flex;
+			animation: fadeIn 0.2s ease;
+		}
+
+		.lightbox img {
+			max-width: 100%;
+			max-height: 100%;
+			object-fit: contain;
+			border-radius: 0.5rem;
+			box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+			pointer-events: none;
+			user-select: none;
+		}
+
+		.lightbox-close {
+			position: absolute;
+			top: 1rem;
+			right: 1rem;
+			border: 1px solid rgba(255, 255, 255, 0.2);
+			background: rgba(255, 255, 255, 0.08);
+			color: #fff;
+			border-radius: 0.6rem;
+			width: 2rem;
+			height: 2rem;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			padding: 0;
+		}
+
+		.lightbox-close:hover {
+			background: rgba(255, 255, 255, 0.16);
+		}
+
+		.lightbox-close svg {
+			width: 1rem;
+			height: 1rem;
+			fill: currentColor;
+		}
+
+		.close-btn {
+			border: 1px solid var(--border-color);
+			background: var(--hover-color);
+			color: var(--title-color);
+			border-radius: 0.6rem;
+			width: 2rem;
+			height: 2rem;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0;
+			cursor: pointer;
+		}
+
+		.close-btn svg {
+			width: 1rem;
+			height: 1rem;
+			fill: currentColor;
+		}
+
+		.theme-toggle {
+			width: 2.4rem;
+			height: 2.4rem;
+			border-radius: 999px;
+			padding: 0;
+			position: relative;
+			overflow: hidden;
+		}
+
+		.theme-toggle .sun-icon,
+		.theme-toggle .moon-icon {
+			position: absolute;
+			width: 1.2rem;
+			height: 1.2rem;
+			transition: transform 0.28s ease, opacity 0.28s ease;
+		}
+
+		.theme-toggle .sun-icon {
+			opacity: 1;
+			transform: rotate(0deg) scale(1);
+		}
+
+		.theme-toggle .moon-icon {
+			opacity: 0;
+			transform: rotate(90deg) scale(0.35);
+		}
+
+		body.light-theme .theme-toggle .sun-icon {
+			opacity: 0;
+			transform: rotate(-90deg) scale(0.35);
+		}
+
+		body.light-theme .theme-toggle .moon-icon {
+			opacity: 1;
+			transform: rotate(0deg) scale(1);
+		}
+
+		.theme-toggle::after {
+			content: "";
+			position: absolute;
+			left: 50%;
+			top: 100%;
+			width: 0.38rem;
+			height: 0.38rem;
+			border-radius: 50%;
+			background: color-mix(in srgb, var(--title-color) 65%, transparent);
+			transform: translate(-50%, 0.22rem) scale(0.78);
+			opacity: 0.7;
+			transition: transform 0.28s ease, opacity 0.28s ease;
+		}
+
+		body.light-theme .theme-toggle::after {
+			transform: translate(-50%, 0.34rem) scale(0.52);
+			opacity: 0.48;
+		}
+
+		.site-footer {
+			margin-top: 1rem;
+			border-top: 1px solid var(--border-color);
+			background: color-mix(in srgb, var(--sidebar-color) 75%, transparent);
+		}
+
+		.footer-row {
+			min-height: 88px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 1rem;
+			color: var(--secondary-text);
+			font-size: 0.95rem;
+		}
+
+		.footer-left {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.6rem;
+		}
+
+		.footer-left img {
+			width: 1rem;
+			height: 1rem;
+			border-radius: 50%;
+		}
+
+		.footer-links {
+			display: inline-flex;
+			gap: 1.2rem;
+		}
+
+		.footer-links a {
+			text-decoration: none;
+		}
+
+
+		.footer-links a:hover {
+			color: var(--title-color);
+		}
+
+		@keyframes rise {
+			from {
+				opacity: 0;
+				transform: translateY(18px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; }
+			to { opacity: 1; }
+		}
+
+		@keyframes modalIn {
+			to {
+				opacity: 1;
+				transform: translateY(0) scale(1);
+			}
+		}
+
+		@keyframes holoShift {
+			0% { background-position: 0% 50%; }
+			50% { background-position: 100% 50%; }
+			100% { background-position: 0% 50%; }
+		}
+
+		.reveal {
+			opacity: 0;
+			transform: translateY(16px);
+			transition: opacity 0.55s ease, transform 0.55s ease;
+		}
+
+		.reveal.show {
+			opacity: 1;
+			transform: translateY(0);
+		}
+
+		.why-section {
+			padding: 3rem 0;
+			text-align: center;
+		}
+
+		.why-section h2 {
+			font-size: clamp(1.8rem, 4vw, 2.8rem);
+			margin-bottom: 2rem;
+			color: var(--title-color);
+		}
+
+		.why-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+			gap: 2rem;
+			margin-top: 2rem;
+		}
+
+		.why-card {
+			padding: 1.5rem;
+			border-radius: 1rem;
+			border: 1px solid var(--border-color);
+			background: color-mix(in srgb, var(--sidebar-color) 60%, transparent);
+			transition: all 0.3s ease;
+		}
+
+		.why-card:hover {
+			border-color: var(--accent-color);
+			background: color-mix(in srgb, var(--sidebar-color) 80%, transparent);
+			transform: translateY(-2px);
+		}
+
+		.why-card h3 {
+			margin: 0 0 0.8rem 0;
+			font-size: 1.1rem;
+			color: var(--title-color);
+		}
+
+		.why-card p {
+			margin: 0;
+			color: var(--secondary-text);
+			line-height: 1.6;
+		}
+
+		@media (max-width: 880px) {
+			.footer-row {
+				flex-direction: column;
+				justify-content: center;
+				padding: 1rem 0;
+			}
+
+			.why-grid {
+				grid-template-columns: 1fr;
+				gap: 1.5rem;
+			}
+		}
+
+		@media (prefers-reduced-motion: reduce) {
+			* {
+				animation: none !important;
+				transition: none !important;
+			}
+		}
+	</style>
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@type": "SoftwareApplication",
+				"name": "Cockpit",
+				"description": "Cockpit is a GUI for GitHub Copilot CLI with multi-session workflows, integrated terminal, diff review, permission controls, and BYOK model support.",
+				"image": "https://ieuanwalker.github.io/Cockpit/assets/app-preview.png",
+				"author": {
+					"@type": "Person",
+					"name": "Ieuan Walker"
+				},
+				"offers": {
+					"@type": "Offer",
+					"price": "0",
+					"priceCurrency": "USD",
+					"availability": "https://schema.org/InStock"
+				},
+				"operatingSystem": "Windows 10+, macOS 15+",
+				"applicationCategory": "DeveloperApplication",
+				"url": "https://ieuanwalker.github.io/Cockpit/",
+				"downloadUrl": "https://github.com/IeuanWalker/Cockpit/releases/latest",
+				"codeRepository": "https://github.com/IeuanWalker/Cockpit",
+				"softwareVersion": "Latest"
+			}
+		</script>
+		<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@type": "WebSite",
+			"url": "https://ieuanwalker.github.io/Cockpit/",
+			"name": "Cockpit",
+			"description": "GUI for GitHub Copilot CLI",
+			"creator": {
+				"@type": "Person",
+				"name": "Ieuan Walker",
+				"url": "https://github.com/IeuanWalker"
+			}
+		}
+		</script>
+	</head>
+	<body>
+		<canvas id="starfield" aria-hidden="true"></canvas>
+		<a class="skip-link" href="#main-content">Skip to main content</a>
+		<nav class="top-nav">
+			<div class="container nav-row">
+				<a class="brand" href="#">
+					<img src="assets/logo.png" alt="Cockpit logo" width="512" height="512" decoding="async">
+					Cockpit
+				</a>
+				<div class="top-actions">
+					<button class="btn ghost theme-toggle" id="themeToggle" type="button" aria-label="Toggle color theme" title="Toggle color theme">
+					<svg class="sun-icon" viewBox="0 0 47.576 47.576" aria-hidden="true"><path d="M24.235 12.13c-6.478 0-11.748 5.269-11.748 11.748s5.27 11.747 11.748 11.747 11.748-5.27 11.748-11.747S30.713 12.13 24.235 12.13zm0 21.145c-5.182 0-9.398-4.216-9.398-9.397 0-5.183 4.216-9.397 9.398-9.397 5.183 0 9.397 4.217 9.397 9.397 0 5.182-4.214 9.397-9.397 9.397zm-1.175-26.79V1.589c0-.649.526-1.174 1.175-1.174.648 0 1.175.525 1.175 1.174v4.896c0 .648-.528 1.175-1.175 1.175-.649 0-1.175-.527-1.175-1.175zm12.035 6.802c-.459-.458-.459-1.202 0-1.661l4.209-4.209c.459-.458 1.203-.458 1.662 0 .459.459.459 1.203 0 1.661l-4.209 4.209a1.17 1.17 0 0 1-.83.344c-.3 0-.601-.115-.832-.344zM5.63 9.078c-.458-.458-.458-1.202 0-1.661.459-.458 1.203-.458 1.661 0l4.21 4.209c.458.459.458 1.204 0 1.661a1.172 1.172 0 0 1-.83.344c-.301 0-.602-.115-.831-.344L5.63 9.078zm18.842 32.013v4.896c0 .649-.525 1.175-1.173 1.175-.649 0-1.175-.527-1.175-1.175v-4.896c0-.649.526-1.176 1.175-1.176.648 0 1.173.526 1.173 1.176zm-12.035-6.803c.459.458.459 1.202 0 1.661l-4.209 4.21a1.174 1.174 0 0 1-.831.346c-.3 0-.601-.117-.83-.346-.459-.458-.459-1.203 0-1.662l4.209-4.209c.459-.459 1.202-.459 1.661 0zm29.465 4.209c.459.459.459 1.202 0 1.662-.229.23-.527.346-.83.346-.299 0-.601-.117-.83-.346l-4.209-4.21c-.459-.459-.459-1.202 0-1.661s1.201-.459 1.66 0l4.209 4.209zM6.461 25.054H1.175C.526 25.054 0 24.526 0 23.878s.526-1.176 1.175-1.176h5.286c.649 0 1.175.527 1.175 1.176-.001.648-.526 1.174-1.175 1.176zm41.115-1.176c0 .649-.526 1.176-1.174 1.176h-6.267c-.649 0-1.176-.527-1.176-1.176s.526-1.176 1.176-1.176h6.267c.648 0 1.174.526 1.174 1.176z"></path></svg>
+					<svg class="moon-icon" viewBox="0 0 122.88 122.89" aria-hidden="true"><path d="M49.06 1.27c2.17-.45 4.34-.77 6.48-.98 2.2-.21 4.38-.31 6.53-.29 1.21.01 2.18 1 2.17 2.21-.01.93-.6 1.72-1.42 2.03-9.15 3.6-16.47 10.31-20.96 18.62-4.42 8.17-6.1 17.88-4.09 27.68l.01.07c2.29 11.06 8.83 20.15 17.58 25.91 8.74 5.76 19.67 8.18 30.73 5.92l.07-.01c7.96-1.65 14.89-5.49 20.3-10.78 5.6-5.47 9.56-12.48 11.33-20.16.27-1.18 1.45-1.91 2.62-1.64.89.21 1.53.93 1.67 1.78 2.64 16.2-1.35 32.07-10.06 44.71-8.67 12.58-22.03 21.97-38.18 25.29-16.62 3.42-33.05-.22-46.18-8.86C14.52 104.1 4.69 90.45 1.27 73.83-2.07 57.6 1.32 41.55 9.53 28.58 17.78 15.57 30.88 5.64 46.91 1.75c.31-.08.67-.16 1.06-.25h.01l1.08-.23z"></path></svg>
+				</button>
+				<a class="btn ghost" href="https://github.com/IeuanWalker/Cockpit" target="_blank">
+					<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.67 0 8.2c0 3.62 2.29 6.68 5.47 7.77.4.08.55-.18.55-.4 0-.2-.01-.86-.01-1.56-2.01.38-2.53-.5-2.69-.96-.09-.24-.48-.97-.82-1.17-.28-.15-.68-.52-.01-.53.63-.01 1.08.6 1.23.85.72 1.24 1.87.89 2.33.68.07-.53.28-.89.5-1.1-1.78-.21-3.64-.92-3.64-4.08 0-.9.31-1.63.82-2.2-.08-.21-.36-1.05.08-2.2 0 0 .67-.22 2.2.84.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.06 2.2-.84 2.2-.84.44 1.15.16 1.99.08 2.2.51.57.82 1.29.82 2.2 0 3.17-1.87 3.87-3.65 4.08.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .22.15.49.55.4A8.23 8.23 0 0 0 16 8.2C16 3.67 12.42 0 8 0Z"></path></svg>
+					GitHub
+				</a>
+				<a class="btn primary" href="https://github.com/IeuanWalker/Cockpit/releases/latest" target="_blank">
+					<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 2.23 6.55 1.33v6.32H0V2.23Zm7.27-1V7.65H16V0L7.27 1.23ZM0 8.35h6.55v6.32L0 13.77V8.35Zm7.27 0V14.8L16 16V8.35H7.27Z"></path></svg>
+					Download
+				</a>
+			</div>
+		</div>
+	</nav>
+
+	<main id="main-content">
+	<header class="hero">
+		<div class="container">
+			<div class="hero-content">
+				<span class="pill">GUI for GitHub Copilot CLI</span>
+				<h1>Your AI coding cockpit, built for speed, transparency, and control.</h1>
+				<p class="hero-caption">
+					Cockpit makes AI agent workflows easier: run multiple sessions, integrated terminal, review activity and diffs,
+					manage permissions, and keep every step visible.
+				</p>
+				<div class="hero-buttons">
+					<a class="btn primary" href="https://github.com/IeuanWalker/Cockpit/releases/latest" target="_blank">
+						<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 2.23 6.55 1.33v6.32H0V2.23Zm7.27-1V7.65H16V0L7.27 1.23ZM0 8.35h6.55v6.32L0 13.77V8.35Zm7.27 0V14.8L16 16V8.35H7.27Z"></path></svg>
+						Download for Windows
+					</a>
+					<a class="btn ghost" href="https://github.com/IeuanWalker/Cockpit" target="_blank">
+						<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.67 0 8.2c0 3.62 2.29 6.68 5.47 7.77.4.08.55-.18.55-.4 0-.2-.01-.86-.01-1.56-2.01.38-2.53-.5-2.69-.96-.09-.24-.48-.97-.82-1.17-.28-.15-.68-.52-.01-.53.63-.01 1.08.6 1.23.85.72 1.24 1.87.89 2.33.68.07-.53.28-.89.5-1.1-1.78-.21-3.64-.92-3.64-4.08 0-.9.31-1.63.82-2.2-.08-.21-.36-1.05.08-2.2 0 0 .67-.22 2.2.84.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.06 2.2-.84 2.2-.84.44 1.15.16 1.99.08 2.2.51.57.82 1.29.82 2.2 0 3.17-1.87 3.87-3.65 4.08.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .22.15.49.55.4A8.23 8.23 0 0 0 16 8.2C16 3.67 12.42 0 8 0Z"></path></svg>
+						Star on GitHub
+					</a>
+				</div>
+				<div class="preview-wrap" id="previewWrap">
+						<img class="preview" src="assets/app-preview.png" alt="Cockpit app interface preview" width="1918" height="1030" loading="eager" fetchpriority="high" decoding="async" role="button" tabindex="0" aria-label="View full size preview">
+				</div>
+			</div>
+		</div>
+	</header>
+
+	<section class="why-section">
+		<div class="container">
+			<h2>Why Cockpit?</h2>
+			<div class="why-grid">
+				<div class="why-card">
+					<h3>Free and Open Source</h3>
+					<p>No licensing costs, no vendor lock-in. Full transparency into how your AI workflows operate with community-driven development.</p>
+				</div>
+				<div class="why-card">
+					<h3>Fully Customizable</h3>
+					<p>Tailor the interface, theme, layout, and workflows to match your personal setup. Extend with plugins for your specific needs (coming soon).</p>
+				</div>
+				<div class="why-card">
+					<h3>Transparent & Traceable</h3>
+					<p>See every decision the AI makes. Comprehensive activity logs, token usage tracking, and audit trails keep you in control and informed.</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="features" id="features">
+		<div class="container">
+			<h2>Features</h2>
+			<div class="feature-grid" id="featureGrid"></div>
+		</div>
+	</section>
+	</main>
+
+	<div class="modal-backdrop" id="featureModal" aria-hidden="true">
+		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody" aria-live="polite" aria-atomic="true">
+			<div class="modal-head">
+				<div class="modal-title-row">
+					<h3 id="modalTitle"></h3>
+					<div id="modalBadges" class="modal-badges"></div>
+				</div>
+				<button class="close-btn" type="button" id="modalClose" aria-label="Close">
+					<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path></svg>
+				</button>
+			</div>
+			<p id="modalBody"></p>
+			<a id="modalDocLink" class="modal-doc-link" href="#" target="_blank" rel="noopener noreferrer">Official documentation</a>
+			<div class="modal-media" id="modalMedia">
+				<img id="modalImage" alt="Feature preview image" width="1918" height="1030" loading="lazy" decoding="async">
+				<video id="modalVideo" controls preload="metadata"></video>
+				<div class="modal-carousel" id="modalCarousel">
+					<div class="modal-carousel-track" id="modalCarouselTrack"></div>
+					<div class="modal-carousel-nav">
+						<button class="carousel-btn" type="button" id="carouselPrev" aria-label="Previous image">
+							<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.78 3.22a.75.75 0 0 1 0 1.06L6.56 7.5l3.22 3.22a.75.75 0 1 1-1.06 1.06L4.94 8a.75.75 0 0 1 0-1.06l3.78-3.78a.75.75 0 0 1 1.06 0Z"/></svg>
+						</button>
+						<div class="carousel-dots" id="carouselDots"></div>
+						<button class="carousel-btn" type="button" id="carouselNext" aria-label="Next image">
+							<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.22 3.22a.75.75 0 0 0 0 1.06L9.44 7.5 6.22 10.72a.75.75 0 1 0 1.06 1.06L11.06 8a.75.75 0 0 0 0-1.06L7.28 3.22a.75.75 0 0 0-1.06 0Z"/></svg>
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<footer class="site-footer">
+		<div class="container footer-row">
+			<div class="footer-left">
+				<img src="assets/logo.png" alt="Cockpit logo" width="512" height="512" loading="lazy" decoding="async">
+				<span>Ieuan Walker &copy; 2026 Cockpit</span>
+			</div>
+			<div class="footer-links">
+				<a href="https://github.com/IeuanWalker/Cockpit" target="_blank">GitHub</a>
+				<a href="https://github.com/IeuanWalker/Cockpit/releases/latest" target="_blank">Download</a>
+			</div>
+		</div>
+	</footer>
+
+	<div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Full size image">
+		<button class="lightbox-close" type="button" id="lightboxClose" aria-label="Close full size image">
+			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path></svg>
+		</button>
+		<img id="lightboxImage" alt="Full size application preview">
+	</div>
+
+	<script>
+		const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+		const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+		const themeToggle = document.getElementById("themeToggle");
+		let reduceMotionEnabled = reducedMotionQuery.matches;
+
+		function getPreferredTheme() {
+			const saved = localStorage.getItem("landing-theme");
+			if (saved === "light" || saved === "dark") {
+				return saved;
+			}
+
+			return mediaQuery.matches ? "light" : "dark";
+		}
+
+		function applyTheme(theme) {
+			document.body.classList.toggle("light-theme", theme === "light");
+			themeToggle.setAttribute("aria-label", `Switch to ${theme === "light" ? "dark" : "light"} mode`);
+			themeToggle.setAttribute("title", theme === "light" ? "Switch to dark mode" : "Switch to light mode");
+		}
+
+		applyTheme(getPreferredTheme());
+
+		themeToggle.addEventListener("click", () => {
+			const nextTheme = document.body.classList.contains("light-theme") ? "dark" : "light";
+			localStorage.setItem("landing-theme", nextTheme);
+			applyTheme(nextTheme);
+		});
+
+		mediaQuery.addEventListener("change", (event) => {
+			if (!localStorage.getItem("landing-theme")) {
+				applyTheme(event.matches ? "light" : "dark");
+			}
+		});
+
+		const previewWrap = document.getElementById("previewWrap");
+		let targetRotateX = 0;
+		let targetRotateY = 0;
+		let currentRotateX = 0;
+		let currentRotateY = 0;
+		let previewTiltRunning = false;
+
+		// Declare featureCards early - will be populated after card generation
+		let featureCards = [];
+
+		function animatePreviewTilt() {
+			if (reduceMotionEnabled) {
+				previewTiltRunning = false;
+				previewWrap.style.removeProperty("transform");
+				return;
+			}
+
+			currentRotateX += (targetRotateX - currentRotateX) * 0.16;
+			currentRotateY += (targetRotateY - currentRotateY) * 0.16;
+			previewWrap.style.transform = `perspective(1200px) rotateX(${currentRotateX.toFixed(2)}deg) rotateY(${currentRotateY.toFixed(2)}deg)`;
+			requestAnimationFrame(animatePreviewTilt);
+		}
+
+		previewWrap.addEventListener("pointermove", (event) => {
+			if (reduceMotionEnabled) {
+				return;
+			}
+
+			const rect = previewWrap.getBoundingClientRect();
+			const x = (event.clientX - rect.left) / rect.width;
+			const y = (event.clientY - rect.top) / rect.height;
+			targetRotateY = (x - 0.5) * 5;
+			targetRotateX = (0.5 - y) * 5;
+		});
+
+		previewWrap.addEventListener("pointerleave", () => {
+			targetRotateX = 0;
+			targetRotateY = 0;
+		});
+
+		if (!reduceMotionEnabled) {
+			previewTiltRunning = true;
+			animatePreviewTilt();
+		}
+
+		function clampPercent(value) {
+			return Math.max(0, Math.min(100, value));
+		}
+
+		function updateFeatureCardGlow(clientX, clientY) {
+			const glowRadius = 180;
+			featureCards.forEach((card) => {
+				const rect = card.getBoundingClientRect();
+				const clampedX = Math.max(rect.left, Math.min(clientX, rect.right));
+				const clampedY = Math.max(rect.top, Math.min(clientY, rect.bottom));
+				const distanceX = clientX - clampedX;
+				const distanceY = clientY - clampedY;
+				const distance = Math.hypot(distanceX, distanceY);
+				const glowFactor = Math.max(0, 1 - (distance / glowRadius));
+				const x = clampPercent(((clientX - rect.left) / rect.width) * 100);
+				const y = clampPercent(((clientY - rect.top) / rect.height) * 100);
+				card.style.setProperty("--mx", `${x}%`);
+				card.style.setProperty("--my", `${y}%`);
+				card.style.setProperty("--glow-strength", `${(glowFactor * 16).toFixed(2)}%`);
+			});
+		}
+
+		// Feature card effects will be initialized after cards are generated
+		// document.addEventListener("pointermove", ...)
+		// ... (moved to after featureCards definition)
+
+		const revealTargets = document.querySelectorAll(".hero-content, .features h2, .feature-card, .footer-row");
+		const revealObserver = new IntersectionObserver((entries) => {
+			entries.forEach((entry) => {
+				if (entry.isIntersecting) {
+					entry.target.classList.add("show");
+					revealObserver.unobserve(entry.target);
+				}
+			});
+		}, { threshold: 0.14 });
+
+		revealTargets.forEach((element) => {
+			element.classList.add("reveal");
+			revealObserver.observe(element);
+		});
+
+		const starfield = document.getElementById("starfield");
+		const starContext = starfield.getContext("2d");
+		const stars = [];
+		let mouseDriftX = 0;
+		let mouseDriftY = 0;
+		let starfieldWidth = 0;
+		let starfieldHeight = 0;
+		let starfieldRunning = false;
+
+		function resizeStarfield() {
+			const scale = window.devicePixelRatio || 1;
+			starfieldWidth = window.innerWidth;
+			starfieldHeight = window.innerHeight;
+			starfield.width = Math.floor(starfieldWidth * scale);
+			starfield.height = Math.floor(starfieldHeight * scale);
+			starContext.setTransform(scale, 0, 0, scale, 0, 0);
+		}
+
+		function seedStars() {
+			stars.length = 0;
+			const count = Math.max(70, Math.floor((window.innerWidth * window.innerHeight) / 16000));
+			for (let index = 0; index < count; index += 1) {
+				stars.push({
+					x: Math.random() * starfieldWidth,
+					y: Math.random() * starfieldHeight,
+					radius: Math.random() * 1.5 + 0.25,
+					speed: Math.random() * 0.18 + 0.03,
+					twinkle: Math.random() * Math.PI * 2
+				});
+			}
+		}
+
+		function animateStars(time) {
+			if (reduceMotionEnabled) {
+				starfieldRunning = false;
+				return;
+			}
+
+			starContext.clearRect(0, 0, starfieldWidth, starfieldHeight);
+			starContext.fillStyle = "rgba(255, 255, 255, 0.88)";
+
+			for (const star of stars) {
+				star.y += star.speed;
+				if (star.y > starfieldHeight + 2) {
+					star.y = -2;
+					star.x = Math.random() * starfieldWidth;
+				}
+
+				const alpha = 0.22 + (Math.sin(time * 0.0016 + star.twinkle) + 1) * 0.38;
+				starContext.globalAlpha = alpha;
+				starContext.beginPath();
+				starContext.arc(star.x + mouseDriftX * star.speed * 6, star.y + mouseDriftY * star.speed * 6, star.radius, 0, Math.PI * 2);
+				starContext.fill();
+			}
+
+			requestAnimationFrame(animateStars);
+		}
+
+		window.addEventListener("pointermove", (event) => {
+			if (reduceMotionEnabled) {
+				return;
+			}
+
+			mouseDriftX = ((event.clientX / window.innerWidth) - 0.5) * 2;
+			mouseDriftY = ((event.clientY / window.innerHeight) - 0.5) * 2;
+		});
+
+		window.addEventListener("resize", () => {
+			resizeStarfield();
+			seedStars();
+		});
+
+		function clearInteractiveEffects() {
+			targetRotateX = 0;
+			targetRotateY = 0;
+			currentRotateX = 0;
+			currentRotateY = 0;
+			previewWrap.style.removeProperty("transform");
+			featureCards.forEach((card) => {
+				card.style.removeProperty("transform");
+				card.classList.remove("is-tilting");
+				card.style.setProperty("--glow-strength", "0%");
+			});
+		}
+
+		function applyReducedMotionPreference() {
+			if (reduceMotionEnabled) {
+				starfield.style.display = "none";
+				clearInteractiveEffects();
+				return;
+			}
+
+			starfield.style.display = "";
+			if (!previewTiltRunning) {
+				previewTiltRunning = true;
+				animatePreviewTilt();
+			}
+			resizeStarfield();
+			seedStars();
+			if (!starfieldRunning) {
+				starfieldRunning = true;
+				requestAnimationFrame(animateStars);
+			}
+			updateFeatureCardGlow(window.innerWidth / 2, window.innerHeight / 2);
+		}
+
+		reducedMotionQuery.addEventListener("change", (event) => {
+			reduceMotionEnabled = event.matches;
+			applyReducedMotionPreference();
+		});
+
+		applyReducedMotionPreference();
+
+		const featureDetails = {
+			sessions: {
+				title: "Multi-session management",
+				shortDescription: "Run and switch between multiple AI coding threads without losing context.",
+				body: "Keep separate coding workflows active at once and switch instantly between tasks. Each session keeps its own context so you can run parallel AI work without cross-contamination."
+			},
+			terminal: {
+				title: "Integrated terminal",
+				shortDescription: "Stay close to shell-based workflows while using a polished interface.",
+				body: "Run commands in a built-in terminal and attach the output directly to your next message. Quickly share command results with Copilot without leaving Cockpit.",
+				video: "assets/Terminal-feature.mp4"
+			},
+			gitdiff: {
+				title: "Git diff viewer",
+				shortDescription: "Inspect changes quickly and keep code review in your loop.",
+				body: "Inspect generated changes before accepting them. Review file-level diffs quickly so you can stay in control of code quality and merge confidence.",
+				image: "assets/gitdiff-feature.png",
+				imageAlt: "Cockpit git diff viewer showing side-by-side code changes"
+			},
+			attachments: {
+				title: "Image & attachment support",
+				shortDescription: "Bring richer context into prompts and discussions.",
+				body: "Attach files and visuals to give agents richer context for debugging, UI work, and documentation-heavy tasks.",
+				imageAlt: "Cockpit interface showing rich context"
+			},
+			history: {
+				title: "Transparent chat history",
+				shortDescription: "Clean, complete history with no hidden steps or collapsed behavior.",
+				body: "Get a clean, complete conversation record with no hidden steps. It is easier to audit decisions and understand exactly what the agent changed.",
+				images: [
+					{ src: "assets/chatHistory-1-feature.png", alt: "Cockpit chat history showing collapsed operations" },
+					{ src: "assets/chatHistory-2-feature.png", alt: "Cockpit chat history showing expanded operations detail" }
+				]
+			},
+			permissions: {
+				title: "Fine-grained permissions",
+				shortDescription: "Control autonomy globally, per session, or with YOLO mode.",
+				body: "Set defaults globally, tune controls per session, or intentionally move faster with YOLO mode. Choose the right safety level per workflow."
+			},
+			canvas: {
+				title: "Canvas support",
+				shortDescription: "Visualize architectural decisions, data flows, and UI designs inline.",
+				body: "Visualize architectural decisions, data flows, and UI designs inline - keep architecture discussions interactive and actionable.",
+				imageAlt: "Cockpit canvas-style visual output",
+				isPartialSupport: true
+			},
+			byok: {
+				title: "Bring your own key (BYOK)",
+				shortDescription: "Use custom model/provider configs with secure key handling.",
+				body: "Configure BYOK providers and model profiles, including:\n- Provider type and model ID\n- Base URL and wire API compatibility\n- Capability hints (vision support, reasoning support, max context tokens)\n- Secure secret handling for API keys/tokens\n\nBYOK metadata is stored separately from secrets so model settings can be shared without exposing credentials.\n\nExpand the models list, click the info button (top right), then add your model configuration, select provider type, and paste your API key securely.",
+				docsUrl: "https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/byok",
+				image: "assets/byok-feature.png",
+				imageAlt: "Cockpit model configuration preview"
+			},
+			systemmessage: {
+				title: "System message customisation",
+				shortDescription: "Control prompt sections with replace, remove, append, or prepend overrides.",
+				body: "Customize system prompt sections directly in Cockpit with section-level actions: Replace, Remove, Append, and Prepend.\n\nDefaults are captured from the runtime and can be overridden per section, giving teams consistent behavior while still allowing targeted prompt tuning.",
+				image: "assets/systemMessage-feature.png",
+				imageAlt: "Cockpit system message customization preview"
+			},
+			continuity: {
+				title: "CLI + GUI continuity",
+				shortDescription: "Start a session in CLI and continue it in Cockpit (and vice versa).",
+				body: "Start in GitHub Copilot CLI and continue in Cockpit (and vice versa) without losing momentum or rebuilding context."
+			},
+			telemetry: {
+				title: "OpenTelemetry diagnostics",
+				shortDescription: "Diagnose performance by tracking token usage and time per operation.",
+				body: "Diagnose why an AI session took 5 minutes vs. 30 seconds — see token usage and time per operation to optimize prompts and reduce costs.\n\nGet deep visibility into session performance with a dedicated telemetry dashboard. Track:\n\n• Time spent per operation (tokens, thinking, tool execution)\n• Token consumption breakdown by message and span\n• Performance metrics across trace spans\n• Session-by-session diagnostics for optimization\n\nExport and analyze telemetry data to understand bottlenecks, optimize prompts, and improve agent performance.",
+				video: "assets/OpenTelemarty-Feature.mp4"
+			},
+			plugins: {
+				title: "Plugins",
+				shortDescription: "Extend Cockpit with custom integrations for your team's tools.",
+				body: "Coming soon: Extend Cockpit with custom integrations for your team's tools (Jira, Slack, GitHub Actions, etc.) — automate workflows without leaving the app",
+				isComingSoon: true
+			},
+			worktrees: {
+				title: "Git worktrees",
+				shortDescription: "Work in multiple branches at once with isolated checkouts inside Cockpit workflows.",
+				body: "Git worktree support is planned so you can run parallel feature branches in separate working directories without cloning the repository again.",
+				isComingSoon: true
+			},
+			themecustomisation: {
+				title: "Full theme customisation",
+				shortDescription: "Fine-tune colors, contrast, and layout styling to match your personal setup.",
+				body: "Full theme customization is planned to let you control palette, contrast, and visual density for a workspace appearance tailored to your preferences.",
+				isComingSoon: true
+			}
+		};
+
+		// Feature ordering - define which features appear and in what order
+		const featureOrder = ["sessions", "terminal", "gitdiff", "attachments", "history", "permissions", "canvas", "byok", "systemmessage", "continuity", "telemetry", "plugins", "worktrees", "themecustomisation"];
+
+		// Generate feature cards from featureDetails
+		const featureGrid = document.getElementById("featureGrid");
+		featureOrder.forEach(featureKey => {
+			const feature = featureDetails[featureKey];
+			if (!feature) return;
+
+			const button = document.createElement("button");
+			button.className = "feature-card";
+			button.type = "button";
+			button.setAttribute("data-feature", featureKey);
+				button.setAttribute("aria-label", `${feature.title}: ${feature.shortDescription}`);
+
+			if (feature.isPartialSupport) {
+				button.classList.add("partial-support");
+			}
+			if (feature.isComingSoon) {
+				button.classList.add("coming-soon");
+			}
+
+			let html = "";
+			if (feature.isPartialSupport) {
+				html += '<span class="tag tag--purple">Partial support</span>';
+			}
+			if (feature.isComingSoon) {
+				html += '<span class="tag">Coming soon</span>';
+			}
+
+			html += `<h3>${feature.title}</h3>`;
+			html += `<p>${feature.shortDescription}</p>`;
+
+			button.innerHTML = html;
+			featureGrid.appendChild(button);
+		});
+
+		// Populate featureCards after they're generated
+		featureCards = [...document.querySelectorAll(".feature-card")];
+
+		// Initialize feature card effects
+		document.addEventListener("pointermove", (event) => {
+			if (reduceMotionEnabled) {
+				return;
+			}
+
+			updateFeatureCardGlow(event.clientX, event.clientY);
+		});
+
+		document.addEventListener("pointerleave", () => {
+			featureCards.forEach((card) => {
+				card.style.setProperty("--glow-strength", "0%");
+			});
+		});
+
+		if (!reduceMotionEnabled) {
+			updateFeatureCardGlow(window.innerWidth / 2, window.innerHeight / 2);
+		}
+
+		featureCards.forEach((card) => {
+			card.addEventListener("pointermove", (event) => {
+				if (reduceMotionEnabled) {
+					return;
+				}
+
+				const rect = card.getBoundingClientRect();
+				const x = ((event.clientX - rect.left) / rect.width) * 100;
+				const y = ((event.clientY - rect.top) / rect.height) * 100;
+				const rotateY = ((x / 100) - 0.5) * 8;
+				const rotateX = (0.5 - (y / 100)) * 8;
+				card.style.transform = `translateY(-3px) perspective(900px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg)`;
+				card.classList.add("is-tilting");
+			});
+
+			card.addEventListener("pointerleave", () => {
+				card.style.removeProperty("transform");
+				card.classList.remove("is-tilting");
+			});
+		});
+
+		const modal = document.getElementById("featureModal");
+		const modalTitle = document.getElementById("modalTitle");
+		const modalBody = document.getElementById("modalBody");
+		const modalMedia = document.getElementById("modalMedia");
+		const modalImage = document.getElementById("modalImage");
+		const modalVideo = document.getElementById("modalVideo");
+		const modalCarousel = document.getElementById("modalCarousel");
+		const modalCarouselTrack = document.getElementById("modalCarouselTrack");
+		const carouselDots = document.getElementById("carouselDots");
+		const carouselPrev = document.getElementById("carouselPrev");
+		const carouselNext = document.getElementById("carouselNext");
+		const modalDocLink = document.getElementById("modalDocLink");
+		const closeBtn = document.getElementById("modalClose");
+		const modalFocusableSelector = "a[href], button:not([disabled]), [tabindex]:not([tabindex='-1'])";
+		let lastModalTrigger = null;
+		let carouselIndex = 0;
+		let carouselImages = [];
+
+		function getModalFocusableElements() {
+			return [...modal.querySelectorAll(modalFocusableSelector)].filter((element) => element.offsetParent !== null);
+		}
+
+		function resetModalMedia() {
+			modalMedia.classList.remove("show");
+			modalImage.classList.remove("show");
+			modalImage.removeAttribute("src");
+			modalImage.alt = "";
+
+			modalVideo.classList.remove("show");
+			modalVideo.pause();
+			modalVideo.removeAttribute("src");
+			modalVideo.removeAttribute("poster");
+			modalVideo.load();
+
+			modalCarousel.classList.remove("show");
+			modalCarouselTrack.innerHTML = "";
+			carouselDots.innerHTML = "";
+			carouselImages = [];
+			carouselIndex = 0;
+
+			modalDocLink.classList.remove("show");
+			modalDocLink.removeAttribute("href");
+		}
+
+		function setCarouselSlide(index) {
+			carouselIndex = index;
+			[...modalCarouselTrack.querySelectorAll("img")].forEach((img, i) => {
+				img.classList.toggle("active", i === index);
+			});
+			[...carouselDots.querySelectorAll(".carousel-dot")].forEach((dot, i) => {
+				dot.classList.toggle("active", i === index);
+				dot.setAttribute("aria-current", i === index ? "true" : "false");
+			});
+		}
+
+		function openModal(featureKey, trigger) {
+			const detail = featureDetails[featureKey];
+			if (!detail) {
+				return;
+			}
+			lastModalTrigger = trigger || document.activeElement;
+
+			modalTitle.textContent = detail.title;
+			modalBody.textContent = detail.body;
+			resetModalMedia();
+
+			// Add badges
+			const modalBadges = document.getElementById("modalBadges");
+			modalBadges.innerHTML = "";
+			if (detail.isPartialSupport) {
+				const partialBadge = document.createElement("span");
+				partialBadge.className = "tag tag--purple";
+				partialBadge.textContent = "Partial support";
+				modalBadges.appendChild(partialBadge);
+			}
+			if (detail.isComingSoon) {
+				const soonBadge = document.createElement("span");
+				soonBadge.className = "tag";
+				soonBadge.textContent = "Coming soon";
+				modalBadges.appendChild(soonBadge);
+			}
+
+			if (detail.docsUrl) {
+				modalDocLink.href = detail.docsUrl;
+				modalDocLink.classList.add("show");
+			}
+
+			if (detail.video) {
+				modalVideo.src = detail.video;
+				if (detail.videoPoster) {
+					modalVideo.poster = detail.videoPoster;
+				}
+				modalVideo.classList.add("show");
+				modalMedia.classList.add("show");
+			} else if (detail.images && detail.images.length > 1) {
+				carouselImages = detail.images;
+				detail.images.forEach((item, i) => {
+					const img = document.createElement("img");
+					img.src = item.src;
+					img.alt = item.alt || detail.title;
+					img.width = 1918;
+					img.height = 1030;
+					img.loading = "lazy";
+					img.decoding = "async";
+					if (i === 0) {
+						img.classList.add("active");
+					}
+					img.addEventListener("click", () => openLightbox(img.src, img.alt, img));
+					modalCarouselTrack.appendChild(img);
+
+					const dot = document.createElement("button");
+					dot.type = "button";
+					dot.className = "carousel-dot" + (i === 0 ? " active" : "");
+					dot.setAttribute("aria-label", `Image ${i + 1} of ${detail.images.length}`);
+					dot.setAttribute("aria-current", i === 0 ? "true" : "false");
+					dot.addEventListener("click", () => setCarouselSlide(i));
+					carouselDots.appendChild(dot);
+				});
+				modalCarousel.classList.add("show");
+				modalMedia.classList.add("show");
+			} else if (detail.image) {
+				modalImage.src = detail.image;
+				modalImage.alt = detail.imageAlt || detail.title;
+				modalImage.classList.add("show");
+				modalMedia.classList.add("show");
+			}
+
+			modal.classList.add("show");
+			modal.setAttribute("aria-hidden", "false");
+			document.body.style.overflow = "hidden";
+			closeBtn.focus();
+		}
+
+		function closeModal() {
+			modal.classList.remove("show");
+			modal.setAttribute("aria-hidden", "true");
+			document.body.style.overflow = "";
+			resetModalMedia();
+			const lb = document.getElementById("lightbox");
+			if (lb && lb.classList.contains("show")) {
+				lb.classList.remove("show");
+				lb.setAttribute("aria-hidden", "true");
+			}
+			if (lastModalTrigger) {
+				lastModalTrigger.focus();
+			}
+			lastModalTrigger = null;
+		}
+
+		document.querySelectorAll(".feature-card").forEach((card) => {
+			card.addEventListener("click", () => openModal(card.dataset.feature, card));
+		});
+
+		closeBtn.addEventListener("click", closeModal);
+		modal.addEventListener("click", (event) => {
+			if (event.target === modal) {
+				closeModal();
+			}
+		});
+
+		window.addEventListener("keydown", (event) => {
+			if (!modal.classList.contains("show")) {
+				return;
+			}
+
+			if (event.key === "Escape") {
+				event.preventDefault();
+				closeModal();
+				return;
+			}
+
+			if (event.key === "Tab") {
+				const focusableElements = getModalFocusableElements();
+				if (focusableElements.length === 0) {
+					event.preventDefault();
+					return;
+				}
+
+				const firstElement = focusableElements[0];
+				const lastElement = focusableElements[focusableElements.length - 1];
+
+				if (event.shiftKey) {
+					if (document.activeElement === firstElement || !modal.contains(document.activeElement)) {
+						event.preventDefault();
+						lastElement.focus();
+					}
+				} else if (document.activeElement === lastElement || !modal.contains(document.activeElement)) {
+					event.preventDefault();
+					firstElement.focus();
+				}
+			}
+		});
+
+		const lightbox = document.getElementById("lightbox");
+		const lightboxImage = document.getElementById("lightboxImage");
+		const lightboxClose = document.getElementById("lightboxClose");
+		let lastLightboxTrigger = null;
+
+		function openLightbox(src, alt, trigger) {
+			lightboxImage.src = src;
+			lightboxImage.alt = alt;
+			lastLightboxTrigger = trigger || document.activeElement;
+			lightbox.classList.add("show");
+			lightbox.setAttribute("aria-hidden", "false");
+			lightboxClose.focus();
+		}
+
+		function closeLightbox() {
+			lightbox.classList.remove("show");
+			lightbox.setAttribute("aria-hidden", "true");
+			if (lastLightboxTrigger) {
+				lastLightboxTrigger.focus();
+			}
+			lastLightboxTrigger = null;
+		}
+
+		carouselPrev.addEventListener("click", () => {
+			const count = modalCarouselTrack.querySelectorAll("img").length;
+			setCarouselSlide((carouselIndex - 1 + count) % count);
+		});
+
+		carouselNext.addEventListener("click", () => {
+			const count = modalCarouselTrack.querySelectorAll("img").length;
+			setCarouselSlide((carouselIndex + 1) % count);
+		});
+
+		modalImage.addEventListener("click", () => {
+			if (modalImage.src) {
+				openLightbox(modalImage.src, modalImage.alt, modalImage);
+			}
+		});
+
+		const heroImage = document.querySelector(".preview");
+		heroImage.addEventListener("click", () => openLightbox(heroImage.src, heroImage.alt, heroImage));
+		heroImage.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" || event.key === " ") {
+				event.preventDefault();
+				openLightbox(heroImage.src, heroImage.alt, heroImage);
+			}
+		});
+
+		lightboxClose.addEventListener("click", closeLightbox);
+		lightbox.addEventListener("click", (event) => {
+			if (event.target === lightbox) {
+				closeLightbox();
+			}
+		});
+
+		window.addEventListener("keydown", (event) => {
+			if (!lightbox.classList.contains("show")) {
+				return;
+			}
+			if (event.key === "Escape") {
+				event.preventDefault();
+				closeLightbox();
+			}
+		});
+	</script>
+</body>
+</html>

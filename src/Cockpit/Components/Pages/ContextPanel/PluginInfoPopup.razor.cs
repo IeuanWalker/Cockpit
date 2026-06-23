@@ -1,11 +1,11 @@
 using Cockpit.Components.Controls;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using SdkPlugin = GitHub.Copilot.SDK.Rpc.Plugin;
+using SdkPlugin = GitHub.Copilot.Rpc.Plugin;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
-public partial class PluginInfoPopup : ComponentBase
+public sealed partial class PluginInfoPopup : ComponentBase
 {
 	PopupBase? _popup;
 	SdkPlugin? _selectedPlugin;

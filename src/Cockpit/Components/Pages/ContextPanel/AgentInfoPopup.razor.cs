@@ -6,7 +6,7 @@ using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
-public partial class AgentInfoPopup : ComponentBase
+public sealed partial class AgentInfoPopup : ComponentBase
 {
 	PopupBase? _popup;
 	AgentProfile? _selectedAgent;

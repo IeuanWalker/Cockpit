@@ -1,23 +1,19 @@
 using System.Globalization;
 using Cockpit.Features.AppSettings;
 using Cockpit.Features.Sounds;
-using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Popups.Settings;
 
-public partial class SoundSettings : ComponentBase, IDisposable
+public partial class SoundSettings : ComponentBase
 {
-	readonly UIStateFeature _uiStateFeature;
 	readonly IAppSettingsFeature _appSettingsFeature;
 	readonly SoundFeature _soundFeature;
 
 	public SoundSettings(
-		UIStateFeature uiState,
 		IAppSettingsFeature appSettings,
 		SoundFeature soundFeature)
 	{
-		_uiStateFeature = uiState;
 		_appSettingsFeature = appSettings;
 		_soundFeature = soundFeature;
 	}
@@ -47,8 +43,6 @@ public partial class SoundSettings : ComponentBase, IDisposable
 		_finishedEnabled = _appSettingsFeature.SoundFinishedEnabled;
 		_finishedVolume = _appSettingsFeature.SoundFinishedVolume;
 		_finishedCustomFile = _soundFeature.GetCustomFileName(SoundEffectTypeEnum.Finished);
-
-		_uiStateFeature.OnStateChanged += OnStateChanged;
 	}
 
 	void SetEnabled(SoundEffectTypeEnum soundType, bool enabled)
@@ -124,7 +118,7 @@ public partial class SoundSettings : ComponentBase, IDisposable
 			case SoundEffectTypeEnum.Finished: _finishedCustomFile = result.FileName; break;
 		}
 
-		await InvokeAsync(StateHasChanged);
+		StateHasChanged();
 	}
 
 	async Task ResetSound(SoundEffectTypeEnum soundType)
@@ -138,30 +132,11 @@ public partial class SoundSettings : ComponentBase, IDisposable
 			case SoundEffectTypeEnum.Finished: _finishedCustomFile = string.Empty; break;
 		}
 
-		await InvokeAsync(StateHasChanged);
+		StateHasChanged();
 	}
 
 	async Task Preview(SoundEffectTypeEnum soundType)
 	{
 		await _soundFeature.PlaySoundAsync(soundType, forPreview: true);
-	}
-
-	void OnStateChanged()
-	{
-		InvokeAsync(StateHasChanged);
-	}
-
-	public void Dispose()
-	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
-	}
-
-	protected virtual void Dispose(bool disposing)
-	{
-		if(disposing)
-		{
-			_uiStateFeature.OnStateChanged -= OnStateChanged;
-		}
 	}
 }

@@ -2,7 +2,7 @@
 
 <div class="border-t border-app-border bg-app-sidebar p-3">
     <div class="relative">
-        @if(_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0 || _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0)
+        @if(_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0 || _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0 || _sessionFeature.CurrentSession?.PendingElicitationRequests?.Count > 0)
         {
             <div class="absolute inset-0 bg-black bg-opacity-30 z-10 rounded-lg cursor-not-allowed"></div>
         }
@@ -10,6 +10,7 @@
         <FileMentionPicker Visible="@_showMentionPicker"
                            Filter="@_mentionFilter"
                            Files="@_mentionFiles"
+                           AttachedPaths="@GetAttachedPaths()"
                            SelectedIndex="@_selectedMentionIndex"
                            SelectedIndexChanged="@(i => _selectedMentionIndex = i)"
                            OnFileSelected="@OnFileSelectedAsync"
@@ -18,9 +19,10 @@
             <div class="flex items-stretch">
                 <div class="flex-1 py-2" style="align-content: center">
                     <div id="chatInput"
+                         @ref="_chatInput"
                          contenteditable="@(!IsInputDisabled ? "true" : "false")"
                          spellcheck="true"
-                         data-placeholder="Ask Copilot anything... (type # to mention files)"
+                         data-placeholder="Ask Copilot anything... (type # to mention files or folders)"
                          class="w-full bg-transparent text-app-text px-3 focus:outline-none scrollbar-thin"
                          style="font-size: 0.875rem;"
                          @onkeydown="HandleKeyDown"
@@ -36,9 +38,9 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                         </svg>
                     </button>
-                    <SpeechToTextControl ChatInput="@UserInput"
+                   @*  <SpeechToTextControl ChatInput="@UserInput"
                                          ChatInputChanged="@OnSpeechInputChangedAsync"
-                                         Disabled="@IsInputDisabled" />
+                                         Disabled="@IsInputDisabled" /> *@
                     <button @onclick="SendMessage"
                             class="btn-primary p-1.5 rounded transition-opacity @(!CanSend ? "opacity-40 cursor-not-allowed" : "")"
                             title="Send" disabled="@(!CanSend)">
@@ -50,8 +52,8 @@
             </div>
             <div class="flex items-center justify-between px-3 py-1.5 border-t border-app-border">
                 <div class="flex items-center space-x-2">
-                    <AgentControl />
                     <SessionModeControl />
+                    <AgentControl />
                 </div>
                 <div class="flex items-center space-x-3">
                     <ModelControl />

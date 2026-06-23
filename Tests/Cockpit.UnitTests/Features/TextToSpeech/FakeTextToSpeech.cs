@@ -56,6 +56,7 @@ sealed class MockAppSettingsFeature : IAppSettingsFeature
 	public Cockpit.Features.Theme.ThemeEnum Theme { get; set; }
 	public string AccentColor { get; set; } = "";
 	public string AccentHoverColor { get; set; } = "";
+	public Cockpit.Features.MessageMode.MessageTurnModeEnum MessageTurnMode { get; set; }
 	public bool SendOnEnter { get; set; }
 	public int LeftSidebarWidth { get; set; }
 	public int RightSidebarWidth { get; set; }
@@ -75,4 +76,7 @@ sealed class MockAppSettingsFeature : IAppSettingsFeature
 	public string SoundPermissionCustomFileName { get; set; } = "";
 	public string SoundUserInputCustomFileName { get; set; } = "";
 	public string SoundFinishedCustomFileName { get; set; } = "";
+	public bool KeepAlive { get; set; }
+	public bool CanvasEnabled { get; set; } = true;
+	public Dictionary<string, Cockpit.Features.SystemMessage.SystemMessageSectionSetting> SystemMessageSectionOverrides { get; set; } = [];
 }

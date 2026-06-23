@@ -1,7 +1,7 @@
 @using Cockpit.Features.Connection
 
 <button class="connection-banner @ConnectionStatusHelpers.GetStatusClass(_connectionFeature.Status)" @onclick="OpenPopup" title="Click for connection details">
-    <span class="connection-dot @(_connectionFeature.Status == ConnectionStatusEnum.Checking ? "pulse" : "")"></span>
+    <span class="connection-dot @(_connectionFeature.Status is ConnectionStatusEnum.Checking or ConnectionStatusEnum.Reconnecting ? "pulse" : "")"></span>
     <span class="connection-label">@ConnectionStatusHelpers.GetStatusText(_connectionFeature.Status)</span>
     @if(_connectionFeature.LastChecked is not null)
     {

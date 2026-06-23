@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Components.Pages.ChatPanel.Permissions;
 
-public partial class PermissionRequestPanel : ComponentBase, IDisposable
+public sealed partial class PermissionRequestPanel : ComponentBase, IDisposable
 {
 	readonly SessionListFeature _sessionManager;
 	readonly PermissionFeature _permissionFeature;
@@ -70,7 +70,7 @@ public partial class PermissionRequestPanel : ComponentBase, IDisposable
 		}
 
 		_logger.LogInformation("OnDecision called: isApproved={IsApproved}, decision={Scope}, sessionId={SessionId}",
-			!decision.Equals(PermissionDecisionEnum.Denied), decision, currentRequest.SessionId);
+			decision != PermissionDecisionEnum.Denied, decision, currentRequest.SessionId);
 
 		// Reset to default so the next request always starts with "Allow Once"
 		_selectedAllowOption = PermissionDecisionEnum.Once;
@@ -82,15 +82,6 @@ public partial class PermissionRequestPanel : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
-	}
-
-	protected virtual void Dispose(bool disposing)
-	{
-		if(disposing)
-		{
-			_sessionManager.OnStateChanged -= OnStateChanged;
-		}
+		_sessionManager.OnStateChanged -= OnStateChanged;
 	}
 }

@@ -3,11 +3,9 @@
 public enum SessionStatusEnum
 {
 	Idle,
-	Active,
 	Running,
 	NeedsPermission,
 	NeedsUserInput,
-	Finished,
+	NeedsElicitation,
 	Error,
-	Archived
 }

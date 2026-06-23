@@ -1,6 +1,6 @@
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.SessionEvents.Handlers;
@@ -17,8 +17,8 @@ static class SessionWarningHandler
 			Id = Guid.NewGuid().ToString(),
 			Content = evt.Data.Message,
 			IsUser = false,
-			Timestamp = DateTime.Now,
-			Type = MessageTypeEnum.Error,
+			Timestamp = evt.Timestamp.LocalDateTime,
+			Type = MessageTypeEnum.Warning,
 			EventType = evt.Type,
 			EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 		};

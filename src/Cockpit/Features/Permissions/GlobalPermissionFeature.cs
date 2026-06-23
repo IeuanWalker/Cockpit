@@ -1,4 +1,4 @@
-﻿using Cockpit.Extensions;
+using Cockpit.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Permissions;
@@ -18,7 +18,7 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 		Load();
 	}
 
-	readonly List<string> _commands = [];
+	readonly HashSet<string> _commands = new(StringComparer.Ordinal);
 	readonly ReaderWriterLockSlim _permissionsLock = new();
 	public event Action? OnPermissionsChanged;
 
@@ -68,9 +68,8 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 		_permissionsLock.EnterWriteLock();
 		try
 		{
-			if(!_commands.Contains(command))
+			if(_commands.Add(command))
 			{
-				_commands.Add(command);
 				snapshot = [.. _commands];
 			}
 		}
@@ -93,17 +92,13 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 		_permissionsLock.EnterWriteLock();
 		try
 		{
-			bool modified = false;
+			int before = _commands.Count;
 			foreach(string command in commands)
 			{
-				if(!_commands.Contains(command))
-				{
-					_commands.Add(command);
-					modified = true;
-				}
+				_commands.Add(command);
 			}
 
-			if(modified)
+			if(_commands.Count > before)
 			{
 				snapshot = [.. _commands];
 			}
@@ -158,20 +153,25 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 					// Default allow list
 					List<string> defaultCommands =
 					[
+						// Buildin permission
+						"custom:open_canvas", "custom:invoke_canvas_action", "read - CopilotSession", "read - WorkingDirectory", "write - CopilotSession", "write - WorkingDirectory",
+
 						// Git read-only subcommands (extracted as "git <subcommand>" by CommandExtractor)
 						"git status", "git log", "git diff", "git branch", "git show",
 						"git remote", "git tag", "git describe",
 						// npm info subcommands
 						"npm list", "npm ls", "npm outdated",
-						// dotnet info subcommand
-						"dotnet list",
+						// dotnet
+						"dotnet list", "dotnet build", "dotnet list", "dotnet restore", "dotnet test", "dotnet workload", "dotnet nuget", "dotnet restore", "dotnet test",
+						// Github
+						"gh search",
 					];
 
 					_permissionsLock.EnterWriteLock();
 					try
 					{
 						_commands.Clear();
-						_commands.AddRange(defaultCommands);
+						_commands.UnionWith(defaultCommands);
 					}
 					finally
 					{
@@ -194,7 +194,7 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 				{
 					_commands.Clear();
 					// Only load allowlist - denylist removed as per Cooper's approach
-					_commands.AddRange(file);
+					_commands.UnionWith(file);
 				}
 				finally
 				{
@@ -224,8 +224,9 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 		}
 	}
 
+
 	public void Dispose()
 	{
-		_permissionsLock?.Dispose();
+		_permissionsLock.Dispose();
 	}
 }

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ContextPanel;
 
-public partial class EditedFiles : ComponentBase, IDisposable
+public sealed partial class EditedFiles : ComponentBase, IDisposable
 {
 	readonly SessionListFeature _sessionListFeature;
 	readonly EditedFilesWindowService _windowService;
@@ -18,19 +18,20 @@ public partial class EditedFiles : ComponentBase, IDisposable
 
 	List<GitChangedFileModel> Files => _sessionListFeature.CurrentSession?.Context?.EditedFiles ?? [];
 
-	List<GitChangedFileModel> _renderedFiles = [];
+	List<GitChangedFileModel>? _renderedFilesList;
 	int _renderedFilesCount = -1;
 
 	protected override bool ShouldRender()
 	{
-		List<GitChangedFileModel> current = Files;
-		int currentCount = current.Count;
-		if(ReferenceEquals(current, _renderedFiles) && currentCount == _renderedFilesCount)
+		List<GitChangedFileModel>? currentList = _sessionListFeature.CurrentSession?.Context?.EditedFiles;
+		int currentCount = currentList?.Count ?? 0;
+
+		if(ReferenceEquals(currentList, _renderedFilesList) && currentCount == _renderedFilesCount)
 		{
 			return false;
 		}
 
-		_renderedFiles = current;
+		_renderedFilesList = currentList;
 		_renderedFilesCount = currentCount;
 		return true;
 	}
@@ -38,6 +39,9 @@ public partial class EditedFiles : ComponentBase, IDisposable
 	protected override void OnInitialized()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;
+		List<GitChangedFileModel>? list = _sessionListFeature.CurrentSession?.Context?.EditedFiles;
+		_renderedFilesList = list;
+		_renderedFilesCount = list?.Count ?? 0;
 	}
 
 	void OnStateChanged()
@@ -52,15 +56,6 @@ public partial class EditedFiles : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		Dispose(true);
-		GC.SuppressFinalize(this);
-	}
-
-	protected virtual void Dispose(bool disposing)
-	{
-		if(disposing)
-		{
-			_sessionListFeature.OnStateChanged -= OnStateChanged;
-		}
+		_sessionListFeature.OnStateChanged -= OnStateChanged;
 	}
 }

@@ -1,4 +1,4 @@
-using GitHub.Copilot.SDK.Rpc;
+using GitHub.Copilot;
 
 namespace Cockpit.Features.Sessions.Models;
 
@@ -22,6 +22,6 @@ public static class SessionAgentModeExtensions
 	{
 		SessionAgentModeEnum.Plan => "Plan",
 		SessionAgentModeEnum.Autopilot => "Autopilot",
-		_ => "Default"
+		_ => "Interactive"
 	};
 }

@@ -16,18 +16,18 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	readonly SessionListFeature _sessionListFeature;
 	readonly SessionFeature _sessionFeature;
 	readonly IJSRuntime _jsRuntime;
-	readonly TextToSpeechFeature _textToSpeechFeature;
-	readonly UIStateFeature _uiStateFeature;
+	readonly ITextToSpeechFeature _textToSpeechFeature;
+	readonly IUIStateFeature _uiStateFeature;
 	readonly ToastService _toastService;
-	readonly MarkdownFeature _markdownFeature;
+	readonly IMarkdownFeature _markdownFeature;
 	public ChatMessages(
 		SessionListFeature sessionListFeature,
 		SessionFeature sessionFeature,
 		IJSRuntime jsRuntime,
-		TextToSpeechFeature textToSpeechFeature,
-		UIStateFeature uiStateFeature,
+		ITextToSpeechFeature textToSpeechFeature,
+		IUIStateFeature uiStateFeature,
 		ToastService toastService,
-		MarkdownFeature markdownFeature)
+		IMarkdownFeature markdownFeature)
 	{
 		_sessionListFeature = sessionListFeature;
 		_sessionFeature = sessionFeature;
@@ -61,7 +61,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		{
 			_dotNetRef = DotNetObjectReference.Create(this);
 			await _jsRuntime.InvokeVoidAsync("cockpit.setupScrollAnchor", "chatMessages");
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged");
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged", nameof(ChatMessages));
 
 			// If the app loaded an existing session before this component initialized,
 			// ensure the initial view is pinned to the bottom so history shows latest messages.
@@ -125,7 +125,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		StateHasChanged();
 	}
 
-	static string GetAttachmentLabel(int imageCount, int fileCount)
+	static string GetAttachmentLabel(int imageCount, int fileCount, int folderCount)
 	{
 		List<string> parts = [];
 		if(imageCount > 0)
@@ -138,18 +138,27 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 			parts.Add($"{fileCount} file{(fileCount > 1 ? "s" : "")}");
 		}
 
+		if(folderCount > 0)
+		{
+			parts.Add($"{folderCount} folder{(folderCount > 1 ? "s" : "")}");
+		}
+
 		return string.Join(", ", parts);
 	}
 
-	static readonly Regex fileTokenRegex = fileMentionRegex();
+	const string fileIconPathData = "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z";
+	const string folderIconPathData = "M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z";
+	const string fileIconColor = "#60a5fa";
+	const string folderIconColor = "#f59e0b";
 
 	/// <summary>
-	/// If the content contains no file tokens, returns null (caller should use MarkdownRenderer component).
-	/// If it has file tokens, renders the content with chip spans substituted in, returns HTML.
+	/// If the content contains no file/folder tokens, returns null (caller should use MarkdownRenderer component).
+	/// If it has mention tokens, renders the content with chip spans substituted in, returns HTML.
 	/// </summary>
 	MarkupString? RenderUserContent(string content)
 	{
-		if(!content.Contains("#file:\"", StringComparison.Ordinal))
+		if(!content.Contains("#file:\"", StringComparison.Ordinal) &&
+		   !content.Contains("#folder:\"", StringComparison.Ordinal))
 		{
 			return null; // use normal MarkdownRenderer
 		}
@@ -158,22 +167,33 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		List<(string Placeholder, string ChipHtml)> chips = [];
 		int idx = 0;
 
-		string withPlaceholders = fileTokenRegex.Replace(content, m =>
+		string withPlaceholders = mentionRegex().Replace(content, m =>
 		{
-			string filePath = m.Groups[1].Value;
-			string fileName = Path.GetFileName(filePath);
+			string mentionType = m.Groups[1].Value;
+			string mentionPath = m.Groups[2].Value;
+			bool isDirectory = mentionType.Equals("folder", StringComparison.Ordinal);
+
+			string trimmedPath = mentionPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			string mentionName = Path.GetFileName(trimmedPath);
+			if(string.IsNullOrWhiteSpace(mentionName))
+			{
+				mentionName = mentionPath;
+			}
+
 			string placeholder = $"COCKPITFILECHIP{idx++}XEND";
 
 			// Build chip HTML (the span that will show in the bubble)
-			string escapedPath = System.Net.WebUtility.HtmlEncode(filePath);
-			string escapedName = System.Net.WebUtility.HtmlEncode(fileName);
+			string escapedPath = System.Net.WebUtility.HtmlEncode(mentionPath);
+			string escapedName = System.Net.WebUtility.HtmlEncode(mentionName);
+			string iconPath = isDirectory ? folderIconPathData : fileIconPathData;
+			string iconColor = isDirectory ? folderIconColor : fileIconColor;
 			string chipHtml =
 				$"<span class=\"file-mention-chip-readonly\" title=\"{escapedPath}\">" +
 				"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" fill=\"none\" " +
 				"stroke=\"currentColor\" viewBox=\"0 0 24 24\" stroke-width=\"2\" " +
+				$"style=\"color: {iconColor};\" " +
 				"stroke-linecap=\"round\" stroke-linejoin=\"round\">" +
-				"<path d=\"M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586 " +
-				"a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z\"/>" +
+				$"<path d=\"{iconPath}\"/>" +
 				"</svg>" +
 				$" {escapedName}</span>";
 
@@ -224,6 +244,48 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		await _sessionFeature.RetryMessageAsync(message);
 	}
 
+	async Task CopyUserMessage(ChatMessageModel message)
+	{
+		try
+		{
+			await _jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", message.Content);
+			_toastService.Success("Copied", opts => opts.Description = "Message copied to clipboard");
+		}
+		catch
+		{
+			_toastService.Error("Copy failed", opts => opts.Description = "Could not copy to clipboard");
+		}
+	}
+
+	static string HumanizeTimestamp(DateTimeOffset timestamp)
+	{
+		TimeSpan elapsed = DateTimeOffset.UtcNow - timestamp;
+
+		if(elapsed.TotalSeconds < 60)
+		{
+			return "just now";
+		}
+
+		if(elapsed.TotalMinutes < 60)
+		{
+			int minutes = (int)elapsed.TotalMinutes;
+			return $"{minutes} minute{(minutes == 1 ? "" : "s")} ago";
+		}
+
+		if(elapsed.TotalHours < 24)
+		{
+			int hours = (int)elapsed.TotalHours;
+			return $"{hours} hour{(hours == 1 ? "" : "s")} ago";
+		}
+
+		if(elapsed.TotalDays < 2)
+		{
+			return $"yesterday at {timestamp.LocalDateTime:h:mm tt}";
+		}
+
+		return timestamp.LocalDateTime.ToString("MMM d, h:mm tt");
+	}
+
 	public async ValueTask DisposeAsync()
 	{
 		_sessionListFeature.OnStateChanged -= OnStateChanged;
@@ -235,13 +297,13 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		try
 		{
 			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupScrollAnchor", "chatMessages");
-			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages");
+			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages", nameof(ChatMessages));
 		}
 		catch { /* component may be gone */ }
 		_dotNetRef?.Dispose();
 		GC.SuppressFinalize(this);
 	}
 
-	[GeneratedRegex(@"#file:""((?:[^""\\]|\\.)*)""", RegexOptions.Compiled)]
-	private static partial Regex fileMentionRegex();
+	[GeneratedRegex(@"#(file|folder):""((?:[^""\\]|\\.)*)""", RegexOptions.Compiled)]
+	private static partial Regex mentionRegex();
 }

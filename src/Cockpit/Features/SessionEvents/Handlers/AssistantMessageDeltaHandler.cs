@@ -1,6 +1,6 @@
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 
 namespace Cockpit.Features.SessionEvents.Handlers;
 
@@ -8,11 +8,6 @@ static class AssistantMessageDeltaHandler
 {
 	internal static void Handle(SessionModel session, AssistantMessageDeltaEvent evt)
 	{
-		if(evt.Data is null)
-		{
-			return;
-		}
-
 		string messageId = evt.Data.MessageId ?? "streaming";
 		string delta = evt.Data.DeltaContent ?? string.Empty;
 
@@ -73,7 +68,9 @@ static class AssistantMessageDeltaHandler
 			return;
 		}
 
-		// Not in thinking mode — add to chat normally
+		// Not in thinking mode — add to chat normally.
+		// Mark as a leaked pre-group message so AssistantTurnStartHandler can absorb it
+		// back into the new ops group when the next turn starts.
 		if(!session.StreamingMessages.TryGetValue(messageId, out ChatMessageModel? msg))
 		{
 			msg = new ChatMessageModel
@@ -81,10 +78,11 @@ static class AssistantMessageDeltaHandler
 				Id = messageId,
 				Content = string.Empty,
 				IsUser = false,
-				Timestamp = DateTime.Now,
+				Timestamp = evt.Timestamp,
 				Type = MessageTypeEnum.Text,
 				IsStreaming = true,
 				IsComplete = false,
+				IsLeakedPreGroupMessage = true,
 				EventType = evt.Type,
 				EventJson = []
 			};

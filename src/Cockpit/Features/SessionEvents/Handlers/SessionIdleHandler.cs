@@ -13,21 +13,21 @@ static class SessionIdleHandler
 	/// </summary>
 	internal static event Action? OnSessionFinished;
 
-	internal static void Handle(SessionModel session, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete, ILogger? logger = null)
+	internal static void Handle(SessionModel session, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete, ILogger? logger = null, bool suppressSummary = false)
 	{
 		if(session.ActiveWorkingGroup is not null)
 		{
-			ThinkingEventModel? lastEvent = session.ActiveWorkingGroup.Events.LastOrDefault();
+			ThinkingEventModel? lastEvent = session.ActiveWorkingGroup.GetEventsSnapshot().LastOrDefault();
 			DateTimeOffset timestamp = lastEvent is not null ? lastEvent.Timestamp : DateTimeOffset.UtcNow;
-			Handle(session, timestamp, onStreamSummary, groupStatus, logger);
+			Handle(session, timestamp, onStreamSummary, groupStatus, logger, suppressSummary);
 		}
 		else
 		{
 			DateTimeOffset timestamp = session.Messages.LastOrDefault()?.Timestamp ?? DateTimeOffset.UtcNow;
-			Handle(session, timestamp, onStreamSummary, groupStatus, logger);
+			Handle(session, timestamp, onStreamSummary, groupStatus, logger, suppressSummary);
 		}
 	}
-	internal static void Handle(SessionModel session, DateTimeOffset eventTimestamp, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete, ILogger? logger = null)
+	internal static void Handle(SessionModel session, DateTimeOffset eventTimestamp, Func<ChatMessageModel, string, Task>? onStreamSummary = null, GroupStatusEnum groupStatus = GroupStatusEnum.Complete, ILogger? logger = null, bool suppressSummary = false)
 	{
 		ActivityGroupModel? activeGroup = session.ActiveWorkingGroup;
 
@@ -35,7 +35,8 @@ static class SessionIdleHandler
 		if(activeGroup is not null && (activeGroup.Tools.Any() || hasThinkingMessages || groupStatus == GroupStatusEnum.Error))
 		{
 			ActivityGroupModel group = activeGroup;
-			Debug.WriteLine($"Finalizing thinking group. Has {group.Tools.Count()} tools");
+			List<ToolExecutionModel> tools = [.. group.Tools]; // Snapshot once — avoids repeated lock acquisitions
+			Debug.WriteLine($"Finalizing thinking group. Has {tools.Count} tools");
 
 			// Check if activity message already exists for this group
 			bool activityMessageExists = session.Messages.Any(m =>
@@ -49,45 +50,36 @@ static class SessionIdleHandler
 				return;
 			}
 
-			// Mark any still-running tools as stopped (Error status), including children
+			// Mark any still-running tools as stopped (Error status), recursively including all descendants
 			bool hasStoppedTools = false;
-			foreach(ToolExecutionModel tool in group.Tools)
+			foreach(ToolExecutionModel tool in tools)
 			{
-				if(tool.Status == ToolStatusEnum.Running)
-				{
-					tool.Status = ToolStatusEnum.Error;
-					tool.EndTime = eventTimestamp.LocalDateTime;
-					tool.IsSuccess = false;
-					hasStoppedTools = true;
-				}
-
-				foreach(ToolExecutionModel child in tool.GetChildrenSnapshot())
-				{
-					if(child.Status == ToolStatusEnum.Running)
-					{
-						child.Status = ToolStatusEnum.Error;
-						child.EndTime = eventTimestamp.LocalDateTime;
-						child.IsSuccess = false;
-					}
-				}
+				hasStoppedTools |= MarkStoppedRecursively(tool, eventTimestamp);
 			}
 
 			group.Status = groupStatus;
 			group.EndTime = eventTimestamp.LocalDateTime;
 			group.IsExpanded = false;
 
-			// Check for a task-complete summary override before falling back to last message extraction
+			// Check for a task-complete summary override before falling back to last message extraction.
+			// Always clear PendingTaskSummary regardless of suppressSummary to prevent a stale value
+			// from leaking into the next turn's idle event.
 			string? pendingTaskSummary = session.PendingTaskSummary;
 			session.PendingTaskSummary = null;
 
+			// When the turn was interrupted by the safety net (suppressSummary) or ended with an error,
+			// the last thinking message is intermediate planning text — not a final response.
+			// Suppress both extraction paths so it stays inside the ops group expander.
+			bool suppressSummaryContent = suppressSummary || groupStatus == GroupStatusEnum.Error;
+
 			// Extract the last message event as the summary (but not "Session stopped")
 			List<ThinkingEventModel> events = group.GetEventsSnapshot();
-			ThinkingEventModel? lastMessage = pendingTaskSummary is null
+			ThinkingEventModel? lastMessage = (!suppressSummaryContent && pendingTaskSummary is null)
 				? events.LastOrDefault(e => e.Type == ThinkingEventTypeEnum.Message)
 				: null;
 
 			ChatMessageModel? summaryMsg = null;
-			if(pendingTaskSummary is not null)
+			if(!suppressSummaryContent && pendingTaskSummary is not null)
 			{
 				summaryMsg = new ChatMessageModel
 				{
@@ -101,7 +93,7 @@ static class SessionIdleHandler
 					EventJson = null
 				};
 			}
-			else if(lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
+			else if(!suppressSummaryContent && lastMessage is not null && !string.IsNullOrWhiteSpace(lastMessage.Message))
 			{
 				// Remove the summary from thinking events
 				group.RemoveEvent(lastMessage);
@@ -142,15 +134,24 @@ static class SessionIdleHandler
 			}
 
 			// Determine anchor index: the position we'll insert after
-			// Priority: InitialMessageId (assistant first msg) > TriggeredByUserMessageId > last non-pending user msg
+			// Priority: TriggeredByUserMessageId (user prompt) > InitialMessageId (assistant first msg) > last non-pending user msg
+			// The activity group must never appear before the user message that triggered it.
 			int anchorIndex = -1;
+			int triggerIndex = -1;
+			if(!string.IsNullOrEmpty(group.TriggeredByUserMessageId))
+			{
+				triggerIndex = session.Messages.FindIndex(m => m.Id == group.TriggeredByUserMessageId);
+				anchorIndex = triggerIndex;
+			}
+
 			if(!string.IsNullOrEmpty(group.InitialMessageId))
 			{
-				anchorIndex = session.Messages.FindIndex(m => m.Id == group.InitialMessageId);
-			}
-			else if(!string.IsNullOrEmpty(group.TriggeredByUserMessageId))
-			{
-				anchorIndex = session.Messages.FindIndex(m => m.Id == group.TriggeredByUserMessageId);
+				int initialIndex = session.Messages.FindIndex(m => m.Id == group.InitialMessageId);
+				// Only use InitialMessageId if it's after the triggering user message (or no trigger exists)
+				if(initialIndex >= 0 && initialIndex > anchorIndex)
+				{
+					anchorIndex = initialIndex;
+				}
 			}
 
 			if(anchorIndex < 0)
@@ -166,9 +167,30 @@ static class SessionIdleHandler
 				}
 			}
 
+			// Extend anchor past already-inserted non-user items (activity groups, summaries)
+			// so that subsequent ops groups from multi-turn replay are placed in chronological order.
+			// Stop at any user message — pending messages represent future turns and the ops group
+			// for the current turn must appear before them, not after.
+			if(anchorIndex >= 0)
+			{
+				for(int i = anchorIndex + 1; i < session.Messages.Count; i++)
+				{
+					if(session.Messages[i].IsUser)
+					{
+						// Any user message (pending or active) marks the boundary of the current turn.
+						break;
+					}
+					else
+					{
+						// Skip past non-user items (activity groups, summaries from prior finalizations)
+						anchorIndex = i;
+					}
+				}
+			}
+
 			// Only insert an activity group into chat when there were actual tool operations
 			int activityInsertedAt = -1;
-			if(group.Tools.Any() || groupStatus == GroupStatusEnum.Error)
+			if(tools.Count > 0 || groupStatus == GroupStatusEnum.Error)
 			{
 				ChatMessageModel activityMessage = new()
 				{
@@ -176,7 +198,7 @@ static class SessionIdleHandler
 					Type = MessageTypeEnum.ActivityGroup,
 					ActivityGroup = group,
 					Timestamp = group.EndTime ?? DateTime.Now,
-					Content = group.Tools.Any() ? GenerateActivitySummary(group) : "Aborted",
+					Content = tools.Count > 0 ? GenerateActivitySummary(tools) : "Aborted",
 					EventJson = null
 				};
 
@@ -252,21 +274,76 @@ static class SessionIdleHandler
 			Debug.WriteLine("No active thinking group to finalize");
 		}
 
-		session.Status = SessionStatusEnum.Idle;
+		// Keep the session running when the user has more queued work:
+		// - Pending enqueued messages (IsPending = true in session.Messages)
+		// - An immediate (steering) message sent while the agent was busy
+		// In both cases the agent is about to start a new turn — suppress the completion
+		// sound and keep the working panel visible with an empty placeholder group so the
+		// UI does not flash through Idle between turns.
+		bool keepRunning = groupStatus == GroupStatusEnum.Complete
+			&& (session.Messages.Any(m => m.IsUser && m.IsPending) || session.HasQueuedImmediateMessage);
 
-		if(groupStatus == GroupStatusEnum.Complete && !session.SuppressFinishedNotification)
+		// Consume the immediate-message flag here regardless of path. AssistantTurnStartHandler
+		// deliberately leaves it set when the new turn fires before this idle event, so it
+		// survives to this point where it can actually be acted on.
+		session.HasQueuedImmediateMessage = false;
+
+		if(keepRunning)
 		{
-			OnSessionFinished?.Invoke();
+			session.Status = SessionStatusEnum.Running;
+				session.ActiveWorkingGroup = new ActivityGroupModel
+				{
+					StartTime = eventTimestamp.LocalDateTime,
+					Status = GroupStatusEnum.Running,
+					IsExpanded = true,
+					IsPlaceholder = true
+				};
+		}
+		else
+		{
+			session.Status = SessionStatusEnum.Idle;
+
+			if(groupStatus == GroupStatusEnum.Complete && !session.SuppressFinishedNotification)
+			{
+				OnSessionFinished?.Invoke();
+			}
 		}
 	}
 
-	static string GenerateActivitySummary(ActivityGroupModel group)
+	/// <summary>
+	/// Raises the <see cref="OnSessionFinished"/> event externally (e.g. from the debounce timer
+	/// in <see cref="Sessions.SessionFeature"/>).
+	/// </summary>
+	internal static void RaiseSessionFinished() => OnSessionFinished?.Invoke();
+
+	static string GenerateActivitySummary(List<ToolExecutionModel> tools)
 	{
-		List<ToolExecutionModel> tools = [.. group.Tools];
-		IEnumerable<string> toolNames = tools.Select(t => t.ToolName).Distinct().Take(3);
-		int more = tools.Select(t => t.ToolName).Distinct().Count() - 3;
-		string preview = string.Join(", ", toolNames) + (more > 0 ? $", +{more}" : "");
+		List<string> distinctNames = [.. tools.Select(t => t.ToolName).Distinct()];
+		string preview = string.Join(", ", distinctNames.Take(3));
+		if(distinctNames.Count > 3)
+		{
+			preview += $", +{distinctNames.Count - 3}";
+		}
 
 		return $"{tools.Count} operations ({preview})";
+	}
+
+	static bool MarkStoppedRecursively(ToolExecutionModel tool, DateTimeOffset timestamp)
+	{
+		bool stopped = false;
+		if(tool.Status == ToolStatusEnum.Running)
+		{
+			tool.Status = ToolStatusEnum.Error;
+			tool.EndTime = timestamp.LocalDateTime;
+			tool.IsSuccess = false;
+			stopped = true;
+		}
+
+		foreach(ToolExecutionModel child in tool.GetChildrenSnapshot())
+		{
+			stopped |= MarkStoppedRecursively(child, timestamp);
+		}
+
+		return stopped;
 	}
 }

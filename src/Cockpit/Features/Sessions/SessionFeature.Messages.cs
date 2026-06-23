@@ -2,7 +2,7 @@ using Cockpit.Features.MessageMode;
 using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
-using GitHub.Copilot.SDK;
+using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
 
 namespace Cockpit.Features.Sessions;
@@ -28,9 +28,36 @@ public sealed partial class SessionFeature
 
 			if(session.ModelChanged)
 			{
-				await existingSession.SetModelAsync(session.Model.Id, session.ReasoningEffort);
+				ProviderConfig? newProviderConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 
-				session.ModelChanged = false;
+				// Compare the ByokConfigId the current SDK session was created with against what the new
+				// model selection needs. session.ByokConfigId reflects the new selection (already updated
+				// by the UI), so we use _sdkSessionByokId to know what the live SDK session actually has.
+				string? sdkActiveByokId = _sdkSessionByokId.GetValueOrDefault(sessionId);
+				string? newByokId = newProviderConfig is not null ? session.ByokConfigId : null;
+				bool requiresRestart = newByokId != sdkActiveByokId;
+
+				if(requiresRestart)
+				{
+					// If switching to BYOK, ByokConfigId was already set by the UI before ModelChanged was set.
+					// If switching away from BYOK, ByokConfigId was already cleared to null by the UI.
+					await RestartSession(session.Id, session.Model.Id, session.ReasoningEffort, newProviderConfig);
+
+					// The session ID may have changed if a brand-new SDK session was created (no prior messages).
+					// Re-capture sessionId and re-fetch the live SDK session before sending.
+					sessionId = session.Id;
+					if(!_sdkRegistry.TryGet(sessionId, out existingSession))
+					{
+						throw new InvalidOperationException($"Session {sessionId} not found after model restart");
+					}
+
+					session.ModelChanged = false;
+				}
+				else
+				{
+					await existingSession.SetModelAsync(session.Model.Id, session.ReasoningEffort);
+					session.ModelChanged = false;
+				}
 			}
 
 			if(session.AgentChanged)
@@ -70,7 +97,7 @@ public sealed partial class SessionFeature
 					.Select(g => g.First())];
 			}
 
-			MessageTurnModeEnum selectedTurnMode = UserAppSettings.MessageTurnMode;
+			MessageTurnModeEnum selectedTurnMode = _appSettingsFeature.MessageTurnMode;
 			string turnMode = selectedTurnMode.ToSdkToken();
 
 			lock(CurrentSession.SessionEventLock)
@@ -92,18 +119,44 @@ public sealed partial class SessionFeature
 				};
 				CurrentSession.Messages.Add(optimisticMessage);
 				CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
+
+				// For immediate (steering) mode: flag that a new turn is imminent so the
+				// working panel and Running status are preserved through the idle transition.
+				if(agentWasBusy && selectedTurnMode == MessageTurnModeEnum.Immediate)
+				{
+					CurrentSession.HasQueuedImmediateMessage = true;
+				}
+				else if(!agentWasBusy)
+				{
+					// Clear any stale value (e.g. after a failed send) when no turn is in-flight.
+					CurrentSession.HasQueuedImmediateMessage = false;
+				}
 			}
 			_sessionListFeature.NotifyStateChanged();
 
-			List<UserMessageAttachment>? sdkAttachments = null;
+			List<Attachment>? sdkAttachments = null;
 			if(attachments?.Count > 0)
 			{
-				sdkAttachments = [.. attachments
-					.Select(a => (UserMessageAttachmentFile)new UserMessageAttachmentFile
+				sdkAttachments = [];
+				foreach(AttachmentModel attachment in attachments)
+				{
+					if(attachment.IsDirectory)
 					{
-						Path = a.FilePath,
-						DisplayName = a.FileName
-					})];
+						sdkAttachments.Add(new AttachmentDirectory
+						{
+							DisplayName = attachment.FileName,
+							Path = attachment.FilePath
+						});
+					}
+					else
+					{
+						sdkAttachments.Add(new AttachmentFile
+						{
+							DisplayName = attachment.FileName,
+							Path = attachment.FilePath
+						});
+					}
+				}
 			}
 			string sentMessageId = await existingSession.SendAsync(new MessageOptions
 			{
@@ -118,7 +171,15 @@ public sealed partial class SessionFeature
 				{
 					if(session.Messages.Contains(optimisticMessage) && !optimisticMessage.IsComplete)
 					{
+						string oldId = optimisticMessage.Id;
 						optimisticMessage.Id = sentMessageId;
+
+						// Keep the working group anchor in sync with the updated message ID.
+						// assistant.turn_start may have captured the old GUID before SendAsync returned.
+						if(session.ActiveWorkingGroup?.TriggeredByUserMessageId == oldId)
+						{
+							session.ActiveWorkingGroup.TriggeredByUserMessageId = sentMessageId;
+						}
 					}
 				}
 			}
@@ -216,5 +277,63 @@ public sealed partial class SessionFeature
 		_sessionListFeature.NotifyStateChanged();
 
 		await SendMessageAsync(content, attachments);
+	}
+
+	/// <summary>
+	/// Triggers context compaction for the current session via <c>session.Rpc.History.CompactAsync()</c>.
+	/// No-op when there is no current session, no live SDK session, or the session is already compacting.
+	/// </summary>
+	public async Task CompactContextAsync()
+	{
+		if(CurrentSession is null)
+		{
+			return;
+		}
+
+		SessionModel session = CurrentSession;
+
+		// Claim the compaction slot atomically to prevent duplicate requests from racing callers.
+		// The SDK will also set IsCompacting via SessionCompactionStartEvent; our optimistic set here
+		// is the guard. We reset it ourselves only if the SDK call throws before that event arrives.
+		lock(session.SessionEventLock)
+		{
+			if(session.IsCompacting)
+			{
+				return;
+			}
+
+			session.IsCompacting = true;
+		}
+
+		if(!_sdkRegistry.TryGet(session.Id, out CopilotSession? sdkSession))
+		{
+			_logger.LogWarning("CompactContextAsync: no live SDK session for {SessionId}", session.Id);
+			lock(session.SessionEventLock)
+			{
+				session.IsCompacting = false;
+			}
+			return;
+		}
+
+		try
+		{
+			_logger.LogInformation("Requesting context compaction for session {SessionId}", session.Id);
+			GitHub.Copilot.Rpc.HistoryCompactResult result = await sdkSession.Rpc.History.CompactAsync();
+			if(!result.Success)
+			{
+				_logger.LogWarning("Context compaction did not succeed for session {SessionId}", session.Id);
+				_toastService.Warning("Context compaction did not complete successfully.");
+			}
+		}
+		catch(Exception ex)
+		{
+			// SDK call failed before SessionCompactionStartEvent — reset the flag we set optimistically.
+			lock(session.SessionEventLock)
+			{
+				session.IsCompacting = false;
+			}
+			_logger.LogError(ex, "Failed to compact context for session {SessionId}", session.Id);
+			_toastService.Error($"Failed to compact context: {ex.Message}");
+		}
 	}
 }

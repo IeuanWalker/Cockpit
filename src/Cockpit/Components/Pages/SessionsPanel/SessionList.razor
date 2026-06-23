@@ -7,6 +7,7 @@
         <div class="flex items-center gap-1">
             <div class="flex-1 relative">
                 <input type="text"
+                       @ref="_sessionSearch"
                        @bind="_searchText"
                        @bind:event="oninput"
                        placeholder="Search sessions..."
@@ -150,6 +151,41 @@
     </div>
 }
 
+@if(_showGroupByPanel)
+{
+    <div class="px-2 py-1.5 border-b border-app-border">
+        <div class="border border-app-border rounded p-2 text-xs" style="background-color: var(--sidebar-color);">
+            <div class="secondary-text font-medium mb-1 uppercase tracking-wide" style="font-size: 10px;">Group by</div>
+            <button @onclick="() => SetGroupByMode(GroupByModeEnum.Project)"
+                    class="w-full flex items-center gap-1.5 py-1 px-1 hover:bg-app-hover rounded text-left">
+                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    @if(IsGroupingByProject)
+                    {
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12l4 4L19 6" />
+                    }
+                </svg>
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                </svg>
+                <span class="text-xs text-app-title">Project</span>
+            </button>
+            <button @onclick="() => SetGroupByMode(GroupByModeEnum.Updated)"
+                    class="w-full flex items-center gap-1.5 py-1 px-1 hover:bg-app-hover rounded text-left">
+                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    @if(!IsGroupingByProject)
+                    {
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12l4 4L19 6" />
+                    }
+                </svg>
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <span class="text-xs text-app-title">Updated</span>
+            </button>
+        </div>
+    </div>
+}
+
 @if(IsSearchActive)
 {
     @foreach(var session in FilteredSessions)
@@ -169,12 +205,83 @@
 }
 else
 {
-    @foreach(var session in RecentSessions)
+    @if(IsGroupingByProject)
     {
-        <SessionListItem Session="@session"
-                         IsActive="@(_sessionFeature.CurrentSession?.Id == session.Id)"
-                         OnSelect="SelectSession"
-                         OnDelete="@(e => ShowDeleteDialog(session, e))"
-                         TimeAgo="@GetTimeAgo(session.LastActivity)" />
+        @foreach(var group in ProjectSessionGroups)
+        {
+            var isExpanded = IsProjectGroupExpanded(group);
+            <div class="group flex items-center mt-1 rounded hover:bg-app-hover secondary-text">
+                <button @onclick="() => ToggleProjectGroupExpand(group.Id)"
+                        class="flex-1 min-w-0 px-3 py-1 text-sm font-semibold flex items-center gap-1.5 text-left">
+                    <div class="relative w-3.5 h-3.5 flex-shrink-0">
+                        <svg class="absolute inset-0 m-auto w-3.5 h-3.5 text-app-title opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
+                            @if(isExpanded)
+                            {
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 0 1 1.414 0L10 10.586l3.293-3.293a1 1 0 1 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 0-1.414z" clip-rule="evenodd" />
+                            }
+                            else
+                            {
+                                <path fill-rule="evenodd" d="M7.293 5.293a1 1 0 0 1 1.414 0L12.414 9l-3.707 3.707a1 1 0 0 1-1.414-1.414L9.586 9 7.293 6.707a1 1 0 0 1 0-1.414z" clip-rule="evenodd" />
+                            }
+                        </svg>
+                        @if(group.IsQuickChat)
+                        {
+                            <svg class="absolute inset-0 m-auto w-3.5 h-3.5 group-hover:opacity-0 transition-opacity" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12a8.25 8.25 0 0 1 8.25-8.25h3a8.25 8.25 0 0 1 0 16.5h-1.386a1.5 1.5 0 0 0-.948.337l-2.793 2.234A.75.75 0 0 1 7 22.485V20.25A8.25 8.25 0 0 1 2.25 12Z" />
+                            </svg>
+                        }
+                        else
+                        {
+                            <svg class="absolute inset-0 m-auto w-3.5 h-3.5 group-hover:opacity-0 transition-opacity" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                            </svg>
+                        }
+                    </div>
+                    <span class="truncate">@group.Name</span>
+                </button>
+                <button @onclick="() => CreateSessionFromGroup(group)"
+                        class="flex-shrink-0 p-1 mr-1 rounded hover:bg-app-hover opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="@(group.IsQuickChat ? "Create new quick chat session" : "Create new session in this project")">
+                    <svg class="w-3 h-3 secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                </button>
+            </div>
+
+            @if(isExpanded)
+            {
+                <div class="pl-4">
+                    @foreach(var session in VisibleSessionsForGroup(group))
+                    {
+                        <SessionListItem Session="@session"
+                                         IsActive="@(_sessionFeature.CurrentSession?.Id == session.Id)"
+                                         OnSelect="SelectSession"
+                                         OnDelete="@(e => ShowDeleteDialog(session, e))"
+                                         TimeAgo="@GetTimeAgo(session.LastActivity)" />
+                    }
+
+                    @if(ShowProjectGroupToggle(group))
+                    {
+                        <div class="px-3 pb-1">
+                            <button @onclick="() => ToggleProjectSessionLimitExpand(group.Id)"
+                                    class="text-xs secondary-text hover:text-app-title">
+                                @(IsProjectSessionLimitExpanded(group.Id) ? "Show less" : "Show more")
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    }
+    else
+    {
+        @foreach(var session in RecentSessions)
+        {
+            <SessionListItem Session="@session"
+                             IsActive="@(_sessionFeature.CurrentSession?.Id == session.Id)"
+                             OnSelect="SelectSession"
+                             OnDelete="@(e => ShowDeleteDialog(session, e))"
+                             TimeAgo="@GetTimeAgo(session.LastActivity)" />
+        }
     }
 }

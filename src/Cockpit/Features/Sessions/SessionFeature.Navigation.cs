@@ -12,8 +12,16 @@ public sealed partial class SessionFeature
 
 		_sessionListFeature.SetCurrentSession(session);
 
+		SessionWorkingDirectoryNormalizer.ApplyContextConsistency(session.Context);
+		if(session.Context.CurrentWorkingDirectory is null)
+		{
+			_sessionListFeature.NotifyStateChanged();
+			return;
+		}
+
 		if(session.Context.GitRoot is null)
 		{
+			session.Context.EditedFiles = [];
 			return;
 		}
 

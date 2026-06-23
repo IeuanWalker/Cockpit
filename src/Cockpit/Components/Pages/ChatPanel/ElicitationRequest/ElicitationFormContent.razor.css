@@ -1,0 +1,189 @@
+.ef-body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ef-message {
+    font-size: 14px;
+    color: var(--text-color);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* URL mode */
+
+.ef-url-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: rgba(59, 130, 246, 0.07);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.ef-url-label {
+    font-size: 13px;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.ef-url-link {
+    font-size: 13px;
+    color: #3b82f6;
+    word-break: break-all;
+    text-decoration: underline;
+}
+
+    .ef-url-link:hover {
+        color: #2563eb;
+    }
+
+.ef-btn-open-browser {
+    align-self: flex-start;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+    .ef-btn-open-browser:hover {
+        background: #2563eb;
+    }
+
+/* Form fields */
+
+.ef-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ef-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ef-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.ef-required {
+    color: #ef4444;
+    margin-left: 2px;
+}
+
+.ef-field-desc {
+    font-size: 12px;
+    color: var(--secondary-text);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.ef-input {
+    width: 100%;
+    padding: 6px 10px;
+    background: var(--input-bg);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--text-color);
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+    .ef-input:focus {
+        border-color: #3b82f6;
+    }
+
+.ef-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ef-checkbox {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+}
+
+.ef-checkbox-label {
+    font-size: 13px;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.ef-unsupported {
+    color: var(--secondary-text);
+    font-size: 12px;
+    background: var(--sidebar-color);
+    resize: none;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Action buttons */
+
+.ef-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 0.25rem;
+}
+
+.ef-btn-cancel,
+.ef-btn-decline {
+    color: var(--text-color);
+    padding: 5px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 400;
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+    .ef-btn-cancel:hover {
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+
+    .ef-btn-decline:hover {
+        border-color: #f59e0b;
+        color: #f59e0b;
+    }
+
+.ef-btn-submit {
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+    .ef-btn-submit:hover:not(:disabled) {
+        background: #2563eb;
+    }
+
+    .ef-btn-submit:disabled {
+        background: rgba(59, 130, 246, 0.4);
+        cursor: not-allowed;
+    }
