@@ -49,10 +49,18 @@ public sealed class AuthCheckFeature
 			}
 
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
-			await client.ListModelsAsync(cancellationToken);
+			GetAuthStatusResponse status = await client.GetAuthStatusAsync(cancellationToken);
 
-			State = AuthState.Authenticated;
-			_logger.LogInformation("Auth check passed");
+			if(status.IsAuthenticated)
+			{
+				State = AuthState.Authenticated;
+				_logger.LogInformation("Auth check passed (login={Login}, host={Host})", status.Login, status.Host);
+			}
+			else
+			{
+				State = AuthState.NotAuthenticated;
+				_logger.LogWarning("Auth check: not authenticated — {StatusMessage}", status.StatusMessage);
+			}
 		}
 		catch(OperationCanceledException)
 		{
