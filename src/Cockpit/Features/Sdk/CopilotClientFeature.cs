@@ -71,10 +71,7 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 			{
 				LogLevel = _appSettings.SdkLogLevel is string logLevel ? new CopilotLogLevel(logLevel) : null,
 				Logger = _logger,
-				SessionIdleTimeoutSeconds = sessionIdleTimeoutSeconds,
-				// Augment PATH so the bundled copilot binary can find `gh` for OAuth.
-				// MAUI apps launch with a restricted PATH that may omit GitHub CLI install locations.
-				Environment = BuildAugmentedEnvironment()
+				SessionIdleTimeoutSeconds = sessionIdleTimeoutSeconds
 			};
 
 			if(_appSettings.TelemetryEnabled)
@@ -507,47 +504,5 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 		{
 			_clientLock.Dispose();
 		}
-	}
-
-	/// <summary>
-	/// Returns the full current environment with common GitHub CLI install directories
-	/// prepended to PATH. <see cref="CopilotClientOptions.Environment"/> replaces the
-	/// child process environment entirely, so all existing variables must be copied first
-	/// or Node.js will crash (e.g. missing SYSTEMROOT breaks OpenSSL CSPRNG init).
-	/// </summary>
-	static IReadOnlyDictionary<string, string> BuildAugmentedEnvironment()
-	{
-		// Start with a full copy of the current process environment — equivalent to
-		// Cooper's { ...process.env, PATH: augmentedPath } pattern.
-		Dictionary<string, string> env = System.Environment.GetEnvironmentVariables()
-			.Cast<System.Collections.DictionaryEntry>()
-			.ToDictionary(e => (string)e.Key, e => (string?)e.Value ?? "", StringComparer.OrdinalIgnoreCase);
-
-		string currentPath = env.TryGetValue("PATH", out string? existingPath) ? existingPath : string.Empty;
-
-		List<string> extraPaths =
-		[
-#if WINDOWS
-			Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ProgramFiles), "GitHub CLI"),
-			Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "Programs", "GitHub CLI"),
-			Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WinGet", "Links"),
-			Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "scoop", "shims"),
-			@"C:\ProgramData\chocolatey\bin",
-#elif MACCATALYST
-			"/opt/homebrew/bin",
-			"/usr/local/bin",
-			"/opt/local/bin",
-#endif
-		];
-
-		string extra = string.Join(
-			Path.PathSeparator.ToString(),
-			extraPaths.Where(Directory.Exists));
-
-		env["PATH"] = string.IsNullOrEmpty(extra)
-			? currentPath
-			: $"{extra}{Path.PathSeparator}{currentPath}";
-
-		return env;
 	}
 }
