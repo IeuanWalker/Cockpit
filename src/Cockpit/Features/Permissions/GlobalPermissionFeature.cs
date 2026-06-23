@@ -154,7 +154,7 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 					List<string> defaultCommands =
 					[
 						// Buildin permission
-						"custom:open_canvas", "custom:invoke_canvas_action", "read - CopilotSession", "read - WorkingDirectory", "write - CopilotSession", "write - WorkingDirectory"
+						"custom:open_canvas", "custom:invoke_canvas_action", "read - CopilotSession", "read - WorkingDirectory", "write - CopilotSession", "write - WorkingDirectory",
 
 						// Git read-only subcommands (extracted as "git <subcommand>" by CommandExtractor)
 						"git status", "git log", "git diff", "git branch", "git show",
@@ -162,7 +162,7 @@ public sealed partial class GlobalPermissionFeature : IDisposable
 						// npm info subcommands
 						"npm list", "npm ls", "npm outdated",
 						// dotnet
-						"dotnet list", "dotnet build", "dotnet list", "dotnet restore", "dotnet test", "dotnet workload", "dotnet nuget", "dotnet restore", "dotnet test"
+						"dotnet list", "dotnet build", "dotnet list", "dotnet restore", "dotnet test", "dotnet workload", "dotnet nuget", "dotnet restore", "dotnet test",
 						// Github
 						"gh search",
 					];
