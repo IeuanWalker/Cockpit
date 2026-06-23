@@ -7,26 +7,15 @@ namespace Cockpit.Components;
 public partial class Main : ComponentBase, IDisposable
 {
 	readonly SessionListFeature _sessionListFeature;
-	readonly AuthCheckFeature _authCheckFeature;
 
-	public Main(SessionListFeature sessionListFeature, AuthCheckFeature authCheckFeature)
+	public Main(SessionListFeature sessionListFeature)
 	{
 		_sessionListFeature = sessionListFeature;
-		_authCheckFeature = authCheckFeature;
 	}
 
 	protected override void OnInitialized()
 	{
 		_sessionListFeature.OnStateChanged += OnStateChanged;
-		_authCheckFeature.OnStateChanged += OnStateChanged;
-	}
-
-	protected override async Task OnAfterRenderAsync(bool firstRender)
-	{
-		if(firstRender)
-		{
-			await _authCheckFeature.CheckAuthAsync();
-		}
 	}
 
 	void OnStateChanged()
@@ -45,7 +34,6 @@ public partial class Main : ComponentBase, IDisposable
 		if(disposing)
 		{
 			_sessionListFeature.OnStateChanged -= OnStateChanged;
-			_authCheckFeature.OnStateChanged -= OnStateChanged;
 		}
 	}
 }
