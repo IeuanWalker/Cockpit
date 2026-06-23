@@ -1,4 +1,3 @@
-using Cockpit.Features.Auth;
 using Cockpit.Features.Sessions;
 using Microsoft.AspNetCore.Components;
 
