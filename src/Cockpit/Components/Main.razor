@@ -1,6 +1,16 @@
 @using Cockpit.Components.Pages.ChatPanel
+@using Cockpit.Features.Auth
 
-@if(_sessionListFeature.CurrentSession is null)
+@if(_authCheckFeature.State == AuthState.NotAuthenticated)
+{
+    <NotAuthenticatedScreen />
+}
+else if(_authCheckFeature.State == AuthState.Checking)
+{
+    <!-- Empty while checking; the splash screen is still visible at this point -->
+    <div class="h-full bg-app-bg"></div>
+}
+else if(_sessionListFeature.CurrentSession is null)
 {
     <NoSelectedSession />
 }

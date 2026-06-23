@@ -71,7 +71,10 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 			{
 				LogLevel = _appSettings.SdkLogLevel is string logLevel ? new CopilotLogLevel(logLevel) : null,
 				Logger = _logger,
-				SessionIdleTimeoutSeconds = sessionIdleTimeoutSeconds
+				SessionIdleTimeoutSeconds = sessionIdleTimeoutSeconds,
+				// Augment PATH so the bundled copilot binary can find `gh` for OAuth.
+				// MAUI apps launch with a restricted PATH that may omit GitHub CLI install locations.
+				Environment = BuildAugmentedEnvironment()
 			};
 
 			if(_appSettings.TelemetryEnabled)
@@ -504,5 +507,43 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 		{
 			_clientLock.Dispose();
 		}
+	}
+
+	/// <summary>
+	/// Returns environment variables for the SDK process with common GitHub CLI install
+	/// directories prepended to PATH, ensuring the bundled copilot binary can locate
+	/// <c>gh</c> even when the MAUI app launches with a restricted PATH.
+	/// </summary>
+	static IReadOnlyDictionary<string, string> BuildAugmentedEnvironment()
+	{
+		string currentPath = System.Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+
+		List<string> extraPaths =
+		[
+#if WINDOWS
+			Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ProgramFiles), "GitHub CLI"),
+			Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "Programs", "GitHub CLI"),
+			Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WinGet", "Links"),
+			Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), "scoop", "shims"),
+			@"C:\ProgramData\chocolatey\bin",
+#elif MACCATALYST
+			"/opt/homebrew/bin",
+			"/usr/local/bin",
+			"/opt/local/bin",
+#endif
+		];
+
+		string extra = string.Join(
+			Path.PathSeparator.ToString(),
+			extraPaths.Where(Directory.Exists));
+
+		string augmentedPath = string.IsNullOrEmpty(extra)
+			? currentPath
+			: $"{extra}{Path.PathSeparator}{currentPath}";
+
+		return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+		{
+			["PATH"] = augmentedPath
+		};
 	}
 }
