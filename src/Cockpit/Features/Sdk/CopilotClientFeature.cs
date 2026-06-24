@@ -186,7 +186,7 @@ public sealed class CopilotClientFeature : IAsyncDisposable, ICopilotPingService
 		{
 			return null;
 		}
-		catch(Exception ex) when (client is not null && IsConnectionError(ex))
+		catch(Exception ex) when(client is not null && IsConnectionError(ex))
 		{
 			_logger.LogWarning(ex, "Ping failed — connection broken, invalidating client for reconnect");
 			await InvalidateClientAsync(client);

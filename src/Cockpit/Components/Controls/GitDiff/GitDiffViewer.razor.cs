@@ -42,17 +42,17 @@ public partial class GitDiffViewer : ComponentBase
 
 	string FileName => string.IsNullOrEmpty(FilePath) ? string.Empty : Path.GetFileName(FilePath);
 
-	static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+	static readonly HashSet<string> imageExtensions = new(StringComparer.OrdinalIgnoreCase)
 	{
 		".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg", ".webp", ".tiff", ".tif"
 	};
 
-	static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
+	static readonly HashSet<string> videoExtensions = new(StringComparer.OrdinalIgnoreCase)
 	{
 		".mp4", ".avi", ".mov", ".wmv", ".flv", ".webm", ".mkv", ".m4v", ".ogv", ".ogg"
 	};
 
-	static readonly HashSet<string> BinaryExtensions = new(StringComparer.OrdinalIgnoreCase)
+	static readonly HashSet<string> binaryExtensions = new(StringComparer.OrdinalIgnoreCase)
 	{
 		".dll", ".exe", ".pdb", ".obj", ".lib", ".bin", ".zip", ".rar", ".7z",
 		".tar", ".gz", ".bz2", ".xz", ".jar", ".war", ".ear", ".class",
@@ -69,9 +69,9 @@ public partial class GitDiffViewer : ComponentBase
 		}
 
 		string ext = Path.GetExtension(filePath);
-		if(ImageExtensions.Contains(ext)) { return FileCategory.Image; }
-		if(VideoExtensions.Contains(ext)) { return FileCategory.Video; }
-		if(BinaryExtensions.Contains(ext)) { return FileCategory.Binary; }
+		if(imageExtensions.Contains(ext)) { return FileCategory.Image; }
+		if(videoExtensions.Contains(ext)) { return FileCategory.Video; }
+		if(binaryExtensions.Contains(ext)) { return FileCategory.Binary; }
 		return FileCategory.Text;
 	}
 
@@ -430,8 +430,8 @@ public partial class GitDiffViewer : ComponentBase
 		}
 	}
 
-	const long MaxImageBytes = 20 * 1024 * 1024;
-	const long MaxVideoBytes = 50 * 1024 * 1024;
+	const long maxImageBytes = 20 * 1024 * 1024;
+	const long maxVideoBytes = 50 * 1024 * 1024;
 
 	async Task LoadMediaAsync(string? filePath)
 	{
@@ -442,7 +442,7 @@ public partial class GitDiffViewer : ComponentBase
 		{
 			try
 			{
-				long maxBytes = _fileCategory == FileCategory.Image ? MaxImageBytes : MaxVideoBytes;
+				long maxBytes = _fileCategory == FileCategory.Image ? maxImageBytes : maxVideoBytes;
 				FileInfo info = new(filePath);
 				if(info.Length <= maxBytes)
 				{

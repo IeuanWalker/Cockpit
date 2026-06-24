@@ -17,7 +17,8 @@
               ZIndex="1000">
             <VerticalStackLayout HorizontalOptions="Center"
                                  VerticalOptions="Center"
-                                 Spacing="0">
+                                 Spacing="0"
+                                 WidthRequest="420">
                 <Image Source="logo.png"
                        WidthRequest="72"
                        HeightRequest="72"
@@ -28,12 +29,19 @@
                        FontAttributes="Bold"
                        HorizontalOptions="Center"
                        Margin="0,14,0,0" />
-                <ActivityIndicator IsRunning="True"
+                <ActivityIndicator x:Name="splashSpinner"
+                                   IsRunning="True"
                                    Color="#0078D4"
                                    WidthRequest="28"
                                    HeightRequest="28"
                                    Margin="0,28,0,0"
                                    HorizontalOptions="Center" />
+                <Label x:Name="statusLabel"
+                       Text=""
+                       TextColor="#888888"
+                       FontSize="13"
+                       HorizontalOptions="Center"
+                       Margin="0,12,0,0" />
             </VerticalStackLayout>
         </Grid>
     </Grid>

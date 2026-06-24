@@ -1,34 +1,50 @@
 @using Cockpit.Components.Popups
 @using Cockpit.Components.Popups.Settings
 @using Cockpit.Components.Pages.SessionsPanel
+@using Cockpit.Features.Auth
 @inherits LayoutComponentBase
 @implements IDisposable
 
-<!-- Main Container -->
-<div class="flex h-screen">
-    <!-- Left Sidebar - Sessions -->
-    <SessionPanel />
+@if(_authCheckFeature.State == AuthState.NotAuthenticated)
+{
+    <!-- Full-screen auth guide — nothing else renders until authenticated -->
+    <div class="h-screen overflow-y-auto bg-app-bg">
+        <NotAuthenticatedScreen />
+    </div>
+}
+else if(_authCheckFeature.State == AuthState.Checking)
+{
+    <!-- Blank while checking; the splash screen is still covering the window -->
+    <div class="h-screen bg-app-bg"></div>
+}
+else
+{
+    <!-- Main Container -->
+    <div class="flex h-screen">
+        <!-- Left Sidebar - Sessions -->
+        <SessionPanel />
 
-    <!-- Left Resize Handle -->
-    <div id="leftResizeHandle" class="resize-handle @(_uiStateFeature.LeftSidebarCollapsed ? "hidden" : "")"></div>
+        <!-- Left Resize Handle -->
+        <div id="leftResizeHandle" class="resize-handle @(_uiStateFeature.LeftSidebarCollapsed ? "hidden" : "")"></div>
 
-    <!-- Middle - Chat Window -->
-    <div class="flex-1 flex flex-col bg-app-bg min-w-0">
-        @Body
+        <!-- Middle - Chat Window -->
+        <div class="flex-1 flex flex-col bg-app-bg min-w-0">
+            @Body
+        </div>
+
+        @if(_sessionListFeature.CurrentSession is not null)
+        {
+            <!-- Right Resize Handle -->
+            <div id="rightResizeHandle" class="resize-handle @(_uiStateFeature.RightSidebarCollapsed ? "hidden" : "")"></div>
+
+            <!-- Right Sidebar - Context Panel -->
+            <ContextPanel />
+        }
     </div>
 
-    @if(_sessionListFeature.CurrentSession is not null)
-    {
-        <!-- Right Resize Handle -->
-        <div id="rightResizeHandle" class="resize-handle @(_uiStateFeature.RightSidebarCollapsed ? "hidden" : "")"></div>
+    <!-- Settings Popup -->
+    <SettingsPopup @ref="_settingsPopup" />
 
-        <!-- Right Sidebar - Context Panel -->
-        <ContextPanel />
-    }
-</div>
-
-<!-- Settings Popup -->
-<SettingsPopup @ref="_settingsPopup" />
-
-<!-- Toast Notifications -->
-<Toaster Position="ToastPosition.BottomRight" RichColors="true" CloseButton="true" />
+    <!-- Toast Notifications -->
+    <Toaster Position="ToastPosition.BottomRight" RichColors="true" CloseButton="true" />
+}

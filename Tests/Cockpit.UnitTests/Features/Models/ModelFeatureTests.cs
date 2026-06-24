@@ -6,6 +6,7 @@ using Cockpit.UnitTests.Features.AppSettings;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
+using ModelBillingTokenPrices = GitHub.Copilot.Rpc.ModelBillingTokenPrices;
 
 namespace Cockpit.UnitTests.Features.Models;
 
@@ -29,11 +30,11 @@ public sealed class ModelFeatureTests : IDisposable
 
 	// ── Helpers ──────────────────────────────────────────────────────────────
 
-	static ModelInfo MakeModel(string id, double? billingMultiplier = null) => new()
+	static ModelInfo MakeModel(string id, double? inputPrice = null) => new()
 	{
 		Id = id,
 		Name = id,
-		Billing = billingMultiplier is null ? null : new ModelBilling { Multiplier = billingMultiplier.Value }
+		Billing = inputPrice is null ? null : new ModelBilling { TokenPrices = new ModelBillingTokenPrices { InputPrice = inputPrice.Value } }
 	};
 
 	static ModelFeature CreateFeature(StubByokFeature? byokFeature = null) => new(
@@ -108,39 +109,39 @@ public sealed class ModelFeatureTests : IDisposable
 	}
 
 	[Fact]
-	public void SelectDefaultModel_TwoFreeModels_ReturnsSecondFree()
+	public void SelectDefaultModel_TwoModels_ReturnsCheapestByInputPrice()
 	{
-		ModelInfo free1 = MakeModel("free1", 0);
-		ModelInfo free2 = MakeModel("free2", 0);
-		ModelInfo paid = MakeModel("paid", 2.0);
+		ModelInfo model1 = MakeModel("model1", 1.0);
+		ModelInfo model2 = MakeModel("model2", 0.5);
+		ModelInfo model3 = MakeModel("model3", 2.0);
 
-		ModelInfo result = ModelFeature.SelectDefaultModel([free1, free2, paid]);
+		ModelInfo result = ModelFeature.SelectDefaultModel([model1, model2, model3]);
 
-		result.Id.ShouldBe("free2");
+		result.Id.ShouldBe("model2");
 	}
 
 	[Fact]
-	public void SelectDefaultModel_ThreeFreeModels_ReturnsSecondFree()
+	public void SelectDefaultModel_ThreeModels_ReturnsCheapestByInputPrice()
 	{
-		ModelInfo free1 = MakeModel("free1", 0);
-		ModelInfo free2 = MakeModel("free2", 0);
-		ModelInfo free3 = MakeModel("free3", 0);
+		ModelInfo model1 = MakeModel("model1", 1.5);
+		ModelInfo model2 = MakeModel("model2", 0.5);
+		ModelInfo model3 = MakeModel("model3", 3.0);
 
-		ModelInfo result = ModelFeature.SelectDefaultModel([free1, free2, free3]);
+		ModelInfo result = ModelFeature.SelectDefaultModel([model1, model2, model3]);
 
-		result.Id.ShouldBe("free2");
+		result.Id.ShouldBe("model2");
 	}
 
 	[Fact]
-	public void SelectDefaultModel_ModelWithNullBilling_CountedAsNonFree()
+	public void SelectDefaultModel_ModelWithNullBilling_NotSelectedOverPricedModel()
 	{
 		ModelInfo noBilling = MakeModel("noBilling", null);
-		ModelInfo free = MakeModel("free", 0);
+		ModelInfo priced = MakeModel("priced", 0.5);
 
-		// noBilling has null billing, so it is not a free model
-		ModelInfo result = ModelFeature.SelectDefaultModel([noBilling, free]);
+		// noBilling has no pricing info, so GetCheapestModel skips it
+		ModelInfo result = ModelFeature.SelectDefaultModel([noBilling, priced]);
 
-		result.Id.ShouldBe("free");
+		result.Id.ShouldBe("priced");
 	}
 
 	// ── SaveSessionModel / TryRestoreModelSettings ────────────────────────────
