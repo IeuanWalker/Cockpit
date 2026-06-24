@@ -4,9 +4,9 @@
 
 <p align="center">
   <a href="https://github.com/IeuanWalker/Cockpit/releases/latest"><img src="https://img.shields.io/github/v/release/IeuanWalker/Cockpit?style=flat-square&label=Latest%20Release&color=3fb950" alt="Latest Release"></a>
-  <a href="https://ieuanwalker.github.io/Cockpit/"><img src="https://img.shields.io/badge/Website-Landing%20Page-3fb950?style=flat-square" alt="Website"></a>
+  <!--<a href="https://ieuanwalker.github.io/Cockpit/"><img src="https://img.shields.io/badge/Website-Landing%20Page-3fb950?style=flat-square" alt="Website"></a>-->
   <a href="https://github.com/IeuanWalker/Cockpit"><img src="https://img.shields.io/github/stars/IeuanWalker/Cockpit?style=flat-square&label=Stars" alt="GitHub Stars"></a>
-  <a href="https://github.com/IeuanWalker/Cockpit/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-3fb950?style=flat-square" alt="MIT License"></a>
+  <a href="https://github.com/IeuanWalker/Cockpit/blob/main/LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/IeuanWalker/Cockpit"></a>
 </p>
 
 <p align="center">
@@ -16,16 +16,13 @@
 </p>
 
 # Cockpit
-
-**Full visibility and control for GitHub Copilot. Review every change. Run parallel workflows. Ship with confidence.**
-
 A powerful GUI for GitHub Copilot CLI that brings transparency, control, and customization to AI-assisted development.
 
 ## Why Cockpit?
 
-- **Free and Open Source** — No licensing costs, no vendor lock-in. Full transparency into how your AI workflows operate with community-driven development.
-- **Fully Customizable** — Tailor the interface, theme, layout, and workflows to match your personal setup. Extend with plugins for your team's specific needs (coming soon).
-- **Transparent & Traceable** — See every decision the AI makes. Comprehensive activity logs, token usage tracking, and audit trails keep you in control and informed.
+- **Free and Open Source** - No licensing costs, no vendor lock-in. Full transparency into how your AI workflows operate with community-driven development.
+- **Fully Customizable** - Tailor the interface, theme, layout, and workflows to match your personal setup. Extend with plugins for your team's specific needs (coming soon).
+- **Transparent & Traceable** - See every decision the AI makes. Comprehensive activity logs, token usage tracking, and audit trails keep you in control and informed.
 
 ## Key Features
 
@@ -52,7 +49,7 @@ A powerful GUI for GitHub Copilot CLI that brings transparency, control, and cus
 ## Requirements
 
 - [GitHub Copilot subscription](https://github.com/features/copilot)
-- [GitHub CLI](https://github.com/features/copilot/cli) installed and configured (`gh auth login`)
+- [GitHub CLI](https://cli.github.com/) installed and configured (`gh auth login`)
 
 ## Platforms
 
