@@ -428,12 +428,23 @@
 			position: fixed;
 			inset: 0;
 			background: var(--overlay);
-			backdrop-filter: blur(4px);
 			display: none;
 			align-items: center;
 			justify-content: center;
 			padding: 1rem;
 			z-index: 50;
+		}
+
+		/* Use ::before for backdrop-filter so it doesn't create a stacking context
+		   that traps the .modal, which causes rendering failures in some Chromium
+		   builds (e.g. Vivaldi) where children of a backdrop-filter element are
+		   not composited to screen. */
+		.modal-backdrop::before {
+			content: '';
+			position: fixed;
+			inset: 0;
+			backdrop-filter: blur(4px);
+			pointer-events: none;
 		}
 
 		.modal-backdrop.show {
@@ -443,13 +454,37 @@
 
 		.modal {
 			width: min(720px, 96%);
+			max-height: calc(100vh - 2rem);
+			max-height: calc(100dvh - 2rem);
+			overflow-y: auto;
 			background: var(--input-bg);
 			border: 1px solid var(--input-border);
 			border-radius: 1rem;
-			padding: 1rem 1rem 1.1rem;
+			padding: 0 1rem 1.1rem;
 			box-shadow: 0 20px 45px var(--shadow);
-			transform: translateY(12px) scale(0.98);
-			opacity: 0;
+			position: relative;
+			scrollbar-width: thin;
+			scrollbar-color: var(--input-border) transparent;
+		}
+
+		.modal::-webkit-scrollbar {
+			width: 6px;
+		}
+
+		.modal::-webkit-scrollbar-track {
+			background: transparent;
+		}
+
+		.modal::-webkit-scrollbar-thumb {
+			background: var(--input-border);
+			border-radius: 999px;
+		}
+
+		.modal::-webkit-scrollbar-thumb:hover {
+			background: var(--secondary-text);
+		}
+
+		.modal-backdrop.show .modal {
 			animation: modalIn 0.25s ease forwards;
 		}
 
@@ -459,6 +494,11 @@
 			justify-content: space-between;
 			gap: 1rem;
 			margin-bottom: 0.55rem;
+			position: sticky;
+			top: 0;
+			background: var(--input-bg);
+			padding: 1rem 0 0.6rem;
+			z-index: 1;
 		}
 
 		.modal-title-row {
@@ -826,6 +866,10 @@
 		}
 
 		@keyframes modalIn {
+			from {
+				opacity: 0;
+				transform: translateY(12px) scale(0.98);
+			}
 			to {
 				opacity: 1;
 				transform: translateY(0) scale(1);
