@@ -52,7 +52,7 @@ A powerful GUI for GitHub Copilot CLI that brings transparency, control, and cus
 ## Requirements
 
 - [GitHub Copilot subscription](https://github.com/features/copilot)
-- [GitHub Copilot CLI](https://github.com/features/copilot/cli) installed and configured (`gh auth login`)
+- [GitHub CLI](https://github.com/features/copilot/cli) installed and configured (`gh auth login`)
 
 ## Platforms
 
