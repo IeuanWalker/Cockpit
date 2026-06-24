@@ -393,6 +393,9 @@ public partial class GitDiffViewer : ComponentBase
 	{
 		if(Diff != _prevDiff || FilePath != _prevFilePath || SplitView != _prevSplitView)
 		{
+			_fileCategory = GetFileCategory(FilePath);
+			_pendingFilePath = FilePath;
+
 			_parsedDiff = null;
 			_splitRows = [];
 			_inlineSpans = [];
@@ -427,6 +430,10 @@ public partial class GitDiffViewer : ComponentBase
 				_fileLines = null;
 				_ = LoadFileLinesAsync(FilePath);
 			}
+
+			_prevDiff = Diff;
+			_prevFilePath = FilePath;
+			_prevSplitView = SplitView;
 		}
 	}
 
