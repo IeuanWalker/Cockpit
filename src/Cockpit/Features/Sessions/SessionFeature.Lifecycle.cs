@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Canvas;
@@ -40,7 +41,12 @@ public sealed partial class SessionFeature
 			_logger.LogInformation("Loading existing sessions from SDK...");
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
+
+			ValueTask<ModelInfo> defaultModelTask = _modelFeature.GetDefaultModel();
+
 			IList<SdkSessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
+
+			ModelInfo defaultModel = await defaultModelTask;
 
 			if(sessionMetadataList.Count == 0)
 			{
@@ -50,47 +56,12 @@ public sealed partial class SessionFeature
 
 			_logger.LogInformation("Found {Count} existing sessions", sessionMetadataList.Count);
 
-			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
-			foreach(SdkSessionMetadata metadata in sessionMetadataList)
-			{
-				if(_sessionListFeature.Sessions.Any(s => s.Id == metadata.SessionId))
-				{
-					continue;
-				}
+			Stopwatch sw = Stopwatch.StartNew();
 
-				try
-				{
-					string? cwd = SessionWorkingDirectoryNormalizer.Normalize(metadata.Context?.WorkingDirectory);
+			PopulateSessionsFromMetadata(sessionMetadataList, defaultModel, _sessionListFeature, _logger);
 
-					SessionModel chatSession = new()
-					{
-						Id = metadata.SessionId,
-						Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
-						CreatedAt = metadata.StartTime.UtcDateTime,
-						LastActivity = metadata.ModifiedTime.UtcDateTime,
-						Status = SessionStatusEnum.Idle,
-						Model = defaultModel,
-						ReasoningEffort = defaultModel.DefaultReasoningEffort,
-						Context = new()
-						{
-							CurrentWorkingDirectory = cwd,
-							WorkspacePath = null,
-							GitRoot = cwd is null ? null : metadata.Context?.GitRoot,
-							Repository = cwd is null ? null : metadata.Context?.Repository,
-							Branch = cwd is null ? null : metadata.Context?.Branch
-						}
-					};
-
-					SessionWorkingDirectoryNormalizer.ApplyContextConsistency(chatSession.Context);
-
-					_sessionListFeature.AddSession(chatSession);
-					_logger.LogInformation("Loaded session {SessionId}", chatSession.Id);
-				}
-				catch(Exception ex)
-				{
-					_logger.LogWarning(ex, "Failed to load session {SessionId}", metadata.SessionId);
-				}
-			}
+			sw.Stop();
+			_logger.LogInformation("Loading session took {Elapsed}", sw.Elapsed);
 
 			_sessionListFeature.NotifyStateChanged();
 			_logger.LogInformation("Successfully loaded {Count} sessions", _sessionListFeature.Sessions.Count);
@@ -99,6 +70,86 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogError(ex, "Failed to load existing sessions");
 		}
+	}
+
+	/// <summary>
+	/// Materializes <paramref name="sessionMetadataList"/> into <see cref="SessionModel"/> instances and
+	/// adds the not-yet-known ones to <paramref name="sessionListFeature"/>. Extracted as an
+	/// <see langword="internal static"/> method (with no SDK/network dependencies) so it can be unit
+	/// tested and benchmarked directly. Sessions already present (matched by id) are skipped.
+	/// </summary>
+	internal static void PopulateSessionsFromMetadata(
+		IList<SdkSessionMetadata> sessionMetadataList,
+		ModelInfo defaultModel,
+		SessionListFeature sessionListFeature,
+		ILogger logger)
+	{
+		IReadOnlyList<SessionModel> existing = sessionListFeature.Sessions;
+		HashSet<string> seenSessionIds = new(existing.Count + sessionMetadataList.Count, StringComparer.Ordinal);
+		foreach(SessionModel session in existing)
+		{
+			seenSessionIds.Add(session.Id);
+		}
+
+		List<SessionModel> newSessions = new(sessionMetadataList.Count);
+		SessionWorkingDirectoryNormalizer.LaunchDirectories launchDirectories = SessionWorkingDirectoryNormalizer.LaunchDirectories.Capture();
+		foreach(SdkSessionMetadata metadata in sessionMetadataList)
+		{
+			// Add returns false when the id is already known (existing session or duplicate
+			// in the incoming batch), mirroring the original per-item membership check.
+			if(!seenSessionIds.Add(metadata.SessionId))
+			{
+				continue;
+			}
+
+			try
+			{
+				newSessions.Add(CreateExistingSessionModel(metadata, defaultModel, launchDirectories));
+			}
+			catch(Exception ex)
+			{
+				logger.LogWarning(ex, "Failed to load session {SessionId}", metadata.SessionId);
+			}
+		}
+
+		sessionListFeature.AddSessionsAtFront(newSessions);
+
+		if(logger.IsEnabled(LogLevel.Information))
+		{
+			foreach(SessionModel session in newSessions)
+			{
+				logger.LogInformation("Loaded session {SessionId}", session.Id);
+			}
+		}
+	}
+
+	static SessionModel CreateExistingSessionModel(SdkSessionMetadata metadata, ModelInfo defaultModel, in SessionWorkingDirectoryNormalizer.LaunchDirectories launchDirectories)
+	{
+		// Normalize once against pre-captured launch directories. The original code additionally
+		// called ApplyContextConsistency, which re-normalized (idempotent) and nulled the Git
+		// fields when the cwd was null — both effects are already produced by the single Normalize
+		// call and the conditional assignments below, so the redundant second normalization is
+		// dropped.
+		string? cwd = SessionWorkingDirectoryNormalizer.Normalize(metadata.Context?.WorkingDirectory, launchDirectories);
+
+		return new SessionModel
+		{
+			Id = metadata.SessionId,
+			Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
+			CreatedAt = metadata.StartTime.UtcDateTime,
+			LastActivity = metadata.ModifiedTime.UtcDateTime,
+			Status = SessionStatusEnum.Idle,
+			Model = defaultModel,
+			ReasoningEffort = defaultModel.DefaultReasoningEffort,
+			Context = new()
+			{
+				CurrentWorkingDirectory = cwd,
+				WorkspacePath = null,
+				GitRoot = cwd is null ? null : metadata.Context?.GitRoot,
+				Repository = cwd is null ? null : metadata.Context?.Repository,
+				Branch = cwd is null ? null : metadata.Context?.Branch
+			}
+		};
 	}
 
 	public async Task<SessionModel> CreateSession(string? workingDirectory, CancellationToken cancellationToken = default)
@@ -113,7 +164,11 @@ public sealed partial class SessionFeature
 
 			ModelInfo defaultModel = await _modelFeature.GetDefaultModel(cancellationToken);
 			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id, cancellationToken);
-			GitContext? gitContext = await _gitFeature.GetContext(workingDirectory);
+
+			// GetContext spawns git subprocesses, and its result isn't needed until the SessionModel
+			// is built (further below). Kick it off here so it overlaps the SDK CreateSessionAsync
+			// round-trip instead of blocking before it.
+			Task<GitContext?> gitContextTask = _gitFeature.GetContext(workingDirectory);
 
 			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
 			string? effectiveReasoningEffort = providerConfig is null ? defaultModel.DefaultReasoningEffort : null;
@@ -172,6 +227,9 @@ public sealed partial class SessionFeature
 			});
 			sdkSessionRegistered = true;
 
+			// git context was started before the SDK round-trip; collect it now that it's needed.
+			GitContext? gitContext = await gitContextTask;
+
 			SessionModel chatSession = new()
 			{
 				Id = createdSession.SessionId,
@@ -204,9 +262,11 @@ public sealed partial class SessionFeature
 
 			_sessionListFeature.AddSession(chatSession);
 
-			await _modelFeature.SaveSessionModel(chatSession);
-			await _agentPersistence.SaveSessionAgent(chatSession);
-			await _sessionModePersistence.SaveSessionMode(chatSession, cancellationToken);
+			// These three writes are best-effort metadata used only to *resume* the session later
+			// (saved model id, agent, agent-mode). They have no bearing on the SessionModel returned
+			// to the UI or on SwitchCurrentSessionAsync below, so there's no reason to make the user
+			// wait on disk I/O — persist them in the background and just log any failure.
+			_ = PersistSessionMetadataInBackground(chatSession);
 
 			await SwitchCurrentSessionAsync(chatSession);
 
@@ -243,6 +303,29 @@ public sealed partial class SessionFeature
 			throw;
 		}
 	}
+
+	/// <summary>
+	/// Persists the best-effort resume metadata (model, agent, agent-mode) for a freshly created
+	/// session off the critical path. The three writes target independent files, so they run
+	/// concurrently; the whole operation is offloaded to the thread pool so session creation never
+	/// blocks on disk I/O. Each writer already swallows its own failures, but any unexpected fault
+	/// is logged here rather than left unobserved.
+	/// </summary>
+	Task PersistSessionMetadataInBackground(SessionModel chatSession)
+		=> Task.Run(async () =>
+		{
+			try
+			{
+				await Task.WhenAll(
+					_modelFeature.SaveSessionModel(chatSession),
+					_agentPersistence.SaveSessionAgent(chatSession),
+					_sessionModePersistence.SaveSessionMode(chatSession, CancellationToken.None));
+			}
+			catch(Exception ex)
+			{
+				_logger.LogWarning(ex, "Background persistence failed for new session {SessionId}", chatSession.Id);
+			}
+		});
 
 	/// <summary>
 	/// Loads a session by replaying its history into the UI with <c>DisableResume=true</c>, which
@@ -330,7 +413,12 @@ public sealed partial class SessionFeature
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
 
-			await LoadContextPanelDataAsync(session, sdkSession);
+			// The context-panel load and the event replay below are independent: the replay rebuilds
+			// session.Messages and never touches session.Context, while this only writes session.Context.
+			// Run the panel's SDK round-trips concurrently with the (length-dependent) event fetch +
+			// replay so they hide under it instead of adding to resume time. Joined before the restore
+			// section below, which reads session.Context.
+			Task contextPanelTask = LoadContextPanelDataAsync(session, sdkSession);
 
 			bool registered = false;
 			try
@@ -381,6 +469,10 @@ public sealed partial class SessionFeature
 					session.Title = tempSession.Title;
 				}
 
+				// Join the context-panel load before the restore section below, which reads
+				// session.Context (e.g. resolving the selected agent against the loaded agent list).
+				await contextPanelTask;
+
 				session.Status = SessionStatusEnum.Idle;
 				session.SdkState = SdkSessionStateEnum.Loaded;
 				session.Context.WorkspacePath = sdkSession.WorkspacePath;
@@ -414,6 +506,9 @@ public sealed partial class SessionFeature
 			{
 				if(!registered)
 				{
+					// The context-panel load may still be in flight on an error path. Wait for it
+					// (observing any failure) before disposing the SDK session it reads from.
+					try { await contextPanelTask; } catch { /* surfaced via the outer catch / loaders */ }
 					await sdkSession.DisposeAsync();
 					session.SdkState = SdkSessionStateEnum.NotLoaded;
 				}
