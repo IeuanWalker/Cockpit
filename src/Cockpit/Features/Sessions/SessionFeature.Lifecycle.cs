@@ -413,7 +413,12 @@ public sealed partial class SessionFeature
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
 
-			await LoadContextPanelDataAsync(session, sdkSession);
+			// The context-panel load and the event replay below are independent: the replay rebuilds
+			// session.Messages and never touches session.Context, while this only writes session.Context.
+			// Run the panel's SDK round-trips concurrently with the (length-dependent) event fetch +
+			// replay so they hide under it instead of adding to resume time. Joined before the restore
+			// section below, which reads session.Context.
+			Task contextPanelTask = LoadContextPanelDataAsync(session, sdkSession);
 
 			bool registered = false;
 			try
@@ -464,6 +469,10 @@ public sealed partial class SessionFeature
 					session.Title = tempSession.Title;
 				}
 
+				// Join the context-panel load before the restore section below, which reads
+				// session.Context (e.g. resolving the selected agent against the loaded agent list).
+				await contextPanelTask;
+
 				session.Status = SessionStatusEnum.Idle;
 				session.SdkState = SdkSessionStateEnum.Loaded;
 				session.Context.WorkspacePath = sdkSession.WorkspacePath;
@@ -497,6 +506,9 @@ public sealed partial class SessionFeature
 			{
 				if(!registered)
 				{
+					// The context-panel load may still be in flight on an error path. Wait for it
+					// (observing any failure) before disposing the SDK session it reads from.
+					try { await contextPanelTask; } catch { /* surfaced via the outer catch / loaders */ }
 					await sdkSession.DisposeAsync();
 					session.SdkState = SdkSessionStateEnum.NotLoaded;
 				}
