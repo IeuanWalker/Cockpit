@@ -5,7 +5,7 @@
 <p align="center">
     <a href="https://cockpit.ieuanwalker.com/"><img src="https://img.shields.io/badge/Website-Landing%20Page-3fb950?style=flat-square" alt="Website"></a>
     <a href="https://github.com/IeuanWalker/Cockpit/releases/latest"><img src="https://img.shields.io/github/v/release/IeuanWalker/Cockpit?style=flat-square&label=Latest%20Release&color=3fb950" alt="Latest Release"></a>
-    <a href="https://github.com/IeuanWalker/Cockpit/releases/latest"><img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/ieuanwalker/cockpit/total?style=flat-square"></a>
+    <a href="https://github.com/IeuanWalker/Cockpit/releases/latest"><img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/ieuanwalker/cockpit/total?style=flat-square&label=Downloads"></a>
     <a href="https://github.com/IeuanWalker/Cockpit"><img src="https://img.shields.io/github/stars/IeuanWalker/Cockpit?style=flat-square&label=Stars" alt="GitHub Stars"></a>
 </p>
 
