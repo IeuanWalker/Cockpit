@@ -1,4 +1,7 @@
 using BenchmarkDotNet.Running;
 using Cockpit.Benchmarks;
 
-BenchmarkRunner.Run<SessionLoadingBenchmarks>();
+// Run a specific benchmark via args (e.g. --filter *SessionCreation*), otherwise run all.
+BenchmarkSwitcher
+	.FromTypes([typeof(SessionLoadingBenchmarks), typeof(SessionCreationBenchmarks)])
+	.Run(args);

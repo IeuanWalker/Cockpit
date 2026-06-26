@@ -164,7 +164,11 @@ public sealed partial class SessionFeature
 
 			ModelInfo defaultModel = await _modelFeature.GetDefaultModel(cancellationToken);
 			GitHub.Copilot.ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(defaultModel.Id, cancellationToken);
-			GitContext? gitContext = await _gitFeature.GetContext(workingDirectory);
+
+			// GetContext spawns git subprocesses, and its result isn't needed until the SessionModel
+			// is built (further below). Kick it off here so it overlaps the SDK CreateSessionAsync
+			// round-trip instead of blocking before it.
+			Task<GitContext?> gitContextTask = _gitFeature.GetContext(workingDirectory);
 
 			// BYOK providers don't support Copilot-specific reasoning effort; always pass null for them.
 			string? effectiveReasoningEffort = providerConfig is null ? defaultModel.DefaultReasoningEffort : null;
@@ -223,6 +227,9 @@ public sealed partial class SessionFeature
 			});
 			sdkSessionRegistered = true;
 
+			// git context was started before the SDK round-trip; collect it now that it's needed.
+			GitContext? gitContext = await gitContextTask;
+
 			SessionModel chatSession = new()
 			{
 				Id = createdSession.SessionId,
@@ -255,9 +262,11 @@ public sealed partial class SessionFeature
 
 			_sessionListFeature.AddSession(chatSession);
 
-			await _modelFeature.SaveSessionModel(chatSession);
-			await _agentPersistence.SaveSessionAgent(chatSession);
-			await _sessionModePersistence.SaveSessionMode(chatSession, cancellationToken);
+			// These three writes are best-effort metadata used only to *resume* the session later
+			// (saved model id, agent, agent-mode). They have no bearing on the SessionModel returned
+			// to the UI or on SwitchCurrentSessionAsync below, so there's no reason to make the user
+			// wait on disk I/O — persist them in the background and just log any failure.
+			_ = PersistSessionMetadataInBackground(chatSession);
 
 			await SwitchCurrentSessionAsync(chatSession);
 
@@ -294,6 +303,29 @@ public sealed partial class SessionFeature
 			throw;
 		}
 	}
+
+	/// <summary>
+	/// Persists the best-effort resume metadata (model, agent, agent-mode) for a freshly created
+	/// session off the critical path. The three writes target independent files, so they run
+	/// concurrently; the whole operation is offloaded to the thread pool so session creation never
+	/// blocks on disk I/O. Each writer already swallows its own failures, but any unexpected fault
+	/// is logged here rather than left unobserved.
+	/// </summary>
+	Task PersistSessionMetadataInBackground(SessionModel chatSession)
+		=> Task.Run(async () =>
+		{
+			try
+			{
+				await Task.WhenAll(
+					_modelFeature.SaveSessionModel(chatSession),
+					_agentPersistence.SaveSessionAgent(chatSession),
+					_sessionModePersistence.SaveSessionMode(chatSession, CancellationToken.None));
+			}
+			catch(Exception ex)
+			{
+				_logger.LogWarning(ex, "Background persistence failed for new session {SessionId}", chatSession.Id);
+			}
+		});
 
 	/// <summary>
 	/// Loads a session by replaying its history into the UI with <c>DisableResume=true</c>, which
