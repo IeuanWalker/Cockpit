@@ -8,6 +8,16 @@ namespace Cockpit.Features.Sessions;
 static class SessionWorkingDirectoryNormalizer
 {
 	internal static string? Normalize(string? workingDirectory)
+		=> Normalize(workingDirectory, LaunchDirectories.Capture());
+
+	/// <summary>
+	/// Normalizes a working directory against a pre-captured set of launch directories. Use this
+	/// overload in bulk loops (e.g. loading many sessions) so the launch directories — which are
+	/// constant for the duration of the operation — are computed once via
+	/// <see cref="LaunchDirectories.Capture"/> instead of on every call. The single-argument
+	/// <see cref="Normalize(string?)"/> overload captures them per-call for one-off use.
+	/// </summary>
+	internal static string? Normalize(string? workingDirectory, in LaunchDirectories launchDirectories)
 	{
 		if(string.IsNullOrWhiteSpace(workingDirectory))
 		{
@@ -17,7 +27,8 @@ static class SessionWorkingDirectoryNormalizer
 		try
 		{
 			string normalizedWorkingDirectory = Path.GetFullPath(workingDirectory);
-			return IsLaunchWorkingDirectory(normalizedWorkingDirectory)
+			string trimmed = normalizedWorkingDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			return launchDirectories.Matches(trimmed)
 				? null
 				: normalizedWorkingDirectory;
 		}
@@ -27,14 +38,31 @@ static class SessionWorkingDirectoryNormalizer
 		}
 	}
 
-	static bool IsLaunchWorkingDirectory(string normalizedWorkingDirectory)
+	/// <summary>
+	/// A snapshot of the directories that indicate "no real working directory" (the app launch
+	/// directory and the current process directory), normalized once so repeated comparisons in a
+	/// loop avoid recomputing <see cref="Path.GetFullPath(string)"/> and
+	/// <see cref="Directory.GetCurrentDirectory"/> for each item.
+	/// </summary>
+	internal readonly struct LaunchDirectories
 	{
-		string appLaunchDirectory = NormalizeDirectoryPath(AppContext.BaseDirectory);
-		string currentProcessDirectory = NormalizeDirectoryPath(Directory.GetCurrentDirectory());
-		string candidateDirectory = NormalizeDirectoryPath(normalizedWorkingDirectory);
+		readonly string _appLaunchDirectory;
+		readonly string _currentProcessDirectory;
 
-		return string.Equals(candidateDirectory, appLaunchDirectory, StringComparison.OrdinalIgnoreCase)
-			|| string.Equals(candidateDirectory, currentProcessDirectory, StringComparison.OrdinalIgnoreCase);
+		LaunchDirectories(string appLaunchDirectory, string currentProcessDirectory)
+		{
+			_appLaunchDirectory = appLaunchDirectory;
+			_currentProcessDirectory = currentProcessDirectory;
+		}
+
+		internal static LaunchDirectories Capture()
+			=> new(
+				NormalizeDirectoryPath(AppContext.BaseDirectory),
+				NormalizeDirectoryPath(Directory.GetCurrentDirectory()));
+
+		internal bool Matches(string normalizedDirectory)
+			=> string.Equals(normalizedDirectory, _appLaunchDirectory, StringComparison.OrdinalIgnoreCase)
+			|| string.Equals(normalizedDirectory, _currentProcessDirectory, StringComparison.OrdinalIgnoreCase);
 	}
 
 	static string NormalizeDirectoryPath(string path)

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Canvas;
@@ -40,7 +41,12 @@ public sealed partial class SessionFeature
 			_logger.LogInformation("Loading existing sessions from SDK...");
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
+
+			ValueTask<ModelInfo> defaultModelTask = _modelFeature.GetDefaultModel();
+
 			IList<SdkSessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
+
+			ModelInfo defaultModel = await defaultModelTask;
 
 			if(sessionMetadataList.Count == 0)
 			{
@@ -50,47 +56,12 @@ public sealed partial class SessionFeature
 
 			_logger.LogInformation("Found {Count} existing sessions", sessionMetadataList.Count);
 
-			ModelInfo defaultModel = await _modelFeature.GetDefaultModel();
-			foreach(SdkSessionMetadata metadata in sessionMetadataList)
-			{
-				if(_sessionListFeature.Sessions.Any(s => s.Id == metadata.SessionId))
-				{
-					continue;
-				}
+			Stopwatch sw = Stopwatch.StartNew();
 
-				try
-				{
-					string? cwd = SessionWorkingDirectoryNormalizer.Normalize(metadata.Context?.WorkingDirectory);
+			PopulateSessionsFromMetadata(sessionMetadataList, defaultModel, _sessionListFeature, _logger);
 
-					SessionModel chatSession = new()
-					{
-						Id = metadata.SessionId,
-						Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
-						CreatedAt = metadata.StartTime.UtcDateTime,
-						LastActivity = metadata.ModifiedTime.UtcDateTime,
-						Status = SessionStatusEnum.Idle,
-						Model = defaultModel,
-						ReasoningEffort = defaultModel.DefaultReasoningEffort,
-						Context = new()
-						{
-							CurrentWorkingDirectory = cwd,
-							WorkspacePath = null,
-							GitRoot = cwd is null ? null : metadata.Context?.GitRoot,
-							Repository = cwd is null ? null : metadata.Context?.Repository,
-							Branch = cwd is null ? null : metadata.Context?.Branch
-						}
-					};
-
-					SessionWorkingDirectoryNormalizer.ApplyContextConsistency(chatSession.Context);
-
-					_sessionListFeature.AddSession(chatSession);
-					_logger.LogInformation("Loaded session {SessionId}", chatSession.Id);
-				}
-				catch(Exception ex)
-				{
-					_logger.LogWarning(ex, "Failed to load session {SessionId}", metadata.SessionId);
-				}
-			}
+			sw.Stop();
+			_logger.LogInformation("Loading session took {Elapsed}", sw.Elapsed);
 
 			_sessionListFeature.NotifyStateChanged();
 			_logger.LogInformation("Successfully loaded {Count} sessions", _sessionListFeature.Sessions.Count);
@@ -99,6 +70,86 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogError(ex, "Failed to load existing sessions");
 		}
+	}
+
+	/// <summary>
+	/// Materializes <paramref name="sessionMetadataList"/> into <see cref="SessionModel"/> instances and
+	/// adds the not-yet-known ones to <paramref name="sessionListFeature"/>. Extracted as an
+	/// <see langword="internal static"/> method (with no SDK/network dependencies) so it can be unit
+	/// tested and benchmarked directly. Sessions already present (matched by id) are skipped.
+	/// </summary>
+	internal static void PopulateSessionsFromMetadata(
+		IList<SdkSessionMetadata> sessionMetadataList,
+		ModelInfo defaultModel,
+		SessionListFeature sessionListFeature,
+		ILogger logger)
+	{
+		IReadOnlyList<SessionModel> existing = sessionListFeature.Sessions;
+		HashSet<string> seenSessionIds = new(existing.Count + sessionMetadataList.Count, StringComparer.Ordinal);
+		foreach(SessionModel session in existing)
+		{
+			seenSessionIds.Add(session.Id);
+		}
+
+		List<SessionModel> newSessions = new(sessionMetadataList.Count);
+		SessionWorkingDirectoryNormalizer.LaunchDirectories launchDirectories = SessionWorkingDirectoryNormalizer.LaunchDirectories.Capture();
+		foreach(SdkSessionMetadata metadata in sessionMetadataList)
+		{
+			// Add returns false when the id is already known (existing session or duplicate
+			// in the incoming batch), mirroring the original per-item membership check.
+			if(!seenSessionIds.Add(metadata.SessionId))
+			{
+				continue;
+			}
+
+			try
+			{
+				newSessions.Add(CreateExistingSessionModel(metadata, defaultModel, launchDirectories));
+			}
+			catch(Exception ex)
+			{
+				logger.LogWarning(ex, "Failed to load session {SessionId}", metadata.SessionId);
+			}
+		}
+
+		sessionListFeature.AddSessionsAtFront(newSessions);
+
+		if(logger.IsEnabled(LogLevel.Information))
+		{
+			foreach(SessionModel session in newSessions)
+			{
+				logger.LogInformation("Loaded session {SessionId}", session.Id);
+			}
+		}
+	}
+
+	static SessionModel CreateExistingSessionModel(SdkSessionMetadata metadata, ModelInfo defaultModel, in SessionWorkingDirectoryNormalizer.LaunchDirectories launchDirectories)
+	{
+		// Normalize once against pre-captured launch directories. The original code additionally
+		// called ApplyContextConsistency, which re-normalized (idempotent) and nulled the Git
+		// fields when the cwd was null — both effects are already produced by the single Normalize
+		// call and the conditional assignments below, so the redundant second normalization is
+		// dropped.
+		string? cwd = SessionWorkingDirectoryNormalizer.Normalize(metadata.Context?.WorkingDirectory, launchDirectories);
+
+		return new SessionModel
+		{
+			Id = metadata.SessionId,
+			Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
+			CreatedAt = metadata.StartTime.UtcDateTime,
+			LastActivity = metadata.ModifiedTime.UtcDateTime,
+			Status = SessionStatusEnum.Idle,
+			Model = defaultModel,
+			ReasoningEffort = defaultModel.DefaultReasoningEffort,
+			Context = new()
+			{
+				CurrentWorkingDirectory = cwd,
+				WorkspacePath = null,
+				GitRoot = cwd is null ? null : metadata.Context?.GitRoot,
+				Repository = cwd is null ? null : metadata.Context?.Repository,
+				Branch = cwd is null ? null : metadata.Context?.Branch
+			}
+		};
 	}
 
 	public async Task<SessionModel> CreateSession(string? workingDirectory, CancellationToken cancellationToken = default)
