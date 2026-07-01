@@ -7,6 +7,8 @@ namespace Cockpit.Features.Sessions;
 /// </summary>
 public interface ISessionStateProvider
 {
+	event Action? OnStateChanged;
+
 	/// <summary>
 	/// Get all chat sessions
 	/// </summary>

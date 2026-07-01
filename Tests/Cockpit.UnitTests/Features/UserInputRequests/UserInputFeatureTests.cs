@@ -21,7 +21,9 @@ public sealed class UserInputFeatureTests
 		public IReadOnlyList<SessionModel> Sessions => _sessions;
 		public SessionModel? CurrentSession => _sessions.FirstOrDefault();
 
-		public void NotifyStateChanged() { }
+		public void NotifyStateChanged() => OnStateChanged?.Invoke();
+
+		public event Action? OnStateChanged;
 	}
 
 	static SessionModel CreateSession(string id = sessionId) => new()

@@ -10,11 +10,38 @@
             <div class="update-text">
                 <span class="update-title">Update available</span>
                 <span class="update-version">@_feature.CachedResult!.LatestRelease!.TagName</span>
+                @if (_feature.IsInstalledBuild && GetProgressLabel() is { } progressLabel)
+                {
+                    <span class="update-progress">@progressLabel</span>
+                }
+                @if (_feature.IsInstalledBuild && _feature.DownloadState.ErrorMessage is { Length: > 0 } errorMessage)
+                {
+                    <span class="update-error">@errorMessage</span>
+                }
+                @if (_feature.IsInstalledBuild && _feature.AutoInstallPending)
+                {
+                    <span class="update-progress">Auto install waiting for active session to finish</span>
+                }
             </div>
         </div>
         <div class="update-actions">
-            <button class="update-download-btn" @onclick="Download" title="Open release page">Download</button>
+            @if (_feature.IsInstalledBuild)
+            {
+                <button class="update-download-btn" @onclick="ViewReleaseNotes" title="Open release notes">Release notes</button>
+                <button class="update-download-btn" @onclick="DownloadOrInstall" disabled="@IsPrimaryActionDisabled()">@GetPrimaryActionLabel()</button>
+            }
+            else
+            {
+                <button class="update-download-btn" @onclick="DownloadOrInstall" title="Open release page">Download</button>
+            }
             <button aria-label="Dismiss this update" class="update-dismiss-btn" @onclick="Dismiss">✕</button>
         </div>
+        @if (_feature.IsInstalledBuild)
+        {
+            <label class="update-auto-install">
+                <input type="checkbox" checked="@_feature.AutoInstallAfterDownloadIfNoActiveSession" @onchange="ToggleAutoInstall" />
+                Auto install after download if no active session
+            </label>
+        }
     </div>
 }

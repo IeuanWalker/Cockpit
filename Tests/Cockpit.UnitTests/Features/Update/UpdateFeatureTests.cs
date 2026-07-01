@@ -1,5 +1,6 @@
 using System.Net;
 using Cockpit.Extensions;
+using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Updates;
 using Cockpit.Features.Updates.Models;
 using Shouldly;
@@ -433,6 +434,39 @@ public class UpdateFeatureTests
 
 	#endregion
 
+	#region DownloadLatestInstallerAsync
+
+	[Fact]
+	public async Task DownloadLatestInstallerAsync_DownloadsInstaller_AndTracksBytes()
+	{
+		string root = Path.Combine(Path.GetTempPath(), "Cockpit-UpdateTests", Guid.NewGuid().ToString("N"));
+		byte[] installerBytes = [.. Enumerable.Range(0, 220_000).Select(i => (byte)(i % 251))];
+		try
+		{
+			using HttpClient httpClient = new(new DownloadAwareMockHttpMessageHandler(sampleReleaseJson, installerBytes));
+			using UpdateFeature feature = new(httpClient, "1.7.0", isInstalledBuild: true, downloadRootDirectory: root);
+
+			await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+			await feature.DownloadLatestInstallerAsync(TestContext.Current.CancellationToken);
+
+			feature.DownloadState.Status.ShouldBe(UpdateDownloadStatusEnum.Downloaded);
+			feature.DownloadState.TotalBytes.ShouldBe(installerBytes.LongLength);
+			feature.DownloadState.BytesDownloaded.ShouldBe(installerBytes.LongLength);
+			feature.DownloadState.InstallerPath.ShouldNotBeNull();
+			File.Exists(feature.DownloadState.InstallerPath).ShouldBeTrue();
+			File.ReadAllBytes(feature.DownloadState.InstallerPath).Length.ShouldBe(installerBytes.Length);
+		}
+		finally
+		{
+			if(Directory.Exists(root))
+			{
+				Directory.Delete(root, true);
+			}
+		}
+	}
+
+	#endregion
+
 	#region DismissVersion
 
 	[Fact]
@@ -525,6 +559,48 @@ public class UpdateFeatureTests
 		});
 	}
 
+	[Fact]
+	public void IsInstalledPath_ReturnsTrue_WhenExeIsInsideInstallDirectory()
+	{
+		bool result = UpdateFeature.IsInstalledPath(
+			@"C:\Program Files\Cockpit\Cockpit.exe",
+			@"C:\Program Files\Cockpit");
+
+		result.ShouldBeTrue();
+	}
+
+	[Fact]
+	public void IsInstalledPath_ReturnsFalse_WhenExeIsOutsideInstallDirectory()
+	{
+		bool result = UpdateFeature.IsInstalledPath(
+			@"D:\Apps\Cockpit\Cockpit.exe",
+			@"C:\Program Files\Cockpit");
+
+		result.ShouldBeFalse();
+	}
+
+	[Fact]
+	public void FindSetupAsset_ReturnsSetupExecutable_WhenPresent()
+	{
+		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Setup.exe", "Cockpit-windows-x64-1.8.0.zip");
+
+		GitHubReleaseAssetModel? setupAsset = UpdateFeature.FindSetupAsset(release);
+
+		setupAsset.ShouldNotBeNull();
+		setupAsset.Name.ShouldEndWith("-Setup.exe");
+	}
+
+	[Fact]
+	public void IsSessionActive_ReturnsTrue_ForRunningAndBlockingStates()
+	{
+		UpdateFeature.IsSessionActive(SessionStatusEnum.Running).ShouldBeTrue();
+		UpdateFeature.IsSessionActive(SessionStatusEnum.NeedsPermission).ShouldBeTrue();
+		UpdateFeature.IsSessionActive(SessionStatusEnum.NeedsUserInput).ShouldBeTrue();
+		UpdateFeature.IsSessionActive(SessionStatusEnum.NeedsElicitation).ShouldBeTrue();
+		UpdateFeature.IsSessionActive(SessionStatusEnum.Idle).ShouldBeFalse();
+		UpdateFeature.IsSessionActive(SessionStatusEnum.Error).ShouldBeFalse();
+	}
+
 	#endregion
 }
 
@@ -555,5 +631,44 @@ sealed class MockHttpMessageHandler : HttpMessageHandler
 		}
 
 		return Task.FromResult(response);
+	}
+}
+
+sealed class DownloadAwareMockHttpMessageHandler : HttpMessageHandler
+{
+	readonly string _releaseJson;
+	readonly byte[] _installerBytes;
+
+	internal DownloadAwareMockHttpMessageHandler(string releaseJson, byte[] installerBytes)
+	{
+		_releaseJson = releaseJson;
+		_installerBytes = installerBytes;
+	}
+
+	protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+	{
+		cancellationToken.ThrowIfCancellationRequested();
+		string requestUri = request.RequestUri?.AbsoluteUri ?? string.Empty;
+
+		if(requestUri.Contains("/releases/latest", StringComparison.OrdinalIgnoreCase))
+		{
+			HttpResponseMessage releaseResponse = new(HttpStatusCode.OK)
+			{
+				Content = new StringContent(_releaseJson, System.Text.Encoding.UTF8, "application/json")
+			};
+			return Task.FromResult(releaseResponse);
+		}
+
+		if(requestUri.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase))
+		{
+			ByteArrayContent content = new(_installerBytes);
+			HttpResponseMessage installerResponse = new(HttpStatusCode.OK)
+			{
+				Content = content
+			};
+			return Task.FromResult(installerResponse);
+		}
+
+		return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
 	}
 }

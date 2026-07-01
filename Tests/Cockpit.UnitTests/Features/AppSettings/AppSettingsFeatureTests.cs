@@ -379,4 +379,19 @@ public class AppSettingsFeatureTests
 		a.AccentColor = "#111111";
 		b.AccentColor.ShouldBe("#005FB8"); // default, unaffected by 'a'
 	}
+
+	[Fact]
+	public void AutoInstallDownloadedUpdateWhenNoActiveSession_DefaultsTo_False()
+	{
+		UserAppSettings settings = CreateSettings();
+		settings.AutoInstallDownloadedUpdateWhenNoActiveSession.ShouldBeFalse();
+	}
+
+	[Fact]
+	public void AutoInstallDownloadedUpdateWhenNoActiveSession_RoundTrip_PreservesValue()
+	{
+		UserAppSettings settings = CreateSettings();
+		settings.AutoInstallDownloadedUpdateWhenNoActiveSession = true;
+		settings.AutoInstallDownloadedUpdateWhenNoActiveSession.ShouldBeTrue();
+	}
 }

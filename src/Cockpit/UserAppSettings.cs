@@ -45,6 +45,7 @@ public class UserAppSettings
 		internal const string canvasEnabled = "CanvasEnabled";
 		internal const string sessionListGroupBy = "SessionListGroupBy";
 		internal const string systemMessageSectionOverrides = "SystemMessageSectionOverrides";
+		internal const string autoInstallDownloadedUpdateWhenNoActiveSession = "AutoInstallDownloadedUpdateWhenNoActiveSession";
 	}
 
 	readonly IPreferencesStorage _preferences;
@@ -248,6 +249,15 @@ public class UserAppSettings
 	{
 		get => _preferences.Get(Keys.sessionListGroupBy, "Project");
 		set => _preferences.Set(Keys.sessionListGroupBy, value);
+	}
+
+	/// <summary>
+	/// When enabled, downloaded updates auto-install once no active session is running.
+	/// </summary>
+	public bool AutoInstallDownloadedUpdateWhenNoActiveSession
+	{
+		get => _preferences.Get(Keys.autoInstallDownloadedUpdateWhenNoActiveSession, false);
+		set => _preferences.Set(Keys.autoInstallDownloadedUpdateWhenNoActiveSession, value);
 	}
 
 	/// <summary>
