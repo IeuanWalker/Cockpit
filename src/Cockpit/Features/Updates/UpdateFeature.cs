@@ -342,6 +342,22 @@ public sealed partial class UpdateFeature : IDisposable
 		}
 		catch(OperationCanceledException)
 		{
+			string? installerPath = _downloadState.InstallerPath;
+			if(!string.IsNullOrWhiteSpace(installerPath))
+			{
+				try
+				{
+					if(File.Exists(installerPath))
+					{
+						File.Delete(installerPath);
+					}
+				}
+				catch(Exception deleteEx)
+				{
+					_logger.LogWarning(deleteEx, "Failed to delete partial installer {InstallerPath}", installerPath);
+				}
+			}
+
 			_autoInstallPending = false;
 			_downloadState = UpdateDownloadStateModel.Idle;
 			OnUpdateChecked?.Invoke();
@@ -349,6 +365,23 @@ public sealed partial class UpdateFeature : IDisposable
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to download update installer.");
+
+			string? installerPath = _downloadState.InstallerPath;
+			if(!string.IsNullOrWhiteSpace(installerPath))
+			{
+				try
+				{
+					if(File.Exists(installerPath))
+					{
+						File.Delete(installerPath);
+					}
+				}
+				catch(Exception deleteEx)
+				{
+					_logger.LogWarning(deleteEx, "Failed to delete partial installer {InstallerPath}", installerPath);
+				}
+			}
+
 			SetDownloadFailed("Failed to download update installer.");
 		}
 		finally
