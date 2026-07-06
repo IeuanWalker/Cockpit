@@ -140,10 +140,7 @@ public sealed partial class UpdateFeature : IDisposable
 		IsInstalledBuild = isInstalledBuild;
 		InstalledDate = null;
 
-		if(_sessionStateProvider is not null)
-		{
-			_sessionStateProvider.OnStateChanged += HandleSessionStateChanged;
-		}
+		_sessionStateProvider?.OnStateChanged += HandleSessionStateChanged;
 	}
 
 	/// <summary>
@@ -614,10 +611,7 @@ public sealed partial class UpdateFeature : IDisposable
 		}
 
 		_cts.Cancel();
-		if(_sessionStateProvider is not null)
-		{
-			_sessionStateProvider.OnStateChanged -= HandleSessionStateChanged;
-		}
+		_sessionStateProvider?.OnStateChanged -= HandleSessionStateChanged;
 
 		_cts.Dispose();
 		_checkLock.Dispose();

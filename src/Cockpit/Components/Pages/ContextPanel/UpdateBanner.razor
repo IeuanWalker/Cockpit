@@ -1,5 +1,3 @@
-@using Cockpit.Features.Updates
-
 @if (_feature.CachedResult?.UpdateAvailable == true && _feature.CachedResult.LatestRelease?.TagName != _feature.DismissedVersion)
 {
     <div class="update-banner">
