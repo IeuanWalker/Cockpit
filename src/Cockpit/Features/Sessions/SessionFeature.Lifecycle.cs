@@ -430,7 +430,7 @@ public sealed partial class SessionFeature
 
 				// Create a snapshot of the context for replay to mutate independently, avoiding
 				// concurrent writes with LoadContextPanelDataAsync.
-				SessionContext replayContext = new()
+				Models.SessionContext replayContext = new()
 				{
 					CurrentWorkingDirectory = session.Context.CurrentWorkingDirectory,
 					WorkspacePath = session.Context.WorkspacePath,
