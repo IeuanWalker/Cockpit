@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
@@ -87,7 +88,10 @@ public sealed partial class UpdateFeature : IDisposable
 		_userSettings = userSettings;
 		_sessionStateProvider = sessionStateProvider;
 		_currentVersion = AppInfo.VersionString;
-		_downloadRootDirectory = GetLaunchDirectory();
+		_downloadRootDirectory = Path.Combine(
+			Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+			"Cockpit",
+			"Updates");
 		IsInstalledBuild = IsInstalledPath(Environment.ProcessPath, TryGetInstalledDirectoryFromRegistry(logger));
 		_sessionStateProvider.OnStateChanged += HandleSessionStateChanged;
 
@@ -367,17 +371,17 @@ public sealed partial class UpdateFeature : IDisposable
 			_downloadState = _downloadState with { Status = UpdateDownloadStatusEnum.Installing, ErrorMessage = null };
 			OnUpdateChecked?.Invoke();
 
-			ProcessStartInfo installerStartInfo = new()
+			string installerFileName = Path.GetFileName(_downloadState.InstallerPath);
+			string launchDirectory = GetLaunchDirectory();
+			string stagedInstallerPath = Path.Combine(launchDirectory, installerFileName);
+
+			bool launched = await StageAndLaunchInstallerAsync(
+				_downloadState.InstallerPath,
+				stagedInstallerPath,
+				cancellationToken).ConfigureAwait(false);
+			if(!launched)
 			{
-				FileName = _downloadState.InstallerPath,
-				UseShellExecute = true,
-				Verb = "runas",
-				WorkingDirectory = Path.GetDirectoryName(_downloadState.InstallerPath)
-			};
-			Process? started = Process.Start(installerStartInfo);
-			if(started is null)
-			{
-				SetDownloadFailed("Failed to launch installer.");
+				SetDownloadFailed("Permission was denied or the installer could not be launched.");
 				return;
 			}
 
@@ -598,6 +602,58 @@ public sealed partial class UpdateFeature : IDisposable
 		char[] invalid = Path.GetInvalidFileNameChars();
 		char[] chars = value.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray();
 		return new string(chars);
+	}
+
+	async Task<bool> StageAndLaunchInstallerAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken)
+	{
+		if(!OperatingSystem.IsWindows())
+		{
+			return false;
+		}
+
+		try
+		{
+			string destinationDirectory = Path.GetDirectoryName(destinationPath) ?? string.Empty;
+			string encodedCommand = Convert.ToBase64String(Encoding.Unicode.GetBytes(
+				$"""
+				$ErrorActionPreference = 'Stop'
+				New-Item -ItemType Directory -Force -Path '{EscapePowerShellSingleQuoted(destinationDirectory)}' | Out-Null
+				Copy-Item -LiteralPath '{EscapePowerShellSingleQuoted(sourcePath)}' -Destination '{EscapePowerShellSingleQuoted(destinationPath)}' -Force
+				Start-Process -FilePath '{EscapePowerShellSingleQuoted(destinationPath)}' -WorkingDirectory '{EscapePowerShellSingleQuoted(destinationDirectory)}'
+				"""));
+
+			ProcessStartInfo helperStartInfo = new()
+			{
+				FileName = "powershell.exe",
+				Arguments = $"-NoProfile -ExecutionPolicy Bypass -EncodedCommand {encodedCommand}",
+				UseShellExecute = true,
+				Verb = "runas",
+				WorkingDirectory = Path.GetDirectoryName(sourcePath)
+			};
+
+			using Process? helperProcess = Process.Start(helperStartInfo);
+			if(helperProcess is null)
+			{
+				return false;
+			}
+
+			await helperProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+			return helperProcess.ExitCode == 0;
+		}
+		catch(OperationCanceledException)
+		{
+			return false;
+		}
+		catch(Exception ex)
+		{
+			_logger.LogWarning(ex, "Failed to stage installer for launch.");
+			return false;
+		}
+	}
+
+	static string EscapePowerShellSingleQuoted(string value)
+	{
+		return value.Replace("'", "''");
 	}
 
 	void CleanupStaleInstallerDownloads(string currentTargetDirectory)
