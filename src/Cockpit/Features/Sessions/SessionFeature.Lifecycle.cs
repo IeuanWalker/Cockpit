@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Canvas;
@@ -56,12 +55,7 @@ public sealed partial class SessionFeature
 
 			_logger.LogInformation("Found {Count} existing sessions", sessionMetadataList.Count);
 
-			Stopwatch sw = Stopwatch.StartNew();
-
 			PopulateSessionsFromMetadata(sessionMetadataList, defaultModel, _sessionListFeature, _logger);
-
-			sw.Stop();
-			_logger.LogInformation("Loading session took {Elapsed}", sw.Elapsed);
 
 			_sessionListFeature.NotifyStateChanged();
 			_logger.LogInformation("Successfully loaded {Count} sessions", _sessionListFeature.Sessions.Count);
@@ -108,6 +102,10 @@ public sealed partial class SessionFeature
 			}
 			catch(Exception ex)
 			{
+				// Remove the id from seenSessionIds on failure to restore the original retry-on-failure
+				// behavior: a duplicate entry later in this batch will be attempted again rather than
+				// skipped, and the session won't be permanently marked as seen.
+				seenSessionIds.Remove(metadata.SessionId);
 				logger.LogWarning(ex, "Failed to load session {SessionId}", metadata.SessionId);
 			}
 		}
@@ -414,7 +412,11 @@ public sealed partial class SessionFeature
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
 
 			// The context-panel load and the event replay below are independent: the replay rebuilds
-			// session.Messages and never touches session.Context, while this only writes session.Context.
+			// session.Messages and may mutate session.Context through SessionContextChangedEvent
+			// (which processes during replay), while LoadContextPanelDataAsync also writes
+			// session.Context. To prevent concurrent mutations, pass replay a snapshot of Context
+			// rather than the live reference. Replayed context mutations are discarded after replay
+			// completes, since LoadContextPanelDataAsync provides the authoritative values.
 			// Run the panel's SDK round-trips concurrently with the (length-dependent) event fetch +
 			// replay so they hide under it instead of adding to resume time. Joined before the restore
 			// section below, which reads session.Context.
@@ -426,6 +428,20 @@ public sealed partial class SessionFeature
 				IReadOnlyList<SessionEvent> events = await sdkSession.GetEventsAsync(CancellationToken.None);
 				_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 
+				// Create a snapshot of the context for replay to mutate independently, avoiding
+				// concurrent writes with LoadContextPanelDataAsync.
+				SessionContext replayContext = new()
+				{
+					CurrentWorkingDirectory = session.Context.CurrentWorkingDirectory,
+					WorkspacePath = session.Context.WorkspacePath,
+					GitRoot = session.Context.GitRoot,
+					Repository = session.Context.Repository,
+					Branch = session.Context.Branch,
+					EditedFiles = [],
+					AllowedCommands = [],
+					SessionPermissionCommands = []
+				};
+
 				SessionModel tempSession = new()
 				{
 					Id = sessionId,
@@ -433,7 +449,7 @@ public sealed partial class SessionFeature
 					Status = SessionStatusEnum.Idle,
 					Model = session.Model,
 					ReasoningEffort = session.ReasoningEffort,
-					Context = session.Context,
+					Context = replayContext,
 					LastActivity = session.LastActivity,
 					CreatedAt = session.CreatedAt,
 					SuppressFinishedNotification = true
