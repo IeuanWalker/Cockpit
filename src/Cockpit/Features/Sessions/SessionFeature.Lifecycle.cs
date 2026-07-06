@@ -41,12 +41,21 @@ public sealed partial class SessionFeature
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
 
-			ValueTask<ModelInfo> defaultModelTask = _modelFeature.GetDefaultModel();
+			Task<ModelInfo> defaultModelTask = _modelFeature.GetDefaultModel().AsTask();
 
-			IList<SdkSessionMetadata> sessionMetadataList = await client.ListSessionsAsync();
+			IList<SdkSessionMetadata> sessionMetadataList;
+			try
+			{
+				sessionMetadataList = await client.ListSessionsAsync();
+			}
+			catch
+			{
+				// Ensure any failure from the overlapped model fetch is observed on the error path.
+				try { await defaultModelTask; } catch { /* ignore */ }
+				throw;
+			}
 
 			ModelInfo defaultModel = await defaultModelTask;
-
 			if(sessionMetadataList.Count == 0)
 			{
 				_logger.LogInformation("No existing sessions found");
