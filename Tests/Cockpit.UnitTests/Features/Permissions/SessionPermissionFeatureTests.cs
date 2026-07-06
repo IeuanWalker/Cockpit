@@ -43,7 +43,8 @@ public class SessionPermissionFeatureTests
 
 		public IReadOnlyList<SessionModel> Sessions => _sessions;
 		public SessionModel? CurrentSession => _sessions.FirstOrDefault();
-		public void NotifyStateChanged() { }
+		public void NotifyStateChanged() => OnStateChanged?.Invoke();
+		public event Action? OnStateChanged;
 	}
 
 	static (SessionPermissionFeature Feature, TestSessionStateProvider StateProvider) CreateFeature(params string[] sessionIds)

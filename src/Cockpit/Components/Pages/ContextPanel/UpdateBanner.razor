@@ -1,5 +1,3 @@
-@using Cockpit.Features.Updates
-
 @if (_feature.CachedResult?.UpdateAvailable == true && _feature.CachedResult.LatestRelease?.TagName != _feature.DismissedVersion)
 {
     <div class="update-banner">
@@ -8,13 +6,42 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
             <div class="update-text">
-                <span class="update-title">Update available</span>
+                <div class="update-title-row">
+                    <span class="update-title">Update available</span>
+                    <button aria-label="Dismiss this update" class="update-dismiss-btn" @onclick="Dismiss">✕</button>
+                </div>
                 <span class="update-version">@_feature.CachedResult!.LatestRelease!.TagName</span>
+                @if (_feature.IsInstalledBuild && GetProgressLabel() is { } progressLabel)
+                {
+                    <span class="update-progress">@progressLabel</span>
+                }
+                @if (_feature.IsInstalledBuild && _feature.DownloadState.ErrorMessage is { Length: > 0 } errorMessage)
+                {
+                    <span class="update-error">@errorMessage</span>
+                }
+                @if (_feature.IsInstalledBuild && _feature.AutoInstallPending)
+                {
+                    <span class="update-progress">Auto install waiting for active session to finish</span>
+                }
             </div>
         </div>
         <div class="update-actions">
-            <button class="update-download-btn" @onclick="Download" title="Open release page">Download</button>
-            <button aria-label="Dismiss this update" class="update-dismiss-btn" @onclick="Dismiss">✕</button>
+            @if (_feature.IsInstalledBuild)
+            {
+                <button class="update-download-btn" @onclick="ViewReleaseNotes" title="Open release notes">Release notes</button>
+                <button class="update-download-btn" @onclick="DownloadOrInstall" disabled="@IsPrimaryActionDisabled()">@GetPrimaryActionLabel()</button>
+            }
+            else
+            {
+                <button class="update-download-btn" @onclick="DownloadOrInstall" title="Open release page">Download</button>
+            }
         </div>
+        @if (_feature.IsInstalledBuild)
+        {
+            <label class="update-auto-install">
+                <input type="checkbox" checked="@_feature.AutoInstallAfterDownloadIfNoActiveSession" @onchange="ToggleAutoInstall" />
+                Auto install after download if no active session
+            </label>
+        }
     </div>
 }

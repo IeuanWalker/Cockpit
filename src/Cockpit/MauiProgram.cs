@@ -168,7 +168,9 @@ public static class MauiProgram
 			HttpClient client = new() { Timeout = TimeSpan.FromSeconds(30) };
 			client.DefaultRequestHeaders.Add("User-Agent", "Cockpit");
 			ILogger<UpdateFeature> logger = sp.GetRequiredService<ILogger<UpdateFeature>>();
-			return new UpdateFeature(client, logger);
+			UserAppSettings userSettings = sp.GetRequiredService<UserAppSettings>();
+			ISessionStateProvider sessionStateProvider = sp.GetRequiredService<ISessionStateProvider>();
+			return new UpdateFeature(client, logger, userSettings, sessionStateProvider);
 		});
 
 		builder.Services.AddSingleton<SoundFeature>();
