@@ -452,7 +452,7 @@ public class UpdateFeatureTests
 			await File.WriteAllTextAsync(Path.Combine(unrelatedDirectory, "notes.txt"), "keep me", TestContext.Current.CancellationToken);
 
 			using HttpClient httpClient = new(new DownloadAwareMockHttpMessageHandler(sampleReleaseJson, installerBytes));
-			using UpdateFeature feature = new(httpClient, "1.7.0", isInstalledBuild: true, downloadRootDirectory: root);
+			using UpdateFeature feature = new(httpClient, "1.7.0", isInstalledBuild: true, downloadRootDirectory: root, downloadHttpClient: httpClient);
 
 			await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 			await feature.DownloadLatestInstallerAsync(TestContext.Current.CancellationToken);

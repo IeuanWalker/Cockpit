@@ -32,6 +32,8 @@ public sealed partial class UpdateFeature : IDisposable
 	};
 
 	readonly HttpClient _httpClient;
+	readonly HttpClient _downloadHttpClient;
+	readonly bool _ownsDownloadClient;
 	readonly ILogger<UpdateFeature> _logger;
 	readonly string _currentVersion;
 	readonly UserAppSettings? _userSettings;
@@ -47,7 +49,7 @@ public sealed partial class UpdateFeature : IDisposable
 	string? _dismissedVersion;
 	DateTime? _lastChecked;
 	bool _autoInstallPending;
-	bool _disposed;
+	int _disposed;
 
 	public UpdateCheckResult? CachedResult => _cachedResult;
 	public string? DismissedVersion => _dismissedVersion;
@@ -84,6 +86,9 @@ public sealed partial class UpdateFeature : IDisposable
 		ISessionStateProvider sessionStateProvider)
 	{
 		_httpClient = httpClient;
+		_downloadHttpClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+		_downloadHttpClient.DefaultRequestHeaders.Add("User-Agent", "Cockpit");
+		_ownsDownloadClient = true;
 		_logger = logger;
 		_userSettings = userSettings;
 		_sessionStateProvider = sessionStateProvider;
@@ -121,9 +126,12 @@ public sealed partial class UpdateFeature : IDisposable
 		bool isInstalledBuild = false,
 		string? downloadRootDirectory = null,
 		UserAppSettings? userSettings = null,
-		ISessionStateProvider? sessionStateProvider = null)
+		ISessionStateProvider? sessionStateProvider = null,
+		HttpClient? downloadHttpClient = null)
 	{
 		_httpClient = httpClient;
+		_downloadHttpClient = downloadHttpClient ?? _httpClient;
+		_ownsDownloadClient = downloadHttpClient is not null && !ReferenceEquals(downloadHttpClient, httpClient);
 		_logger = logger ?? NullLogger<UpdateFeature>.Instance;
 		_currentVersion = currentVersion;
 		_userSettings = userSettings;
@@ -144,30 +152,41 @@ public sealed partial class UpdateFeature : IDisposable
 	/// </summary>
 	public void Initialize()
 	{
-		if(_checkTask is not null)
+		_checkLock.Wait();
+		try
 		{
-			return;
-		}
+			if(_checkTask is not null)
+			{
+				return;
+			}
 
-		_checkTask = RunPeriodicCheckAsync(_cts.Token);
+			_checkTask = RunPeriodicCheckAsync(_cts.Token);
+		}
+		finally
+		{
+			_checkLock.Release();
+		}
 	}
 
 	async Task RunPeriodicCheckAsync(CancellationToken cancellationToken)
 	{
-		try
+		using PeriodicTimer timer = new(checkInterval);
+		do
 		{
-			await CheckForUpdate(cancellationToken).ConfigureAwait(false);
-
-			using PeriodicTimer timer = new(checkInterval);
-			while(await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+			try
 			{
 				await CheckForUpdate(cancellationToken).ConfigureAwait(false);
 			}
+			catch(OperationCanceledException) when(cancellationToken.IsCancellationRequested)
+			{
+				return;
+			}
+			catch(Exception ex)
+			{
+				_logger.LogWarning(ex, "Periodic update check failed, will retry next interval.");
+			}
 		}
-		catch(Exception ex)
-		{
-			_logger.LogWarning(ex, "Periodic update check failed, will retry");
-		}
+		while(await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false));
 	}
 
 	public void DismissVersion(string version) => _dismissedVersion = version;
@@ -212,26 +231,6 @@ public sealed partial class UpdateFeature : IDisposable
 
 	public async Task DownloadLatestInstallerAsync(CancellationToken cancellationToken = default)
 	{
-		if(!IsInstalledBuild)
-		{
-			SetDownloadFailed("In-app download is only available for installed builds.");
-			return;
-		}
-
-		GitHubReleaseModel? release = _cachedResult?.LatestRelease;
-		if(release is null)
-		{
-			SetDownloadFailed("No update release metadata available.");
-			return;
-		}
-
-		GitHubReleaseAssetModel? setupAsset = FindSetupAsset(release);
-		if(setupAsset is null || string.IsNullOrWhiteSpace(setupAsset.BrowserDownloadUrl))
-		{
-			SetDownloadFailed("Installer asset not found in latest release.");
-			return;
-		}
-
 		bool shouldEvaluateAutoInstall = false;
 		try
 		{
@@ -239,23 +238,49 @@ public sealed partial class UpdateFeature : IDisposable
 		}
 		catch(OperationCanceledException)
 		{
-			SetDownloadFailed("Download cancelled.");
 			return;
 		}
 
 		try
 		{
+			if(!IsInstalledBuild)
+			{
+				SetDownloadFailed("In-app download is only available for installed builds.");
+				return;
+			}
+
+			GitHubReleaseModel? release = _cachedResult?.LatestRelease;
+			if(release is null)
+			{
+				SetDownloadFailed("No update release metadata available.");
+				return;
+			}
+
+			GitHubReleaseAssetModel? setupAsset = FindSetupAsset(release);
+			if(setupAsset is null || string.IsNullOrWhiteSpace(setupAsset.BrowserDownloadUrl))
+			{
+				SetDownloadFailed("Installer asset not found in latest release.");
+				return;
+			}
+
+			if(_downloadState.Status is UpdateDownloadStatusEnum.Downloading
+				or UpdateDownloadStatusEnum.Downloaded
+				or UpdateDownloadStatusEnum.Installing)
+			{
+				return;
+			}
+
 			string versionTag = string.IsNullOrWhiteSpace(release.TagName) ? "latest" : release.TagName;
 			string safeVersionTag = SanitizePathSegment(versionTag);
 			string fileName = string.IsNullOrWhiteSpace(setupAsset.Name)
 				? $"Cockpit-{safeVersionTag}-Setup.exe"
-				: setupAsset.Name;
+				: SanitizePathSegment(Path.GetFileName(setupAsset.Name));
 			string targetDirectory = Path.Combine(_downloadRootDirectory, safeVersionTag);
 			Directory.CreateDirectory(targetDirectory);
 			string installerPath = Path.Combine(targetDirectory, fileName);
 
 			using HttpRequestMessage request = new(HttpMethod.Get, setupAsset.BrowserDownloadUrl);
-			using HttpResponseMessage response = await _httpClient
+			using HttpResponseMessage response = await _downloadHttpClient
 				.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
 				.ConfigureAwait(false);
 			response.EnsureSuccessStatusCode();
@@ -317,7 +342,9 @@ public sealed partial class UpdateFeature : IDisposable
 		}
 		catch(OperationCanceledException)
 		{
-			SetDownloadFailed("Download cancelled.");
+			_autoInstallPending = false;
+			_downloadState = UpdateDownloadStateModel.Idle;
+			OnUpdateChecked?.Invoke();
 		}
 		catch(Exception ex)
 		{
@@ -367,16 +394,17 @@ public sealed partial class UpdateFeature : IDisposable
 				return;
 			}
 
+			string installerPath = _downloadState.InstallerPath;
 			_autoInstallPending = false;
 			_downloadState = _downloadState with { Status = UpdateDownloadStatusEnum.Installing, ErrorMessage = null };
 			OnUpdateChecked?.Invoke();
 
-			string installerFileName = Path.GetFileName(_downloadState.InstallerPath);
+			string installerFileName = Path.GetFileName(installerPath);
 			string launchDirectory = GetLaunchDirectory();
 			string stagedInstallerPath = Path.Combine(launchDirectory, installerFileName);
 
 			bool launched = await StageAndLaunchInstallerAsync(
-				_downloadState.InstallerPath,
+				installerPath,
 				stagedInstallerPath,
 				cancellationToken).ConfigureAwait(false);
 			if(!launched)
@@ -385,7 +413,7 @@ public sealed partial class UpdateFeature : IDisposable
 				return;
 			}
 
-			Application.Current?.Quit();
+			Application.Current?.Dispatcher.Dispatch(() => Application.Current.Quit());
 		}
 		catch(Exception ex)
 		{
@@ -547,12 +575,11 @@ public sealed partial class UpdateFeature : IDisposable
 
 	public void Dispose()
 	{
-		if(_disposed)
+		if(Interlocked.Exchange(ref _disposed, 1) != 0)
 		{
 			return;
 		}
 
-		_disposed = true;
 		_cts.Cancel();
 		if(_sessionStateProvider is not null)
 		{
@@ -562,6 +589,10 @@ public sealed partial class UpdateFeature : IDisposable
 		_cts.Dispose();
 		_checkLock.Dispose();
 		_downloadLock.Dispose();
+		if(_ownsDownloadClient)
+		{
+			_downloadHttpClient.Dispose();
+		}
 		_httpClient.Dispose();
 		GC.SuppressFinalize(this);
 	}
@@ -573,7 +604,10 @@ public sealed partial class UpdateFeature : IDisposable
 			return;
 		}
 
-		_ = EvaluateAutoInstallAfterDownloadAsync();
+		_ = EvaluateAutoInstallAfterDownloadAsync(_cts.Token)
+			.ContinueWith(
+				t => _logger.LogError(t.Exception, "Auto-install evaluation failed"),
+				TaskContinuationOptions.OnlyOnFaulted);
 	}
 
 	bool HasActiveSessions()
