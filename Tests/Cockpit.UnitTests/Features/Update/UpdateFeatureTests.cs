@@ -441,8 +441,16 @@ public class UpdateFeatureTests
 	{
 		string root = Path.Combine(Path.GetTempPath(), "Cockpit-UpdateTests", Guid.NewGuid().ToString("N"));
 		byte[] installerBytes = [.. Enumerable.Range(0, 220_000).Select(i => (byte)(i % 251))];
+		string staleDirectory = Path.Combine(root, "1.7.0");
+		string staleInstallerPath = Path.Combine(staleDirectory, "Cockpit-windows-x64-1.7.0-Setup.exe");
+		string unrelatedDirectory = Path.Combine(root, "docs");
 		try
 		{
+			Directory.CreateDirectory(staleDirectory);
+			await File.WriteAllBytesAsync(staleInstallerPath, [1, 2, 3], TestContext.Current.CancellationToken);
+			Directory.CreateDirectory(unrelatedDirectory);
+			await File.WriteAllTextAsync(Path.Combine(unrelatedDirectory, "notes.txt"), "keep me", TestContext.Current.CancellationToken);
+
 			using HttpClient httpClient = new(new DownloadAwareMockHttpMessageHandler(sampleReleaseJson, installerBytes));
 			using UpdateFeature feature = new(httpClient, "1.7.0", isInstalledBuild: true, downloadRootDirectory: root);
 
@@ -455,6 +463,8 @@ public class UpdateFeatureTests
 			feature.DownloadState.InstallerPath.ShouldNotBeNull();
 			File.Exists(feature.DownloadState.InstallerPath).ShouldBeTrue();
 			File.ReadAllBytes(feature.DownloadState.InstallerPath).Length.ShouldBe(installerBytes.Length);
+			Directory.Exists(staleDirectory).ShouldBeFalse();
+			Directory.Exists(unrelatedDirectory).ShouldBeTrue();
 		}
 		finally
 		{

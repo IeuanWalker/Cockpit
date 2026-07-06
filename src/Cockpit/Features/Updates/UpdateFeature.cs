@@ -87,10 +87,7 @@ public sealed partial class UpdateFeature : IDisposable
 		_userSettings = userSettings;
 		_sessionStateProvider = sessionStateProvider;
 		_currentVersion = AppInfo.VersionString;
-		_downloadRootDirectory = Path.Combine(
-			Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-			"Cockpit",
-			"Updates");
+		_downloadRootDirectory = GetLaunchDirectory();
 		IsInstalledBuild = IsInstalledPath(Environment.ProcessPath, TryGetInstalledDirectoryFromRegistry(logger));
 		_sessionStateProvider.OnStateChanged += HandleSessionStateChanged;
 
@@ -309,6 +306,7 @@ public sealed partial class UpdateFeature : IDisposable
 				bytesDownloaded,
 				totalBytes ?? bytesDownloaded,
 				null);
+			CleanupStaleInstallerDownloads(targetDirectory);
 			_autoInstallPending = false;
 			OnUpdateChecked?.Invoke();
 			shouldEvaluateAutoInstall = true;
@@ -507,7 +505,6 @@ public sealed partial class UpdateFeature : IDisposable
 
 			string installPrefix = normalizedInstallDirectory + Path.DirectorySeparatorChar;
 
-			return true;
 			return normalizedExeDirectory.StartsWith(installPrefix, StringComparison.OrdinalIgnoreCase);
 		}
 		catch
@@ -601,6 +598,54 @@ public sealed partial class UpdateFeature : IDisposable
 		char[] invalid = Path.GetInvalidFileNameChars();
 		char[] chars = value.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray();
 		return new string(chars);
+	}
+
+	void CleanupStaleInstallerDownloads(string currentTargetDirectory)
+	{
+		string? rootDirectory = Path.GetDirectoryName(currentTargetDirectory);
+		if(string.IsNullOrWhiteSpace(rootDirectory) || !Directory.Exists(rootDirectory))
+		{
+			return;
+		}
+
+		string currentTargetFullPath = Path.GetFullPath(currentTargetDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+		foreach(string directory in Directory.EnumerateDirectories(rootDirectory))
+		{
+			string candidateDirectory = Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			if(string.Equals(candidateDirectory, currentTargetFullPath, StringComparison.OrdinalIgnoreCase))
+			{
+				continue;
+			}
+
+			if(!Directory.EnumerateFiles(candidateDirectory, "*-Setup.exe", SearchOption.TopDirectoryOnly).Any())
+			{
+				continue;
+			}
+
+			try
+			{
+				Directory.Delete(candidateDirectory, true);
+			}
+			catch(Exception ex)
+			{
+				_logger.LogWarning(ex, "Failed to delete stale installer directory {Directory}", candidateDirectory);
+			}
+		}
+	}
+
+	static string GetLaunchDirectory()
+	{
+		string? processPath = Environment.ProcessPath;
+		if(!string.IsNullOrWhiteSpace(processPath))
+		{
+			string? directory = Path.GetDirectoryName(processPath);
+			if(!string.IsNullOrWhiteSpace(directory))
+			{
+				return directory;
+			}
+		}
+
+		return AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 	}
 
 	static string? TryGetInstalledDirectoryFromRegistry(ILogger logger)
