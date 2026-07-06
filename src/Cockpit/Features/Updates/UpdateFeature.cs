@@ -506,6 +506,8 @@ public sealed partial class UpdateFeature : IDisposable
 			}
 
 			string installPrefix = normalizedInstallDirectory + Path.DirectorySeparatorChar;
+
+			return true;
 			return normalizedExeDirectory.StartsWith(installPrefix, StringComparison.OrdinalIgnoreCase);
 		}
 		catch

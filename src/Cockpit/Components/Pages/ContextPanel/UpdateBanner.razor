@@ -8,7 +8,10 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
             <div class="update-text">
-                <span class="update-title">Update available</span>
+                <div class="update-title-row">
+                    <span class="update-title">Update available</span>
+                    <button aria-label="Dismiss this update" class="update-dismiss-btn" @onclick="Dismiss">✕</button>
+                </div>
                 <span class="update-version">@_feature.CachedResult!.LatestRelease!.TagName</span>
                 @if (_feature.IsInstalledBuild && GetProgressLabel() is { } progressLabel)
                 {
@@ -34,7 +37,6 @@
             {
                 <button class="update-download-btn" @onclick="DownloadOrInstall" title="Open release page">Download</button>
             }
-            <button aria-label="Dismiss this update" class="update-dismiss-btn" @onclick="Dismiss">✕</button>
         </div>
         @if (_feature.IsInstalledBuild)
         {

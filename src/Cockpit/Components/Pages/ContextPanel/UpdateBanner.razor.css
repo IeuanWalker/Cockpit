@@ -6,42 +6,53 @@
     padding: 8px 12px;
     font-size: 11px;
     border-bottom: 1px solid var(--border-color);
-    background: color-mix(in srgb, var(--accent-color) 12%, transparent);
-    color: var(--accent-color);
+    background: color-mix(in srgb, var(--accent-color) 12%, var(--bg-color));
+    color: var(--text-color);
     flex-wrap: wrap;
 }
 
 .update-banner-info {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 6px;
     min-width: 0;
+    flex: 1 1 220px;
 }
 
 .update-icon {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
+    color: var(--accent-color);
 }
 
 .update-text {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    flex: 1 1 auto;
+}
+
+.update-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .update-title {
     font-weight: 600;
     line-height: 1.2;
+    color: var(--title-color);
 }
 
 .update-version {
-    opacity: 0.75;
+    color: var(--secondary-text);
     font-size: 10px;
 }
 
 .update-progress {
-    opacity: 0.85;
+    color: var(--secondary-text);
     font-size: 10px;
 }
 
@@ -55,6 +66,8 @@
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
+    width: 100%;
+    justify-content: flex-start;
 }
 
 .update-download-btn {
@@ -80,19 +93,22 @@
 
 .update-dismiss-btn {
     font-size: 10px;
-    padding: 2px 4px;
+    font-weight: 700;
+    padding: 1px 4px;
     border: none;
-    background: transparent;
-    color: var(--accent-color);
-    opacity: 0.6;
+    background: color-mix(in srgb, var(--accent-color) 18%, transparent);
+    color: var(--title-color);
+    opacity: 0.9;
     cursor: pointer;
     border-radius: 3px;
-    transition: opacity 0.15s;
+    transition: opacity 0.15s, background-color 0.15s;
     line-height: 1;
+    flex-shrink: 0;
 }
 
     .update-dismiss-btn:hover {
         opacity: 1;
+        background: color-mix(in srgb, var(--accent-color) 30%, transparent);
     }
 
 .update-auto-install {
@@ -101,5 +117,13 @@
     align-items: center;
     gap: 6px;
     font-size: 10px;
-    opacity: 0.9;
+    color: var(--text-color);
 }
+
+    .update-auto-install input[type="checkbox"] {
+        accent-color: var(--accent-color);
+        width: 12px;
+        height: 12px;
+        margin: 0;
+        flex-shrink: 0;
+    }
