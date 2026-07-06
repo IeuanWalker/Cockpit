@@ -30,6 +30,28 @@ public sealed class SessionListFeature : ISessionStateProvider
 		_sessions.Insert(0, session);
 	}
 
+	/// <summary>
+	/// Inserts a batch of sessions at the front of the list in a single O(n) operation,
+	/// preserving the same final ordering as calling <see cref="AddSession"/> for each
+	/// session in <paramref name="sessions"/> order (i.e. the last item ends up first).
+	/// Avoids the O(n²) cost of repeated <c>List.Insert(0, …)</c> shifts during bulk load.
+	/// </summary>
+	internal void AddSessionsAtFront(IReadOnlyList<SessionModel> sessions)
+	{
+		if(sessions.Count == 0)
+		{
+			return;
+		}
+
+		SessionModel[] reversed = new SessionModel[sessions.Count];
+		for(int i = 0; i < sessions.Count; i++)
+		{
+			reversed[sessions.Count - 1 - i] = sessions[i];
+		}
+
+		_sessions.InsertRange(0, reversed);
+	}
+
 	internal void RemoveSession(string sessionId)
 	{
 		SessionModel? session = _sessions.FirstOrDefault(s => s.Id == sessionId);
