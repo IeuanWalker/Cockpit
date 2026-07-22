@@ -43,6 +43,13 @@ jobs:
           -p:ApplicationDisplayVersion=0.0.${{ github.run_number }}
           -p:ApplicationVersion=${{ github.run_number }}
           -p:Version=0.0.${{ github.run_number }}
+          -p:SelfContained=true
+          -p:WindowsAppSDKSelfContained=true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:IncludeAllContentForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=embedded
           --output ./publish/windows
 
       - name: Create test artifacts
@@ -54,7 +61,7 @@ jobs:
           }
 
           $version = "0.0.${{ github.run_number }}"
-          $outputExe = "./artifacts/Cockpit-windows-x64-$version-Setup.exe"
+          $outputExe = "./artifacts/Cockpit-windows-x64-$version.exe"
           $outputZip = "./artifacts/Cockpit-windows-x64-$version.zip"
           New-Item -ItemType Directory -Path ./artifacts -Force | Out-Null
           Copy-Item $publishedFiles[0].FullName $outputExe

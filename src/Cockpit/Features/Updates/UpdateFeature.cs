@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
@@ -97,7 +96,7 @@ public sealed partial class UpdateFeature : IDisposable
 			Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
 			"Cockpit",
 			"Updates");
-		IsInstalledBuild = IsInstalledPath(Environment.ProcessPath, TryGetInstalledDirectoryFromRegistry(logger));
+		IsInstalledBuild = IsPackagedWindowsApp() || IsInstalledPath(Environment.ProcessPath, TryGetInstalledDirectoryFromRegistry(logger));
 		_sessionStateProvider.OnStateChanged += HandleSessionStateChanged;
 
 		string key = $"installed_date_{_currentVersion}";
@@ -253,8 +252,8 @@ public sealed partial class UpdateFeature : IDisposable
 				return;
 			}
 
-			GitHubReleaseAssetModel? setupAsset = FindSetupAsset(release);
-			if(setupAsset is null || string.IsNullOrWhiteSpace(setupAsset.BrowserDownloadUrl))
+			GitHubReleaseAssetModel? installerAsset = FindInstallerAsset(release);
+			if(installerAsset is null || string.IsNullOrWhiteSpace(installerAsset.BrowserDownloadUrl))
 			{
 				SetDownloadFailed("Installer asset not found in latest release.");
 				return;
@@ -269,14 +268,14 @@ public sealed partial class UpdateFeature : IDisposable
 
 			string versionTag = string.IsNullOrWhiteSpace(release.TagName) ? "latest" : release.TagName;
 			string safeVersionTag = SanitizePathSegment(versionTag);
-			string fileName = string.IsNullOrWhiteSpace(setupAsset.Name)
-				? $"Cockpit-{safeVersionTag}-Setup.exe"
-				: SanitizePathSegment(Path.GetFileName(setupAsset.Name));
+			string fileName = string.IsNullOrWhiteSpace(installerAsset.Name)
+				? $"Cockpit-windows-x64-{safeVersionTag}-Installer.msix"
+				: SanitizePathSegment(Path.GetFileName(installerAsset.Name));
 			string targetDirectory = Path.Combine(_downloadRootDirectory, safeVersionTag);
 			Directory.CreateDirectory(targetDirectory);
 			string installerPath = Path.Combine(targetDirectory, fileName);
 
-			using HttpRequestMessage request = new(HttpMethod.Get, setupAsset.BrowserDownloadUrl);
+			using HttpRequestMessage request = new(HttpMethod.Get, installerAsset.BrowserDownloadUrl);
 			using HttpResponseMessage response = await _downloadHttpClient
 				.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
 				.ConfigureAwait(false);
@@ -429,14 +428,7 @@ public sealed partial class UpdateFeature : IDisposable
 			_downloadState = _downloadState with { Status = UpdateDownloadStatusEnum.Installing, ErrorMessage = null };
 			OnUpdateChecked?.Invoke();
 
-			string installerFileName = Path.GetFileName(installerPath);
-			string launchDirectory = GetLaunchDirectory();
-			string stagedInstallerPath = Path.Combine(launchDirectory, installerFileName);
-
-			bool launched = await StageAndLaunchInstallerAsync(
-				installerPath,
-				stagedInstallerPath,
-				cancellationToken).ConfigureAwait(false);
+			bool launched = LaunchInstaller(installerPath);
 			if(!launched)
 			{
 				SetDownloadFailed("Permission was denied or the installer could not be launched.");
@@ -538,13 +530,12 @@ public sealed partial class UpdateFeature : IDisposable
 	{
 		List<GitHubReleaseAssetModel>? assets = release.Assets;
 		return assets is { Count: > 0 } &&
-			assets.Any(a => a.Name?.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase) is true) &&
-			assets.Any(a => a.Name?.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) is true);
+			assets.Any(a => a.Name?.EndsWith("-Installer.msix", StringComparison.OrdinalIgnoreCase) is true);
 	}
 
-	internal static GitHubReleaseAssetModel? FindSetupAsset(GitHubReleaseModel release)
+	internal static GitHubReleaseAssetModel? FindInstallerAsset(GitHubReleaseModel release)
 	{
-		return release.Assets?.FirstOrDefault(a => a.Name?.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase) is true);
+		return release.Assets?.FirstOrDefault(a => a.Name?.EndsWith("-Installer.msix", StringComparison.OrdinalIgnoreCase) is true);
 	}
 
 	internal static bool IsInstalledPath(string? executablePath, string? installDirectory)
@@ -665,7 +656,7 @@ public sealed partial class UpdateFeature : IDisposable
 		return new string(chars);
 	}
 
-	async Task<bool> StageAndLaunchInstallerAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken)
+	bool LaunchInstaller(string installerPath)
 	{
 		if(!OperatingSystem.IsWindows())
 		{
@@ -674,47 +665,21 @@ public sealed partial class UpdateFeature : IDisposable
 
 		try
 		{
-			string destinationDirectory = Path.GetDirectoryName(destinationPath) ?? string.Empty;
-			string encodedCommand = Convert.ToBase64String(Encoding.Unicode.GetBytes(
-				$"""
-				$ErrorActionPreference = 'Stop'
-				New-Item -ItemType Directory -Force -Path '{EscapePowerShellSingleQuoted(destinationDirectory)}' | Out-Null
-				Copy-Item -LiteralPath '{EscapePowerShellSingleQuoted(sourcePath)}' -Destination '{EscapePowerShellSingleQuoted(destinationPath)}' -Force
-				Start-Process -FilePath '{EscapePowerShellSingleQuoted(destinationPath)}' -WorkingDirectory '{EscapePowerShellSingleQuoted(destinationDirectory)}'
-				"""));
-
-			ProcessStartInfo helperStartInfo = new()
+			ProcessStartInfo startInfo = new()
 			{
-				FileName = "powershell.exe",
-				Arguments = $"-NoProfile -ExecutionPolicy Bypass -EncodedCommand {encodedCommand}",
+				FileName = installerPath,
 				UseShellExecute = true,
-				Verb = "runas",
-				WorkingDirectory = Path.GetDirectoryName(sourcePath)
+				WorkingDirectory = Path.GetDirectoryName(installerPath)
 			};
 
-			using Process? helperProcess = Process.Start(helperStartInfo);
-			if(helperProcess is null)
-			{
-				return false;
-			}
-
-			await helperProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-			return helperProcess.ExitCode == 0;
-		}
-		catch(OperationCanceledException)
-		{
-			return false;
+			using Process? installerProcess = Process.Start(startInfo);
+			return installerProcess is not null;
 		}
 		catch(Exception ex)
 		{
-			_logger.LogWarning(ex, "Failed to stage installer for launch.");
+			_logger.LogWarning(ex, "Failed to launch MSIX installer.");
 			return false;
 		}
-	}
-
-	static string EscapePowerShellSingleQuoted(string value)
-	{
-		return value.Replace("'", "''");
 	}
 
 	void CleanupStaleInstallerDownloads(string currentTargetDirectory)
@@ -734,7 +699,7 @@ public sealed partial class UpdateFeature : IDisposable
 				continue;
 			}
 
-			if(!Directory.EnumerateFiles(candidateDirectory, "*-Setup.exe", SearchOption.TopDirectoryOnly).Any())
+			if(!Directory.EnumerateFiles(candidateDirectory, "*-Installer.msix", SearchOption.TopDirectoryOnly).Any())
 			{
 				continue;
 			}
@@ -750,19 +715,20 @@ public sealed partial class UpdateFeature : IDisposable
 		}
 	}
 
-	static string GetLaunchDirectory()
+	static bool IsPackagedWindowsApp()
 	{
-		string? processPath = Environment.ProcessPath;
-		if(!string.IsNullOrWhiteSpace(processPath))
+#if WINDOWS
+		try
 		{
-			string? directory = Path.GetDirectoryName(processPath);
-			if(!string.IsNullOrWhiteSpace(directory))
-			{
-				return directory;
-			}
+			return !string.IsNullOrWhiteSpace(Windows.ApplicationModel.Package.Current.Id.Name);
 		}
-
-		return AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+		catch
+		{
+			return false;
+		}
+#else
+		return false;
+#endif
 	}
 
 	static string? TryGetInstalledDirectoryFromRegistry(ILogger logger)

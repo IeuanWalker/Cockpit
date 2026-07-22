@@ -32,6 +32,13 @@ public class UpdateFeatureTests
 		      "content_type": "application/zip",
 		      "size": 134674820,
 		      "browser_download_url": "https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0.zip"
+		    },
+		    {
+		      "name": "Cockpit-windows-x64-1.8.0-Installer.msix",
+		      "label": "",
+		      "content_type": "application/msix",
+		      "size": 135000000,
+		      "browser_download_url": "https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0-Installer.msix"
 		    }
 		  ],
 		  "body": "**Full Changelog**: https://github.com/IeuanWalker/Cockpit/compare/1.7.0...1.8.0"
@@ -137,13 +144,13 @@ public class UpdateFeatureTests
 	}
 
 	[Fact]
-	public void GitHubReleaseModel_Deserializes_TwoAssets()
+	public void GitHubReleaseModel_Deserializes_ThreeAssets()
 	{
 		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
 		release.Assets.ShouldNotBeNull();
-		release.Assets.Count.ShouldBe(2);
+		release.Assets.Count.ShouldBe(3);
 	}
 
 	[Fact]
@@ -173,6 +180,17 @@ public class UpdateFeatureTests
 	}
 
 	[Fact]
+	public void GitHubReleaseModel_Deserializes_MsixInstallerAsset()
+	{
+		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
+
+		release.ShouldNotBeNull();
+		GitHubReleaseAssetModel? installerAsset = release.Assets?.Find(a => a.Name?.EndsWith(".msix") is true);
+		installerAsset.ShouldNotBeNull();
+		installerAsset.Name.ShouldBe("Cockpit-windows-x64-1.8.0-Installer.msix");
+	}
+
+	[Fact]
 	public void GitHubReleaseModel_Deserializes_ExtraFields_WithoutError()
 	{
 		// The full GitHub API response includes many fields not in the model - they should be silently ignored
@@ -184,25 +202,17 @@ public class UpdateFeatureTests
 	#region HasRequiredAssets
 
 	[Fact]
-	public void HasRequiredAssets_ReturnsTrue_WhenBothAssetsPresent()
+	public void HasRequiredAssets_ReturnsTrue_WhenMsixInstallerPresent()
 	{
-		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Setup.exe", "Cockpit-windows-x64-1.8.0.zip");
+		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Installer.msix");
 
 		UpdateFeature.HasRequiredAssets(release).ShouldBeTrue();
 	}
 
 	[Fact]
-	public void HasRequiredAssets_ReturnsFalse_WhenSetupExeMissing()
+	public void HasRequiredAssets_ReturnsFalse_WhenMsixInstallerMissing()
 	{
 		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0.zip");
-
-		UpdateFeature.HasRequiredAssets(release).ShouldBeFalse();
-	}
-
-	[Fact]
-	public void HasRequiredAssets_ReturnsFalse_WhenZipMissing()
-	{
-		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Setup.exe");
 
 		UpdateFeature.HasRequiredAssets(release).ShouldBeFalse();
 	}
@@ -226,7 +236,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void HasRequiredAssets_IsCaseInsensitive()
 	{
-		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-SETUP.EXE", "Cockpit-windows-x64-1.8.0.ZIP");
+		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-INSTALLER.MSIX");
 
 		UpdateFeature.HasRequiredAssets(release).ShouldBeTrue();
 	}
@@ -442,7 +452,7 @@ public class UpdateFeatureTests
 		string root = Path.Combine(Path.GetTempPath(), "Cockpit-UpdateTests", Guid.NewGuid().ToString("N"));
 		byte[] installerBytes = [.. Enumerable.Range(0, 220_000).Select(i => (byte)(i % 251))];
 		string staleDirectory = Path.Combine(root, "1.7.0");
-		string staleInstallerPath = Path.Combine(staleDirectory, "Cockpit-windows-x64-1.7.0-Setup.exe");
+		string staleInstallerPath = Path.Combine(staleDirectory, "Cockpit-windows-x64-1.7.0-Installer.msix");
 		string unrelatedDirectory = Path.Combine(root, "docs");
 		try
 		{
@@ -590,14 +600,14 @@ public class UpdateFeatureTests
 	}
 
 	[Fact]
-	public void FindSetupAsset_ReturnsSetupExecutable_WhenPresent()
+	public void FindInstallerAsset_ReturnsMsixInstaller_WhenPresent()
 	{
-		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Setup.exe", "Cockpit-windows-x64-1.8.0.zip");
+		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Setup.exe", "Cockpit-windows-x64-1.8.0-Installer.msix");
 
-		GitHubReleaseAssetModel? setupAsset = UpdateFeature.FindSetupAsset(release);
+		GitHubReleaseAssetModel? installerAsset = UpdateFeature.FindInstallerAsset(release);
 
-		setupAsset.ShouldNotBeNull();
-		setupAsset.Name.ShouldEndWith("-Setup.exe");
+		installerAsset.ShouldNotBeNull();
+		installerAsset.Name.ShouldEndWith("-Installer.msix");
 	}
 
 	[Fact]
@@ -669,7 +679,7 @@ sealed class DownloadAwareMockHttpMessageHandler : HttpMessageHandler
 			return Task.FromResult(releaseResponse);
 		}
 
-		if(requestUri.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase))
+		if(requestUri.EndsWith("-Installer.msix", StringComparison.OrdinalIgnoreCase))
 		{
 			ByteArrayContent content = new(_installerBytes);
 			HttpResponseMessage installerResponse = new(HttpStatusCode.OK)
