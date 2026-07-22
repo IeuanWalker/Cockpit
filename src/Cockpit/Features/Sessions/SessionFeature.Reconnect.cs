@@ -4,6 +4,7 @@ using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
@@ -114,14 +115,10 @@ public sealed partial class SessionFeature
 			}
 
 			// Clear blocking-request state outside SessionEventLock to avoid lock-ordering issues.
-			lock(session.StatusHistoryLock)
-			{
-				session.StatusHistory.Clear();
-			}
-
-			session.PendingPermissionRequests.Clear();
-			session.PendingUserInputRequests.Clear();
-			session.PendingElicitationRequests.Clear();
+			_interactionCoordinator.ClearBookkeeping(
+				session.Id,
+				PendingInteractionKinds.All,
+				clearStatusHistory: true);
 
 			_permissionHandler.CancelPendingRequestsForSession(session.Id);
 			_userInputHandler.CancelPendingRequestsForSession(session.Id);

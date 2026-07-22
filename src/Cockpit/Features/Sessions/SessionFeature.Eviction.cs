@@ -1,4 +1,5 @@
 using Cockpit.Features.Canvas;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
@@ -151,13 +152,10 @@ public sealed partial class SessionFeature
 			session.Context.SessionPermissionCommands = [];
 		}
 
-		lock(session.StatusHistoryLock)
-		{
-			session.StatusHistory.Clear();
-		}
-
-		session.PendingPermissionRequests.Clear();
-		session.PendingUserInputRequests.Clear();
+		_interactionCoordinator.ClearBookkeeping(
+			session.Id,
+			PendingInteractionKinds.Permissions | PendingInteractionKinds.UserInputs,
+			clearStatusHistory: true);
 
 		// Cancel any awaiting TCS-based handlers so SDK threads don't hang indefinitely.
 		_permissionHandler.CancelPendingRequestsForSession(session.Id);

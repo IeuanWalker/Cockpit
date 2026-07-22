@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using GitHub.Copilot.Rpc;
@@ -13,15 +14,20 @@ namespace Cockpit.Features.ElicitationRequests;
 public sealed partial class ElicitationFeature : IElicitationHandler, IElicitationEventSource
 {
 	readonly ISessionStateProvider _sessionStateProvider;
+	readonly SessionInteractionCoordinator _interactionCoordinator;
 	readonly ILogger<ElicitationFeature> _logger;
 
 	readonly ConcurrentDictionary<string, ElicitationRequestModel> _pendingRequests = new();
 
 	public event Action<string, ElicitationRequestModel>? OnElicitationRequested;
 
-	public ElicitationFeature(ISessionStateProvider sessionStateProvider, ILogger<ElicitationFeature> logger)
+	public ElicitationFeature(
+		ISessionStateProvider sessionStateProvider,
+		ILogger<ElicitationFeature> logger,
+		SessionInteractionCoordinator? interactionCoordinator = null)
 	{
 		_sessionStateProvider = sessionStateProvider;
+		_interactionCoordinator = interactionCoordinator ?? new SessionInteractionCoordinator(sessionStateProvider);
 		_logger = logger;
 	}
 
@@ -78,7 +84,7 @@ public sealed partial class ElicitationFeature : IElicitationHandler, IElicitati
 
 		try
 		{
-			UpdateSessionOnElicitationRequested(request.SessionId, request);
+			_interactionCoordinator.AddElicitation(request.SessionId, request);
 
 			try
 			{
@@ -101,64 +107,6 @@ public sealed partial class ElicitationFeature : IElicitationHandler, IElicitati
 		{
 			_pendingRequests.TryRemove(request.Id, out _);
 		}
-	}
-
-	void UpdateSessionOnElicitationRequested(string sessionId, ElicitationRequestModel request)
-	{
-		SessionModel? session = _sessionStateProvider.Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if(session is null)
-		{
-			return;
-		}
-
-		_logger.LogInformation("Elicitation requested — adding request {RequestId} to session {SessionId}", request.Id, sessionId);
-
-		lock(session.StatusHistoryLock)
-		{
-			if(!session.PendingElicitationRequests.TryAdd(request.Id, request))
-			{
-				_logger.LogWarning("Elicitation request {RequestId} already exists for session {SessionId}", request.Id, sessionId);
-				return;
-			}
-
-			// Only push to history on the first blocking request across all three blocking types.
-			if(session.Status is not SessionStatusEnum.NeedsPermission
-				and not SessionStatusEnum.NeedsUserInput
-				and not SessionStatusEnum.NeedsElicitation)
-			{
-				session.StatusHistory.Push(session.Status);
-			}
-
-			session.Status = SessionStatusEnum.NeedsElicitation;
-		}
-
-		_sessionStateProvider.NotifyStateChanged();
-	}
-
-	void UpdateSessionOnElicitationResolved(string sessionId, string requestId)
-	{
-		SessionModel? session = _sessionStateProvider.Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if(session is null)
-		{
-			return;
-		}
-
-		_logger.LogInformation("Elicitation resolved — removing request {RequestId} from session {SessionId}", requestId, sessionId);
-
-		lock(session.StatusHistoryLock)
-		{
-			session.PendingElicitationRequests.TryRemove(requestId, out _);
-
-			session.Status = !session.PendingPermissionRequests.IsEmpty
-				? SessionStatusEnum.NeedsPermission
-				: !session.PendingUserInputRequests.IsEmpty
-					? SessionStatusEnum.NeedsUserInput
-					: !session.PendingElicitationRequests.IsEmpty
-						? SessionStatusEnum.NeedsElicitation
-						: session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle;
-		}
-
-		_sessionStateProvider.NotifyStateChanged();
 	}
 
 	/// <summary>
@@ -186,7 +134,7 @@ public sealed partial class ElicitationFeature : IElicitationHandler, IElicitati
 			return;
 		}
 
-		UpdateSessionOnElicitationResolved(request.SessionId, request.Id);
+		_interactionCoordinator.ResolveElicitation(request.SessionId, request.Id);
 	}
 
 	/// <summary>

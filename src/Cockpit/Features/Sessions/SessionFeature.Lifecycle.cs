@@ -5,6 +5,7 @@ using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.SystemMessage;
 using GitHub.Copilot;
@@ -807,10 +808,10 @@ public sealed partial class SessionFeature
 			SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 			if(session is not null)
 			{
-				lock(session.StatusHistoryLock)
-				{
-					session.StatusHistory.Clear();
-				}
+				_interactionCoordinator.ClearBookkeeping(
+					session.Id,
+					PendingInteractionKinds.None,
+					clearStatusHistory: true);
 			}
 
 			// Cancel any pending permission/user-input/elicitation requests so they are removed from the UI immediately

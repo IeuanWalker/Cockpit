@@ -15,6 +15,7 @@ using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Skills;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.UserInputRequests;
@@ -47,6 +48,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly IAppSettingsFeature _appSettingsFeature;
 	readonly SessionHooksFactory _hooksFactory;
 	readonly CanvasWindowManager _canvasWindowManager;
+	readonly SessionInteractionCoordinator _interactionCoordinator;
 
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
@@ -70,7 +72,8 @@ public sealed partial class SessionFeature : IDisposable
 		PluginsFeature pluginsFeature,
 		IAppSettingsFeature appSettingsFeature,
 		SessionHooksFactory hooksFactory,
-		CanvasWindowManager canvasWindowManager)
+		CanvasWindowManager canvasWindowManager,
+		SessionInteractionCoordinator interactionCoordinator)
 	{
 		_clientFeature = clientFeature;
 		_logger = logger;
@@ -94,6 +97,7 @@ public sealed partial class SessionFeature : IDisposable
 		_appSettingsFeature = appSettingsFeature;
 		_hooksFactory = hooksFactory;
 		_canvasWindowManager = canvasWindowManager;
+		_interactionCoordinator = interactionCoordinator;
 
 		_clientFeature.OnConnectionStateChanged += HandleConnectionStateChanged;
 		StartEvictionLoop();
