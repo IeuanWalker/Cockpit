@@ -10,19 +10,3 @@
 .session-item.bg-app-active .session-delete-overlay {
     background: linear-gradient(to right, transparent, var(--active-color) 60%);
 }
-
-.status-needs-permission {
-    color: #FFA500;
-}
-
-.status-needs-user-input {
-    color: #3b82f6;
-}
-
-.status-running {
-    color: #FFB900;
-}
-
-.status-finished {
-    color: #10893E;
-}
