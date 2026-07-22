@@ -741,7 +741,7 @@ public sealed partial class UpdateFeature : IDisposable
 			}
 
 			using Process? installerProcess = Process.Start(startInfo);
-			return true;
+			return installerProcess is not null;
 		}
 		catch(Exception ex)
 		{
