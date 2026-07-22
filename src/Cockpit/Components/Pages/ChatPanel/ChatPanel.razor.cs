@@ -136,7 +136,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	{
 		if(_sessionFeature.CurrentSession is not null)
 		{
-			_sessionFeature.CurrentSession.IsTerminalOpen = !_sessionFeature.CurrentSession.IsTerminalOpen;
+			_sessionFeature.CurrentSession.Ui.IsTerminalOpen = !_sessionFeature.CurrentSession.Ui.IsTerminalOpen;
 			StateHasChanged();
 		}
 	}

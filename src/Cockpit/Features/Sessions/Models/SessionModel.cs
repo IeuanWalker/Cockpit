@@ -34,6 +34,7 @@ public partial class SessionModel
 
 	public PendingInteractionState PendingInteractions { get; } = new();
 	public SessionConversationState Conversation { get; } = new();
+	public SessionUiState Ui { get; } = new();
 	public required SessionContext Context { get; set; }
 	public required ModelInfo Model { get; set; }
 	public string? ReasoningEffort { get; set; }
@@ -57,28 +58,5 @@ public partial class SessionModel
 	/// Set during session-history replay to avoid spurious completion notifications.
 	/// </summary>
 	public bool SuppressFinishedNotification { get; set; }
-
-	public bool IsYolo { get; set; }
-	public bool IsTerminalOpen { get; set; }
-
-	/// <summary>
-	/// Per-session draft text preserved across session switches.
-	/// </summary>
-	public string UserInput { get; set; } = string.Empty;
-
-	/// <summary>
-	/// Per-session pending attachments preserved across session switches.
-	/// </summary>
-	public List<AttachmentModel> PendingAttachments { get; set; } = [];
-
-	/// <summary>
-	/// Synchronizes mutations to <see cref="PendingAttachments"/> across threads (e.g. JS-interop paste callbacks vs. UI-thread picks/sends).
-	/// </summary>
-	public readonly Lock PendingAttachmentsLock = new();
-
-	/// <summary>
-	/// Per-session user input response text preserved across session switches.
-	/// </summary>
-	public string UserInputResponseText { get; set; } = string.Empty;
 
 }

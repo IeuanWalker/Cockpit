@@ -36,8 +36,8 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 
 	public string UserTextInput
 	{
-		get => _sessionListFeature.CurrentSession?.UserInputResponseText ?? string.Empty;
-		set => _sessionListFeature.CurrentSession?.UserInputResponseText = value;
+		get => _sessionListFeature.CurrentSession?.Ui.UserInputResponseText ?? string.Empty;
+		set => _sessionListFeature.CurrentSession?.Ui.UserInputResponseText = value;
 	}
 
 	public UserInputRequestModel? Request => _sessionListFeature.CurrentSession?.PendingInteractions.UserInputs.Values.OrderBy(r => r.Requested).FirstOrDefault();
@@ -144,7 +144,7 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 			return;
 		}
 
-		_sessionListFeature.CurrentSession.UserInputResponseText = string.Empty;
+		_sessionListFeature.CurrentSession.Ui.UserInputResponseText = string.Empty;
 	}
 
 	public void Dispose()

@@ -60,8 +60,8 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	string UserInput
 	{
-		get => _sessionFeature.CurrentSession?.UserInput ?? string.Empty;
-		set => _sessionFeature.CurrentSession?.UserInput = value;
+		get => _sessionFeature.CurrentSession?.Ui.DraftText ?? string.Empty;
+		set => _sessionFeature.CurrentSession?.Ui.DraftText = value;
 	}
 
 	protected override void OnInitialized()
@@ -173,12 +173,12 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			SessionModel? session = _sessionFeature.CurrentSession;
 			if(session is not null)
 			{
-				lock(session.PendingAttachmentsLock)
+				lock(session.Ui.PendingAttachmentsLock)
 				{
 					// Only clear/rebuild mention attachments when parsing actually returns chips
 					if(chips.Length > 0)
 					{
-						session.PendingAttachments.RemoveAll(a => a.IsMention);
+						session.Ui.PendingAttachments.RemoveAll(a => a.IsMention);
 
 						foreach(ChipInfo chip in chips)
 						{
@@ -186,7 +186,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 							string ext = Path.GetExtension(chip.FilePath);
 							string mimeType = FileUtil.GetMimeType(ext);
 							bool isDirectory = Directory.Exists(chip.FilePath);
-							session.PendingAttachments.Add(new AttachmentModel(
+							session.Ui.PendingAttachments.Add(new AttachmentModel(
 								fileName, chip.FilePath, null, mimeType,
 								isMention: true, chipId: chip.ChipId, isDirectory: isDirectory));
 						}
@@ -283,9 +283,9 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 						List<FileSearchResult> combined = [.. searchResults];
 						HashSet<string> seenPaths = new(combined.Select(f => f.FullPath), StringComparer.OrdinalIgnoreCase);
 
-						lock(session.PendingAttachmentsLock)
+						lock(session.Ui.PendingAttachmentsLock)
 						{
-							foreach(AttachmentModel att in session.PendingAttachments)
+							foreach(AttachmentModel att in session.Ui.PendingAttachments)
 							{
 								if(att.IsMention || seenPaths.Contains(att.FilePath))
 								{
@@ -352,12 +352,12 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			return Task.CompletedTask;
 		}
 
-		lock(session.PendingAttachmentsLock)
+		lock(session.Ui.PendingAttachmentsLock)
 		{
-			int idx = session.PendingAttachments.FindIndex(a => a.ChipId == chipId);
+			int idx = session.Ui.PendingAttachments.FindIndex(a => a.ChipId == chipId);
 			if(idx >= 0)
 			{
-				session.PendingAttachments.RemoveAt(idx);
+				session.Ui.PendingAttachments.RemoveAt(idx);
 			}
 		}
 
@@ -387,9 +387,9 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			string ext = Path.GetExtension(file.FileName);
 			string mimeType = FileUtil.GetMimeType(ext);
 
-			lock(session.PendingAttachmentsLock)
+			lock(session.Ui.PendingAttachmentsLock)
 			{
-				session.PendingAttachments.Add(new AttachmentModel(
+				session.Ui.PendingAttachments.Add(new AttachmentModel(
 					file.FileName, file.FullPath, null, mimeType,
 					isMention: true, chipId: chipId, isDirectory: file.IsDirectory));
 			}
@@ -457,12 +457,12 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 		string dataUri = $"data:{mimeType};base64,{base64}";
 		bool isDuplicate;
-		lock(session.PendingAttachmentsLock)
+		lock(session.Ui.PendingAttachmentsLock)
 		{
-			isDuplicate = session.PendingAttachments.Any(a => a.DataUri == dataUri);
+			isDuplicate = session.Ui.PendingAttachments.Any(a => a.DataUri == dataUri);
 			if(!isDuplicate)
 			{
-				session.PendingAttachments.Add(new AttachmentModel(fileName, filePath, dataUri, mimeType));
+				session.Ui.PendingAttachments.Add(new AttachmentModel(fileName, filePath, dataUri, mimeType));
 			}
 		}
 
@@ -527,15 +527,15 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 					}
 				}
 
-				lock(session.PendingAttachmentsLock)
+				lock(session.Ui.PendingAttachmentsLock)
 				{
-					if(session.PendingAttachments.Any(a => string.Equals(a.FilePath, filePath, StringComparison.OrdinalIgnoreCase)))
+					if(session.Ui.PendingAttachments.Any(a => string.Equals(a.FilePath, filePath, StringComparison.OrdinalIgnoreCase)))
 					{
 						_toastService.Info("Already attached", opts => opts.Description = $"{result.FileName} is already attached.");
 						continue;
 					}
 
-					session.PendingAttachments.Add(new AttachmentModel(result.FileName, filePath, dataUri, mimeType));
+					session.Ui.PendingAttachments.Add(new AttachmentModel(result.FileName, filePath, dataUri, mimeType));
 				}
 			}
 
@@ -577,12 +577,12 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		List<AttachmentModel>? attachments = null;
 		if(session is not null)
 		{
-			lock(session.PendingAttachmentsLock)
+			lock(session.Ui.PendingAttachmentsLock)
 			{
-				if(session.PendingAttachments.Count > 0)
+				if(session.Ui.PendingAttachments.Count > 0)
 				{
-					attachments = [.. session.PendingAttachments];
-					session.PendingAttachments.Clear();
+					attachments = [.. session.Ui.PendingAttachments];
+					session.Ui.PendingAttachments.Clear();
 				}
 			}
 		}
@@ -648,9 +648,9 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		{
 			return [];
 		}
-		lock(session.PendingAttachmentsLock)
+		lock(session.Ui.PendingAttachmentsLock)
 		{
-			return session.PendingAttachments.Select(a => a.FilePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+			return session.Ui.PendingAttachments.Select(a => a.FilePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
 		}
 	}
 
@@ -671,7 +671,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 			return;
 		}
 
-		_sessionFeature.CurrentSession.IsYolo = !_sessionFeature.CurrentSession.IsYolo;
+		_sessionFeature.CurrentSession.Ui.IsYolo = !_sessionFeature.CurrentSession.Ui.IsYolo;
 		StateHasChanged();
 	}
 
