@@ -4,6 +4,7 @@
 @using Cockpit.Components.Pages.ChatPanel.Permissions
 @using Cockpit.Components.Pages.ChatPanel.Terminal
 @using Cockpit.Components.Pages.ChatPanel.UserInputRequest
+@using Cockpit.Components.Controls
 
 <!-- Chat Header -->
 <div class="h-10 bg-app-sidebar border-b border-app-border px-3 flex items-center">
@@ -17,24 +18,8 @@
         <h1 class="text-app-title font-semibold text-sm flex items-center min-w-0" style="flex-grow:1; max-width:75%">
             <span class="flex items-center group-hover:opacity-90 transition-opacity min-w-0 max-w-full">
                 <span class="min-w-0 truncate">@_sessionFeature.CurrentSession?.Title</span>
-                <span class="ml-2 flex-shrink-0 status-badge @(_sessionFeature.CurrentSession?.Status.ToString().ToLower())">
-                    @if(_sessionFeature.CurrentSession?.Status == SessionStatusEnum.NeedsPermission)
-                    {
-                        @:Permission required
-                    }
-                    else if(_sessionFeature.CurrentSession?.Status == SessionStatusEnum.NeedsUserInput)
-                    {
-                        @:Input requested
-                    }
-                    else if(_sessionFeature.CurrentSession?.Status == SessionStatusEnum.NeedsElicitation)
-                    {
-                        @:Input requested
-                    }
-                    else
-                    {
-                        @_sessionFeature.CurrentSession?.Status
-                    }
-                </span>
+                <SessionStatusBadge Status="@_sessionFeature.CurrentSession?.Status"
+                                    Variant="@SessionStatusVariant.Header" />
             </span>
         </h1>
     </div>
