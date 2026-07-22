@@ -122,9 +122,9 @@ public sealed partial class SessionFeature : IDisposable
 		add => _sessionListFeature.OnStateChanged += value;
 		remove => _sessionListFeature.OnStateChanged -= value;
 	}
-	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.ActiveWorkingGroup;
+	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.Conversation.ActiveWorkingGroup;
 	public bool IsWorking => CurrentSession?.AgentRunState == AgentRunStateEnum.Running
-		|| (CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatusEnum.Running);
+		|| CurrentSession?.Conversation.ActiveWorkingGroup?.Status == GroupStatusEnum.Running;
 
 	void HandleSessionEvent(string sessionId, SessionEvent evt)
 	{
@@ -139,10 +139,10 @@ public sealed partial class SessionFeature : IDisposable
 			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged)
 			: null;
 
-		lock(session.SessionEventLock)
+		lock(session.Conversation.SyncRoot)
 		{
 			_processor.Process(session, evt, streamCallback);
-			session.MessagesSnapshot = [.. session.Messages];
+			session.Conversation.MessagesSnapshot = [.. session.Conversation.Messages];
 		}
 
 		if(session == _sessionListFeature.CurrentSession)

@@ -1,3 +1,4 @@
+using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
@@ -59,7 +60,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 			await SetupSmartScroll();
 
 			// Initialize message count
-			_lastMessageCount = _sessionFeature.CurrentSession?.Messages.Count ?? 0;
+			_lastMessageCount = _sessionFeature.CurrentSession?.Conversation.MessagesSnapshot.Count ?? 0;
 			_lastSessionId = _sessionFeature.CurrentSession?.Id;
 		}
 
@@ -74,7 +75,9 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 	void OnStateChanged()
 	{
 		string? currentSessionId = _sessionFeature.CurrentSession?.Id;
-		int currentMessageCount = _sessionFeature.CurrentSession?.Messages.Count ?? 0;
+		IReadOnlyList<ChatMessageModel>? messages =
+			_sessionFeature.CurrentSession?.Conversation.MessagesSnapshot;
+		int currentMessageCount = messages?.Count ?? 0;
 
 		if(currentSessionId != _lastSessionId)
 		{
@@ -87,7 +90,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		if(currentMessageCount > _lastMessageCount)
 		{
 			_shouldScrollToBottom = true;
-			if(_sessionFeature.CurrentSession?.Messages.LastOrDefault()?.IsUser == true)
+			if(messages?.LastOrDefault()?.IsUser == true)
 			{
 				// Always jump to latest when user sends a message
 				_isUserScrolledUpFromChat = false;

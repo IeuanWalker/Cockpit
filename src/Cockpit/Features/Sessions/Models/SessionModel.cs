@@ -1,10 +1,9 @@
-using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Interactions;
 using GitHub.Copilot;
 
 namespace Cockpit.Features.Sessions.Models;
 
-public class SessionModel
+public partial class SessionModel
 {
 	public required string Id { get; set; }
 	public required string Title { get; set; }
@@ -34,23 +33,7 @@ public class SessionModel
 	public SessionStatusEnum Status => DisplayStatus;
 
 	public PendingInteractionState PendingInteractions { get; } = new();
-	List<ChatMessageModel> _messages = [];
-	public List<ChatMessageModel> Messages
-	{
-		get => _messages;
-		set
-		{
-			_messages = value;
-			MessagesSnapshot = [.. value];
-		}
-	}
-
-	/// <summary>
-	/// A snapshot of <see cref="Messages"/> taken inside <see cref="SessionEventLock"/> after each event is processed,
-	/// or whenever <see cref="Messages"/> is replaced. The Blazor renderer reads this instead of <see cref="Messages"/>
-	/// directly to avoid concurrent-modification exceptions.
-	/// </summary>
-	public IReadOnlyList<ChatMessageModel> MessagesSnapshot { get; internal set; } = [];
+	public SessionConversationState Conversation { get; } = new();
 	public required SessionContext Context { get; set; }
 	public required ModelInfo Model { get; set; }
 	public string? ReasoningEffort { get; set; }
@@ -60,17 +43,6 @@ public class SessionModel
 	/// Null for built-in Copilot models.
 	/// </summary>
 	public string? ByokConfigId { get; set; }
-	public ActivityGroupModel? ActiveWorkingGroup { get; set; }
-	public Dictionary<string, ChatMessageModel> StreamingMessages { get; } = [];
-
-	/// <summary>
-	/// Live-streaming <see cref="ThinkingEventModel"/> instances keyed by message ID.
-	/// Created by <c>AssistantMessageDeltaHandler</c> so subsequent deltas update the same
-	/// thinking-panel entry rather than creating duplicates, and cleaned up by
-	/// <c>AssistantMessageHandler</c> when the complete message arrives.
-	/// </summary>
-	public Dictionary<string, ThinkingEventModel> StreamingThinkingEvents { get; } = [];
-
 	/// <summary>
 	/// Tracks the SDK connection lifecycle of this session.
 	/// </summary>
@@ -86,12 +58,6 @@ public class SessionModel
 	/// </summary>
 	public bool SuppressFinishedNotification { get; set; }
 
-	/// <summary>
-	/// Set by <c>SessionTaskCompleteHandler</c> when the SDK emits a <c>session.task_complete</c>
-	/// event. Consumed and cleared by <c>SessionIdleHandler</c> as the preferred summary source,
-	/// with the heuristic last-message extraction kept as a fallback.
-	/// </summary>
-	public string? PendingTaskSummary { get; set; }
 	public bool IsYolo { get; set; }
 	public bool IsTerminalOpen { get; set; }
 
@@ -115,47 +81,4 @@ public class SessionModel
 	/// </summary>
 	public string UserInputResponseText { get; set; } = string.Empty;
 
-	/// <summary>
-	/// Synchronizes live session event/message mutations to preserve ordering.
-	/// </summary>
-	public readonly Lock SessionEventLock = new();
-
-	/// <summary>
-	/// Number of messages queued while the agent is busy (enqueue mode).
-	/// Updated by <c>PendingMessagesModifiedEvent</c> processing.
-	/// </summary>
-	public int PendingMessageCount { get; set; }
-
-	/// <summary>
-	/// Latest token usage info received from <c>session.usage_info</c> events.
-	/// <see langword="null"/> until the first usage event is received.
-	/// </summary>
-	public TokenUsageInfoModel? TokenUsageInfo { get; set; }
-
-	/// <summary>
-	/// <see langword="true"/> while a context compaction operation is in progress.
-	/// Set to <see langword="true"/> on <c>session.compaction_start</c> and cleared on
-	/// <c>session.compaction_complete</c>.
-	/// </summary>
-	public bool IsCompacting { get; set; }
-
-	/// <summary>
-	/// Set to <see langword="true"/> by the <c>AssistantTurnEndEvent</c> case in
-	/// <see cref="SessionEvents.SessionEventProcessor"/> when the agent finishes its current
-	/// mini-turn. Cleared to <see langword="false"/> when a new <c>AssistantTurnStartEvent</c>
-	/// fires (meaning the agent has more work to do).
-	/// Consumed and reset by the safety-net (user.message) to decide whether to promote the
-	/// final summary out of the ops group: <see langword="true"/> means the agent's last
-	/// turn completed cleanly; <see langword="false"/> means it was mid-turn (interrupted).
-	/// </summary>
-	public bool AgentTurnCompleted { get; set; }
-
-	/// <summary>
-	/// Set to <see langword="true"/> by <c>SessionFeature.SendMessageAsync</c> when the user
-	/// sends a message in immediate (steering) mode while the agent is already processing a
-	/// turn. Consumed and cleared by <c>SessionIdleHandler</c> when it finalizes the prior
-	/// turn, to keep the working panel open and suppress the completion sound during the
-	/// brief gap before the next turn starts.
-	/// </summary>
-	public bool HasQueuedImmediateMessage { get; set; }
 }
