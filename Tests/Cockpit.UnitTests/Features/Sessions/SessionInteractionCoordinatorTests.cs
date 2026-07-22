@@ -127,4 +127,31 @@ public sealed class SessionInteractionCoordinatorTests
 		session.Status.ShouldBe(SessionStatusEnum.NeedsPermission);
 		stateProvider.NotificationCount.ShouldBe(1);
 	}
+
+	[Fact]
+	public void ResolveAfterReconnectCleanup_DoesNotChangeStatusHistoryOrNotify()
+	{
+		TestSessionStateProvider stateProvider = new();
+		SessionModel session = CreateSession();
+		stateProvider.Add(session);
+		SessionInteractionCoordinator coordinator = new(stateProvider);
+		PermissionRequestModel permission = CreatePermission();
+
+		coordinator.AddPermission(sessionId, permission);
+
+		// Reconnect restores the lifecycle status and clears UI bookkeeping before
+		// cancellation completes the SDK-facing request.
+		session.Status = SessionStatusEnum.Running;
+		coordinator.ClearBookkeeping(
+			sessionId,
+			PendingInteractionKinds.All,
+			clearStatusHistory: true);
+
+		coordinator.ResolvePermission(sessionId, permission.Id);
+
+		session.Status.ShouldBe(SessionStatusEnum.Running);
+		session.StatusHistory.ShouldBeEmpty();
+		session.PendingPermissionRequests.ShouldBeEmpty();
+		stateProvider.NotificationCount.ShouldBe(1);
+	}
 }

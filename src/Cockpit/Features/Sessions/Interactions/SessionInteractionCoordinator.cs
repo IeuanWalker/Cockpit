@@ -177,7 +177,16 @@ public sealed class SessionInteractionCoordinator
 
 		lock(session.StatusHistoryLock)
 		{
-			tryRemove(session);
+			if(!tryRemove(session))
+			{
+				_logger.LogDebug(
+					"{InteractionType} request {RequestId} is no longer pending for session {SessionId}",
+					interactionType,
+					requestId,
+					sessionId);
+				return;
+			}
+
 			session.Status = GetDisplayStatusAfterResolution(session);
 		}
 
