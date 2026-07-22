@@ -16,7 +16,7 @@
     }
     <div class="flex-1 min-w-0 @(Session.SdkState == SdkSessionStateEnum.Loading ? "opacity-30" : "")">
         <div class="text-xs @(IsActive ? "font-medium text-app-title" : "") truncate">@Session.Title</div>
-        <SessionStatusBadge Status="@Session.Status"
+        <SessionStatusBadge Status="@Session.DisplayStatus"
                             Variant="@SessionStatusVariant.SessionList"
                             FallbackText="@TimeAgo" />
     </div>

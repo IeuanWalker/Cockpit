@@ -621,12 +621,9 @@ public sealed partial class UpdateFeature : IDisposable
 		}
 	}
 
-	internal static bool IsSessionActive(SessionStatusEnum status)
+	internal static bool IsSessionActive(AgentRunStateEnum runState)
 	{
-		return status is SessionStatusEnum.Running
-			or SessionStatusEnum.NeedsPermission
-			or SessionStatusEnum.NeedsUserInput
-			or SessionStatusEnum.NeedsElicitation;
+		return runState is AgentRunStateEnum.Running;
 	}
 
 	public void OpenReleaseInBrowser(GitHubReleaseModel release)
@@ -690,7 +687,7 @@ public sealed partial class UpdateFeature : IDisposable
 			return false;
 		}
 
-		return _sessionStateProvider.Sessions.Any(s => IsSessionActive(s.Status));
+		return _sessionStateProvider.Sessions.Any(s => IsSessionActive(s.AgentRunState));
 	}
 
 	void SetDownloadFailed(string errorMessage)

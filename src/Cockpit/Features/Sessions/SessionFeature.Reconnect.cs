@@ -99,16 +99,6 @@ public sealed partial class SessionFeature
 				// Reset to NotLoaded so the reconnect handler (or user navigation) triggers a reload.
 				session.SdkState = SdkSessionStateEnum.NotLoaded;
 
-				// If the session was blocked waiting for permission/input, those requests are now
-				// dead. Restore status so the working panel reflects the active group correctly.
-				// Guard: if there's no active group the session should end up Idle, not Running.
-				if(session.Status is SessionStatusEnum.NeedsPermission or SessionStatusEnum.NeedsUserInput or SessionStatusEnum.NeedsElicitation)
-				{
-					session.Status = session.ActiveWorkingGroup is not null
-						? SessionStatusEnum.Running
-						: SessionStatusEnum.Idle;
-				}
-
 				// Remove from registry inside the lock to stop event delivery on stale state.
 				_sdkRegistry.TryRemove(session.Id, out sdkSession);
 				session.MessagesSnapshot = [.. session.Messages];
@@ -117,8 +107,7 @@ public sealed partial class SessionFeature
 			// Clear blocking-request state outside SessionEventLock to avoid lock-ordering issues.
 			_interactionCoordinator.ClearBookkeeping(
 				session.Id,
-				PendingInteractionKinds.All,
-				clearStatusHistory: true);
+				PendingInteractionKinds.All);
 
 			_permissionHandler.CancelPendingRequestsForSession(session.Id);
 			_userInputHandler.CancelPendingRequestsForSession(session.Id);

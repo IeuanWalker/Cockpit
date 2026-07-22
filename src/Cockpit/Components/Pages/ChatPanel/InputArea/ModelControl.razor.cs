@@ -137,7 +137,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 	string? GetModelPickerTooltip()
 	{
-		if(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running)
+		if(_sessionListFeature.CurrentSession?.DisplayStatus == SessionStatusEnum.Running)
 		{
 			return "You can't change model while the agent is working";
 		}

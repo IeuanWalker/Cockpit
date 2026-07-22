@@ -66,7 +66,7 @@ public class SessionIdleHandlerTests
 	{
 		// Arrange
 		SessionModel session = CreateSession();
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Act

@@ -77,7 +77,7 @@ public sealed partial class SessionFeature
 			return false;
 		}
 
-		if(session.Status is not SessionStatusEnum.Idle)
+		if(session.AgentRunState is not AgentRunStateEnum.Idle)
 		{
 			return false;
 		}
@@ -154,8 +154,7 @@ public sealed partial class SessionFeature
 
 		_interactionCoordinator.ClearBookkeeping(
 			session.Id,
-			PendingInteractionKinds.Permissions | PendingInteractionKinds.UserInputs,
-			clearStatusHistory: true);
+			PendingInteractionKinds.Permissions | PendingInteractionKinds.UserInputs);
 
 		// Cancel any awaiting TCS-based handlers so SDK threads don't hang indefinitely.
 		_permissionHandler.CancelPendingRequestsForSession(session.Id);

@@ -14,7 +14,7 @@ public class SessionListFeatureTests
 	{
 		Id = id,
 		Title = title,
-		Status = SessionStatusEnum.Idle,
+		AgentRunState = AgentRunStateEnum.Idle,
 		CreatedAt = DateTime.UtcNow,
 		LastActivity = DateTime.UtcNow,
 		Model = testModel,

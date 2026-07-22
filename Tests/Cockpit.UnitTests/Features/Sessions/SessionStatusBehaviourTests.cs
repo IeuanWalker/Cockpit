@@ -36,7 +36,7 @@ public sealed class SessionStatusBehaviourTests
 		CreatedAt = DateTime.UtcNow,
 		LastActivity = DateTime.UtcNow,
 		Model = testModel,
-		Status = SessionStatusEnum.Running,
+		AgentRunState = AgentRunStateEnum.Running,
 		Context = new()
 		{
 			CurrentWorkingDirectory = string.Empty,

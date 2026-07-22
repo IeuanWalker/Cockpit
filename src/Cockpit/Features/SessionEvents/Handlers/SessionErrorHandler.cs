@@ -27,7 +27,7 @@ static class SessionErrorHandler
 		};
 
 		session.Messages.Add(message);
-		session.Status = SessionStatusEnum.Error;
+		session.AgentRunState = AgentRunStateEnum.Error;
 
 		// Clear streaming state left over from the interrupted turn
 		session.StreamingMessages.Clear();
@@ -47,7 +47,7 @@ static class SessionErrorHandler
 		};
 
 		session.Messages.Add(message);
-		session.Status = SessionStatusEnum.Error;
+		session.AgentRunState = AgentRunStateEnum.Error;
 	}
 
 	static string SerializeExceptionEventJson(SessionModel session, Exception ex)
