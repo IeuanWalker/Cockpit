@@ -54,9 +54,9 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	CancellationTokenSource? _mentionSearchCts;
 
 	bool IsInputDisabled =>
-		_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0
-		|| _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0
-		|| _sessionFeature.CurrentSession?.PendingElicitationRequests?.Count > 0;
+		_sessionFeature.CurrentSession?.PendingInteractions.Permissions.Count > 0
+		|| _sessionFeature.CurrentSession?.PendingInteractions.UserInputs.Count > 0
+		|| _sessionFeature.CurrentSession?.PendingInteractions.Elicitations.Count > 0;
 
 	string UserInput
 	{
@@ -548,8 +548,8 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 	}
 
 	bool CanSend => !string.IsNullOrWhiteSpace(UserInput)
-		&& _sessionFeature.CurrentSession?.PendingPermissionRequests?.Count == 0
-		&& _sessionFeature.CurrentSession?.PendingElicitationRequests?.Count == 0;
+		&& _sessionFeature.CurrentSession?.PendingInteractions.Permissions.Count == 0
+		&& _sessionFeature.CurrentSession?.PendingInteractions.Elicitations.Count == 0;
 
 	async Task SendMessage()
 	{

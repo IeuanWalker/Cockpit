@@ -1,9 +1,6 @@
-using System.Collections.Concurrent;
-using Cockpit.Features.ElicitationRequests;
-using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.Sessions.Interactions;
 using GitHub.Copilot;
-using Cockpit.Features.UserInputRequests;
 
 namespace Cockpit.Features.Sessions.Models;
 
@@ -22,7 +19,7 @@ public class SessionModel
 	/// UI-facing status. The interaction coordinator controls the pending-interaction
 	/// overlay while <see cref="AgentRunState"/> continues to track the agent lifecycle.
 	/// </summary>
-	public SessionStatusEnum DisplayStatus => PendingInteractionStatus ?? AgentRunState switch
+	public SessionStatusEnum DisplayStatus => PendingInteractions.DisplayStatus ?? AgentRunState switch
 	{
 		AgentRunStateEnum.Running => SessionStatusEnum.Running,
 		AgentRunStateEnum.Error => SessionStatusEnum.Error,
@@ -36,7 +33,7 @@ public class SessionModel
 	/// </summary>
 	public SessionStatusEnum Status => DisplayStatus;
 
-	internal SessionStatusEnum? PendingInteractionStatus { get; set; }
+	public PendingInteractionState PendingInteractions { get; } = new();
 	List<ChatMessageModel> _messages = [];
 	public List<ChatMessageModel> Messages
 	{
@@ -73,29 +70,6 @@ public class SessionModel
 	/// <c>AssistantMessageHandler</c> when the complete message arrives.
 	/// </summary>
 	public Dictionary<string, ThinkingEventModel> StreamingThinkingEvents { get; } = [];
-
-	/// <summary>
-	/// Pending permission requests for this session (supports multiple concurrent requests)
-	/// Key: request.Id, Value: PermissionRequest
-	/// </summary>
-	public ConcurrentDictionary<string, PermissionRequestModel> PendingPermissionRequests { get; set; } = new();
-
-	/// <summary>
-	/// Pending user input requests for this session (supports multiple concurrent requests)
-	/// Key: request.Id, Value: UserInputRequestModel
-	/// </summary>
-	public ConcurrentDictionary<string, UserInputRequestModel> PendingUserInputRequests { get; set; } = new();
-
-	/// <summary>
-	/// Pending elicitation requests for this session (supports multiple concurrent requests)
-	/// Key: request.Id, Value: ElicitationRequestModel
-	/// </summary>
-	public ConcurrentDictionary<string, ElicitationRequestModel> PendingElicitationRequests { get; set; } = new();
-
-	/// <summary>
-	/// Serializes pending-interaction collection and display-status mutations.
-	/// </summary>
-	internal readonly Lock PendingInteractionsLock = new();
 
 	/// <summary>
 	/// Tracks the SDK connection lifecycle of this session.
