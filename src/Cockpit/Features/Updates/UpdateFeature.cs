@@ -668,12 +668,17 @@ public sealed partial class UpdateFeature : IDisposable
 			ProcessStartInfo startInfo = new()
 			{
 				FileName = installerPath,
-				UseShellExecute = true,
-				WorkingDirectory = Path.GetDirectoryName(installerPath)
+				UseShellExecute = true
 			};
 
+			string? workingDirectory = Path.GetDirectoryName(installerPath);
+			if(!string.IsNullOrWhiteSpace(workingDirectory))
+			{
+				startInfo.WorkingDirectory = workingDirectory;
+			}
+
 			using Process? installerProcess = Process.Start(startInfo);
-			return installerProcess is not null;
+			return true;
 		}
 		catch(Exception ex)
 		{

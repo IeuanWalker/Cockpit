@@ -159,7 +159,7 @@ public class UpdateFeatureTests
 		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
-		GitHubReleaseAssetModel? setupAsset = release.Assets?.Find(a => a.Name?.EndsWith(".exe") is true);
+		GitHubReleaseAssetModel? setupAsset = release.Assets?.Find(a => a.Name?.EndsWith("-Setup.exe") is true);
 		setupAsset.ShouldNotBeNull();
 		setupAsset.Name.ShouldBe("Cockpit-windows-x64-1.8.0-Setup.exe");
 		setupAsset.Size.ShouldBe(134435888L);
@@ -188,6 +188,8 @@ public class UpdateFeatureTests
 		GitHubReleaseAssetModel? installerAsset = release.Assets?.Find(a => a.Name?.EndsWith(".msix") is true);
 		installerAsset.ShouldNotBeNull();
 		installerAsset.Name.ShouldBe("Cockpit-windows-x64-1.8.0-Installer.msix");
+		installerAsset.Size.ShouldBe(135000000L);
+		installerAsset.BrowserDownloadUrl.ShouldBe("https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0-Installer.msix");
 	}
 
 	[Fact]

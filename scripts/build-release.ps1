@@ -6,6 +6,9 @@
 .PARAMETER Version
     The version string (for example "1.2.3").
 
+.PARAMETER Clean
+    Removes previous publish output and release artifacts before building.
+
 .PARAMETER PackageCertificateKeyFile
     Path to a PFX whose subject matches the publisher in Package.appxmanifest.
 
