@@ -20,36 +20,34 @@ jobs:
         with:
           script: |
             const run = context.payload.workflow_run;
-            const pullRequest = run.pull_requests?.[0];
-            if (!pullRequest) {
-              core.notice('The workflow run is not associated with a pull request.');
-              return;
-            }
-
             const { owner, repo } = context.repo;
-            const artifactName = `cockpit-pr-${pullRequest.number}-windows-x64`;
             const response = await github.rest.actions.listWorkflowRunArtifacts({
               owner,
               repo,
               run_id: run.id,
               per_page: 100
             });
-            const artifact = response.data.artifacts.find(item => item.name === artifactName);
+            const artifact = response.data.artifacts.find(item =>
+              /^cockpit-pr-\d+-[0-9a-f]{40}-windows-x64$/.test(item.name));
             if (!artifact) {
-              core.setFailed(`Artifact ${artifactName} was not found.`);
+              core.setFailed('The PR Windows artifact was not found.');
               return;
             }
 
+            const match = artifact.name.match(/^cockpit-pr-(\d+)-([0-9a-f]{40})-windows-x64$/);
+            const pullRequestNumber = Number(match[1]);
+            const testedCommit = match[2];
+
             const marker = '<!-- cockpit-pr-windows-build -->';
             const artifactUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${run.id}/artifacts/${artifact.id}`;
-            const commitUrl = `${context.serverUrl}/${owner}/${repo}/commit/${run.head_sha}`;
+            const commitUrl = `${context.serverUrl}/${owner}/${repo}/commit/${testedCommit}`;
             const body = [
               marker,
               'The Windows test build is ready.',
               '',
               `[⬇️ Download the self-contained .exe and .zip](${artifactUrl})`,
               '',
-              `Tested commit: [\`${run.head_sha.substring(0, 7)}\`](${commitUrl})  `,
+              `Tested commit: [\`${testedCommit.substring(0, 7)}\`](${commitUrl})  `,
               `Package ID: \`com.ieuanwalker.cockpit.pr\`  `,
               `Build version: \`0.0.${run.run_number}\`  `,
               'Artifacts are retained for 14 days.'
@@ -58,7 +56,7 @@ jobs:
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner,
               repo,
-              issue_number: pullRequest.number,
+              issue_number: pullRequestNumber,
               per_page: 100
             });
             const existing = comments.filter(comment =>
@@ -75,6 +73,6 @@ jobs:
             await github.rest.issues.createComment({
               owner,
               repo,
-              issue_number: pullRequest.number,
+              issue_number: pullRequestNumber,
               body
             });
