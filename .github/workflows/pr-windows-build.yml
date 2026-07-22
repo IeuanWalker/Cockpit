@@ -1,0 +1,66 @@
+name: PR Windows Build
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: pr-windows-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore MAUI workloads
+        run: dotnet workload restore
+
+      - name: Publish Windows app
+        run: >
+          dotnet publish src/Cockpit/Cockpit.csproj
+          --framework net10.0-windows10.0.19041.0
+          --configuration Release
+          -p:RuntimeIdentifierOverride=win-x64
+          -p:ApplicationId=com.ieuanwalker.cockpit.pr
+          -p:ApplicationDisplayVersion=0.0.${{ github.run_number }}
+          -p:ApplicationVersion=${{ github.run_number }}
+          -p:Version=0.0.${{ github.run_number }}
+          --output ./publish/windows
+
+      - name: Create test artifacts
+        shell: pwsh
+        run: |
+          $publishedFiles = @(Get-ChildItem -Path ./publish/windows -File -Recurse)
+          if ($publishedFiles.Count -ne 1 -or $publishedFiles[0].Name -ne "Cockpit.exe") {
+            throw "Expected a single self-contained Cockpit.exe, but found: $($publishedFiles.FullName -join ', ')"
+          }
+
+          $version = "0.0.${{ github.run_number }}"
+          $outputExe = "./artifacts/Cockpit-windows-x64-$version-Setup.exe"
+          $outputZip = "./artifacts/Cockpit-windows-x64-$version.zip"
+          New-Item -ItemType Directory -Path ./artifacts -Force | Out-Null
+          Copy-Item $publishedFiles[0].FullName $outputExe
+          Compress-Archive -Path $outputExe -DestinationPath $outputZip
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cockpit-pr-${{ github.event.pull_request.number }}-windows-x64
+          path: |
+            artifacts/*.exe
+            artifacts/*.zip
+          if-no-files-found: error
+          retention-days: 14
+

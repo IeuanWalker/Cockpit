@@ -4,14 +4,12 @@
     Replicates the GitHub Actions release pipeline locally.
 
 .PARAMETER Version
-    The version string (e.g. "1.2.3"). Defaults to "0.0.0".
+    The version string (e.g. "1.2.3").
 
 .PARAMETER Clean
     Remove previous build output before building.
 
 .EXAMPLE
-    .\scripts\build-release.ps1
-    .\scripts\build-release.ps1 -Version "1.2.3"
     .\scripts\build-release.ps1 -Version "1.2.3" -Clean
 #>
 param(
@@ -27,78 +25,63 @@ if (-not $Version) {
     if (-not $Version) { Write-Host "Version is required." -ForegroundColor Red; exit 1 }
 }
 
-$RepoRoot        = Resolve-Path "$PSScriptRoot\.."
-$PublishDir      = "$RepoRoot\publish\windows"
-$OutputZip       = "$RepoRoot\Cockpit-windows-x64.zip"
-$OutputInstaller = "$RepoRoot\Cockpit-windows-x64-Setup.exe"
-$NsiScript       = "$RepoRoot\.github\installers\windows.nsi"
-$MakeNsis        = "C:\Program Files (x86)\NSIS\makensis.exe"
+$RepoRoot   = Resolve-Path "$PSScriptRoot\.."
+$PublishDir = "$RepoRoot\publish\windows"
+$OutputExe  = "$RepoRoot\Cockpit-windows-x64-Setup.exe"
+$OutputZip  = "$RepoRoot\Cockpit-windows-x64.zip"
 
 function Step([string]$name, [scriptblock]$block) {
     Write-Host ""
     Write-Host "==> $name" -ForegroundColor Cyan
     & $block
-    if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-        Write-Host "FAILED: $name (exit code $LASTEXITCODE)" -ForegroundColor Red
-        exit $LASTEXITCODE
+    if (-not $?) {
+        $exitCode = if (Test-Path variable:global:LASTEXITCODE) { $global:LASTEXITCODE } else { 1 }
+        Write-Host "FAILED: $name (exit code $exitCode)" -ForegroundColor Red
+        exit $exitCode
     }
 }
 
-# ── Clean ─────────────────────────────────────────────────────────────────────
 if ($Clean) {
     Step "Clean previous output" {
         Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $PublishDir
+        Remove-Item -Force -ErrorAction SilentlyContinue $OutputExe
         Remove-Item -Force -ErrorAction SilentlyContinue $OutputZip
-        Remove-Item -Force -ErrorAction SilentlyContinue $OutputInstaller
     }
 }
 
-# ── Restore MAUI workloads ────────────────────────────────────────────────────
 Step "Restore MAUI workloads" {
     dotnet workload restore "$RepoRoot\src\Cockpit\Cockpit.csproj"
 }
 
-# ── Publish ───────────────────────────────────────────────────────────────────
 Step "Publish Windows app (version: $Version)" {
-    # Always remove the publish directory first. The SDK targets use SkipUnchangedFiles when copying
-    # the bundled CLI binary, and npm normalises all tarball timestamps to 1985-10-26, so a stale
-    # CLI from a previous build is never overwritten even when the CLI version changes.
+    # Avoid retaining bundled CLI content from an earlier publish.
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $PublishDir
 
     dotnet publish "$RepoRoot\src\Cockpit\Cockpit.csproj" `
         --framework net10.0-windows10.0.19041.0 `
         --configuration Release `
+        -p:RuntimeIdentifierOverride=win-x64 `
         -p:ApplicationDisplayVersion=$Version `
         -p:ApplicationVersion=1 `
         --output $PublishDir
 }
 
-# ── Zip ───────────────────────────────────────────────────────────────────────
-Step "Zip publish output -> Cockpit-windows-x64.zip" {
-    if (Test-Path $OutputZip) { Remove-Item $OutputZip -Force }
-    Compress-Archive -Path "$PublishDir\*" -DestinationPath $OutputZip
-}
-
-# ── Installer (NSIS) ──────────────────────────────────────────────────────────
-Step "Build installer -> Cockpit-windows-x64-Setup.exe" {
-    if (-not (Test-Path $MakeNsis)) {
-        Write-Host "  NSIS not found. Install with: winget install NSIS.NSIS" -ForegroundColor Yellow
-        Write-Host "  Skipping installer step." -ForegroundColor Yellow
-        return
+Step "Create single-executable release artifacts" {
+    $publishedFiles = @(Get-ChildItem -Path $PublishDir -File -Recurse)
+    if ($publishedFiles.Count -ne 1 -or $publishedFiles[0].Name -ne "Cockpit.exe") {
+        throw "Expected a single self-contained Cockpit.exe, but found: $($publishedFiles.FullName -join ', ')"
     }
-    & $MakeNsis `
-        /DAPP_VERSION="$Version" `
-        /DSOURCE_PATH="$PublishDir" `
-        /DOUTPUT_PATH="$OutputInstaller" `
-        $NsiScript
+
+    Copy-Item $publishedFiles[0].FullName $OutputExe -Force
+    if (Test-Path $OutputZip) { Remove-Item $OutputZip -Force }
+    Compress-Archive -Path $OutputExe -DestinationPath $OutputZip
 }
 
-# ── Summary ───────────────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "Build complete!" -ForegroundColor Green
 Write-Host ""
 
-$artifacts = @($OutputZip, $OutputInstaller) | Where-Object { Test-Path $_ }
+$artifacts = @($OutputExe, $OutputZip) | Where-Object { Test-Path $_ }
 foreach ($f in $artifacts) {
     $size = (Get-Item $f).Length / 1MB
     Write-Host ("  {0,-45} {1:F1} MB" -f (Resolve-Path $f -Relative), $size) -ForegroundColor White

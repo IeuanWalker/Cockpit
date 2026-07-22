@@ -33,23 +33,21 @@ jobs:
           dotnet publish src/Cockpit/Cockpit.csproj
           --framework net10.0-windows10.0.19041.0
           --configuration Release
+          -p:RuntimeIdentifierOverride=win-x64
           -p:ApplicationDisplayVersion=${{ steps.version.outputs.VERSION }}
           -p:ApplicationVersion=${{ github.run_number }}
           -p:Version=${{ steps.version.outputs.VERSION }}
           --output ./publish/windows
 
-      - name: Zip publish output
-        run: Compress-Archive -Path ./publish/windows/* -DestinationPath ./Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}.zip
-
-      - name: Install NSIS
-        run: choco install nsis --no-progress -y
-
-      - name: Build installer (NSIS)
+      - name: Create release artifacts
         run: |
-          $sourcePath = "${{ github.workspace }}\publish\windows"
-          $version    = "${{ steps.version.outputs.VERSION }}"
-          $outputPath = "${{ github.workspace }}\Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Setup.exe"
-          & "C:\Program Files (x86)\NSIS\makensis.exe" /DAPP_VERSION="$version" /DSOURCE_PATH="$sourcePath" /DOUTPUT_PATH="$outputPath" .github/installers/windows.nsi
+          $publishedFiles = @(Get-ChildItem -Path ./publish/windows -File -Recurse)
+          if ($publishedFiles.Count -ne 1 -or $publishedFiles[0].Name -ne "Cockpit.exe") {
+            throw "Expected a single self-contained Cockpit.exe, but found: $($publishedFiles.FullName -join ', ')"
+          }
+          $outputExe = "./Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Setup.exe"
+          Copy-Item $publishedFiles[0].FullName $outputExe
+          Compress-Archive -Path $outputExe -DestinationPath ./Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

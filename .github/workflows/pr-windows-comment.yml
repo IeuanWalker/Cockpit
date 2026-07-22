@@ -1,0 +1,80 @@
+name: Comment PR Windows Build
+
+on:
+  workflow_run:
+    workflows: [PR Windows Build]
+    types: [completed]
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Comment artifact link on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const pullRequest = run.pull_requests?.[0];
+            if (!pullRequest) {
+              core.notice('The workflow run is not associated with a pull request.');
+              return;
+            }
+
+            const { owner, repo } = context.repo;
+            const artifactName = `cockpit-pr-${pullRequest.number}-windows-x64`;
+            const response = await github.rest.actions.listWorkflowRunArtifacts({
+              owner,
+              repo,
+              run_id: run.id,
+              per_page: 100
+            });
+            const artifact = response.data.artifacts.find(item => item.name === artifactName);
+            if (!artifact) {
+              core.setFailed(`Artifact ${artifactName} was not found.`);
+              return;
+            }
+
+            const marker = '<!-- cockpit-pr-windows-build -->';
+            const artifactUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${run.id}/artifacts/${artifact.id}`;
+            const commitUrl = `${context.serverUrl}/${owner}/${repo}/commit/${run.head_sha}`;
+            const body = [
+              marker,
+              'The Windows test build is ready.',
+              '',
+              `[⬇️ Download the self-contained .exe and .zip](${artifactUrl})`,
+              '',
+              `Tested commit: [\`${run.head_sha.substring(0, 7)}\`](${commitUrl})  `,
+              `Package ID: \`com.ieuanwalker.cockpit.pr\`  `,
+              `Build version: \`0.0.${run.run_number}\`  `,
+              'Artifacts are retained for 14 days.'
+            ].join('\n');
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: pullRequest.number,
+              per_page: 100
+            });
+            const existing = comments.filter(comment =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker));
+
+            for (const comment of existing) {
+              await github.rest.issues.deleteComment({
+                owner,
+                repo,
+                comment_id: comment.id
+              });
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: pullRequest.number,
+              body
+            });
