@@ -63,7 +63,7 @@ jobs:
       - name: Install NSIS
         run: choco install nsis --no-progress -y
 
-      - name: Build legacy NSIS installer
+      - name: Build NSIS installer
         run: |
           $sourcePath = "${{ github.workspace }}\publish\windows"
           $version = "${{ steps.version.outputs.VERSION }}"
