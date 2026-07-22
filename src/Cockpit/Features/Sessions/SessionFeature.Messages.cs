@@ -26,7 +26,7 @@ public sealed partial class SessionFeature
 				throw new InvalidOperationException($"Session {sessionId} not found");
 			}
 
-			if(session.ModelChanged)
+			if(session.Lifecycle.ModelChanged)
 			{
 				ProviderConfig? newProviderConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 
@@ -51,16 +51,16 @@ public sealed partial class SessionFeature
 						throw new InvalidOperationException($"Session {sessionId} not found after model restart");
 					}
 
-					session.ModelChanged = false;
+					session.Lifecycle.ModelChanged = false;
 				}
 				else
 				{
 					await existingSession.SetModelAsync(session.Model.Id, session.ReasoningEffort);
-					session.ModelChanged = false;
+					session.Lifecycle.ModelChanged = false;
 				}
 			}
 
-			if(session.AgentChanged)
+			if(session.Lifecycle.AgentChanged)
 			{
 				if(session.Context.SelectedAgent is null)
 				{
@@ -71,16 +71,16 @@ public sealed partial class SessionFeature
 					await existingSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Name);
 				}
 
-				session.AgentChanged = false;
+				session.Lifecycle.AgentChanged = false;
 			}
 
-			if(session.AgentModeChanged)
+			if(session.Lifecycle.AgentModeChanged)
 			{
 				await existingSession.Rpc.Mode.SetAsync(session.Context.SelectedAgentMode.ToSdkSessionMode());
-				session.AgentModeChanged = false;
+				session.Lifecycle.AgentModeChanged = false;
 			}
 
-			if(session.SdkState == SdkSessionStateEnum.Loaded)
+			if(session.Lifecycle.SdkState == SdkSessionStateEnum.Loaded)
 			{
 				bool resumed = await ResumeSession(sessionId);
 				if(!resumed)
@@ -103,7 +103,7 @@ public sealed partial class SessionFeature
 			lock(CurrentSession.SessionEventLock)
 			{
 				bool agentWasBusy = CurrentSession.ActiveWorkingGroup is not null;
-				CurrentSession.AgentRunState = AgentRunStateEnum.Running;
+				CurrentSession.Lifecycle.AgentRunState = AgentRunStateEnum.Running;
 
 				optimisticMessage = new ChatMessageModel
 				{
@@ -213,7 +213,7 @@ public sealed partial class SessionFeature
 			}
 
 			// Reset state to NotLoaded so LoadSession performs a full re-resume via the SDK
-			session.SdkState = SdkSessionStateEnum.NotLoaded;
+			session.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
 			bool resumed = await ResumeSession(sessionId);
 			if(!resumed)
 			{
@@ -239,7 +239,7 @@ public sealed partial class SessionFeature
 					optimisticMessage.IsComplete = true;
 					optimisticMessage.IsPending = false;
 				}
-				session.AgentRunState = AgentRunStateEnum.Error;
+				session.Lifecycle.AgentRunState = AgentRunStateEnum.Error;
 				SessionErrorHandler.HandleException(session, ex);
 				session.MessagesSnapshot = [.. session.Messages];
 			}

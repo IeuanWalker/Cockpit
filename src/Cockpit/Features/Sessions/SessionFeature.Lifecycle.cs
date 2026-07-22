@@ -352,14 +352,14 @@ public sealed partial class SessionFeature
 				return false;
 			}
 
-			if(session.SdkState != SdkSessionStateEnum.NotLoaded)
+			if(session.Lifecycle.SdkState != SdkSessionStateEnum.NotLoaded)
 			{
 				_logger.LogInformation("Session {SessionId} already loaded or loading, switching to it", sessionId);
 				await SwitchCurrentSessionAsync(session);
 
 				// Guard: eviction may have cleared the session between the state check and SwitchCurrentSessionAsync.
 				// If state is now NotLoaded, fall through to perform a full reload.
-				if(session.SdkState != SdkSessionStateEnum.NotLoaded)
+				if(session.Lifecycle.SdkState != SdkSessionStateEnum.NotLoaded)
 				{
 					return true;
 				}
@@ -415,7 +415,7 @@ public sealed partial class SessionFeature
 				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
 			}
 
-			session.SdkState = SdkSessionStateEnum.Loading;
+			session.Lifecycle.SdkState = SdkSessionStateEnum.Loading;
 			_sessionListFeature.NotifyStateChanged();
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -477,7 +477,7 @@ public sealed partial class SessionFeature
 						_processor.FinalizeOpenGroup(tempSession);
 					}
 				});
-				tempSession.SuppressFinishedNotification = false;
+				tempSession.Lifecycle.SuppressFinishedNotification = false;
 
 				// Any message still IsPending after replay was sent while the session was
 				// mid-turn and never picked up by a subsequent assistant.turn_start (the session
@@ -499,8 +499,8 @@ public sealed partial class SessionFeature
 				// session.Context (e.g. resolving the selected agent against the loaded agent list).
 				await contextPanelTask;
 
-				session.AgentRunState = AgentRunStateEnum.Idle;
-				session.SdkState = SdkSessionStateEnum.Loaded;
+				session.Lifecycle.AgentRunState = AgentRunStateEnum.Idle;
+				session.Lifecycle.SdkState = SdkSessionStateEnum.Loaded;
 				session.Context.WorkspacePath = sdkSession.WorkspacePath;
 				SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 				await _modelFeature.TryRestoreModelSettings(session);
@@ -536,7 +536,7 @@ public sealed partial class SessionFeature
 					// (observing any failure) before disposing the SDK session it reads from.
 					try { await contextPanelTask; } catch { /* surfaced via the outer catch / loaders */ }
 					await sdkSession.DisposeAsync();
-					session.SdkState = SdkSessionStateEnum.NotLoaded;
+					session.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
 				}
 			}
 		}
@@ -544,7 +544,7 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
 			SessionModel? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-			failedSession?.SdkState = SdkSessionStateEnum.NotLoaded;
+			failedSession?.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
 			_sessionListFeature.NotifyStateChanged();
 			_toastService.Error("Session Unavailable", opts =>
 			{
@@ -556,7 +556,7 @@ public sealed partial class SessionFeature
 		{
 			_logger.LogError(ex, "Failed to load session {SessionId}", sessionId);
 			SessionModel? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-			failedSession?.SdkState = SdkSessionStateEnum.NotLoaded;
+			failedSession?.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
 			_sessionListFeature.NotifyStateChanged();
 			return false;
 		}
@@ -576,13 +576,13 @@ public sealed partial class SessionFeature
 			return false;
 		}
 
-		if(session.SdkState == SdkSessionStateEnum.Resumed)
+		if(session.Lifecycle.SdkState == SdkSessionStateEnum.Resumed)
 		{
 			_logger.LogInformation("Session {SessionId} already resumed", sessionId);
 			return true;
 		}
 
-		if(session.SdkState != SdkSessionStateEnum.Loaded)
+		if(session.Lifecycle.SdkState != SdkSessionStateEnum.Loaded)
 		{
 			bool loaded = await LoadSession(sessionId);
 			if(!loaded)
@@ -591,7 +591,7 @@ public sealed partial class SessionFeature
 			}
 		}
 
-		session.SdkState = SdkSessionStateEnum.Resumed;
+		session.Lifecycle.SdkState = SdkSessionStateEnum.Resumed;
 		_logger.LogInformation("Session {SessionId} promoted from loaded to resumed", sessionId);
 		return true;
 	}
@@ -808,7 +808,7 @@ public sealed partial class SessionFeature
 			SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 			if(session is not null)
 			{
-				session.AgentRunState = AgentRunStateEnum.Idle;
+				session.Lifecycle.AgentRunState = AgentRunStateEnum.Idle;
 			}
 
 			// Cancel any pending permission/user-input/elicitation requests so they are removed from the UI immediately

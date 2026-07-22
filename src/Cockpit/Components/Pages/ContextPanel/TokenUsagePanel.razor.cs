@@ -38,11 +38,11 @@ public sealed partial class TokenUsagePanel : ComponentBase, IDisposable
 	bool IsCompactDisabled =>
 		CurrentSession is null ||
 		CurrentSession.IsCompacting ||
-		CurrentSession.AgentRunState == AgentRunStateEnum.Running;
+		CurrentSession.Lifecycle.AgentRunState == AgentRunStateEnum.Running;
 
 	string CompactTooltip => CurrentSession?.IsCompacting == true
 		? "Compaction in progress…"
-		: CurrentSession?.AgentRunState == AgentRunStateEnum.Running
+		: CurrentSession?.Lifecycle.AgentRunState == AgentRunStateEnum.Running
 			? "Cannot compact while the session is busy"
 			: "Compact context window to free up space";
 

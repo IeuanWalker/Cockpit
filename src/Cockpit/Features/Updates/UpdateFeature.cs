@@ -687,7 +687,7 @@ public sealed partial class UpdateFeature : IDisposable
 			return false;
 		}
 
-		return _sessionStateProvider.Sessions.Any(s => IsSessionActive(s.AgentRunState));
+		return _sessionStateProvider.Sessions.Any(s => IsSessionActive(s.Lifecycle.AgentRunState));
 	}
 
 	void SetDownloadFailed(string errorMessage)

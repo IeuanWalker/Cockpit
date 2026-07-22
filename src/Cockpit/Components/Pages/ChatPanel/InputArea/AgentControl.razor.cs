@@ -66,7 +66,7 @@ public sealed partial class AgentControl : ComponentBase, IDisposable
 		}
 
 		_sessionListFeature.CurrentSession.Context.SelectedAgent = agent;
-		_sessionListFeature.CurrentSession.AgentChanged = true;
+		_sessionListFeature.CurrentSession.Lifecycle.AgentChanged = true;
 
 		// Persist agent selection immediately
 		_ = _agentPersistence.SaveSessionAgent(_sessionListFeature.CurrentSession);
