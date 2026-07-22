@@ -3,6 +3,7 @@ using Cockpit.Features.ElicitationRequests;
 using Cockpit.Features.Permissions;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.UserInputRequests;
 using GitHub.Copilot;
@@ -74,14 +75,16 @@ public sealed class SessionStatusBehaviourTests
 		string permissionsPath = Path.Combine(Path.GetTempPath(), $"phase1-permissions-{Guid.NewGuid()}.json");
 		string denyPath = Path.Combine(Path.GetTempPath(), $"phase1-deny-{Guid.NewGuid()}.json");
 		SessionPermissionFeature sessionPermissions = new(stateProvider);
+		SessionInteractionCoordinator interactionCoordinator = new(stateProvider);
 		PermissionFeature permissionFeature = new(
 			new GlobalPermissionFeature(NullLogger<GlobalPermissionFeature>.Instance, permissionsPath),
 			new GlobalDenyFeature(NullLogger<GlobalDenyFeature>.Instance, denyPath),
 			sessionPermissions,
 			stateProvider,
-			NullLogger<PermissionFeature>.Instance);
-		UserInputFeature userInputFeature = new(stateProvider, NullLogger<UserInputFeature>.Instance);
-		ElicitationFeature elicitationFeature = new(stateProvider, NullLogger<ElicitationFeature>.Instance);
+			NullLogger<PermissionFeature>.Instance,
+			interactionCoordinator);
+		UserInputFeature userInputFeature = new(stateProvider, NullLogger<UserInputFeature>.Instance, interactionCoordinator);
+		ElicitationFeature elicitationFeature = new(stateProvider, NullLogger<ElicitationFeature>.Instance, interactionCoordinator);
 
 		TaskCompletionSource<PermissionRequestModel> permissionReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		permissionFeature.OnPermissionRequested += (_, request) => permissionReady.TrySetResult(request);
