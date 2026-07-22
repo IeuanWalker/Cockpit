@@ -80,8 +80,7 @@ public sealed class SessionInteractionCoordinator
 	/// </summary>
 	public void ClearBookkeeping(
 		string sessionId,
-		PendingInteractionKinds interactionKinds,
-		bool clearStatusHistory)
+		PendingInteractionKinds interactionKinds)
 	{
 		SessionModel? session = FindSession(sessionId);
 		if(session is null)
@@ -89,27 +88,24 @@ public sealed class SessionInteractionCoordinator
 			return;
 		}
 
-		if(clearStatusHistory)
+		lock(session.PendingInteractionsLock)
 		{
-			lock(session.StatusHistoryLock)
+			if(interactionKinds.HasFlag(PendingInteractionKinds.Permissions))
 			{
-				session.StatusHistory.Clear();
+				session.PendingPermissionRequests.Clear();
 			}
-		}
 
-		if(interactionKinds.HasFlag(PendingInteractionKinds.Permissions))
-		{
-			session.PendingPermissionRequests.Clear();
-		}
+			if(interactionKinds.HasFlag(PendingInteractionKinds.UserInputs))
+			{
+				session.PendingUserInputRequests.Clear();
+			}
 
-		if(interactionKinds.HasFlag(PendingInteractionKinds.UserInputs))
-		{
-			session.PendingUserInputRequests.Clear();
-		}
+			if(interactionKinds.HasFlag(PendingInteractionKinds.Elicitations))
+			{
+				session.PendingElicitationRequests.Clear();
+			}
 
-		if(interactionKinds.HasFlag(PendingInteractionKinds.Elicitations))
-		{
-			session.PendingElicitationRequests.Clear();
+			session.PendingInteractionStatus = GetPendingInteractionStatus(session);
 		}
 	}
 
@@ -132,7 +128,7 @@ public sealed class SessionInteractionCoordinator
 			requestId,
 			sessionId);
 
-		lock(session.StatusHistoryLock)
+		lock(session.PendingInteractionsLock)
 		{
 			if(!tryAdd(session))
 			{
@@ -144,14 +140,7 @@ public sealed class SessionInteractionCoordinator
 				return;
 			}
 
-			// Preserve the status that was active before the first blocking interaction.
-			// Further concurrent interactions must not add additional history entries.
-			if(!IsBlockingStatus(session.Status))
-			{
-				session.StatusHistory.Push(session.Status);
-			}
-
-			session.Status = blockingStatus;
+			session.PendingInteractionStatus = blockingStatus;
 		}
 
 		_sessionStateProvider.NotifyStateChanged();
@@ -175,7 +164,7 @@ public sealed class SessionInteractionCoordinator
 			requestId,
 			sessionId);
 
-		lock(session.StatusHistoryLock)
+		lock(session.PendingInteractionsLock)
 		{
 			if(!tryRemove(session))
 			{
@@ -187,7 +176,7 @@ public sealed class SessionInteractionCoordinator
 				return;
 			}
 
-			session.Status = GetDisplayStatusAfterResolution(session);
+			session.PendingInteractionStatus = GetPendingInteractionStatus(session);
 		}
 
 		_sessionStateProvider.NotifyStateChanged();
@@ -196,12 +185,7 @@ public sealed class SessionInteractionCoordinator
 	SessionModel? FindSession(string sessionId)
 		=> _sessionStateProvider.Sessions.FirstOrDefault(session => session.Id == sessionId);
 
-	static bool IsBlockingStatus(SessionStatusEnum status)
-		=> status is SessionStatusEnum.NeedsPermission
-			or SessionStatusEnum.NeedsUserInput
-			or SessionStatusEnum.NeedsElicitation;
-
-	static SessionStatusEnum GetDisplayStatusAfterResolution(SessionModel session)
+	static SessionStatusEnum? GetPendingInteractionStatus(SessionModel session)
 	{
 		if(!session.PendingPermissionRequests.IsEmpty)
 		{
@@ -218,8 +202,6 @@ public sealed class SessionInteractionCoordinator
 			return SessionStatusEnum.NeedsElicitation;
 		}
 
-		return session.StatusHistory.TryPop(out SessionStatusEnum previousStatus)
-			? previousStatus
-			: SessionStatusEnum.Idle;
+		return null;
 	}
 }

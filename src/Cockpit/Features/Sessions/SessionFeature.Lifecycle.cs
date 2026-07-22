@@ -146,7 +146,7 @@ public sealed partial class SessionFeature
 			Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
 			CreatedAt = metadata.StartTime.UtcDateTime,
 			LastActivity = metadata.ModifiedTime.UtcDateTime,
-			Status = SessionStatusEnum.Idle,
+			AgentRunState = AgentRunStateEnum.Idle,
 			Model = defaultModel,
 			ReasoningEffort = defaultModel.DefaultReasoningEffort,
 			Context = new()
@@ -244,7 +244,7 @@ public sealed partial class SessionFeature
 				Title = "New Session",
 				CreatedAt = DateTime.UtcNow,
 				LastActivity = DateTime.UtcNow,
-				Status = SessionStatusEnum.Idle,
+				AgentRunState = AgentRunStateEnum.Idle,
 				Context = new()
 				{
 					CurrentWorkingDirectory = workingDirectory,
@@ -456,7 +456,7 @@ public sealed partial class SessionFeature
 				{
 					Id = sessionId,
 					Title = session.Title,
-					Status = SessionStatusEnum.Idle,
+					AgentRunState = AgentRunStateEnum.Idle,
 					Model = session.Model,
 					ReasoningEffort = session.ReasoningEffort,
 					Context = replayContext,
@@ -499,7 +499,7 @@ public sealed partial class SessionFeature
 				// session.Context (e.g. resolving the selected agent against the loaded agent list).
 				await contextPanelTask;
 
-				session.Status = SessionStatusEnum.Idle;
+				session.AgentRunState = AgentRunStateEnum.Idle;
 				session.SdkState = SdkSessionStateEnum.Loaded;
 				session.Context.WorkspacePath = sdkSession.WorkspacePath;
 				SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
@@ -804,14 +804,11 @@ public sealed partial class SessionFeature
 				throw new InvalidOperationException($"Session {sessionId} not found in SDK sessions");
 			}
 
-			// Clear status history so that resolving pending requests restores to Idle, not Running
+			// Transition the lifecycle state first so resolving pending interactions reveals Idle.
 			SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 			if(session is not null)
 			{
-				_interactionCoordinator.ClearBookkeeping(
-					session.Id,
-					PendingInteractionKinds.None,
-					clearStatusHistory: true);
+				session.AgentRunState = AgentRunStateEnum.Idle;
 			}
 
 			// Cancel any pending permission/user-input/elicitation requests so they are removed from the UI immediately

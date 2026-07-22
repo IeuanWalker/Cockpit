@@ -655,12 +655,9 @@ public class UpdateFeatureTests
 	[Fact]
 	public void IsSessionActive_ReturnsTrue_ForRunningAndBlockingStates()
 	{
-		UpdateFeature.IsSessionActive(SessionStatusEnum.Running).ShouldBeTrue();
-		UpdateFeature.IsSessionActive(SessionStatusEnum.NeedsPermission).ShouldBeTrue();
-		UpdateFeature.IsSessionActive(SessionStatusEnum.NeedsUserInput).ShouldBeTrue();
-		UpdateFeature.IsSessionActive(SessionStatusEnum.NeedsElicitation).ShouldBeTrue();
-		UpdateFeature.IsSessionActive(SessionStatusEnum.Idle).ShouldBeFalse();
-		UpdateFeature.IsSessionActive(SessionStatusEnum.Error).ShouldBeFalse();
+		UpdateFeature.IsSessionActive(AgentRunStateEnum.Running).ShouldBeTrue();
+		UpdateFeature.IsSessionActive(AgentRunStateEnum.Idle).ShouldBeFalse();
+		UpdateFeature.IsSessionActive(AgentRunStateEnum.Error).ShouldBeFalse();
 	}
 
 	#endregion

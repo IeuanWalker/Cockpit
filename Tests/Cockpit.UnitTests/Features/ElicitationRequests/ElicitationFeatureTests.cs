@@ -39,7 +39,7 @@ public sealed class ElicitationFeatureTests
 		CreatedAt = DateTime.UtcNow,
 		LastActivity = DateTime.UtcNow,
 		Model = testModel,
-		Status = SessionStatusEnum.Idle,
+		AgentRunState = AgentRunStateEnum.Idle,
 		Context = new()
 		{
 			CurrentWorkingDirectory = "",
@@ -130,10 +130,10 @@ public sealed class ElicitationFeatureTests
 	}
 
 	[Fact]
-	public async Task HandleElicitationRequest_RestoredToPreviousStatusOnResolve()
+	public async Task HandleElicitationRequest_RevealsRunStateOnResolve()
 	{
 		(ElicitationFeature feature, SessionModel session, _) = CreateFeature();
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 
 		(Task<ElicitationResult> handleTask, ElicitationRequestModel model) = await StartHandleAsync(
 			feature, BuildContext());
@@ -145,10 +145,10 @@ public sealed class ElicitationFeatureTests
 	}
 
 	[Fact]
-	public async Task HandleElicitationRequest_RestoredToIdleWhenNoStatusHistory()
+	public async Task HandleElicitationRequest_RestoredToIdleRunState()
 	{
 		(ElicitationFeature feature, SessionModel session, _) = CreateFeature();
-		// session starts Idle, no history pushed yet
+		// Session starts with an Idle lifecycle state.
 
 		(Task<ElicitationResult> handleTask, ElicitationRequestModel model) = await StartHandleAsync(
 			feature, BuildContext());
@@ -202,16 +202,16 @@ public sealed class ElicitationFeatureTests
 	}
 
 	[Fact]
-	public async Task HandleElicitationRequest_SecondConcurrentRequestDoesNotPushStatusHistoryAgain()
+	public async Task HandleElicitationRequest_ConcurrentRequestsPreserveRunState()
 	{
 		(ElicitationFeature feature, SessionModel session, _) = CreateFeature();
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 
 		(Task<ElicitationResult> task1, ElicitationRequestModel model1) = await StartHandleAsync(feature, BuildContext(message: "First"));
 		(Task<ElicitationResult> task2, ElicitationRequestModel model2) = await StartHandleAsync(feature, BuildContext(message: "Second"));
 
-		// Both pending — only one entry pushed to history (for the Running → NeedsElicitation transition)
-		session.StatusHistory.Count.ShouldBe(1);
+		// Pending interactions do not overwrite the Running lifecycle state.
+		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
 		session.Status.ShouldBe(SessionStatusEnum.NeedsElicitation);
 
 		feature.ResolveElicitationRequest(model1.Id, null);
@@ -225,6 +225,7 @@ public sealed class ElicitationFeatureTests
 
 		// All resolved — restored to Running
 		session.Status.ShouldBe(SessionStatusEnum.Running);
+		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
 	}
 
 	// ── Priority resolution ───────────────────────────────────────────────────

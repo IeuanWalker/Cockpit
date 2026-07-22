@@ -33,7 +33,7 @@ public sealed class UserInputFeatureTests
 		CreatedAt = DateTime.UtcNow,
 		LastActivity = DateTime.UtcNow,
 		Model = testModel,
-		Status = SessionStatusEnum.Idle,
+		AgentRunState = AgentRunStateEnum.Idle,
 		Context = new()
 		{
 			CurrentWorkingDirectory = "",
@@ -291,17 +291,17 @@ public sealed class UserInputFeatureTests
 			BuildRequest(),
 			BuildInvocation());
 
-		session.Status.ShouldBe(SessionStatusEnum.NeedsUserInput);
+		session.DisplayStatus.ShouldBe(SessionStatusEnum.NeedsUserInput);
 
 		feature.ResolveUserInputRequest(model.Id, null);
 		await handleTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 	}
 
 	[Fact]
-	public async Task SessionStatus_RestoredAfterResolve()
+	public async Task SessionStatus_RevealsRunStateAfterResolve()
 	{
 		(UserInputFeature feature, SessionModel session, _) = CreateFeature();
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 
 		(Task<UserInputResponse> handleTask, UserInputRequestModel model) = await StartHandleAsync(
 			feature,
@@ -311,7 +311,7 @@ public sealed class UserInputFeatureTests
 		feature.ResolveUserInputRequest(model.Id, "yes");
 		await handleTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
-		// Status should be restored to the pre-request status
+		// Resolving the interaction reveals the independently tracked run state.
 		session.Status.ShouldBe(SessionStatusEnum.Running);
 	}
 
@@ -404,18 +404,18 @@ public sealed class UserInputFeatureTests
 	}
 
 	[Fact]
-	public async Task ConcurrentRequests_SecondRequestDoesNotPushStatusHistoryAgain()
+	public async Task ConcurrentRequests_PreserveRunStateUntilAllRequestsResolve()
 	{
 		(UserInputFeature feature, SessionModel session, _) = CreateFeature();
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 
 		(Task<UserInputResponse> task1, UserInputRequestModel model1) = await StartHandleAsync(
 			feature, BuildRequest(question: "First?"), BuildInvocation());
 		(Task<UserInputResponse> task2, UserInputRequestModel model2) = await StartHandleAsync(
 			feature, BuildRequest(question: "Second?"), BuildInvocation());
 
-		// Both pending — status history should only have one entry pushed
-		session.StatusHistory.Count.ShouldBe(1);
+		// Pending interactions change the display status without changing lifecycle state.
+		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
 		session.Status.ShouldBe(SessionStatusEnum.NeedsUserInput);
 
 		feature.ResolveUserInputRequest(model1.Id, "one");
@@ -429,6 +429,7 @@ public sealed class UserInputFeatureTests
 
 		// All resolved — should restore Running
 		session.Status.ShouldBe(SessionStatusEnum.Running);
+		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
 	}
 
 	// ── ToRequestModel ────────────────────────────────────────────────────────

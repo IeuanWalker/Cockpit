@@ -39,7 +39,7 @@ public sealed class SessionInteractionCoordinatorTests
 		CreatedAt = DateTime.UtcNow,
 		LastActivity = DateTime.UtcNow,
 		Model = testModel,
-		Status = SessionStatusEnum.Running,
+		AgentRunState = AgentRunStateEnum.Running,
 		Context = new()
 		{
 			CurrentWorkingDirectory = string.Empty,
@@ -81,7 +81,7 @@ public sealed class SessionInteractionCoordinatorTests
 	};
 
 	[Fact]
-	public void ConcurrentTypes_UseOneHistoryEntryAndPreserveExistingResolutionOrder()
+	public void ConcurrentTypes_PreserveRunStateAndExistingDisplayOrder()
 	{
 		TestSessionStateProvider stateProvider = new();
 		SessionModel session = CreateSession();
@@ -95,7 +95,7 @@ public sealed class SessionInteractionCoordinatorTests
 		coordinator.AddUserInput(sessionId, userInput);
 		coordinator.AddElicitation(sessionId, elicitation);
 
-		session.StatusHistory.Count.ShouldBe(1);
+		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
 		session.Status.ShouldBe(SessionStatusEnum.NeedsElicitation);
 
 		coordinator.ResolveElicitation(sessionId, elicitation.Id);
@@ -106,7 +106,7 @@ public sealed class SessionInteractionCoordinatorTests
 
 		coordinator.ResolveUserInput(sessionId, userInput.Id);
 		session.Status.ShouldBe(SessionStatusEnum.Running);
-		session.StatusHistory.ShouldBeEmpty();
+		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
 		stateProvider.NotificationCount.ShouldBe(6);
 	}
 
@@ -123,13 +123,33 @@ public sealed class SessionInteractionCoordinatorTests
 		coordinator.AddPermission(sessionId, permission);
 
 		session.PendingPermissionRequests.Count.ShouldBe(1);
-		session.StatusHistory.Count.ShouldBe(1);
+		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
 		session.Status.ShouldBe(SessionStatusEnum.NeedsPermission);
 		stateProvider.NotificationCount.ShouldBe(1);
 	}
 
 	[Fact]
-	public void ResolveAfterReconnectCleanup_DoesNotChangeStatusHistoryOrNotify()
+	public void RunStateChangeWhileInteractionIsPending_IsRevealedAfterResolution()
+	{
+		TestSessionStateProvider stateProvider = new();
+		SessionModel session = CreateSession();
+		stateProvider.Add(session);
+		SessionInteractionCoordinator coordinator = new(stateProvider);
+		PermissionRequestModel permission = CreatePermission();
+
+		coordinator.AddPermission(sessionId, permission);
+		session.AgentRunState = AgentRunStateEnum.Error;
+
+		session.DisplayStatus.ShouldBe(SessionStatusEnum.NeedsPermission);
+
+		coordinator.ResolvePermission(sessionId, permission.Id);
+
+		session.AgentRunState.ShouldBe(AgentRunStateEnum.Error);
+		session.DisplayStatus.ShouldBe(SessionStatusEnum.Error);
+	}
+
+	[Fact]
+	public void ResolveAfterReconnectCleanup_DoesNotChangeRunStateOrNotify()
 	{
 		TestSessionStateProvider stateProvider = new();
 		SessionModel session = CreateSession();
@@ -141,16 +161,15 @@ public sealed class SessionInteractionCoordinatorTests
 
 		// Reconnect restores the lifecycle status and clears UI bookkeeping before
 		// cancellation completes the SDK-facing request.
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 		coordinator.ClearBookkeeping(
 			sessionId,
-			PendingInteractionKinds.All,
-			clearStatusHistory: true);
+			PendingInteractionKinds.All);
 
 		coordinator.ResolvePermission(sessionId, permission.Id);
 
 		session.Status.ShouldBe(SessionStatusEnum.Running);
-		session.StatusHistory.ShouldBeEmpty();
+		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
 		session.PendingPermissionRequests.ShouldBeEmpty();
 		stateProvider.NotificationCount.ShouldBe(1);
 	}

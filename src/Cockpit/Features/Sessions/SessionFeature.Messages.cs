@@ -103,7 +103,7 @@ public sealed partial class SessionFeature
 			lock(CurrentSession.SessionEventLock)
 			{
 				bool agentWasBusy = CurrentSession.ActiveWorkingGroup is not null;
-				CurrentSession.Status = SessionStatusEnum.Running;
+				CurrentSession.AgentRunState = AgentRunStateEnum.Running;
 
 				optimisticMessage = new ChatMessageModel
 				{
@@ -239,7 +239,7 @@ public sealed partial class SessionFeature
 					optimisticMessage.IsComplete = true;
 					optimisticMessage.IsPending = false;
 				}
-				session.Status = SessionStatusEnum.Error;
+				session.AgentRunState = AgentRunStateEnum.Error;
 				SessionErrorHandler.HandleException(session, ex);
 				session.MessagesSnapshot = [.. session.Messages];
 			}

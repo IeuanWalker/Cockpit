@@ -708,7 +708,7 @@ public class PermissionFeatureTests
 	public async Task ResolvePermissionRequest_SessionScope_DoesNotResetStatusToIdle_WhenMultipleRequestsHaveSameCommands()
 	{
 		// Regression test: approving request A with Session scope must not cause status to revert to Idle.
-		// Previously AutoResolveMatchingRequests included A itself, double-popping StatusHistory and landing on Idle.
+		// Previously AutoResolveMatchingRequests included A itself and resolved the same request twice.
 		string testFile = Path.Combine(Path.GetTempPath(), $"test-{Guid.NewGuid()}.json");
 		GlobalPermissionFeature globalFeature = new(NullLogger<GlobalPermissionFeature>.Instance, testFile);
 		TestSessionStateProvider stateProvider = new();
@@ -725,7 +725,7 @@ public class PermissionFeatureTests
 			CreatedAt = DateTime.UtcNow,
 			LastActivity = DateTime.UtcNow,
 			Model = testModel,
-			Status = SessionStatusEnum.Running,
+			AgentRunState = AgentRunStateEnum.Running,
 			Context = new()
 			{
 				CurrentWorkingDirectory = "",
@@ -865,7 +865,7 @@ public class PermissionFeatureTests
 			CreatedAt = DateTime.UtcNow,
 			LastActivity = DateTime.UtcNow,
 			Model = testModel,
-			Status = SessionStatusEnum.Running,
+			AgentRunState = AgentRunStateEnum.Running,
 			Context = new()
 			{
 				CurrentWorkingDirectory = "",
@@ -960,7 +960,7 @@ public class PermissionFeatureTests
 			CreatedAt = DateTime.UtcNow,
 			LastActivity = DateTime.UtcNow,
 			Model = testModel,
-			Status = SessionStatusEnum.Running,
+			AgentRunState = AgentRunStateEnum.Running,
 			Context = new()
 			{
 				CurrentWorkingDirectory = "",
@@ -1026,7 +1026,7 @@ public class PermissionFeatureTests
 			CreatedAt = DateTime.UtcNow,
 			LastActivity = DateTime.UtcNow,
 			Model = testModel,
-			Status = SessionStatusEnum.Running,
+			AgentRunState = AgentRunStateEnum.Running,
 			Context = new()
 			{
 				CurrentWorkingDirectory = "",

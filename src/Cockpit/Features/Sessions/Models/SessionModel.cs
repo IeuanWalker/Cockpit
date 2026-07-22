@@ -13,7 +13,30 @@ public class SessionModel
 	public required string Title { get; set; }
 	public required DateTime CreatedAt { get; set; }
 	public required DateTime LastActivity { get; set; }
-	public SessionStatusEnum Status { get; set; } = SessionStatusEnum.Idle;
+	/// <summary>
+	/// The agent's lifecycle state. Pending interactions must not overwrite this value.
+	/// </summary>
+	public AgentRunStateEnum AgentRunState { get; set; } = AgentRunStateEnum.Idle;
+
+	/// <summary>
+	/// UI-facing status. The interaction coordinator controls the pending-interaction
+	/// overlay while <see cref="AgentRunState"/> continues to track the agent lifecycle.
+	/// </summary>
+	public SessionStatusEnum DisplayStatus => PendingInteractionStatus ?? AgentRunState switch
+	{
+		AgentRunStateEnum.Running => SessionStatusEnum.Running,
+		AgentRunStateEnum.Error => SessionStatusEnum.Error,
+		_ => SessionStatusEnum.Idle
+	};
+
+	/// <summary>
+	/// Compatibility alias for consumers that only read session status.
+	/// New code should use <see cref="AgentRunState"/> for lifecycle decisions and
+	/// <see cref="DisplayStatus"/> for presentation.
+	/// </summary>
+	public SessionStatusEnum Status => DisplayStatus;
+
+	internal SessionStatusEnum? PendingInteractionStatus { get; set; }
 	List<ChatMessageModel> _messages = [];
 	public List<ChatMessageModel> Messages
 	{
@@ -70,11 +93,9 @@ public class SessionModel
 	public ConcurrentDictionary<string, ElicitationRequestModel> PendingElicitationRequests { get; set; } = new();
 
 	/// <summary>
-	/// History of statuses before blocking requests (permission/user-input).
-	/// Pushed when the first blocking request of a type arrives; popped when all of that type resolve.
+	/// Serializes pending-interaction collection and display-status mutations.
 	/// </summary>
-	public Stack<SessionStatusEnum> StatusHistory { get; } = new();
-	public readonly Lock StatusHistoryLock = new();
+	internal readonly Lock PendingInteractionsLock = new();
 
 	/// <summary>
 	/// Tracks the SDK connection lifecycle of this session.

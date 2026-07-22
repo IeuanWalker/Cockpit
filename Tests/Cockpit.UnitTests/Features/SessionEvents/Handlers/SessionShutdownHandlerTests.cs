@@ -43,7 +43,7 @@ public class SessionShutdownHandlerTests
 		// Arrange — routine == auto-restart; the session continues, so the group must be preserved
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 
 		processor.Process(session, new ToolExecutionStartEvent
 		{
@@ -68,7 +68,7 @@ public class SessionShutdownHandlerTests
 	{
 		// A routine shutdown with no active group must leave session status unchanged
 		SessionModel session = CreateSession();
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 		SessionEventProcessor processor = CreateProcessor();
 
 		processor.Process(session, new SessionShutdownEvent
@@ -112,7 +112,7 @@ public class SessionShutdownHandlerTests
 	{
 		// Even without an active working group, a non-routine shutdown must transition to Idle
 		SessionModel session = CreateSession();
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 		SessionEventProcessor processor = CreateProcessor();
 
 		processor.Process(session, new SessionShutdownEvent

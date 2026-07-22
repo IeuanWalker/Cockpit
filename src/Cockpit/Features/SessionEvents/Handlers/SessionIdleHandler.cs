@@ -46,7 +46,7 @@ static class SessionIdleHandler
 			{
 				Debug.WriteLine($"Activity message already exists for group {group.Id}, skipping insertion");
 				session.ActiveWorkingGroup = null;
-				session.Status = SessionStatusEnum.Idle;
+				session.AgentRunState = AgentRunStateEnum.Idle;
 				return;
 			}
 
@@ -290,7 +290,7 @@ static class SessionIdleHandler
 
 		if(keepRunning)
 		{
-			session.Status = SessionStatusEnum.Running;
+			session.AgentRunState = AgentRunStateEnum.Running;
 				session.ActiveWorkingGroup = new ActivityGroupModel
 				{
 					StartTime = eventTimestamp.LocalDateTime,
@@ -301,7 +301,7 @@ static class SessionIdleHandler
 		}
 		else
 		{
-			session.Status = SessionStatusEnum.Idle;
+			session.AgentRunState = AgentRunStateEnum.Idle;
 
 			if(groupStatus == GroupStatusEnum.Complete && !session.SuppressFinishedNotification)
 			{

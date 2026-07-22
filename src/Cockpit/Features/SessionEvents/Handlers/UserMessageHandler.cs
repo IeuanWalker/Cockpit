@@ -70,7 +70,7 @@ static class UserMessageHandler
 			session.Messages.Add(message);
 		}
 
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 	}
 
 	static List<AttachmentModel>? ConvertAttachments(Attachment[]? items)
