@@ -45,7 +45,7 @@ jobs:
               marker,
               'The Windows test build is ready.',
               '',
-              `[⬇️ Download the portable executable and NSIS installer](${artifactUrl})`,
+              `[⬇️ Download the portable executable and Windows installer](${artifactUrl})`,
               '',
               `Tested commit: [\`${testedCommit.substring(0, 7)}\`](${commitUrl})  `,
               `Package ID: \`com.ieuanwalker.cockpit.pr\`  `,
