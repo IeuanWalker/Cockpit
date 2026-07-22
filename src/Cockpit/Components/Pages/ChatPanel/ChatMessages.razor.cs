@@ -65,7 +65,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 
 			// If the app loaded an existing session before this component initialized,
 			// ensure the initial view is pinned to the bottom so history shows latest messages.
-			if(!_pendingScrollToBottom && _sessionListFeature.CurrentSession?.Messages is not null && _sessionListFeature.CurrentSession.Messages.Count > 0)
+			if(!_pendingScrollToBottom && _sessionListFeature.CurrentSession?.Conversation.MessagesSnapshot.Count > 0)
 			{
 				await ScrollToBottom();
 			}
