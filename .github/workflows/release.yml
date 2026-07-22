@@ -43,8 +43,26 @@ jobs:
           -p:Version=${{ steps.version.outputs.VERSION }}
           --output ./publish/windows
 
-      - name: Zip unpackaged output
-        run: Compress-Archive -Path ./publish/windows/* -DestinationPath ./Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}.zip
+      - name: Build portable executable
+        shell: pwsh
+        run: |
+          dotnet publish src/Cockpit/Cockpit.csproj `
+            --framework net10.0-windows10.0.19041.0 `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            -p:WindowsPackageType=None `
+            -p:WindowsAppSDKSelfContained=true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:IncludeAllContentForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:DebugType=None `
+            -p:ApplicationDisplayVersion=${{ steps.version.outputs.VERSION }} `
+            -p:ApplicationVersion=${{ github.run_number }} `
+            -p:Version=${{ steps.version.outputs.VERSION }} `
+            --output ./publish/portable
+          Copy-Item ./publish/portable/Cockpit.exe ./Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Portable.exe
 
       - name: Install NSIS
         run: choco install nsis --no-progress -y
@@ -107,7 +125,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}.zip
+            Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Portable.exe
             Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Setup.exe
             Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Installer.msix
           generate_release_notes: false

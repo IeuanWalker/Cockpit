@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Builds the Windows ZIP, legacy NSIS installer, and signed MSIX installer locally.
+    Builds the portable executable, legacy NSIS installer, and signed MSIX installer locally.
 
 .PARAMETER Version
     The version string (for example "1.2.3").
@@ -51,8 +51,9 @@ if (-not $SkipMsix) {
 $RepoRoot       = (Resolve-Path "$PSScriptRoot\..").Path
 $ProjectPath    = "$RepoRoot\src\Cockpit\Cockpit.csproj"
 $PublishDir     = "$RepoRoot\publish\windows"
+$PortableDir    = "$RepoRoot\publish\portable"
 $MsixBuildDir   = "$RepoRoot\publish\msix"
-$OutputZip      = "$RepoRoot\Cockpit-windows-x64.zip"
+$OutputPortable = "$RepoRoot\Cockpit-windows-x64-$Version-Portable.exe"
 $OutputExe      = "$RepoRoot\Cockpit-windows-x64-Setup.exe"
 $OutputMsix     = "$RepoRoot\Cockpit-windows-x64-$Version-Installer.msix"
 $NsiScript      = "$RepoRoot\.github\installers\windows.nsi"
@@ -71,8 +72,8 @@ function Step([string]$name, [scriptblock]$block) {
 
 if ($Clean) {
     Step "Clean previous output" {
-        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $PublishDir, $MsixBuildDir
-        Remove-Item -Force -ErrorAction SilentlyContinue $OutputZip, $OutputExe, $OutputMsix
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $PublishDir, $PortableDir, $MsixBuildDir
+        Remove-Item -Force -ErrorAction SilentlyContinue $OutputPortable, $OutputExe, $OutputMsix
     }
 }
 
@@ -91,9 +92,24 @@ Step "Publish unpackaged Windows app (version: $Version)" {
         --output $PublishDir
 }
 
-Step "Create ZIP -> Cockpit-windows-x64.zip" {
-    if (Test-Path $OutputZip) { Remove-Item $OutputZip -Force }
-    Compress-Archive -Path "$PublishDir\*" -DestinationPath $OutputZip
+Step "Build portable executable -> Cockpit-windows-x64-$Version-Portable.exe" {
+    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $PortableDir
+    dotnet publish $ProjectPath `
+        --framework net10.0-windows10.0.19041.0 `
+        --configuration Release `
+        --runtime win-x64 `
+        --self-contained true `
+        -p:WindowsPackageType=None `
+        -p:WindowsAppSDKSelfContained=true `
+        -p:PublishSingleFile=true `
+        -p:IncludeNativeLibrariesForSelfExtract=true `
+        -p:IncludeAllContentForSelfExtract=true `
+        -p:EnableCompressionInSingleFile=true `
+        -p:DebugType=None `
+        -p:ApplicationDisplayVersion=$Version `
+        -p:ApplicationVersion=1 `
+        --output $PortableDir
+    Copy-Item "$PortableDir\Cockpit.exe" $OutputPortable -Force
 }
 
 Step "Build legacy NSIS installer -> Cockpit-windows-x64-Setup.exe" {
@@ -138,7 +154,7 @@ Write-Host ""
 Write-Host "Build complete!" -ForegroundColor Green
 Write-Host ""
 
-$artifacts = @($OutputZip, $OutputExe, $OutputMsix) | Where-Object { Test-Path $_ }
+$artifacts = @($OutputPortable, $OutputExe, $OutputMsix) | Where-Object { Test-Path $_ }
 foreach ($file in $artifacts) {
     $size = (Get-Item $file).Length / 1MB
     Write-Host ("  {0,-55} {1:F1} MB" -f (Resolve-Path $file -Relative), $size)

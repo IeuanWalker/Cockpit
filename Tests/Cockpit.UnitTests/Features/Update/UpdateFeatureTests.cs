@@ -27,11 +27,11 @@ public class UpdateFeatureTests
 		      "browser_download_url": "https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0-Setup.exe"
 		    },
 		    {
-		      "name": "Cockpit-windows-x64-1.8.0.zip",
+		      "name": "Cockpit-windows-x64-1.8.0-Portable.exe",
 		      "label": "",
-		      "content_type": "application/zip",
+		      "content_type": "application/x-msdos-program",
 		      "size": 134674820,
-		      "browser_download_url": "https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0.zip"
+		      "browser_download_url": "https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0-Portable.exe"
 		    },
 		    {
 		      "name": "Cockpit-windows-x64-1.8.0-Installer.msix",
@@ -167,16 +167,16 @@ public class UpdateFeatureTests
 	}
 
 	[Fact]
-	public void GitHubReleaseModel_Deserializes_ZipAsset()
+	public void GitHubReleaseModel_Deserializes_PortableExeAsset()
 	{
 		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
-		GitHubReleaseAssetModel? zipAsset = release.Assets?.Find(a => a.Name?.EndsWith(".zip") is true);
-		zipAsset.ShouldNotBeNull();
-		zipAsset.Name.ShouldBe("Cockpit-windows-x64-1.8.0.zip");
-		zipAsset.Size.ShouldBe(134674820L);
-		zipAsset.BrowserDownloadUrl.ShouldBe("https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0.zip");
+		GitHubReleaseAssetModel? portableAsset = release.Assets?.Find(a => a.Name?.EndsWith("-Portable.exe") is true);
+		portableAsset.ShouldNotBeNull();
+		portableAsset.Name.ShouldBe("Cockpit-windows-x64-1.8.0-Portable.exe");
+		portableAsset.Size.ShouldBe(134674820L);
+		portableAsset.BrowserDownloadUrl.ShouldBe("https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0-Portable.exe");
 	}
 
 	[Fact]
@@ -212,7 +212,7 @@ public class UpdateFeatureTests
 	[Fact]
 	public void HasRequiredAssets_ReturnsFalse_WhenMsixInstallerMissing()
 	{
-		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0.zip");
+		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Portable.exe");
 
 		UpdateFeature.HasRequiredAssets(release).ShouldBeFalse();
 	}
