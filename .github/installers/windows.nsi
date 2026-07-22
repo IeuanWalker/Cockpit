@@ -11,9 +11,13 @@
   !define OUTPUT_PATH "Cockpit-windows-x64-Setup.exe"
 !endif
 
-!define APP_NAME      "Cockpit"
+!ifndef APP_NAME
+  !define APP_NAME "Cockpit"
+!endif
+!ifndef APP_ID
+  !define APP_ID "com.ieuanwalker.cockpit"
+!endif
 !define APP_EXE       "Cockpit.exe"
-!define APP_ID        "com.ieuanwalker.cockpit"
 !define APP_PUBLISHER "Ieuan Walker"
 !define APP_URL       "https://github.com/ieuanwalker/Cockpit"
 
@@ -28,6 +32,7 @@ InstallDirRegKey HKLM "Software\${APP_NAME}" "Install_Dir"
 RequestExecutionLevel admin
 ManifestDPIAware true
 VIProductVersion "${APP_VERSION}.0"
+VIAddVersionKey "FileVersion" "${APP_VERSION}.0"
 VIAddVersionKey "ProductName" "${APP_NAME}"
 VIAddVersionKey "FileDescription" "${APP_NAME} Installer"
 VIAddVersionKey "CompanyName" "${APP_PUBLISHER}"

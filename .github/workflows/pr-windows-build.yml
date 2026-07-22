@@ -1,0 +1,89 @@
+name: PR Windows Build
+
+on:
+  workflow_run:
+    workflows: [Build and Test]
+    types: [completed]
+
+concurrency:
+  group: pr-windows-${{ github.event.workflow_run.pull_requests[0].number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.pull_requests[0] != null
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore MAUI workloads
+        run: dotnet workload restore
+
+      - name: Publish unpackaged Windows app
+        run: >
+          dotnet publish src/Cockpit/Cockpit.csproj
+          --framework net10.0-windows10.0.19041.0
+          --configuration Release
+          -p:WindowsPackageType=None
+          -p:ApplicationId=com.ieuanwalker.cockpit.pr
+          -p:ApplicationDisplayVersion=0.0.${{ github.run_number }}
+          -p:ApplicationVersion=${{ github.run_number }}
+          -p:Version=0.0.${{ github.run_number }}
+          --output ./publish/windows
+
+      - name: Build portable executable
+        shell: pwsh
+        run: |
+          $version = "0.0.${{ github.run_number }}"
+          New-Item -ItemType Directory -Path ./artifacts -Force | Out-Null
+          dotnet publish src/Cockpit/Cockpit.csproj `
+            --framework net10.0-windows10.0.19041.0 `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            -p:WindowsPackageType=None `
+            -p:ApplicationId=com.ieuanwalker.cockpit.pr `
+            -p:ApplicationDisplayVersion=$version `
+            -p:ApplicationVersion=${{ github.run_number }} `
+            -p:Version=$version `
+            -p:WindowsAppSDKSelfContained=true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:IncludeAllContentForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:DebugType=None `
+            --output ./publish/portable
+          Copy-Item ./publish/portable/Cockpit.exe "./artifacts/Cockpit-windows-x64-$version-Portable.exe"
+
+      - name: Install NSIS
+        run: choco install nsis --no-progress -y
+
+      - name: Build NSIS installer
+        shell: pwsh
+        run: |
+          $version = "0.0.${{ github.run_number }}"
+          $sourcePath = "${{ github.workspace }}\publish\windows"
+          $outputPath = "${{ github.workspace }}\artifacts\Cockpit-windows-x64-$version-Setup.exe"
+          & "C:\Program Files (x86)\NSIS\makensis.exe" /DAPP_VERSION="$version" /DAPP_NAME="Cockpit PR" /DAPP_ID="com.ieuanwalker.cockpit.pr" /DSOURCE_PATH="$sourcePath" /DOUTPUT_PATH="$outputPath" .github/installers/windows.nsi
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cockpit-pr-${{ github.event.workflow_run.pull_requests[0].number }}-${{ github.event.workflow_run.head_sha }}-windows-x64
+          path: artifacts/*.exe
+          if-no-files-found: error
+          retention-days: 14

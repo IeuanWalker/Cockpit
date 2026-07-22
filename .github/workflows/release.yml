@@ -28,26 +28,45 @@ jobs:
           $version = "${{ github.event.release.tag_name }}".TrimStart('v')
           Add-Content $env:GITHUB_OUTPUT "VERSION=$version"
 
-      - name: Publish Windows app
+      - name: Publish unpackaged Windows app
         run: >
           dotnet publish src/Cockpit/Cockpit.csproj
           --framework net10.0-windows10.0.19041.0
           --configuration Release
+          -p:WindowsPackageType=None
           -p:ApplicationDisplayVersion=${{ steps.version.outputs.VERSION }}
           -p:ApplicationVersion=${{ github.run_number }}
           -p:Version=${{ steps.version.outputs.VERSION }}
           --output ./publish/windows
 
-      - name: Zip publish output
-        run: Compress-Archive -Path ./publish/windows/* -DestinationPath ./Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}.zip
+      - name: Build portable executable
+        shell: pwsh
+        run: |
+          dotnet publish src/Cockpit/Cockpit.csproj `
+            --framework net10.0-windows10.0.19041.0 `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            -p:WindowsPackageType=None `
+            -p:WindowsAppSDKSelfContained=true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:IncludeAllContentForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:DebugType=None `
+            -p:ApplicationDisplayVersion=${{ steps.version.outputs.VERSION }} `
+            -p:ApplicationVersion=${{ github.run_number }} `
+            -p:Version=${{ steps.version.outputs.VERSION }} `
+            --output ./publish/portable
+          Copy-Item ./publish/portable/Cockpit.exe ./Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Portable.exe
 
       - name: Install NSIS
         run: choco install nsis --no-progress -y
 
-      - name: Build installer (NSIS)
+      - name: Build NSIS installer
         run: |
           $sourcePath = "${{ github.workspace }}\publish\windows"
-          $version    = "${{ steps.version.outputs.VERSION }}"
+          $version = "${{ steps.version.outputs.VERSION }}"
           $outputPath = "${{ github.workspace }}\Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Setup.exe"
           & "C:\Program Files (x86)\NSIS\makensis.exe" /DAPP_VERSION="$version" /DSOURCE_PATH="$sourcePath" /DOUTPUT_PATH="$outputPath" .github/installers/windows.nsi
 
@@ -55,6 +74,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}.zip
+            Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Portable.exe
             Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Setup.exe
           generate_release_notes: false

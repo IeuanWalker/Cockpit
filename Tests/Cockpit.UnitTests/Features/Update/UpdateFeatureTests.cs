@@ -27,11 +27,11 @@ public class UpdateFeatureTests
 		      "browser_download_url": "https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0-Setup.exe"
 		    },
 		    {
-		      "name": "Cockpit-windows-x64-1.8.0.zip",
+		      "name": "Cockpit-windows-x64-1.8.0-Portable.exe",
 		      "label": "",
-		      "content_type": "application/zip",
+		      "content_type": "application/x-msdos-program",
 		      "size": 134674820,
-		      "browser_download_url": "https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0.zip"
+		      "browser_download_url": "https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0-Portable.exe"
 		    }
 		  ],
 		  "body": "**Full Changelog**: https://github.com/IeuanWalker/Cockpit/compare/1.7.0...1.8.0"
@@ -152,7 +152,7 @@ public class UpdateFeatureTests
 		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
-		GitHubReleaseAssetModel? setupAsset = release.Assets?.Find(a => a.Name?.EndsWith(".exe") is true);
+		GitHubReleaseAssetModel? setupAsset = release.Assets?.Find(a => a.Name?.EndsWith("-Setup.exe") is true);
 		setupAsset.ShouldNotBeNull();
 		setupAsset.Name.ShouldBe("Cockpit-windows-x64-1.8.0-Setup.exe");
 		setupAsset.Size.ShouldBe(134435888L);
@@ -160,16 +160,16 @@ public class UpdateFeatureTests
 	}
 
 	[Fact]
-	public void GitHubReleaseModel_Deserializes_ZipAsset()
+	public void GitHubReleaseModel_Deserializes_PortableExeAsset()
 	{
 		GitHubReleaseModel? release = sampleReleaseJson.DeserializeJson<GitHubReleaseModel>();
 
 		release.ShouldNotBeNull();
-		GitHubReleaseAssetModel? zipAsset = release.Assets?.Find(a => a.Name?.EndsWith(".zip") is true);
-		zipAsset.ShouldNotBeNull();
-		zipAsset.Name.ShouldBe("Cockpit-windows-x64-1.8.0.zip");
-		zipAsset.Size.ShouldBe(134674820L);
-		zipAsset.BrowserDownloadUrl.ShouldBe("https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0.zip");
+		GitHubReleaseAssetModel? portableAsset = release.Assets?.Find(a => a.Name?.EndsWith("-Portable.exe") is true);
+		portableAsset.ShouldNotBeNull();
+		portableAsset.Name.ShouldBe("Cockpit-windows-x64-1.8.0-Portable.exe");
+		portableAsset.Size.ShouldBe(134674820L);
+		portableAsset.BrowserDownloadUrl.ShouldBe("https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0-Portable.exe");
 	}
 
 	[Fact]
@@ -184,25 +184,17 @@ public class UpdateFeatureTests
 	#region HasRequiredAssets
 
 	[Fact]
-	public void HasRequiredAssets_ReturnsTrue_WhenBothAssetsPresent()
+	public void HasRequiredAssets_ReturnsTrue_WhenSetupInstallerPresent()
 	{
-		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Setup.exe", "Cockpit-windows-x64-1.8.0.zip");
+		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Setup.exe");
 
 		UpdateFeature.HasRequiredAssets(release).ShouldBeTrue();
 	}
 
 	[Fact]
-	public void HasRequiredAssets_ReturnsFalse_WhenSetupExeMissing()
+	public void HasRequiredAssets_ReturnsFalse_WhenSetupInstallerMissing()
 	{
-		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0.zip");
-
-		UpdateFeature.HasRequiredAssets(release).ShouldBeFalse();
-	}
-
-	[Fact]
-	public void HasRequiredAssets_ReturnsFalse_WhenZipMissing()
-	{
-		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Setup.exe");
+		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Portable.exe");
 
 		UpdateFeature.HasRequiredAssets(release).ShouldBeFalse();
 	}
@@ -224,11 +216,11 @@ public class UpdateFeatureTests
 	}
 
 	[Fact]
-	public void HasRequiredAssets_IsCaseInsensitive()
+	public void HasRequiredAssets_ReturnsFalse_WhenInstallerNameDoesNotExactlyMatchVersion()
 	{
-		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-SETUP.EXE", "Cockpit-windows-x64-1.8.0.ZIP");
+		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-setup.exe");
 
-		UpdateFeature.HasRequiredAssets(release).ShouldBeTrue();
+		UpdateFeature.HasRequiredAssets(release).ShouldBeFalse();
 	}
 
 	[Fact]
@@ -254,7 +246,7 @@ public class UpdateFeatureTests
 		Assets = [.. assetNames.Select(n => new GitHubReleaseAssetModel
 		{
 			Name = n,
-			BrowserDownloadUrl = $"https://example.com/{n}",
+			BrowserDownloadUrl = $"https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/{n}",
 			Size = 1000
 		})]
 	};
@@ -451,20 +443,50 @@ public class UpdateFeatureTests
 			Directory.CreateDirectory(unrelatedDirectory);
 			await File.WriteAllTextAsync(Path.Combine(unrelatedDirectory, "notes.txt"), "keep me", TestContext.Current.CancellationToken);
 
-			using HttpClient httpClient = new(new DownloadAwareMockHttpMessageHandler(sampleReleaseJson, installerBytes));
+			string releaseJson = sampleReleaseJson.Replace("\"size\": 134435888", $"\"size\": {installerBytes.LongLength}", StringComparison.Ordinal);
+			using HttpClient httpClient = new(new DownloadAwareMockHttpMessageHandler(releaseJson, installerBytes));
 			using UpdateFeature feature = new(httpClient, "1.7.0", isInstalledBuild: true, downloadRootDirectory: root, downloadHttpClient: httpClient);
 
 			await feature.CheckForUpdate(TestContext.Current.CancellationToken);
 			await feature.DownloadLatestInstallerAsync(TestContext.Current.CancellationToken);
 
+			feature.DownloadState.ErrorMessage.ShouldBeNull();
 			feature.DownloadState.Status.ShouldBe(UpdateDownloadStatusEnum.Downloaded);
 			feature.DownloadState.TotalBytes.ShouldBe(installerBytes.LongLength);
 			feature.DownloadState.BytesDownloaded.ShouldBe(installerBytes.LongLength);
 			feature.DownloadState.InstallerPath.ShouldNotBeNull();
 			File.Exists(feature.DownloadState.InstallerPath).ShouldBeTrue();
+			File.Exists(feature.DownloadState.InstallerPath + ".part").ShouldBeFalse();
 			File.ReadAllBytes(feature.DownloadState.InstallerPath).Length.ShouldBe(installerBytes.Length);
 			Directory.Exists(staleDirectory).ShouldBeFalse();
 			Directory.Exists(unrelatedDirectory).ShouldBeTrue();
+		}
+		finally
+		{
+			if(Directory.Exists(root))
+			{
+				Directory.Delete(root, true);
+			}
+		}
+	}
+
+	[Fact]
+	public async Task DownloadLatestInstallerAsync_RejectsSizeMismatch_AndDeletesPartialFile()
+	{
+		string root = Path.Combine(Path.GetTempPath(), "Cockpit-UpdateTests", Guid.NewGuid().ToString("N"));
+		byte[] installerBytes = [1, 2, 3, 4];
+		string releaseJson = sampleReleaseJson.Replace("\"size\": 134435888", "\"size\": 5", StringComparison.Ordinal);
+		try
+		{
+			using HttpClient httpClient = new(new DownloadAwareMockHttpMessageHandler(releaseJson, installerBytes));
+			using UpdateFeature feature = new(httpClient, "1.7.0", isInstalledBuild: true, downloadRootDirectory: root, downloadHttpClient: httpClient);
+
+			await feature.CheckForUpdate(TestContext.Current.CancellationToken);
+			await feature.DownloadLatestInstallerAsync(TestContext.Current.CancellationToken);
+
+			feature.DownloadState.Status.ShouldBe(UpdateDownloadStatusEnum.Failed);
+			Directory.EnumerateFiles(root, "*.part", SearchOption.AllDirectories).ShouldBeEmpty();
+			Directory.EnumerateFiles(root, "*-Setup.exe", SearchOption.AllDirectories).ShouldBeEmpty();
 		}
 		finally
 		{
@@ -590,14 +612,44 @@ public class UpdateFeatureTests
 	}
 
 	[Fact]
-	public void FindSetupAsset_ReturnsSetupExecutable_WhenPresent()
+	public void FindInstallerAsset_ReturnsSetupInstaller_WhenPresent()
 	{
-		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Setup.exe", "Cockpit-windows-x64-1.8.0.zip");
+		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Portable.exe", "Cockpit-windows-x64-1.8.0-Setup.exe");
 
-		GitHubReleaseAssetModel? setupAsset = UpdateFeature.FindSetupAsset(release);
+		GitHubReleaseAssetModel? installerAsset = UpdateFeature.FindInstallerAsset(release);
 
-		setupAsset.ShouldNotBeNull();
-		setupAsset.Name.ShouldEndWith("-Setup.exe");
+		installerAsset.ShouldNotBeNull();
+		installerAsset.Name.ShouldEndWith("-Setup.exe");
+	}
+
+	[Theory]
+	[InlineData("http://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0-Setup.exe")]
+	[InlineData("https://example.com/IeuanWalker/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0-Setup.exe")]
+	[InlineData("https://github.com/SomeoneElse/Cockpit/releases/download/1.8.0/Cockpit-windows-x64-1.8.0-Setup.exe")]
+	[InlineData("https://github.com/IeuanWalker/Cockpit/releases/download/1.8.0/Other-Setup.exe")]
+	public void IsExpectedInstallerDownload_RejectsUnexpectedUrls(string url)
+	{
+		GitHubReleaseAssetModel asset = new()
+		{
+			Name = "Cockpit-windows-x64-1.8.0-Setup.exe",
+			BrowserDownloadUrl = url,
+			Size = 1000
+		};
+
+		UpdateFeature.IsExpectedInstallerDownload(asset, "1.8.0").ShouldBeFalse();
+	}
+
+	[Fact]
+	public void IsExpectedInstallerDownload_AcceptsVersionTagWithVPrefix()
+	{
+		GitHubReleaseAssetModel asset = new()
+		{
+			Name = "Cockpit-windows-x64-1.8.0-Setup.exe",
+			BrowserDownloadUrl = "https://github.com/IeuanWalker/Cockpit/releases/download/v1.8.0/Cockpit-windows-x64-1.8.0-Setup.exe",
+			Size = 1000
+		};
+
+		UpdateFeature.IsExpectedInstallerDownload(asset, "v1.8.0").ShouldBeTrue();
 	}
 
 	[Fact]
@@ -674,7 +726,8 @@ sealed class DownloadAwareMockHttpMessageHandler : HttpMessageHandler
 			ByteArrayContent content = new(_installerBytes);
 			HttpResponseMessage installerResponse = new(HttpStatusCode.OK)
 			{
-				Content = content
+				Content = content,
+				RequestMessage = request
 			};
 			return Task.FromResult(installerResponse);
 		}

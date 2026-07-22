@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
@@ -17,6 +16,11 @@ public sealed partial class UpdateFeature : IDisposable
 {
 	static readonly TimeSpan checkInterval = TimeSpan.FromHours(1);
 	static readonly string latestReleaseUrl = "https://api.github.com/repos/IeuanWalker/Cockpit/releases/latest";
+	static readonly HashSet<string> allowedDownloadHosts = new(StringComparer.OrdinalIgnoreCase)
+	{
+		"github.com",
+		"release-assets.githubusercontent.com"
+	};
 #if WINDOWS
 	static readonly string appInstallRegistryPath = @"Software\Cockpit";
 	static readonly string appInstallRegistryValue = "Install_Dir";
@@ -253,8 +257,8 @@ public sealed partial class UpdateFeature : IDisposable
 				return;
 			}
 
-			GitHubReleaseAssetModel? setupAsset = FindSetupAsset(release);
-			if(setupAsset is null || string.IsNullOrWhiteSpace(setupAsset.BrowserDownloadUrl))
+			GitHubReleaseAssetModel? installerAsset = FindInstallerAsset(release);
+			if(installerAsset is null || string.IsNullOrWhiteSpace(installerAsset.BrowserDownloadUrl) || installerAsset.Size <= 0)
 			{
 				SetDownloadFailed("Installer asset not found in latest release.");
 				return;
@@ -267,22 +271,36 @@ public sealed partial class UpdateFeature : IDisposable
 				return;
 			}
 
-			string versionTag = string.IsNullOrWhiteSpace(release.TagName) ? "latest" : release.TagName;
+			string versionTag = release.TagName!;
 			string safeVersionTag = SanitizePathSegment(versionTag);
-			string fileName = string.IsNullOrWhiteSpace(setupAsset.Name)
-				? $"Cockpit-{safeVersionTag}-Setup.exe"
-				: SanitizePathSegment(Path.GetFileName(setupAsset.Name));
+			string fileName = GetExpectedInstallerFileName(versionTag);
+			if(!IsExpectedInstallerDownload(installerAsset, versionTag))
+			{
+				SetDownloadFailed("Installer asset URL is not an expected Cockpit GitHub release download.");
+				return;
+			}
+
 			string targetDirectory = Path.Combine(_downloadRootDirectory, safeVersionTag);
 			Directory.CreateDirectory(targetDirectory);
 			string installerPath = Path.Combine(targetDirectory, fileName);
+			string partialInstallerPath = installerPath + ".part";
+			DeleteFileIfExists(partialInstallerPath);
 
-			using HttpRequestMessage request = new(HttpMethod.Get, setupAsset.BrowserDownloadUrl);
+			using HttpRequestMessage request = new(HttpMethod.Get, installerAsset.BrowserDownloadUrl);
 			using HttpResponseMessage response = await _downloadHttpClient
 				.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
 				.ConfigureAwait(false);
 			response.EnsureSuccessStatusCode();
+			if(!IsAllowedDownloadUri(response.RequestMessage?.RequestUri))
+			{
+				throw new InvalidDataException("The installer download redirected to an unexpected host.");
+			}
 
 			long? totalBytes = response.Content.Headers.ContentLength;
+			if(totalBytes.HasValue && totalBytes.Value != installerAsset.Size)
+			{
+				throw new InvalidDataException("The installer content length does not match the GitHub release asset size.");
+			}
 			_downloadState = new UpdateDownloadStateModel(
 				UpdateDownloadStatusEnum.Downloading,
 				versionTag,
@@ -292,39 +310,47 @@ public sealed partial class UpdateFeature : IDisposable
 				null);
 			OnUpdateChecked?.Invoke();
 
-			await using Stream source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-			await using FileStream target = new(installerPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-
 			byte[] buffer = new byte[81920];
 			long bytesDownloaded = 0;
 			long lastNotifyTicks = Environment.TickCount64;
-			while(true)
+			await using(Stream source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
+			await using(FileStream target = new(partialInstallerPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true))
 			{
-				int bytesRead = await source.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
-				if(bytesRead == 0)
+				while(true)
 				{
-					break;
+					int bytesRead = await source.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
+					if(bytesRead == 0)
+					{
+						break;
+					}
+
+					await target.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
+					bytesDownloaded += bytesRead;
+
+					long currentTicks = Environment.TickCount64;
+					if(currentTicks - lastNotifyTicks >= 120)
+					{
+						_downloadState = new UpdateDownloadStateModel(
+							UpdateDownloadStatusEnum.Downloading,
+							versionTag,
+							installerPath,
+							bytesDownloaded,
+							totalBytes,
+							null);
+						OnUpdateChecked?.Invoke();
+						lastNotifyTicks = currentTicks;
+					}
 				}
 
-				await target.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
-				bytesDownloaded += bytesRead;
-
-				long currentTicks = Environment.TickCount64;
-				if(currentTicks - lastNotifyTicks >= 120)
-				{
-					_downloadState = new UpdateDownloadStateModel(
-						UpdateDownloadStatusEnum.Downloading,
-						versionTag,
-						installerPath,
-						bytesDownloaded,
-						totalBytes,
-						null);
-					OnUpdateChecked?.Invoke();
-					lastNotifyTicks = currentTicks;
-				}
+				await target.FlushAsync(cancellationToken).ConfigureAwait(false);
 			}
 
-			await target.FlushAsync(cancellationToken).ConfigureAwait(false);
+			if(bytesDownloaded != installerAsset.Size)
+			{
+				throw new InvalidDataException("The downloaded installer size does not match the GitHub release asset size.");
+			}
+
+			File.Move(partialInstallerPath, installerPath, true);
 			_downloadState = new UpdateDownloadStateModel(
 				UpdateDownloadStatusEnum.Downloaded,
 				versionTag,
@@ -344,10 +370,8 @@ public sealed partial class UpdateFeature : IDisposable
 			{
 				try
 				{
-					if(File.Exists(installerPath))
-					{
-						File.Delete(installerPath);
-					}
+					DeleteFileIfExists(installerPath);
+					DeleteFileIfExists(installerPath + ".part");
 				}
 				catch(Exception deleteEx)
 				{
@@ -368,10 +392,8 @@ public sealed partial class UpdateFeature : IDisposable
 			{
 				try
 				{
-					if(File.Exists(installerPath))
-					{
-						File.Delete(installerPath);
-					}
+					DeleteFileIfExists(installerPath);
+					DeleteFileIfExists(installerPath + ".part");
 				}
 				catch(Exception deleteEx)
 				{
@@ -429,14 +451,7 @@ public sealed partial class UpdateFeature : IDisposable
 			_downloadState = _downloadState with { Status = UpdateDownloadStatusEnum.Installing, ErrorMessage = null };
 			OnUpdateChecked?.Invoke();
 
-			string installerFileName = Path.GetFileName(installerPath);
-			string launchDirectory = GetLaunchDirectory();
-			string stagedInstallerPath = Path.Combine(launchDirectory, installerFileName);
-
-			bool launched = await StageAndLaunchInstallerAsync(
-				installerPath,
-				stagedInstallerPath,
-				cancellationToken).ConfigureAwait(false);
+			bool launched = LaunchInstaller(installerPath);
 			if(!launched)
 			{
 				SetDownloadFailed("Permission was denied or the installer could not be launched.");
@@ -536,16 +551,47 @@ public sealed partial class UpdateFeature : IDisposable
 
 	internal static bool HasRequiredAssets(GitHubReleaseModel release)
 	{
-		List<GitHubReleaseAssetModel>? assets = release.Assets;
-		return assets is { Count: > 0 } &&
-			assets.Any(a => a.Name?.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase) is true) &&
-			assets.Any(a => a.Name?.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) is true);
+		return FindInstallerAsset(release) is not null;
 	}
 
-	internal static GitHubReleaseAssetModel? FindSetupAsset(GitHubReleaseModel release)
+	internal static GitHubReleaseAssetModel? FindInstallerAsset(GitHubReleaseModel release)
 	{
-		return release.Assets?.FirstOrDefault(a => a.Name?.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase) is true);
+		if(string.IsNullOrWhiteSpace(release.TagName))
+		{
+			return null;
+		}
+
+		return release.Assets?.FirstOrDefault(a => IsExpectedInstallerDownload(a, release.TagName));
 	}
+
+	internal static string GetExpectedInstallerFileName(string versionTag) =>
+		$"Cockpit-windows-x64-{versionTag.TrimStart('v', 'V')}-Setup.exe";
+
+	internal static bool IsExpectedInstallerDownload(GitHubReleaseAssetModel asset, string versionTag)
+	{
+		string expectedFileName = GetExpectedInstallerFileName(versionTag);
+		if(asset.Size <= 0 || !string.Equals(asset.Name, expectedFileName, StringComparison.Ordinal))
+		{
+			return false;
+		}
+
+		if(!Uri.TryCreate(asset.BrowserDownloadUrl, UriKind.Absolute, out Uri? uri) ||
+			!string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
+			!string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase) ||
+			!string.IsNullOrEmpty(uri.Query) ||
+			!string.IsNullOrEmpty(uri.Fragment))
+		{
+			return false;
+		}
+
+		string expectedPath = $"/IeuanWalker/Cockpit/releases/download/{versionTag}/{expectedFileName}";
+		return string.Equals(Uri.UnescapeDataString(uri.AbsolutePath), expectedPath, StringComparison.Ordinal);
+	}
+
+	internal static bool IsAllowedDownloadUri(Uri? uri) =>
+		uri is not null &&
+		string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
+		allowedDownloadHosts.Contains(uri.Host);
 
 	internal static bool IsInstalledPath(string? executablePath, string? installDirectory)
 	{
@@ -665,7 +711,15 @@ public sealed partial class UpdateFeature : IDisposable
 		return new string(chars);
 	}
 
-	async Task<bool> StageAndLaunchInstallerAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken)
+	static void DeleteFileIfExists(string path)
+	{
+		if(File.Exists(path))
+		{
+			File.Delete(path);
+		}
+	}
+
+	bool LaunchInstaller(string installerPath)
 	{
 		if(!OperatingSystem.IsWindows())
 		{
@@ -674,47 +728,26 @@ public sealed partial class UpdateFeature : IDisposable
 
 		try
 		{
-			string destinationDirectory = Path.GetDirectoryName(destinationPath) ?? string.Empty;
-			string encodedCommand = Convert.ToBase64String(Encoding.Unicode.GetBytes(
-				$"""
-				$ErrorActionPreference = 'Stop'
-				New-Item -ItemType Directory -Force -Path '{EscapePowerShellSingleQuoted(destinationDirectory)}' | Out-Null
-				Copy-Item -LiteralPath '{EscapePowerShellSingleQuoted(sourcePath)}' -Destination '{EscapePowerShellSingleQuoted(destinationPath)}' -Force
-				Start-Process -FilePath '{EscapePowerShellSingleQuoted(destinationPath)}' -WorkingDirectory '{EscapePowerShellSingleQuoted(destinationDirectory)}'
-				"""));
-
-			ProcessStartInfo helperStartInfo = new()
+			ProcessStartInfo startInfo = new()
 			{
-				FileName = "powershell.exe",
-				Arguments = $"-NoProfile -ExecutionPolicy Bypass -EncodedCommand {encodedCommand}",
-				UseShellExecute = true,
-				Verb = "runas",
-				WorkingDirectory = Path.GetDirectoryName(sourcePath)
+				FileName = installerPath,
+				UseShellExecute = true
 			};
 
-			using Process? helperProcess = Process.Start(helperStartInfo);
-			if(helperProcess is null)
+			string? workingDirectory = Path.GetDirectoryName(installerPath);
+			if(!string.IsNullOrWhiteSpace(workingDirectory))
 			{
-				return false;
+				startInfo.WorkingDirectory = workingDirectory;
 			}
 
-			await helperProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-			return helperProcess.ExitCode == 0;
-		}
-		catch(OperationCanceledException)
-		{
-			return false;
+			using Process? installerProcess = Process.Start(startInfo);
+			return installerProcess is not null;
 		}
 		catch(Exception ex)
 		{
-			_logger.LogWarning(ex, "Failed to stage installer for launch.");
+			_logger.LogWarning(ex, "Failed to launch NSIS installer.");
 			return false;
 		}
-	}
-
-	static string EscapePowerShellSingleQuoted(string value)
-	{
-		return value.Replace("'", "''");
 	}
 
 	void CleanupStaleInstallerDownloads(string currentTargetDirectory)
@@ -748,21 +781,6 @@ public sealed partial class UpdateFeature : IDisposable
 				_logger.LogWarning(ex, "Failed to delete stale installer directory {Directory}", candidateDirectory);
 			}
 		}
-	}
-
-	static string GetLaunchDirectory()
-	{
-		string? processPath = Environment.ProcessPath;
-		if(!string.IsNullOrWhiteSpace(processPath))
-		{
-			string? directory = Path.GetDirectoryName(processPath);
-			if(!string.IsNullOrWhiteSpace(directory))
-			{
-				return directory;
-			}
-		}
-
-		return AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 	}
 
 	static string? TryGetInstalledDirectoryFromRegistry(ILogger logger)
