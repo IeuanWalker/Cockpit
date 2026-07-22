@@ -60,7 +60,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 			_logger.LogInformation("Permission request: Kind={Kind}, Commands={Commands}, SessionId={SessionId}", request.Kind, string.Join(", ", permissionRequest.Commands), session.Id);
 
 			// Check permission through our service
-			PermissionDecisionEnum decision = await CheckPermissionAsync(permissionRequest, session.IsYolo);
+			PermissionDecisionEnum decision = await CheckPermissionAsync(permissionRequest, session.Ui.IsYolo);
 
 			_logger.LogInformation("Permission decision: {Decision} for {Commands}", decision, string.Join(", ", permissionRequest.Commands));
 

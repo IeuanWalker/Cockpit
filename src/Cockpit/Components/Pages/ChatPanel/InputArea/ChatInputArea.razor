@@ -58,9 +58,9 @@
                 <div class="flex items-center space-x-3">
                     <ModelControl />
                     <button @onclick="ToggleYoloMode"
-                            class="px-3 py-0.5 text-xs font-medium rounded transition-colors duration-200 @(_sessionFeature.CurrentSession?.IsYolo == true ? "hover:opacity-75" : "hover:bg-app-hover")"
-                            style="@(_sessionFeature.CurrentSession?.IsYolo == true ? "background-color: var(--accent-color);" : string.Empty)"
-                            title="@(_sessionFeature.CurrentSession?.IsYolo == true ? "ENABLED: YOLO mode automatically approves all permission requests, use with caution!" : "Disabled: YOLO mode automatically approves all permission requests, use with caution!")">
+                            class="px-3 py-0.5 text-xs font-medium rounded transition-colors duration-200 @(_sessionFeature.CurrentSession?.Ui.IsYolo == true ? "hover:opacity-75" : "hover:bg-app-hover")"
+                            style="@(_sessionFeature.CurrentSession?.Ui.IsYolo == true ? "background-color: var(--accent-color);" : string.Empty)"
+                            title="@(_sessionFeature.CurrentSession?.Ui.IsYolo == true ? "ENABLED: YOLO mode automatically approves all permission requests, use with caution!" : "Disabled: YOLO mode automatically approves all permission requests, use with caution!")">
                         YOLO
                     </button>
                 </div>
