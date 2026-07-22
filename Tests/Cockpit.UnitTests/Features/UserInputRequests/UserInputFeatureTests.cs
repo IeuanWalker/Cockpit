@@ -325,12 +325,12 @@ public sealed class UserInputFeatureTests
 			BuildRequest(),
 			BuildInvocation());
 
-		session.PendingUserInputRequests.ContainsKey(model.Id).ShouldBeTrue();
+		session.PendingInteractions.UserInputs.ContainsKey(model.Id).ShouldBeTrue();
 
 		feature.ResolveUserInputRequest(model.Id, null);
 		await handleTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
-		session.PendingUserInputRequests.ContainsKey(model.Id).ShouldBeFalse();
+		session.PendingInteractions.UserInputs.ContainsKey(model.Id).ShouldBeFalse();
 	}
 
 	// ── Cancellation ─────────────────────────────────────────────────────────

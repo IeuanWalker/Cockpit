@@ -40,39 +40,39 @@ public sealed class SessionInteractionCoordinator
 		request.Id,
 		"permission",
 		SessionStatusEnum.NeedsPermission,
-		session => session.PendingPermissionRequests.TryAdd(request.Id, request));
+		interactions => interactions.TryAddPermission(request));
 
 	public void AddUserInput(string sessionId, UserInputRequestModel request) => Add(
 		sessionId,
 		request.Id,
 		"user input",
 		SessionStatusEnum.NeedsUserInput,
-		session => session.PendingUserInputRequests.TryAdd(request.Id, request));
+		interactions => interactions.TryAddUserInput(request));
 
 	public void AddElicitation(string sessionId, ElicitationRequestModel request) => Add(
 		sessionId,
 		request.Id,
 		"elicitation",
 		SessionStatusEnum.NeedsElicitation,
-		session => session.PendingElicitationRequests.TryAdd(request.Id, request));
+		interactions => interactions.TryAddElicitation(request));
 
 	public void ResolvePermission(string sessionId, string requestId) => Resolve(
 		sessionId,
 		requestId,
 		"permission",
-		session => session.PendingPermissionRequests.TryRemove(requestId, out _));
+		interactions => interactions.TryRemovePermission(requestId));
 
 	public void ResolveUserInput(string sessionId, string requestId) => Resolve(
 		sessionId,
 		requestId,
 		"user input",
-		session => session.PendingUserInputRequests.TryRemove(requestId, out _));
+		interactions => interactions.TryRemoveUserInput(requestId));
 
 	public void ResolveElicitation(string sessionId, string requestId) => Resolve(
 		sessionId,
 		requestId,
 		"elicitation",
-		session => session.PendingElicitationRequests.TryRemove(requestId, out _));
+		interactions => interactions.TryRemoveElicitation(requestId));
 
 	/// <summary>
 	/// Clears session-visible bookkeeping during lifecycle cleanup. The caller retains
@@ -88,24 +88,25 @@ public sealed class SessionInteractionCoordinator
 			return;
 		}
 
-		lock(session.PendingInteractionsLock)
+		PendingInteractionState interactions = session.PendingInteractions;
+		lock(interactions.SyncRoot)
 		{
 			if(interactionKinds.HasFlag(PendingInteractionKinds.Permissions))
 			{
-				session.PendingPermissionRequests.Clear();
+				interactions.ClearPermissions();
 			}
 
 			if(interactionKinds.HasFlag(PendingInteractionKinds.UserInputs))
 			{
-				session.PendingUserInputRequests.Clear();
+				interactions.ClearUserInputs();
 			}
 
 			if(interactionKinds.HasFlag(PendingInteractionKinds.Elicitations))
 			{
-				session.PendingElicitationRequests.Clear();
+				interactions.ClearElicitations();
 			}
 
-			session.PendingInteractionStatus = GetPendingInteractionStatus(session);
+			interactions.DisplayStatus = GetPendingInteractionStatus(interactions);
 		}
 	}
 
@@ -114,7 +115,7 @@ public sealed class SessionInteractionCoordinator
 		string requestId,
 		string interactionType,
 		SessionStatusEnum blockingStatus,
-		Func<SessionModel, bool> tryAdd)
+		Func<PendingInteractionState, bool> tryAdd)
 	{
 		SessionModel? session = FindSession(sessionId);
 		if(session is null)
@@ -128,9 +129,10 @@ public sealed class SessionInteractionCoordinator
 			requestId,
 			sessionId);
 
-		lock(session.PendingInteractionsLock)
+		PendingInteractionState interactions = session.PendingInteractions;
+		lock(interactions.SyncRoot)
 		{
-			if(!tryAdd(session))
+			if(!tryAdd(interactions))
 			{
 				_logger.LogWarning(
 					"{InteractionType} request {RequestId} already exists for session {SessionId}",
@@ -140,7 +142,7 @@ public sealed class SessionInteractionCoordinator
 				return;
 			}
 
-			session.PendingInteractionStatus = blockingStatus;
+			interactions.DisplayStatus = blockingStatus;
 		}
 
 		_sessionStateProvider.NotifyStateChanged();
@@ -150,7 +152,7 @@ public sealed class SessionInteractionCoordinator
 		string sessionId,
 		string requestId,
 		string interactionType,
-		Func<SessionModel, bool> tryRemove)
+		Func<PendingInteractionState, bool> tryRemove)
 	{
 		SessionModel? session = FindSession(sessionId);
 		if(session is null)
@@ -164,9 +166,10 @@ public sealed class SessionInteractionCoordinator
 			requestId,
 			sessionId);
 
-		lock(session.PendingInteractionsLock)
+		PendingInteractionState interactions = session.PendingInteractions;
+		lock(interactions.SyncRoot)
 		{
-			if(!tryRemove(session))
+			if(!tryRemove(interactions))
 			{
 				_logger.LogDebug(
 					"{InteractionType} request {RequestId} is no longer pending for session {SessionId}",
@@ -176,7 +179,7 @@ public sealed class SessionInteractionCoordinator
 				return;
 			}
 
-			session.PendingInteractionStatus = GetPendingInteractionStatus(session);
+			interactions.DisplayStatus = GetPendingInteractionStatus(interactions);
 		}
 
 		_sessionStateProvider.NotifyStateChanged();
@@ -185,19 +188,19 @@ public sealed class SessionInteractionCoordinator
 	SessionModel? FindSession(string sessionId)
 		=> _sessionStateProvider.Sessions.FirstOrDefault(session => session.Id == sessionId);
 
-	static SessionStatusEnum? GetPendingInteractionStatus(SessionModel session)
+	static SessionStatusEnum? GetPendingInteractionStatus(PendingInteractionState interactions)
 	{
-		if(!session.PendingPermissionRequests.IsEmpty)
+		if(interactions.HasPermissions)
 		{
 			return SessionStatusEnum.NeedsPermission;
 		}
 
-		if(!session.PendingUserInputRequests.IsEmpty)
+		if(interactions.HasUserInputs)
 		{
 			return SessionStatusEnum.NeedsUserInput;
 		}
 
-		if(!session.PendingElicitationRequests.IsEmpty)
+		if(interactions.HasElicitations)
 		{
 			return SessionStatusEnum.NeedsElicitation;
 		}

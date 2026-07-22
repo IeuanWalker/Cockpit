@@ -2,6 +2,7 @@ using System.Text.Json;
 using Cockpit.Features.ElicitationRequests;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.UserInputRequests;
 using GitHub.Copilot;
@@ -167,12 +168,12 @@ public sealed class ElicitationFeatureTests
 		(Task<ElicitationResult> handleTask, ElicitationRequestModel model) = await StartHandleAsync(
 			feature, BuildContext());
 
-		session.PendingElicitationRequests.ContainsKey(model.Id).ShouldBeTrue();
+		session.PendingInteractions.Elicitations.ContainsKey(model.Id).ShouldBeTrue();
 
 		feature.ResolveElicitationRequest(model.Id, null);
 		await handleTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
-		session.PendingElicitationRequests.ContainsKey(model.Id).ShouldBeFalse();
+		session.PendingInteractions.Elicitations.ContainsKey(model.Id).ShouldBeFalse();
 	}
 
 	[Fact]
@@ -233,11 +234,13 @@ public sealed class ElicitationFeatureTests
 	[Fact]
 	public async Task OnElicitationResolve_NeedsPermissionPrioritisedOverElicitation()
 	{
-		(ElicitationFeature feature, SessionModel session, _) = CreateFeature();
+		(ElicitationFeature feature, SessionModel session, TestSessionStateProvider stateProvider) = CreateFeature();
 
 		// Simulate a pending permission request already on the session
-		session.PendingPermissionRequests["perm-1"] = new PermissionRequestModel
+		SessionInteractionCoordinator interactionCoordinator = new(stateProvider);
+		interactionCoordinator.AddPermission(sessionId, new PermissionRequestModel
 		{
+			Id = "perm-1",
 			SessionId = sessionId,
 			FullCommand = "ls",
 			Commands = ["ls"],
@@ -246,7 +249,7 @@ public sealed class ElicitationFeatureTests
 			CanApproveGlobally = true,
 			CanApproveForSession = true,
 			FullRequestJson = "{}"
-		};
+		});
 
 		(Task<ElicitationResult> handleTask, ElicitationRequestModel model) = await StartHandleAsync(
 			feature, BuildContext());
@@ -261,17 +264,19 @@ public sealed class ElicitationFeatureTests
 	[Fact]
 	public async Task OnElicitationResolve_NeedsUserInputPrioritisedOverElicitation()
 	{
-		(ElicitationFeature feature, SessionModel session, _) = CreateFeature();
+		(ElicitationFeature feature, SessionModel session, TestSessionStateProvider stateProvider) = CreateFeature();
 
 		// Simulate a pending user-input request already on the session
-		session.PendingUserInputRequests["ui-1"] = new UserInputRequestModel
+		SessionInteractionCoordinator interactionCoordinator = new(stateProvider);
+		interactionCoordinator.AddUserInput(sessionId, new UserInputRequestModel
 		{
+			Id = "ui-1",
 			SessionId = sessionId,
 			Question = "Continue?",
 			Choices = [],
 			AllowsTextInput = true,
 			FullRequestJson = "{}"
-		};
+		});
 
 		(Task<ElicitationResult> handleTask, ElicitationRequestModel model) = await StartHandleAsync(
 			feature, BuildContext());

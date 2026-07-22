@@ -142,7 +142,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 			return "You can't change model while the agent is working";
 		}
 
-		if(_sessionListFeature.CurrentSession?.PendingPermissionRequests?.Count > 0)
+		if(_sessionListFeature.CurrentSession?.PendingInteractions.Permissions.Count > 0)
 		{
 			return "You can't change model while a permission request is pending";
 		}

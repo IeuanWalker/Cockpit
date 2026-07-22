@@ -122,7 +122,7 @@ public sealed class SessionInteractionCoordinatorTests
 		coordinator.AddPermission(sessionId, permission);
 		coordinator.AddPermission(sessionId, permission);
 
-		session.PendingPermissionRequests.Count.ShouldBe(1);
+		session.PendingInteractions.Permissions.Count.ShouldBe(1);
 		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
 		session.Status.ShouldBe(SessionStatusEnum.NeedsPermission);
 		stateProvider.NotificationCount.ShouldBe(1);
@@ -170,7 +170,7 @@ public sealed class SessionInteractionCoordinatorTests
 
 		session.Status.ShouldBe(SessionStatusEnum.Running);
 		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
-		session.PendingPermissionRequests.ShouldBeEmpty();
+		session.PendingInteractions.Permissions.ShouldBeEmpty();
 		stateProvider.NotificationCount.ShouldBe(1);
 	}
 }

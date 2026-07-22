@@ -3,7 +3,7 @@
 
 <PickerControl @ref="_picker" DropdownMinWidth="280px"
                Title="Mode"
-               IsDisabled="@(_sessionListFeature.CurrentSession?.DisplayStatus == SessionStatusEnum.Running || _sessionListFeature.CurrentSession?.PendingPermissionRequests?.Count > 0)"
+               IsDisabled="@(_sessionListFeature.CurrentSession?.DisplayStatus == SessionStatusEnum.Running || _sessionListFeature.CurrentSession?.PendingInteractions.Permissions.Count > 0)"
 			   TooltipText="@(_sessionListFeature.CurrentSession?.DisplayStatus == SessionStatusEnum.Running ? "You can't change mode while the agent is working" : null)">
     <SelectedContent>
         <svg class="icon-xs mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;color:var(--text-color);">
