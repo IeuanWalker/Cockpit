@@ -73,6 +73,29 @@ public sealed class SessionConversationStateTests
 	}
 
 	[Fact]
+	public void ClearMessages_ReleasesRetainedListCapacity()
+	{
+		SessionModel session = CreateSession();
+		for(int i = 0; i < 256; i++)
+		{
+			session.Conversation.Messages.Add(new ChatMessageModel
+			{
+				Id = $"message-{i}",
+				Content = "Message",
+				EventJson = null
+			});
+		}
+		session.Conversation.PublishMessagesSnapshot();
+		session.Conversation.Messages.Capacity.ShouldBeGreaterThan(0);
+
+		session.Conversation.ClearMessages();
+
+		session.Conversation.Messages.ShouldBeEmpty();
+		session.Conversation.Messages.Capacity.ShouldBe(0);
+		session.Conversation.MessagesSnapshot.ShouldBeEmpty();
+	}
+
+	[Fact]
 	public void CompatibilitySurface_ForwardsToSingleConversationState()
 	{
 		SessionModel session = CreateSession();

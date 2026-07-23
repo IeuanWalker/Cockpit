@@ -51,6 +51,7 @@ public sealed class SessionConversationState
 		lock(SyncRoot)
 		{
 			_messages.Clear();
+			_messages.TrimExcess();
 			MessagesSnapshot = [];
 		}
 	}
