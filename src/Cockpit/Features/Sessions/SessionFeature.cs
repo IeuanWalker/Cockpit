@@ -156,10 +156,7 @@ public sealed partial class SessionFeature : IDisposable
 			session.Conversation.PublishMessagesSnapshot();
 		}
 
-		if(session == _sessionListFeature.CurrentSession)
-		{
-			_sessionListFeature.NotifyStateChanged();
-		}
+		_sessionListFeature.NotifyStateChanged();
 	}
 
 	public void Dispose()

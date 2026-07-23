@@ -95,13 +95,6 @@ public sealed partial class SessionFeature
 
 			SessionModel? chatSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 
-			// Set SdkState to NotLoaded before disposing to ensure stale events are rejected
-			// even if they arrive between TryRemove and disposal.
-			if(chatSession is not null)
-			{
-				chatSession.Lifecycle.SetSdkState(SdkSessionStateEnum.NotLoaded);
-			}
-
 			await existingSession.DisposeAsync();
 			_logger.LogInformation("Destroyed session {SessionId} for restart", sessionId);
 

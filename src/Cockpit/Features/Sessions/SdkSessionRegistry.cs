@@ -27,11 +27,11 @@ public sealed class SdkSessionRegistry
 				throw new InvalidOperationException($"An SDK session is already registered for {session.SessionId}");
 			}
 
-			session.On<SessionEvent>(onEvent);
 			if(!_sessions.TryAdd(session.SessionId, session))
 			{
 				throw new InvalidOperationException($"Failed to register SDK session {session.SessionId}");
 			}
+			session.On<SessionEvent>(onEvent);
 		}
 	}
 
