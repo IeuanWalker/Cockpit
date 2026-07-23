@@ -60,7 +60,7 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 			await SetupSmartScroll();
 
 			// Initialize message count
-			_lastMessageCount = _sessionFeature.CurrentSession?.Conversation.MessagesSnapshot.Count ?? 0;
+			_lastMessageCount = _sessionFeature.CurrentSession?.Conversation.MessagesSnapshot.Length ?? 0;
 			_lastSessionId = _sessionFeature.CurrentSession?.Id;
 		}
 

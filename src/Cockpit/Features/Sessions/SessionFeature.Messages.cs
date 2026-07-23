@@ -124,7 +124,7 @@ public sealed partial class SessionFeature
 					EventJson = null
 				};
 				session.Conversation.Messages.Add(optimisticMessage);
-				session.Conversation.MessagesSnapshot = [.. session.Conversation.Messages];
+				session.Conversation.PublishMessagesSnapshot();
 
 				// For immediate (steering) mode: flag that a new turn is imminent so the
 				// working panel and Running status are preserved through the idle transition.
@@ -207,7 +207,7 @@ public sealed partial class SessionFeature
 				lock(session.SessionEventLock)
 				{
 					session.Conversation.Messages.Remove(optimisticMessage);
-					session.Conversation.MessagesSnapshot = [.. session.Conversation.Messages];
+					session.Conversation.PublishMessagesSnapshot();
 				}
 				_sessionListFeature.NotifyStateChanged();
 			}
@@ -247,7 +247,7 @@ public sealed partial class SessionFeature
 				}
 				session.Lifecycle.AgentRunState = AgentRunStateEnum.Error;
 				SessionErrorHandler.HandleException(session, ex);
-				session.Conversation.MessagesSnapshot = [.. session.Conversation.Messages];
+				session.Conversation.PublishMessagesSnapshot();
 			}
 			_sessionListFeature.NotifyStateChanged();
 		}
@@ -278,7 +278,7 @@ public sealed partial class SessionFeature
 				}
 			}
 
-			CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
+			CurrentSession.Conversation.PublishMessagesSnapshot();
 		}
 		_sessionListFeature.NotifyStateChanged();
 

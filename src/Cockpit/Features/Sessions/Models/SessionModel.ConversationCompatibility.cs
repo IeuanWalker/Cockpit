@@ -8,17 +8,9 @@ namespace Cockpit.Features.Sessions.Models;
 /// </summary>
 public partial class SessionModel
 {
-	public List<ChatMessageModel> Messages
-	{
-		get => Conversation.Messages;
-		set => Conversation.Messages = value;
-	}
+	public List<ChatMessageModel> Messages => Conversation.Messages;
 
-	public IReadOnlyList<ChatMessageModel> MessagesSnapshot
-	{
-		get => Conversation.MessagesSnapshot;
-		internal set => Conversation.MessagesSnapshot = value;
-	}
+	public IReadOnlyList<ChatMessageModel> MessagesSnapshot => Conversation.MessagesSnapshot;
 
 	public ActivityGroupModel? ActiveWorkingGroup
 	{

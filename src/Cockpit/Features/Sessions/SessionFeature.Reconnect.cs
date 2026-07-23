@@ -101,7 +101,7 @@ public sealed partial class SessionFeature
 
 				// Remove from registry inside the lock to stop event delivery on stale state.
 				_sdkRegistry.TryRemove(session.Id, out sdkSession);
-				session.MessagesSnapshot = [.. session.Messages];
+				session.Conversation.PublishMessagesSnapshot();
 			}
 
 			// Clear blocking-request state outside SessionEventLock to avoid lock-ordering issues.
@@ -261,7 +261,7 @@ public sealed partial class SessionFeature
 					SessionIdleHandler.Handle(session, groupStatus: GroupStatusEnum.Error);
 				}
 
-				session.MessagesSnapshot = [.. session.Messages];
+				session.Conversation.PublishMessagesSnapshot();
 			}
 
 			_sessionListFeature.NotifyStateChanged();

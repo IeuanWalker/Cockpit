@@ -116,7 +116,7 @@ public sealed partial class SessionFeature
 			session.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
 
 			// Clear message history
-			session.Messages = []; // setter also clears MessagesSnapshot
+			session.Conversation.ClearMessages();
 			session.ActiveWorkingGroup = null;
 			session.StreamingMessages.Clear();
 			session.StreamingThinkingEvents.Clear();

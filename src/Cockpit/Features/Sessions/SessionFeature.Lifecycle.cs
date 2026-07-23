@@ -488,7 +488,7 @@ public sealed partial class SessionFeature
 					msg.IsPending = false;
 				}
 
-				session.Messages = tempSession.Messages;
+				session.Conversation.ReplaceMessages(tempSession.Conversation.Messages);
 				session.ActiveWorkingGroup = null;
 				if(session.Title != tempSession.Title)
 				{
@@ -850,9 +850,8 @@ public sealed partial class SessionFeature
 
 			lock(session.SessionEventLock)
 			{
-				session.Messages.Clear();
+				session.Conversation.ClearMessages();
 				session.ActiveWorkingGroup = null;
-				session.MessagesSnapshot = [];
 			}
 			_sessionListFeature.NotifyStateChanged();
 
@@ -875,7 +874,7 @@ public sealed partial class SessionFeature
 				lock(session.SessionEventLock)
 				{
 					_processor.Process(session, evt, streamCallback);
-					session.MessagesSnapshot = [.. session.Messages];
+					session.Conversation.PublishMessagesSnapshot();
 				}
 				_sessionListFeature.NotifyStateChanged();
 
@@ -888,7 +887,7 @@ public sealed partial class SessionFeature
 				{
 					_processor.FinalizeOpenGroup(session);
 				}
-				session.MessagesSnapshot = [.. session.Messages];
+				session.Conversation.PublishMessagesSnapshot();
 			}
 			_sessionListFeature.NotifyStateChanged();
 
