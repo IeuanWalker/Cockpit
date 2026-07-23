@@ -45,11 +45,12 @@ jobs:
           dotnet publish src/Cockpit/Cockpit.csproj `
             --framework net10.0-windows10.0.19041.0 `
             --configuration Release `
-            --runtime win-x64 `
+            -p:RuntimeIdentifierOverride=win-x64 `
             --self-contained true `
             -p:WindowsPackageType=None `
             -p:WindowsAppSDKSelfContained=true `
             -p:PublishSingleFile=true `
+            -p:EnableMsixTooling=true `
             -p:IncludeNativeLibrariesForSelfExtract=true `
             -p:IncludeAllContentForSelfExtract=true `
             -p:EnableCompressionInSingleFile=true `
@@ -58,6 +59,7 @@ jobs:
             -p:ApplicationVersion=${{ github.run_number }} `
             -p:Version=${{ steps.version.outputs.VERSION }} `
             --output ./publish/portable
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item ./publish/portable/Cockpit.exe ./Cockpit-windows-x64-${{ steps.version.outputs.VERSION }}-Portable.exe
 
       - name: Install NSIS

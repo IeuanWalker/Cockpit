@@ -70,6 +70,7 @@ Step "Publish unpackaged Windows app (version: $Version)" {
         -p:ApplicationDisplayVersion=$Version `
         -p:ApplicationVersion=1 `
         --output $PublishDir
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
 Step "Build portable executable -> Cockpit-windows-x64-$Version-Portable.exe" {
@@ -77,11 +78,12 @@ Step "Build portable executable -> Cockpit-windows-x64-$Version-Portable.exe" {
     dotnet publish $ProjectPath `
         --framework net10.0-windows10.0.19041.0 `
         --configuration Release `
-        --runtime win-x64 `
+        -p:RuntimeIdentifierOverride=win-x64 `
         --self-contained true `
         -p:WindowsPackageType=None `
         -p:WindowsAppSDKSelfContained=true `
         -p:PublishSingleFile=true `
+        -p:EnableMsixTooling=true `
         -p:IncludeNativeLibrariesForSelfExtract=true `
         -p:IncludeAllContentForSelfExtract=true `
         -p:EnableCompressionInSingleFile=true `
@@ -89,6 +91,7 @@ Step "Build portable executable -> Cockpit-windows-x64-$Version-Portable.exe" {
         -p:ApplicationDisplayVersion=$Version `
         -p:ApplicationVersion=1 `
         --output $PortableDir
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Copy-Item "$PortableDir\Cockpit.exe" $OutputPortable -Force
 }
 
