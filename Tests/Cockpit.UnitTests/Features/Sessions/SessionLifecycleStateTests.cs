@@ -53,4 +53,73 @@ public sealed class SessionLifecycleStateTests
 		session.DisplayStatus.ShouldBe(SessionStatusEnum.Running);
 		session.Status.ShouldBe(SessionStatusEnum.Running);
 	}
+
+	[Fact]
+	public void TryTransitionSdkState_AllowsOnlyOneConcurrentOwner()
+	{
+		SessionLifecycleState lifecycle = new();
+		int successfulTransitions = 0;
+
+		Parallel.For(0, 32, _ =>
+		{
+			if(lifecycle.TryTransitionSdkState(SdkSessionStateEnum.NotLoaded, SdkSessionStateEnum.Loading))
+			{
+				Interlocked.Increment(ref successfulTransitions);
+			}
+		});
+
+		successfulTransitions.ShouldBe(1);
+		lifecycle.SdkState.ShouldBe(SdkSessionStateEnum.Loading);
+	}
+
+	[Fact]
+	public void ClearModelChanged_DoesNotDiscardAChangeMadeDuringAsyncWork()
+	{
+		SessionLifecycleState lifecycle = new();
+		lifecycle.MarkModelChanged();
+		long handledVersion = lifecycle.CaptureModelChange()!.Value;
+
+		lifecycle.MarkModelChanged();
+		lifecycle.ClearModelChanged(handledVersion);
+
+		lifecycle.ModelChanged.ShouldBeTrue();
+	}
+
+	[Fact]
+	public void SdkTransitionToken_PreventsAStaleLoadFromCompletingANewerLoad()
+	{
+		SessionLifecycleState lifecycle = new();
+		lifecycle.TryBeginSdkTransition(
+			SdkSessionStateEnum.NotLoaded,
+			SdkSessionStateEnum.Loading,
+			out SdkLifecycleTransition staleLoad).ShouldBeTrue();
+
+		lifecycle.SetSdkState(SdkSessionStateEnum.NotLoaded);
+		lifecycle.TryBeginSdkTransition(
+			SdkSessionStateEnum.NotLoaded,
+			SdkSessionStateEnum.Loading,
+			out SdkLifecycleTransition currentLoad).ShouldBeTrue();
+
+		lifecycle.TryCompleteLoad(staleLoad).ShouldBeFalse();
+		lifecycle.SdkState.ShouldBe(SdkSessionStateEnum.Loading);
+		lifecycle.TryCompleteLoad(currentLoad).ShouldBeTrue();
+		lifecycle.SdkState.ShouldBe(SdkSessionStateEnum.Loaded);
+	}
+
+	[Fact]
+	public void ResetForEviction_ClearsSdkAndConfigurationStateTogether()
+	{
+		SessionLifecycleState lifecycle = new();
+		lifecycle.SetSdkState(SdkSessionStateEnum.Resumed);
+		lifecycle.MarkModelChanged();
+		lifecycle.MarkAgentChanged();
+		lifecycle.MarkAgentModeChanged();
+
+		lifecycle.ResetForEviction();
+
+		lifecycle.SdkState.ShouldBe(SdkSessionStateEnum.NotLoaded);
+		lifecycle.ModelChanged.ShouldBeFalse();
+		lifecycle.AgentChanged.ShouldBeFalse();
+		lifecycle.AgentModeChanged.ShouldBeFalse();
+	}
 }

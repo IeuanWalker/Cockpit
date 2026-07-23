@@ -51,7 +51,7 @@ public sealed class SessionEventProcessor
 				// not trigger the safety-net — handled identically to thinking-exhausted-continuation.
 				case UserMessageEvent reconnectMsg when reconnectMsg.Data?.Content?.StartsWith(reconnectContinuationPrefix, StringComparison.Ordinal) == true:
 					_logger.LogDebug("Session {SessionId} reconnect-continuation suppressed", session.Id);
-					session.Lifecycle.AgentRunState = AgentRunStateEnum.Running;
+					session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Running);
 					break;
 
 				case UserMessageEvent userMsg:

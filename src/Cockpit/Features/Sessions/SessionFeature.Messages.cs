@@ -32,7 +32,8 @@ public sealed partial class SessionFeature
 				throw new InvalidOperationException($"Session {sessionId} not found");
 			}
 
-			if(session.Lifecycle.ModelChanged)
+			long? modelChangeVersion = session.Lifecycle.CaptureModelChange();
+			if(modelChangeVersion is not null)
 			{
 				ProviderConfig? newProviderConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 
@@ -57,16 +58,17 @@ public sealed partial class SessionFeature
 						throw new InvalidOperationException($"Session {sessionId} not found after model restart");
 					}
 
-					session.Lifecycle.ModelChanged = false;
+					session.Lifecycle.ClearModelChanged(modelChangeVersion);
 				}
 				else
 				{
 					await existingSession.SetModelAsync(session.Model.Id, session.ReasoningEffort);
-					session.Lifecycle.ModelChanged = false;
+					session.Lifecycle.ClearModelChanged(modelChangeVersion);
 				}
 			}
 
-			if(session.Lifecycle.AgentChanged)
+			long? agentChangeVersion = session.Lifecycle.CaptureAgentChange();
+			if(agentChangeVersion is not null)
 			{
 				if(session.Context.SelectedAgent is null)
 				{
@@ -77,13 +79,14 @@ public sealed partial class SessionFeature
 					await existingSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Name);
 				}
 
-				session.Lifecycle.AgentChanged = false;
+				session.Lifecycle.ClearAgentChanged(agentChangeVersion);
 			}
 
-			if(session.Lifecycle.AgentModeChanged)
+			long? agentModeChangeVersion = session.Lifecycle.CaptureAgentModeChange();
+			if(agentModeChangeVersion is not null)
 			{
 				await existingSession.Rpc.Mode.SetAsync(session.Context.SelectedAgentMode.ToSdkSessionMode());
-				session.Lifecycle.AgentModeChanged = false;
+				session.Lifecycle.ClearAgentModeChanged(agentModeChangeVersion);
 			}
 
 			if(session.Lifecycle.SdkState == SdkSessionStateEnum.Loaded)
@@ -109,7 +112,7 @@ public sealed partial class SessionFeature
 			lock(session.SessionEventLock)
 			{
 				bool agentWasBusy = session.Conversation.ActiveWorkingGroup is not null;
-				session.Lifecycle.AgentRunState = AgentRunStateEnum.Running;
+				session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Running);
 
 				optimisticMessage = new ChatMessageModel
 				{
@@ -219,7 +222,7 @@ public sealed partial class SessionFeature
 			}
 
 			// Reset state to NotLoaded so LoadSession performs a full re-resume via the SDK
-			session.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
+			session.Lifecycle.SetSdkState(SdkSessionStateEnum.NotLoaded);
 			bool resumed = await ResumeSession(sessionId);
 			if(!resumed)
 			{
@@ -245,7 +248,7 @@ public sealed partial class SessionFeature
 					optimisticMessage.IsComplete = true;
 					optimisticMessage.IsPending = false;
 				}
-				session.Lifecycle.AgentRunState = AgentRunStateEnum.Error;
+				session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Error);
 				SessionErrorHandler.HandleException(session, ex);
 				session.Conversation.PublishMessagesSnapshot();
 			}

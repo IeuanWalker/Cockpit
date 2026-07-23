@@ -97,7 +97,7 @@ public sealed partial class SessionFeature
 				session.StreamingThinkingEvents.Clear();
 
 				// Reset to NotLoaded so the reconnect handler (or user navigation) triggers a reload.
-				session.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
+				session.Lifecycle.SetSdkState(SdkSessionStateEnum.NotLoaded);
 
 				// Remove from registry inside the lock to stop event delivery on stale state.
 				_sdkRegistry.TryRemove(session.Id, out sdkSession);
@@ -184,9 +184,19 @@ public sealed partial class SessionFeature
 		_logger.LogInformation("Silently resuming session {SessionId} after reconnect", session.Id);
 
 		CopilotSession? sdkSession = null;
+		SdkLifecycleTransition resumeTransition = default;
+		bool resumeClaimed = false;
 		try
 		{
-			session.Lifecycle.SdkState = SdkSessionStateEnum.Loading;
+			if(!session.Lifecycle.TryBeginSdkTransition(
+				SdkSessionStateEnum.NotLoaded,
+				SdkSessionStateEnum.Loading,
+				out resumeTransition))
+			{
+				_logger.LogInformation("Skipping silent resume for session {SessionId} because its lifecycle state changed", session.Id);
+				return;
+			}
+			resumeClaimed = true;
 			_sessionListFeature.NotifyStateChanged();
 
 			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
@@ -223,9 +233,6 @@ public sealed partial class SessionFeature
 				HandleSessionEvent(sdkSession.SessionId, evt);
 			});
 
-			session.Lifecycle.SdkState = SdkSessionStateEnum.Resumed;
-			_sessionListFeature.NotifyStateChanged();
-
 			// Send an internal continuation prompt. The content prefix causes SessionEventProcessor
 			// to suppress both the live echo and any future replay of this message.
 			await sdkSession.SendAsync(new MessageOptions
@@ -233,6 +240,17 @@ public sealed partial class SessionFeature
 				Prompt = SessionEventProcessor.reconnectContinuationPrefix + " Session was briefly disconnected, please continue from where you left off.",
 				Mode = MessageTurnModeExtensions.ImmediateSdkToken
 			});
+
+			if(!session.Lifecycle.TryCompleteSdkTransition(
+				resumeTransition,
+				SdkSessionStateEnum.Loading,
+				SdkSessionStateEnum.Resumed))
+			{
+				_sdkRegistry.TryRemove(session.Id, out _);
+				await sdkSession.DisposeAsync();
+				return;
+			}
+			_sessionListFeature.NotifyStateChanged();
 
 			_logger.LogInformation("Silently resumed session {SessionId}", session.Id);
 		}
@@ -251,7 +269,13 @@ public sealed partial class SessionFeature
 				catch { }
 			}
 
-			session.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
+			if(resumeClaimed)
+			{
+				session.Lifecycle.TryCompleteSdkTransition(
+					resumeTransition,
+					SdkSessionStateEnum.Loading,
+					SdkSessionStateEnum.NotLoaded);
+			}
 
 			// Fallback: finalize the broken working group visually and do a full reload.
 			lock(session.SessionEventLock)
