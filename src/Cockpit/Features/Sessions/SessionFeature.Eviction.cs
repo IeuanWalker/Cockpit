@@ -72,12 +72,12 @@ public sealed partial class SessionFeature
 			return false;
 		}
 
-		if(session.SdkState is not (SdkSessionStateEnum.Loaded or SdkSessionStateEnum.Resumed))
+		if(session.Lifecycle.SdkState is not (SdkSessionStateEnum.Loaded or SdkSessionStateEnum.Resumed))
 		{
 			return false;
 		}
 
-		if(session.AgentRunState is not AgentRunStateEnum.Idle)
+		if(session.Lifecycle.AgentRunState is not AgentRunStateEnum.Idle)
 		{
 			return false;
 		}
@@ -113,7 +113,7 @@ public sealed partial class SessionFeature
 
 			// Transition to NotLoaded first so LoadSession performs a full reload instead of
 			// fast-pathing to a now-empty session if called concurrently.
-			session.SdkState = SdkSessionStateEnum.NotLoaded;
+			session.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
 
 			// Clear message history
 			session.Messages = []; // setter also clears MessagesSnapshot
@@ -125,9 +125,9 @@ public sealed partial class SessionFeature
 			session.PendingTaskSummary = null;
 
 			// Clear pending model/agent change flags so reload doesn't make redundant SDK calls
-			session.ModelChanged = false;
-			session.AgentChanged = false;
-			session.AgentModeChanged = false;
+			session.Lifecycle.ModelChanged = false;
+			session.Lifecycle.AgentChanged = false;
+			session.Lifecycle.AgentModeChanged = false;
 
 			// Clear context panel data (populated by LoadContextPanelDataAsync)
 			session.Context.Agents = [];

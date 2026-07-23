@@ -9,7 +9,8 @@ static class SessionIdleHandler
 {
 	/// <summary>
 	/// Raised when a session completes successfully (transitions to Idle after active work).
-	/// Not raised on error/abort, or when <see cref="SessionModel.SuppressFinishedNotification"/> is set.
+	/// Not raised on error/abort, or when
+	/// <see cref="SessionLifecycleState.SuppressFinishedNotification"/> is set.
 	/// </summary>
 	internal static event Action? OnSessionFinished;
 
@@ -46,7 +47,7 @@ static class SessionIdleHandler
 			{
 				Debug.WriteLine($"Activity message already exists for group {group.Id}, skipping insertion");
 				session.ActiveWorkingGroup = null;
-				session.AgentRunState = AgentRunStateEnum.Idle;
+				session.Lifecycle.AgentRunState = AgentRunStateEnum.Idle;
 				return;
 			}
 
@@ -290,7 +291,7 @@ static class SessionIdleHandler
 
 		if(keepRunning)
 		{
-			session.AgentRunState = AgentRunStateEnum.Running;
+			session.Lifecycle.AgentRunState = AgentRunStateEnum.Running;
 				session.ActiveWorkingGroup = new ActivityGroupModel
 				{
 					StartTime = eventTimestamp.LocalDateTime,
@@ -301,9 +302,9 @@ static class SessionIdleHandler
 		}
 		else
 		{
-			session.AgentRunState = AgentRunStateEnum.Idle;
+			session.Lifecycle.AgentRunState = AgentRunStateEnum.Idle;
 
-			if(groupStatus == GroupStatusEnum.Complete && !session.SuppressFinishedNotification)
+			if(groupStatus == GroupStatusEnum.Complete && !session.Lifecycle.SuppressFinishedNotification)
 			{
 				OnSessionFinished?.Invoke();
 			}

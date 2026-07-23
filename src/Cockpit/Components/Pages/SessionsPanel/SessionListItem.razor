@@ -2,10 +2,10 @@
 @using Cockpit.Components.Controls
 @using Microsoft.AspNetCore.Components.Web
 
-<div class="session-item px-3 py-1.5 hover:bg-app-hover cursor-pointer @(IsActive ? "bg-app-active" : "") border-l-2 @(IsActive ? "" : "border-transparent") flex items-center group relative @(Session.SdkState == SdkSessionStateEnum.Loading ? "pointer-events-none" : "")"
+<div class="session-item px-3 py-1.5 hover:bg-app-hover cursor-pointer @(IsActive ? "bg-app-active" : "") border-l-2 @(IsActive ? "" : "border-transparent") flex items-center group relative @(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading ? "pointer-events-none" : "")"
      style="@(IsActive ? "border-left-color: var(--accent-color);" : "")"
      @onclick="HandleSelect">
-    @if(Session.SdkState == SdkSessionStateEnum.Loading)
+    @if(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading)
     {
         <div class="absolute inset-0 flex items-center justify-center gap-1.5 z-10" style="background: var(--sidebar-color); opacity: 0.85;">
             <svg class="w-3 h-3 animate-spin secondary-text flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -14,7 +14,7 @@
             <span class="text-xs secondary-text">Loading...</span>
         </div>
     }
-    <div class="flex-1 min-w-0 @(Session.SdkState == SdkSessionStateEnum.Loading ? "opacity-30" : "")">
+    <div class="flex-1 min-w-0 @(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading ? "opacity-30" : "")">
         <div class="text-xs @(IsActive ? "font-medium text-app-title" : "") truncate">@Session.Title</div>
         <SessionStatusBadge Status="@Session.DisplayStatus"
                             Variant="@SessionStatusVariant.SessionList"

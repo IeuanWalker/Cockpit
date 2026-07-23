@@ -87,7 +87,7 @@ public sealed partial class SessionFeature
 
 			lock(session.SessionEventLock)
 			{
-				if(session.SdkState == SdkSessionStateEnum.NotLoaded)
+				if(session.Lifecycle.SdkState == SdkSessionStateEnum.NotLoaded)
 				{
 					continue;
 				}
@@ -97,7 +97,7 @@ public sealed partial class SessionFeature
 				session.StreamingThinkingEvents.Clear();
 
 				// Reset to NotLoaded so the reconnect handler (or user navigation) triggers a reload.
-				session.SdkState = SdkSessionStateEnum.NotLoaded;
+				session.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
 
 				// Remove from registry inside the lock to stop event delivery on stale state.
 				_sdkRegistry.TryRemove(session.Id, out sdkSession);
@@ -146,7 +146,7 @@ public sealed partial class SessionFeature
 		_logger.LogInformation("Client reconnected — resuming current session");
 
 		SessionModel? current = _sessionListFeature.CurrentSession;
-		if(current is null || current.SdkState != SdkSessionStateEnum.NotLoaded)
+		if(current is null || current.Lifecycle.SdkState != SdkSessionStateEnum.NotLoaded)
 		{
 			return;
 		}
@@ -186,7 +186,7 @@ public sealed partial class SessionFeature
 		CopilotSession? sdkSession = null;
 		try
 		{
-			session.SdkState = SdkSessionStateEnum.Loading;
+			session.Lifecycle.SdkState = SdkSessionStateEnum.Loading;
 			_sessionListFeature.NotifyStateChanged();
 
 			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
@@ -223,7 +223,7 @@ public sealed partial class SessionFeature
 				HandleSessionEvent(sdkSession.SessionId, evt);
 			});
 
-			session.SdkState = SdkSessionStateEnum.Resumed;
+			session.Lifecycle.SdkState = SdkSessionStateEnum.Resumed;
 			_sessionListFeature.NotifyStateChanged();
 
 			// Send an internal continuation prompt. The content prefix causes SessionEventProcessor
@@ -251,7 +251,7 @@ public sealed partial class SessionFeature
 				catch { }
 			}
 
-			session.SdkState = SdkSessionStateEnum.NotLoaded;
+			session.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
 
 			// Fallback: finalize the broken working group visually and do a full reload.
 			lock(session.SessionEventLock)

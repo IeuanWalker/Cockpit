@@ -123,7 +123,7 @@ public sealed partial class SessionFeature : IDisposable
 		remove => _sessionListFeature.OnStateChanged -= value;
 	}
 	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.Conversation.ActiveWorkingGroup;
-	public bool IsWorking => CurrentSession?.AgentRunState == AgentRunStateEnum.Running
+	public bool IsWorking => CurrentSession?.Lifecycle.AgentRunState == AgentRunStateEnum.Running
 		|| CurrentSession?.Conversation.ActiveWorkingGroup?.Status == GroupStatusEnum.Running;
 
 	void HandleSessionEvent(string sessionId, SessionEvent evt)
