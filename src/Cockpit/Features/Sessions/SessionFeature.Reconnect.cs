@@ -99,7 +99,7 @@ public sealed partial class SessionFeature
 				// Reset to NotLoaded so the reconnect handler (or user navigation) triggers a reload.
 				session.Lifecycle.SetSdkState(SdkSessionStateEnum.NotLoaded);
 
-				// Remove from registry inside the lock to stop event delivery on stale state.
+				// Remove from registry inside the lock so message sends can't find it during cleanup; disposing below stops event delivery.
 				_sdkRegistry.TryRemove(session.Id, out sdkSession);
 				session.Conversation.PublishMessagesSnapshot();
 			}
