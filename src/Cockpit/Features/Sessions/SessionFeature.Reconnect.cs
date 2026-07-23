@@ -246,7 +246,7 @@ public sealed partial class SessionFeature
 				SdkSessionStateEnum.Loading,
 				SdkSessionStateEnum.Resumed))
 			{
-				_sdkRegistry.TryRemove(session.Id, out _);
+				_sdkRegistry.TryRemove(session.Id, sdkSession);
 				await sdkSession.DisposeAsync();
 				return;
 			}
@@ -261,7 +261,7 @@ public sealed partial class SessionFeature
 			// Clean up any partially-registered session to avoid a stale entry in the registry.
 			if(sdkSession is not null)
 			{
-				_sdkRegistry.TryRemove(session.Id, out _);
+				_sdkRegistry.TryRemove(session.Id, sdkSession);
 				try
 				{
 					await sdkSession.DisposeAsync();

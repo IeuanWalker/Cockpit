@@ -212,7 +212,6 @@ public sealed partial class SessionFeature
 				});
 				if(!session.Lifecycle.TryCompleteLoad(loadTransition))
 				{
-					_sdkRegistry.TryRemove(session.Id, out _);
 					return false;
 				}
 				registered = true;
@@ -226,6 +225,8 @@ public sealed partial class SessionFeature
 			{
 				if(!registered)
 				{
+					_sdkRegistry.TryRemove(session.Id, sdkSession);
+
 					// The context-panel load may still be in flight on an error path. Wait for it
 					// (observing any failure) before disposing the SDK session it reads from.
 					try { await contextPanelTask; } catch { /* surfaced via the outer catch / loaders */ }
