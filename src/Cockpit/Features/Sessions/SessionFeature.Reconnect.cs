@@ -181,6 +181,19 @@ public sealed partial class SessionFeature
 	/// </summary>
 	async Task SilentResumeSessionAsync(SessionModel session)
 	{
+		await session.Lifecycle.SdkTransitionGate.WaitAsync();
+		try
+		{
+			await SilentResumeSessionCoreAsync(session);
+		}
+		finally
+		{
+			session.Lifecycle.SdkTransitionGate.Release();
+		}
+	}
+
+	async Task SilentResumeSessionCoreAsync(SessionModel session)
+	{
 		_logger.LogInformation("Silently resuming session {SessionId} after reconnect", session.Id);
 
 		CopilotSession? sdkSession = null;
@@ -230,7 +243,7 @@ public sealed partial class SessionFeature
 			_sdkRegistry.Register(sdkSession, evt =>
 			{
 				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
-				HandleSessionEvent(sdkSession.SessionId, evt);
+				HandleSessionEvent(sdkSession, evt);
 			});
 
 			// Send an internal continuation prompt. The content prefix causes SessionEventProcessor
@@ -292,7 +305,7 @@ public sealed partial class SessionFeature
 
 			try
 			{
-				await LoadSession(session.Id);
+				await LoadSessionCore(session.Id, session);
 			}
 			catch(Exception loadEx)
 			{

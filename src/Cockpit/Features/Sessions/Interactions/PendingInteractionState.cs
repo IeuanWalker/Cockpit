@@ -38,4 +38,5 @@ public sealed class PendingInteractionState
 	internal bool HasPermissions => !_permissions.IsEmpty;
 	internal bool HasUserInputs => !_userInputs.IsEmpty;
 	internal bool HasElicitations => !_elicitations.IsEmpty;
+	internal bool HasAny => HasPermissions || HasUserInputs || HasElicitations;
 }

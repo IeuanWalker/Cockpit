@@ -9,6 +9,7 @@ internal readonly record struct SdkLifecycleTransition(long Version);
 public sealed class SessionLifecycleState
 {
 	readonly Lock _syncRoot = new();
+	readonly SemaphoreSlim _sdkTransitionGate = new(1, 1);
 	AgentRunStateEnum _agentRunState = AgentRunStateEnum.Idle;
 	SdkSessionStateEnum _sdkState = SdkSessionStateEnum.NotLoaded;
 	long _sdkStateVersion;
@@ -54,6 +55,58 @@ public sealed class SessionLifecycleState
 	{
 		get { lock(_syncRoot) { return _suppressFinishedNotification; } }
 		internal set { lock(_syncRoot) { _suppressFinishedNotification = value; } }
+	}
+
+	/// <summary>
+	/// Serializes async operations that create, resume, or replace the live SDK session.
+	/// Lifecycle state changes such as disconnect invalidation remain synchronous so they can
+	/// make an in-flight operation stale without waiting for its network calls to finish.
+	/// </summary>
+	internal SemaphoreSlim SdkTransitionGate => _sdkTransitionGate;
+
+	/// <summary>
+	/// Captures the current SDK-state version without changing the visible lifecycle state.
+	/// This is used by replacement operations that must be invalidated by disconnect or eviction.
+	/// </summary>
+	internal SdkLifecycleTransition CaptureSdkTransition()
+	{
+		lock(_syncRoot)
+		{
+			return new(_sdkStateVersion);
+		}
+	}
+
+	/// <summary>
+	/// Runs <paramref name="action"/> while holding the lifecycle lock only when no SDK-state
+	/// invalidation has occurred since <paramref name="transition"/> was captured.
+	/// </summary>
+	internal bool TryRunIfSdkTransitionIsCurrent(SdkLifecycleTransition transition, Action action)
+	{
+		lock(_syncRoot)
+		{
+			if(_sdkStateVersion != transition.Version)
+			{
+				return false;
+			}
+
+			action();
+			return true;
+		}
+	}
+
+	internal bool TryInvalidateSdkTransition(SdkLifecycleTransition transition)
+	{
+		lock(_syncRoot)
+		{
+			if(_sdkStateVersion != transition.Version)
+			{
+				return false;
+			}
+
+			_sdkState = SdkSessionStateEnum.NotLoaded;
+			_sdkStateVersion++;
+			return true;
+		}
 	}
 
 	internal void SetAgentRunState(AgentRunStateEnum state)

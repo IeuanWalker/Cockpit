@@ -81,6 +81,13 @@ public sealed partial class SessionFeature
 			return false;
 		}
 
+		// Pending interactions are independent of the agent run state. Evicting while the SDK
+		// is awaiting a response would strand its completion source and discard the prompt.
+		if(session.PendingInteractions.HasAny)
+		{
+			return false;
+		}
+
 		if(session.IsCompacting)
 		{
 			return false;
@@ -148,11 +155,12 @@ public sealed partial class SessionFeature
 
 		_interactionCoordinator.ClearBookkeeping(
 			session.Id,
-			PendingInteractionKinds.Permissions | PendingInteractionKinds.UserInputs);
+			PendingInteractionKinds.All);
 
 		// Cancel any awaiting TCS-based handlers so SDK threads don't hang indefinitely.
 		_permissionHandler.CancelPendingRequestsForSession(session.Id);
 		_userInputHandler.CancelPendingRequestsForSession(session.Id);
+		_elicitationHandler.CancelPendingRequestsForSession(session.Id);
 
 		if(sdkSession is not null)
 		{

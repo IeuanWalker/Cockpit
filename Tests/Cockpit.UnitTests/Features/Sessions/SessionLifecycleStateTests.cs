@@ -107,6 +107,31 @@ public sealed class SessionLifecycleStateTests
 	}
 
 	[Fact]
+	public void CapturedSdkTransition_PreventsAStaleReplacementFromRegistering()
+	{
+		SessionLifecycleState lifecycle = new();
+		lifecycle.SetSdkState(SdkSessionStateEnum.Resumed);
+		SdkLifecycleTransition restart = lifecycle.CaptureSdkTransition();
+		bool registered = false;
+
+		lifecycle.SetSdkState(SdkSessionStateEnum.NotLoaded);
+
+		lifecycle.TryRunIfSdkTransitionIsCurrent(restart, () => registered = true).ShouldBeFalse();
+		registered.ShouldBeFalse();
+	}
+
+	[Fact]
+	public void CapturedSdkTransition_ResetsCurrentFailedReplacementToNotLoaded()
+	{
+		SessionLifecycleState lifecycle = new();
+		lifecycle.SetSdkState(SdkSessionStateEnum.Resumed);
+		SdkLifecycleTransition restart = lifecycle.CaptureSdkTransition();
+
+		lifecycle.TryInvalidateSdkTransition(restart).ShouldBeTrue();
+		lifecycle.SdkState.ShouldBe(SdkSessionStateEnum.NotLoaded);
+	}
+
+	[Fact]
 	public void ResetForEviction_ClearsSdkAndConfigurationStateTogether()
 	{
 		SessionLifecycleState lifecycle = new();

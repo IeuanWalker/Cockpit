@@ -79,7 +79,7 @@ public sealed partial class SessionFeature
 			_sdkRegistry.Register(createdSession, evt =>
 			{
 				_logger.LogDebug("Session {SessionId} event: {EventType}", createdSession.SessionId, evt.Type);
-				HandleSessionEvent(createdSession.SessionId, evt);
+				HandleSessionEvent(createdSession, evt);
 			});
 			sdkSessionRegistered = true;
 

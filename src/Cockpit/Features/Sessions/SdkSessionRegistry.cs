@@ -16,20 +16,33 @@ public sealed class SdkSessionRegistry
 
 	/// <summary>
 	/// Registers an SDK session and subscribes <paramref name="onEvent"/> to its event stream.
-	/// Replaces any previously registered entry for the same session ID.
+	/// The caller must remove an existing SDK session before registering its replacement.
 	/// </summary>
 	public void Register(CopilotSession session, Action<SessionEvent> onEvent)
 	{
 		lock(_syncRoot)
 		{
+			if(_sessions.ContainsKey(session.SessionId))
+			{
+				throw new InvalidOperationException($"An SDK session is already registered for {session.SessionId}");
+			}
+
 			session.On<SessionEvent>(onEvent);
-			_sessions[session.SessionId] = session;
+			if(!_sessions.TryAdd(session.SessionId, session))
+			{
+				throw new InvalidOperationException($"Failed to register SDK session {session.SessionId}");
+			}
 		}
 	}
 
 	/// <summary>Returns the live SDK session for <paramref name="sessionId"/>, or <c>false</c> if not registered.</summary>
 	public bool TryGet(string sessionId, [NotNullWhen(true)] out CopilotSession? session)
 		=> _sessions.TryGetValue(sessionId, out session);
+
+	/// <summary>Returns whether <paramref name="session"/> is still the registered instance for its ID.</summary>
+	public bool IsCurrent(CopilotSession session)
+		=> _sessions.TryGetValue(session.SessionId, out CopilotSession? registeredSession)
+			&& ReferenceEquals(registeredSession, session);
 
 	/// <summary>Removes and returns the SDK session. Returns <c>false</c> if not registered.</summary>
 	public bool TryRemove(string sessionId, [NotNullWhen(true)] out CopilotSession? session)

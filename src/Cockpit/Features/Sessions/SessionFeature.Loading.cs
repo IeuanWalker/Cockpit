@@ -22,19 +22,38 @@ public sealed partial class SessionFeature
 	/// </summary>
 	public async Task<bool> LoadSession(string sessionId)
 	{
-		SessionModel? session = null;
+		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+		if(session is null)
+		{
+			_logger.LogWarning("Session {SessionId} not found", sessionId);
+			return false;
+		}
+
+		await session.Lifecycle.SdkTransitionGate.WaitAsync();
+		try
+		{
+			// A caller can wait behind another load while the session is deleted or its ID is
+			// replaced by a model-provider restart. Do not operate on a detached model.
+			if(!_sessionListFeature.Sessions.Contains(session) || session.Id != sessionId)
+			{
+				return false;
+			}
+
+			return await LoadSessionCore(sessionId, session);
+		}
+		finally
+		{
+			session.Lifecycle.SdkTransitionGate.Release();
+		}
+	}
+
+	async Task<bool> LoadSessionCore(string sessionId, SessionModel session)
+	{
 		SdkLifecycleTransition loadTransition = default;
 		bool loadClaimed = false;
 
 		try
 		{
-			session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-			if(session is null)
-			{
-				_logger.LogWarning("Session {SessionId} not found", sessionId);
-				return false;
-			}
-
 			if(session.Lifecycle.SdkState != SdkSessionStateEnum.NotLoaded)
 			{
 				_logger.LogInformation("Session {SessionId} already loaded or loading, switching to it", sessionId);
@@ -208,7 +227,7 @@ public sealed partial class SessionFeature
 				_sdkRegistry.Register(sdkSession, evt =>
 				{
 					_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
-					HandleSessionEvent(sdkSession.SessionId, evt);
+					HandleSessionEvent(sdkSession, evt);
 				});
 				if(!session.Lifecycle.TryCompleteLoad(loadTransition))
 				{
@@ -244,7 +263,7 @@ public sealed partial class SessionFeature
 		catch(Exception ex) when(ex.Message.Contains("Session file is corrupted or incompatible", StringComparison.Ordinal))
 		{
 			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
-			if(session is not null && loadClaimed)
+			if(loadClaimed)
 			{
 				session.Lifecycle.TryCompleteSdkTransition(
 					loadTransition,
@@ -261,7 +280,7 @@ public sealed partial class SessionFeature
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load session {SessionId}", sessionId);
-			if(session is not null && loadClaimed)
+			if(loadClaimed)
 			{
 				session.Lifecycle.TryCompleteSdkTransition(
 					loadTransition,

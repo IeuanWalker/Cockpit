@@ -126,8 +126,9 @@ public sealed partial class SessionFeature : IDisposable
 	public bool IsWorking => CurrentSession?.Lifecycle.AgentRunState == AgentRunStateEnum.Running
 		|| CurrentSession?.Conversation.ActiveWorkingGroup?.Status == GroupStatusEnum.Running;
 
-	void HandleSessionEvent(string sessionId, SessionEvent evt)
+	void HandleSessionEvent(CopilotSession sdkSession, SessionEvent evt)
 	{
+		string sessionId = sdkSession.SessionId;
 		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 
 		if(session is null)
@@ -141,6 +142,16 @@ public sealed partial class SessionFeature : IDisposable
 
 		lock(session.Conversation.SyncRoot)
 		{
+			// Registry removal and lifecycle invalidation happen before an old SDK instance is
+			// disposed. Re-check both under the conversation lock so a queued callback cannot
+			// repopulate state that disconnect or eviction just cleared.
+			if(!_sdkRegistry.IsCurrent(sdkSession)
+				|| session.Lifecycle.SdkState == SdkSessionStateEnum.NotLoaded)
+			{
+				_logger.LogDebug("Ignoring stale event from SDK session {SessionId}", sessionId);
+				return;
+			}
+
 			_processor.Process(session, evt, streamCallback);
 			session.Conversation.PublishMessagesSnapshot();
 		}

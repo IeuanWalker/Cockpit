@@ -47,6 +47,45 @@ public sealed partial class SessionFeature
 
 	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, GitHub.Copilot.ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
 	{
+		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+		if(session is null)
+		{
+			await RestartSessionCore(sessionId, newModelId, newReasoningEffort, providerConfig, cancellationToken, null, null);
+			return;
+		}
+
+		await session.Lifecycle.SdkTransitionGate.WaitAsync(cancellationToken);
+		try
+		{
+			SdkLifecycleTransition restartTransition = session.Lifecycle.CaptureSdkTransition();
+			await RestartSessionCore(
+				sessionId,
+				newModelId,
+				newReasoningEffort,
+				providerConfig,
+				cancellationToken,
+				session,
+				restartTransition);
+		}
+		finally
+		{
+			session.Lifecycle.SdkTransitionGate.Release();
+		}
+	}
+
+	async Task RestartSessionCore(
+		string sessionId,
+		string newModelId,
+		string? newReasoningEffort,
+		GitHub.Copilot.ProviderConfig? providerConfig,
+		CancellationToken cancellationToken,
+		SessionModel? expectedSession,
+		SdkLifecycleTransition? restartTransition)
+	{
+		CopilotSession? newSdkSession = null;
+		bool registered = false;
+		bool restartCompleted = false;
+
 		try
 		{
 			if(!_sdkRegistry.TryRemove(sessionId, out CopilotSession? existingSession))
@@ -60,8 +99,6 @@ public sealed partial class SessionFeature
 			_logger.LogInformation("Destroyed session {SessionId} for restart", sessionId);
 
 			CopilotClient client = await _clientFeature.GetClientAsync(cancellationToken);
-			CopilotSession newSdkSession;
-
 			// BYOK providers don't support Copilot-specific reasoning effort (e.g. KV-based "medium").
 			// Always pass null when a provider config is present so the SDK doesn't emit reasoning includes.
 			string? effectiveReasoningEffort = providerConfig is null ? newReasoningEffort : null;
@@ -165,17 +202,60 @@ public sealed partial class SessionFeature
 				}
 			}
 
-			_sdkRegistry.Register(newSdkSession, evt =>
+			void RegisterNewSdkSession() => _sdkRegistry.Register(newSdkSession, evt =>
 			{
 				_logger.LogDebug("Session {SessionId} event: {EventType}", newSdkSession.SessionId, evt.Type);
-				HandleSessionEvent(newSdkSession.SessionId, evt);
+				HandleSessionEvent(newSdkSession, evt);
 			});
+
+			registered = restartTransition is null
+				? RegisterWithoutLifecycleGuard()
+				: expectedSession!.Lifecycle.TryRunIfSdkTransitionIsCurrent(
+					restartTransition.Value,
+					RegisterNewSdkSession);
+
+			if(!registered)
+			{
+				await newSdkSession.DisposeAsync();
+				newSdkSession = null;
+				throw new InvalidOperationException($"Session {sessionId} restart was invalidated");
+			}
+
 			_sdkSessionByokId[newSdkSession.SessionId] = chatSession?.ByokConfigId;
+			restartCompleted = true;
 
 			_logger.LogInformation("Restarted session {SessionId} with model {Model}", sessionId, newModelId);
+
+			bool RegisterWithoutLifecycleGuard()
+			{
+				RegisterNewSdkSession();
+				return true;
+			}
 		}
 		catch(Exception ex)
 		{
+			if(newSdkSession is not null && !restartCompleted)
+			{
+				if(registered)
+				{
+					_sdkRegistry.TryRemove(newSdkSession.SessionId, newSdkSession);
+				}
+
+				try
+				{
+					await newSdkSession.DisposeAsync();
+				}
+				catch(Exception disposeException)
+				{
+					_logger.LogWarning(disposeException, "Failed to dispose replacement SDK session {SessionId}", newSdkSession.SessionId);
+				}
+			}
+
+			if(expectedSession is not null && restartTransition is not null)
+			{
+				expectedSession.Lifecycle.TryInvalidateSdkTransition(restartTransition.Value);
+			}
+
 			_logger.LogError(ex, "Failed to restart session {SessionId}", sessionId);
 			throw;
 		}
