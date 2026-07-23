@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
@@ -30,11 +31,45 @@ public sealed class SessionConversationStateTests
 		SessionModel session = CreateSession();
 		ChatMessageModel message = new() { Id = "message", Content = "Hello", EventJson = null };
 
-		session.Messages = [message];
+		session.Conversation.ReplaceMessages([message]);
 
 		session.Conversation.Messages.ShouldBeSameAs(session.Messages);
 		session.Conversation.MessagesSnapshot.ShouldBe([message]);
 		session.MessagesSnapshot.ShouldBe([message]);
+	}
+
+	[Fact]
+	public void PublishedSnapshot_RemainsStableUntilNextExplicitPublication()
+	{
+		SessionModel session = CreateSession();
+		ChatMessageModel first = new() { Id = "first", Content = "First", EventJson = null };
+		ChatMessageModel second = new() { Id = "second", Content = "Second", EventJson = null };
+		session.Conversation.ReplaceMessages([first]);
+		ImmutableArray<ChatMessageModel> firstSnapshot = session.Conversation.MessagesSnapshot;
+
+		session.Conversation.Messages.Add(second);
+
+		firstSnapshot.ShouldBe([first]);
+		session.Conversation.MessagesSnapshot.ShouldBe([first]);
+
+		session.Conversation.PublishMessagesSnapshot();
+
+		firstSnapshot.ShouldBe([first]);
+		session.Conversation.MessagesSnapshot.ShouldBe([first, second]);
+	}
+
+	[Fact]
+	public void ReplacingMessages_DoesNotRetainCallersMutableCollection()
+	{
+		SessionModel session = CreateSession();
+		ChatMessageModel message = new() { Id = "message", Content = "Hello", EventJson = null };
+		List<ChatMessageModel> source = [message];
+
+		session.Conversation.ReplaceMessages(source);
+		source.Clear();
+
+		session.Conversation.Messages.ShouldBe([message]);
+		session.Conversation.MessagesSnapshot.ShouldBe([message]);
 	}
 
 	[Fact]

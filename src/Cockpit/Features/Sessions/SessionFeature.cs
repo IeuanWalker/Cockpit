@@ -142,7 +142,7 @@ public sealed partial class SessionFeature : IDisposable
 		lock(session.Conversation.SyncRoot)
 		{
 			_processor.Process(session, evt, streamCallback);
-			session.Conversation.MessagesSnapshot = [.. session.Conversation.Messages];
+			session.Conversation.PublishMessagesSnapshot();
 		}
 
 		if(session == _sessionListFeature.CurrentSession)
