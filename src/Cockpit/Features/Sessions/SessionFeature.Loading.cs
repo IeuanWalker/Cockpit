@@ -22,9 +22,13 @@ public sealed partial class SessionFeature
 	/// </summary>
 	public async Task<bool> LoadSession(string sessionId)
 	{
+		SessionModel? session = null;
+		SdkLifecycleTransition loadTransition = default;
+		bool loadClaimed = false;
+
 		try
 		{
-			SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
+			session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 			if(session is null)
 			{
 				_logger.LogWarning("Session {SessionId} not found", sessionId);
@@ -94,7 +98,15 @@ public sealed partial class SessionFeature
 				config.CanvasHandler = new SessionCanvasHandler(_canvasWindowManager);
 			}
 
-			session.Lifecycle.SdkState = SdkSessionStateEnum.Loading;
+			if(!session.Lifecycle.TryBeginSdkTransition(
+				SdkSessionStateEnum.NotLoaded,
+				SdkSessionStateEnum.Loading,
+				out loadTransition))
+			{
+				_logger.LogInformation("Session {SessionId} load was claimed by another operation", sessionId);
+				return true;
+			}
+			loadClaimed = true;
 			_sessionListFeature.NotifyStateChanged();
 
 			CopilotClient client = await _clientFeature.GetClientAsync();
@@ -156,7 +168,7 @@ public sealed partial class SessionFeature
 						_processor.FinalizeOpenGroup(tempSession);
 					}
 				});
-				tempSession.Lifecycle.SuppressFinishedNotification = false;
+				tempSession.Lifecycle.SetSuppressFinishedNotification(false);
 
 				// Any message still IsPending after replay was sent while the session was
 				// mid-turn and never picked up by a subsequent assistant.turn_start (the session
@@ -178,8 +190,6 @@ public sealed partial class SessionFeature
 				// session.Context (e.g. resolving the selected agent against the loaded agent list).
 				await contextPanelTask;
 
-				session.Lifecycle.AgentRunState = AgentRunStateEnum.Idle;
-				session.Lifecycle.SdkState = SdkSessionStateEnum.Loaded;
 				session.Context.WorkspacePath = sdkSession.WorkspacePath;
 				SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
 				await _modelFeature.TryRestoreModelSettings(session);
@@ -200,6 +210,10 @@ public sealed partial class SessionFeature
 					_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
 					HandleSessionEvent(sdkSession.SessionId, evt);
 				});
+				if(!session.Lifecycle.TryCompleteLoad(loadTransition))
+				{
+					return false;
+				}
 				registered = true;
 				_sdkSessionByokId[sessionId] = session.ByokConfigId;
 
@@ -211,19 +225,32 @@ public sealed partial class SessionFeature
 			{
 				if(!registered)
 				{
+					_sdkRegistry.TryRemove(session.Id, sdkSession);
+
 					// The context-panel load may still be in flight on an error path. Wait for it
 					// (observing any failure) before disposing the SDK session it reads from.
 					try { await contextPanelTask; } catch { /* surfaced via the outer catch / loaders */ }
 					await sdkSession.DisposeAsync();
-					session.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
+					if(loadClaimed)
+					{
+						session.Lifecycle.TryCompleteSdkTransition(
+							loadTransition,
+							SdkSessionStateEnum.Loading,
+							SdkSessionStateEnum.NotLoaded);
+					}
 				}
 			}
 		}
 		catch(Exception ex) when(ex.Message.Contains("Session file is corrupted or incompatible", StringComparison.Ordinal))
 		{
 			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
-			SessionModel? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-			failedSession?.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
+			if(session is not null && loadClaimed)
+			{
+				session.Lifecycle.TryCompleteSdkTransition(
+					loadTransition,
+					SdkSessionStateEnum.Loading,
+					SdkSessionStateEnum.NotLoaded);
+			}
 			_sessionListFeature.NotifyStateChanged();
 			_toastService.Error("Session Unavailable", opts =>
 			{
@@ -234,8 +261,13 @@ public sealed partial class SessionFeature
 		catch(Exception ex)
 		{
 			_logger.LogError(ex, "Failed to load session {SessionId}", sessionId);
-			SessionModel? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-			failedSession?.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
+			if(session is not null && loadClaimed)
+			{
+				session.Lifecycle.TryCompleteSdkTransition(
+					loadTransition,
+					SdkSessionStateEnum.Loading,
+					SdkSessionStateEnum.NotLoaded);
+			}
 			_sessionListFeature.NotifyStateChanged();
 			return false;
 		}

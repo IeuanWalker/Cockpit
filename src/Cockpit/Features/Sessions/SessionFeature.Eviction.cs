@@ -112,7 +112,7 @@ public sealed partial class SessionFeature
 
 			// Transition to NotLoaded first so LoadSession performs a full reload instead of
 			// fast-pathing to a now-empty session if called concurrently.
-			session.Lifecycle.SdkState = SdkSessionStateEnum.NotLoaded;
+			session.Lifecycle.ResetForEviction();
 
 			// Clear message history
 			session.Conversation.ClearMessages();
@@ -122,11 +122,6 @@ public sealed partial class SessionFeature
 			session.TokenUsageInfo = null;
 			session.PendingMessageCount = 0;
 			session.PendingTaskSummary = null;
-
-			// Clear pending model/agent change flags so reload doesn't make redundant SDK calls
-			session.Lifecycle.ModelChanged = false;
-			session.Lifecycle.AgentChanged = false;
-			session.Lifecycle.AgentModeChanged = false;
 
 			// Clear context panel data (populated by LoadContextPanelDataAsync)
 			session.Context.Agents = [];

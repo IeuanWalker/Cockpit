@@ -37,7 +37,10 @@ public sealed partial class SessionFeature
 			}
 		}
 
-		session.Lifecycle.SdkState = SdkSessionStateEnum.Resumed;
+		if(!session.Lifecycle.TryTransitionSdkState(SdkSessionStateEnum.Loaded, SdkSessionStateEnum.Resumed))
+		{
+			return session.Lifecycle.SdkState == SdkSessionStateEnum.Resumed;
+		}
 		_logger.LogInformation("Session {SessionId} promoted from loaded to resumed", sessionId);
 		return true;
 	}
@@ -254,7 +257,7 @@ public sealed partial class SessionFeature
 			SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 			if(session is not null)
 			{
-				session.Lifecycle.AgentRunState = AgentRunStateEnum.Idle;
+				session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Idle);
 			}
 
 			// Cancel any pending permission/user-input/elicitation requests so they are removed from the UI immediately
