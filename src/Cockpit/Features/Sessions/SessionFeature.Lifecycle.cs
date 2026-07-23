@@ -1,18 +1,8 @@
-using System.Text.Json;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Canvas;
-using Cockpit.Features.Git.Models;
-using Cockpit.Features.Permissions;
-using Cockpit.Features.SessionEvents;
-using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
-using Cockpit.Features.SystemMessage;
 using GitHub.Copilot;
-using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging;
-using SdkPlugin = GitHub.Copilot.Rpc.Plugin;
-using SdkSessionMetadata = GitHub.Copilot.SessionMetadata;
 
 namespace Cockpit.Features.Sessions;
 

@@ -1,18 +1,14 @@
 using System.Text.Json;
 using Cockpit.Features.Agents.Models;
 using Cockpit.Features.Canvas;
-using Cockpit.Features.Git.Models;
 using Cockpit.Features.Permissions;
-using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.SystemMessage;
 using GitHub.Copilot;
 using GitHub.Copilot.Rpc;
 using Microsoft.Extensions.Logging;
 using SdkPlugin = GitHub.Copilot.Rpc.Plugin;
-using SdkSessionMetadata = GitHub.Copilot.SessionMetadata;
 
 namespace Cockpit.Features.Sessions;
 
@@ -223,7 +219,7 @@ public sealed partial class SessionFeature
 				}
 			}
 		}
-		catch(Exception ex) when(ex.Message.Equals("Communication error with Copilot CLI: Request session.resume failed with message: Session file is corrupted or incompatible"))
+		catch(Exception ex) when(ex.Message.Contains("Session file is corrupted or incompatible", StringComparison.Ordinal))
 		{
 			_logger.LogError(ex, "Session {SessionId} is corrupted or incompatible", sessionId);
 			SessionModel? failedSession = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
@@ -231,7 +227,7 @@ public sealed partial class SessionFeature
 			_sessionListFeature.NotifyStateChanged();
 			_toastService.Error("Session Unavailable", opts =>
 			{
-				opts.Description = "The session file may be corrupted, incompatible, or in use by another instance. You may need to delete or exit the session running else where";
+				opts.Description = "The session file may be corrupted, incompatible, or in use by another instance. You may need to delete or exit the session running elsewhere";
 			});
 			return false;
 		}
