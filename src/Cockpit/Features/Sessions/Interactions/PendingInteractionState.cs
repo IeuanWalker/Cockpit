@@ -23,6 +23,17 @@ public sealed class PendingInteractionState
 	internal SessionStatusEnum? DisplayStatus { get; set; }
 	internal Lock SyncRoot { get; } = new();
 
+	/// <summary>
+	/// Thread-safe getter for DisplayStatus. Must be called from outside the lock context.
+	/// </summary>
+	public SessionStatusEnum? GetDisplayStatus()
+	{
+		lock(SyncRoot)
+		{
+			return DisplayStatus;
+		}
+	}
+
 	internal bool TryAddPermission(PermissionRequestModel request) => _permissions.TryAdd(request.Id, request);
 	internal bool TryAddUserInput(UserInputRequestModel request) => _userInputs.TryAdd(request.Id, request);
 	internal bool TryAddElicitation(ElicitationRequestModel request) => _elicitations.TryAdd(request.Id, request);

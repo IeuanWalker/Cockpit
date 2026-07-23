@@ -13,7 +13,7 @@ public partial class SessionModel
 	/// UI-facing status. The interaction coordinator controls the pending-interaction
 	/// overlay while <see cref="Lifecycle"/> continues to track the agent lifecycle.
 	/// </summary>
-	public SessionStatusEnum DisplayStatus => PendingInteractions.DisplayStatus ?? Lifecycle.AgentRunState switch
+	public SessionStatusEnum DisplayStatus => PendingInteractions.GetDisplayStatus() ?? Lifecycle.AgentRunState switch
 	{
 		AgentRunStateEnum.Running => SessionStatusEnum.Running,
 		AgentRunStateEnum.Error => SessionStatusEnum.Error,

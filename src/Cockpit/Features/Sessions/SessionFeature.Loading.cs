@@ -224,15 +224,18 @@ public sealed partial class SessionFeature
 					await sdkSession.Rpc.Mode.SetAsync(session.Context.SelectedAgentMode.ToSdkSessionMode());
 				}
 
+				// Complete the load transition before registering to ensure the session is fully
+				// live before incoming events can be processed.
+				if(!session.Lifecycle.TryCompleteLoad(loadTransition))
+				{
+					return false;
+				}
+
 				_sdkRegistry.Register(sdkSession, evt =>
 				{
 					_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
 					HandleSessionEvent(sdkSession, evt);
 				});
-				if(!session.Lifecycle.TryCompleteLoad(loadTransition))
-				{
-					return false;
-				}
 				registered = true;
 				_sdkSessionByokId[sessionId] = session.ByokConfigId;
 
