@@ -1,4 +1,3 @@
-using Cockpit.Features.Canvas;
 using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
