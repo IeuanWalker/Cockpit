@@ -142,7 +142,7 @@ public sealed class SessionInteractionCoordinator
 				return;
 			}
 
-			interactions.DisplayStatus = GetPendingInteractionStatus(interactions);
+			interactions.DisplayStatus = blockingStatus;
 		}
 
 		_sessionStateProvider.NotifyStateChanged();
