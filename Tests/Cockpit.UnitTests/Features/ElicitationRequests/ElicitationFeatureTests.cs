@@ -2,6 +2,7 @@ using System.Text.Json;
 using Cockpit.Features.ElicitationRequests;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.UserInputRequests;
 using GitHub.Copilot;
@@ -39,7 +40,7 @@ public sealed class ElicitationFeatureTests
 		CreatedAt = DateTime.UtcNow,
 		LastActivity = DateTime.UtcNow,
 		Model = testModel,
-		Status = SessionStatusEnum.Idle,
+		AgentRunState = AgentRunStateEnum.Idle,
 		Context = new()
 		{
 			CurrentWorkingDirectory = "",
@@ -130,10 +131,10 @@ public sealed class ElicitationFeatureTests
 	}
 
 	[Fact]
-	public async Task HandleElicitationRequest_RestoredToPreviousStatusOnResolve()
+	public async Task HandleElicitationRequest_RevealsRunStateOnResolve()
 	{
 		(ElicitationFeature feature, SessionModel session, _) = CreateFeature();
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 
 		(Task<ElicitationResult> handleTask, ElicitationRequestModel model) = await StartHandleAsync(
 			feature, BuildContext());
@@ -145,10 +146,10 @@ public sealed class ElicitationFeatureTests
 	}
 
 	[Fact]
-	public async Task HandleElicitationRequest_RestoredToIdleWhenNoStatusHistory()
+	public async Task HandleElicitationRequest_RestoredToIdleRunState()
 	{
 		(ElicitationFeature feature, SessionModel session, _) = CreateFeature();
-		// session starts Idle, no history pushed yet
+		// Session starts with an Idle lifecycle state.
 
 		(Task<ElicitationResult> handleTask, ElicitationRequestModel model) = await StartHandleAsync(
 			feature, BuildContext());
@@ -167,12 +168,12 @@ public sealed class ElicitationFeatureTests
 		(Task<ElicitationResult> handleTask, ElicitationRequestModel model) = await StartHandleAsync(
 			feature, BuildContext());
 
-		session.PendingElicitationRequests.ContainsKey(model.Id).ShouldBeTrue();
+		session.PendingInteractions.Elicitations.ContainsKey(model.Id).ShouldBeTrue();
 
 		feature.ResolveElicitationRequest(model.Id, null);
 		await handleTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
-		session.PendingElicitationRequests.ContainsKey(model.Id).ShouldBeFalse();
+		session.PendingInteractions.Elicitations.ContainsKey(model.Id).ShouldBeFalse();
 	}
 
 	[Fact]
@@ -202,16 +203,16 @@ public sealed class ElicitationFeatureTests
 	}
 
 	[Fact]
-	public async Task HandleElicitationRequest_SecondConcurrentRequestDoesNotPushStatusHistoryAgain()
+	public async Task HandleElicitationRequest_ConcurrentRequestsPreserveRunState()
 	{
 		(ElicitationFeature feature, SessionModel session, _) = CreateFeature();
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 
 		(Task<ElicitationResult> task1, ElicitationRequestModel model1) = await StartHandleAsync(feature, BuildContext(message: "First"));
 		(Task<ElicitationResult> task2, ElicitationRequestModel model2) = await StartHandleAsync(feature, BuildContext(message: "Second"));
 
-		// Both pending — only one entry pushed to history (for the Running → NeedsElicitation transition)
-		session.StatusHistory.Count.ShouldBe(1);
+		// Pending interactions do not overwrite the Running lifecycle state.
+		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
 		session.Status.ShouldBe(SessionStatusEnum.NeedsElicitation);
 
 		feature.ResolveElicitationRequest(model1.Id, null);
@@ -225,6 +226,7 @@ public sealed class ElicitationFeatureTests
 
 		// All resolved — restored to Running
 		session.Status.ShouldBe(SessionStatusEnum.Running);
+		session.AgentRunState.ShouldBe(AgentRunStateEnum.Running);
 	}
 
 	// ── Priority resolution ───────────────────────────────────────────────────
@@ -232,11 +234,13 @@ public sealed class ElicitationFeatureTests
 	[Fact]
 	public async Task OnElicitationResolve_NeedsPermissionPrioritisedOverElicitation()
 	{
-		(ElicitationFeature feature, SessionModel session, _) = CreateFeature();
+		(ElicitationFeature feature, SessionModel session, TestSessionStateProvider stateProvider) = CreateFeature();
 
 		// Simulate a pending permission request already on the session
-		session.PendingPermissionRequests["perm-1"] = new PermissionRequestModel
+		SessionInteractionCoordinator interactionCoordinator = new(stateProvider);
+		interactionCoordinator.AddPermission(sessionId, new PermissionRequestModel
 		{
+			Id = "perm-1",
 			SessionId = sessionId,
 			FullCommand = "ls",
 			Commands = ["ls"],
@@ -245,7 +249,7 @@ public sealed class ElicitationFeatureTests
 			CanApproveGlobally = true,
 			CanApproveForSession = true,
 			FullRequestJson = "{}"
-		};
+		});
 
 		(Task<ElicitationResult> handleTask, ElicitationRequestModel model) = await StartHandleAsync(
 			feature, BuildContext());
@@ -260,17 +264,19 @@ public sealed class ElicitationFeatureTests
 	[Fact]
 	public async Task OnElicitationResolve_NeedsUserInputPrioritisedOverElicitation()
 	{
-		(ElicitationFeature feature, SessionModel session, _) = CreateFeature();
+		(ElicitationFeature feature, SessionModel session, TestSessionStateProvider stateProvider) = CreateFeature();
 
 		// Simulate a pending user-input request already on the session
-		session.PendingUserInputRequests["ui-1"] = new UserInputRequestModel
+		SessionInteractionCoordinator interactionCoordinator = new(stateProvider);
+		interactionCoordinator.AddUserInput(sessionId, new UserInputRequestModel
 		{
+			Id = "ui-1",
 			SessionId = sessionId,
 			Question = "Continue?",
 			Choices = [],
 			AllowsTextInput = true,
 			FullRequestJson = "{}"
-		};
+		});
 
 		(Task<ElicitationResult> handleTask, ElicitationRequestModel model) = await StartHandleAsync(
 			feature, BuildContext());

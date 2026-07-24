@@ -3,9 +3,9 @@
 
 <div class="chat-messages-container">
     <div id="chatMessages" class="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-3">
-        @if(_sessionListFeature.CurrentSession?.MessagesSnapshot is not null)
+        @if(_sessionListFeature.CurrentSession?.Conversation.MessagesSnapshot is not null)
         {
-            @foreach(var message in _sessionListFeature.CurrentSession.MessagesSnapshot)
+            @foreach(var message in _sessionListFeature.CurrentSession.Conversation.MessagesSnapshot)
             {
                 if(message.Type == MessageTypeEnum.ActivityGroup && message.ActivityGroup is not null)
                 {

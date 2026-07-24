@@ -28,7 +28,7 @@ public sealed partial class ElicitationRequestPanel : ComponentBase, IDisposable
 		_sessionListFeature.OnStateChanged += OnStateChanged;
 	}
 
-	public ElicitationRequestModel? Request => _sessionListFeature.CurrentSession?.PendingElicitationRequests.Values.OrderBy(r => r.Requested).FirstOrDefault();
+	public ElicitationRequestModel? Request => _sessionListFeature.CurrentSession?.PendingInteractions.Elicitations.Values.OrderBy(r => r.Requested).FirstOrDefault();
 
 	bool IsUrlOnly => Request?.Mode?.Value == ElicitationRequestedMode.Url.Value;
 	bool IsInline => IsUrlOnly || Request?.Fields.Length <= 4;

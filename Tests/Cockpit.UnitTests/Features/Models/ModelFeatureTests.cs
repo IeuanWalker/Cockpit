@@ -64,7 +64,7 @@ public sealed class ModelFeatureTests : IDisposable
 	{
 		Id = Guid.NewGuid().ToString(),
 		Title = "Test",
-		Status = SessionStatusEnum.Idle,
+		AgentRunState = AgentRunStateEnum.Idle,
 		CreatedAt = DateTime.UtcNow,
 		LastActivity = DateTime.UtcNow,
 		Model = MakeModel("default"),

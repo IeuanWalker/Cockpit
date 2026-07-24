@@ -32,14 +32,14 @@ public partial class AttachmentsControl : ComponentBase
 				return [];
 			}
 
-			lock(Session.PendingAttachmentsLock)
+			lock(Session.Ui.PendingAttachmentsLock)
 			{
 				// Deduplicate by file path across all attachment types.
 				// Non-mention (manually added) entries take priority so the user can remove them.
 				HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
 				List<AttachmentModel> result = [];
 
-				foreach(AttachmentModel att in Session.PendingAttachments)
+				foreach(AttachmentModel att in Session.Ui.PendingAttachments)
 				{
 					if(!att.IsMention && seen.Add(att.FilePath))
 					{
@@ -47,7 +47,7 @@ public partial class AttachmentsControl : ComponentBase
 					}
 				}
 
-				foreach(AttachmentModel att in Session.PendingAttachments)
+				foreach(AttachmentModel att in Session.Ui.PendingAttachments)
 				{
 					if(att.IsMention && seen.Add(att.FilePath))
 					{
@@ -76,9 +76,9 @@ public partial class AttachmentsControl : ComponentBase
 			return Task.CompletedTask;
 		}
 
-		lock(session.PendingAttachmentsLock)
+		lock(session.Ui.PendingAttachmentsLock)
 		{
-			session.PendingAttachments.Remove(target);
+			session.Ui.PendingAttachments.Remove(target);
 		}
 
 		StateHasChanged();

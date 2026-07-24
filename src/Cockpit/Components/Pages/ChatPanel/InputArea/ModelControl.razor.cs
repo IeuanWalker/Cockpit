@@ -79,7 +79,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		}
 
 		_sessionListFeature.CurrentSession.Model = model;
-		_sessionListFeature.CurrentSession.ModelChanged = true;
+		_sessionListFeature.CurrentSession.Lifecycle.MarkModelChanged();
 
 		// Track BYOK config ID so the session layer knows to restart (not SetModelAsync) when switching providers
 		ByokModelConfig? byokConfig = _byokFeature.GetAll().FirstOrDefault(c => string.Equals(c.ModelId, model.Id, StringComparison.OrdinalIgnoreCase));
@@ -104,7 +104,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		if(_sessionListFeature.CurrentSession.ReasoningEffort != newEffort)
 		{
 			_sessionListFeature.CurrentSession.ReasoningEffort = newEffort;
-			_sessionListFeature.CurrentSession.ModelChanged = true;
+			_sessionListFeature.CurrentSession.Lifecycle.MarkModelChanged();
 		}
 	}
 
@@ -128,7 +128,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 		}
 
 		_sessionListFeature.CurrentSession.ReasoningEffort = effort;
-		_sessionListFeature.CurrentSession.ModelChanged = true;
+		_sessionListFeature.CurrentSession.Lifecycle.MarkModelChanged();
 
 		_reasoningPicker?.Close();
 
@@ -137,12 +137,12 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 	string? GetModelPickerTooltip()
 	{
-		if(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running)
+		if(_sessionListFeature.CurrentSession?.DisplayStatus == SessionStatusEnum.Running)
 		{
 			return "You can't change model while the agent is working";
 		}
 
-		if(_sessionListFeature.CurrentSession?.PendingPermissionRequests?.Count > 0)
+		if(_sessionListFeature.CurrentSession?.PendingInteractions.Permissions.Count > 0)
 		{
 			return "You can't change model while a permission request is pending";
 		}

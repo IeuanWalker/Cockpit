@@ -9,14 +9,20 @@ namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
-	public async Task SendMessageAsync(string content, List<AttachmentModel>? attachments = null, bool isInternalRetry = false)
+	public Task SendMessageAsync(string content, List<AttachmentModel>? attachments = null, bool isInternalRetry = false)
 	{
-		if(CurrentSession is null)
-		{
-			return;
-		}
+		SessionModel? session = CurrentSession;
+		return session is null
+			? Task.CompletedTask
+			: SendMessageAsync(session, content, attachments, isInternalRetry);
+	}
 
-		SessionModel session = CurrentSession;
+	async Task SendMessageAsync(
+		SessionModel session,
+		string content,
+		List<AttachmentModel>? attachments,
+		bool isInternalRetry)
+	{
 		string sessionId = session.Id;
 		ChatMessageModel? optimisticMessage = null;
 		try
@@ -26,7 +32,8 @@ public sealed partial class SessionFeature
 				throw new InvalidOperationException($"Session {sessionId} not found");
 			}
 
-			if(session.ModelChanged)
+			long? modelChangeVersion = session.Lifecycle.CaptureModelChange();
+			if(modelChangeVersion is not null)
 			{
 				ProviderConfig? newProviderConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
 
@@ -51,16 +58,17 @@ public sealed partial class SessionFeature
 						throw new InvalidOperationException($"Session {sessionId} not found after model restart");
 					}
 
-					session.ModelChanged = false;
+					session.Lifecycle.ClearModelChanged(modelChangeVersion);
 				}
 				else
 				{
 					await existingSession.SetModelAsync(session.Model.Id, session.ReasoningEffort);
-					session.ModelChanged = false;
+					session.Lifecycle.ClearModelChanged(modelChangeVersion);
 				}
 			}
 
-			if(session.AgentChanged)
+			long? agentChangeVersion = session.Lifecycle.CaptureAgentChange();
+			if(agentChangeVersion is not null)
 			{
 				if(session.Context.SelectedAgent is null)
 				{
@@ -71,16 +79,17 @@ public sealed partial class SessionFeature
 					await existingSession.Rpc.Agent.SelectAsync(session.Context.SelectedAgent.Name);
 				}
 
-				session.AgentChanged = false;
+				session.Lifecycle.ClearAgentChanged(agentChangeVersion);
 			}
 
-			if(session.AgentModeChanged)
+			long? agentModeChangeVersion = session.Lifecycle.CaptureAgentModeChange();
+			if(agentModeChangeVersion is not null)
 			{
 				await existingSession.Rpc.Mode.SetAsync(session.Context.SelectedAgentMode.ToSdkSessionMode());
-				session.AgentModeChanged = false;
+				session.Lifecycle.ClearAgentModeChanged(agentModeChangeVersion);
 			}
 
-			if(session.SdkState == SdkSessionStateEnum.Loaded)
+			if(session.Lifecycle.SdkState == SdkSessionStateEnum.Loaded)
 			{
 				bool resumed = await ResumeSession(sessionId);
 				if(!resumed)
@@ -100,10 +109,10 @@ public sealed partial class SessionFeature
 			MessageTurnModeEnum selectedTurnMode = _appSettingsFeature.MessageTurnMode;
 			string turnMode = selectedTurnMode.ToSdkToken();
 
-			lock(CurrentSession.SessionEventLock)
+			lock(session.SessionEventLock)
 			{
-				bool agentWasBusy = CurrentSession.ActiveWorkingGroup is not null;
-				CurrentSession.Status = SessionStatusEnum.Running;
+				bool agentWasBusy = session.Conversation.ActiveWorkingGroup is not null;
+				session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Running);
 
 				optimisticMessage = new ChatMessageModel
 				{
@@ -117,19 +126,19 @@ public sealed partial class SessionFeature
 					Attachments = attachments?.Count > 0 ? attachments : null,
 					EventJson = null
 				};
-				CurrentSession.Messages.Add(optimisticMessage);
-				CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
+				session.Conversation.Messages.Add(optimisticMessage);
+				session.Conversation.PublishMessagesSnapshot();
 
 				// For immediate (steering) mode: flag that a new turn is imminent so the
 				// working panel and Running status are preserved through the idle transition.
 				if(agentWasBusy && selectedTurnMode == MessageTurnModeEnum.Immediate)
 				{
-					CurrentSession.HasQueuedImmediateMessage = true;
+					session.Conversation.HasQueuedImmediateMessage = true;
 				}
 				else if(!agentWasBusy)
 				{
 					// Clear any stale value (e.g. after a failed send) when no turn is in-flight.
-					CurrentSession.HasQueuedImmediateMessage = false;
+					session.Conversation.HasQueuedImmediateMessage = false;
 				}
 			}
 			_sessionListFeature.NotifyStateChanged();
@@ -169,16 +178,16 @@ public sealed partial class SessionFeature
 			{
 				lock(session.SessionEventLock)
 				{
-					if(session.Messages.Contains(optimisticMessage) && !optimisticMessage.IsComplete)
+					if(session.Conversation.Messages.Contains(optimisticMessage) && !optimisticMessage.IsComplete)
 					{
 						string oldId = optimisticMessage.Id;
 						optimisticMessage.Id = sentMessageId;
 
 						// Keep the working group anchor in sync with the updated message ID.
 						// assistant.turn_start may have captured the old GUID before SendAsync returned.
-						if(session.ActiveWorkingGroup?.TriggeredByUserMessageId == oldId)
+						if(session.Conversation.ActiveWorkingGroup?.TriggeredByUserMessageId == oldId)
 						{
-							session.ActiveWorkingGroup.TriggeredByUserMessageId = sentMessageId;
+							session.Conversation.ActiveWorkingGroup.TriggeredByUserMessageId = sentMessageId;
 						}
 					}
 				}
@@ -200,20 +209,20 @@ public sealed partial class SessionFeature
 			{
 				lock(session.SessionEventLock)
 				{
-					session.Messages.Remove(optimisticMessage);
-					session.MessagesSnapshot = [.. session.Messages];
+					session.Conversation.Messages.Remove(optimisticMessage);
+					session.Conversation.PublishMessagesSnapshot();
 				}
 				_sessionListFeature.NotifyStateChanged();
 			}
 
 			// Remove and dispose any previously registered SDK session before forcing a full re-resume
-			if(_sdkRegistry.TryRemove(CurrentSession.Id, out CopilotSession? existingSession))
+			if(_sdkRegistry.TryRemove(sessionId, out CopilotSession? existingSession))
 			{
 				await existingSession.DisposeAsync();
 			}
 
 			// Reset state to NotLoaded so LoadSession performs a full re-resume via the SDK
-			session.SdkState = SdkSessionStateEnum.NotLoaded;
+			session.Lifecycle.SetSdkState(SdkSessionStateEnum.NotLoaded);
 			bool resumed = await ResumeSession(sessionId);
 			if(!resumed)
 			{
@@ -221,7 +230,7 @@ public sealed partial class SessionFeature
 				return;
 			}
 
-			await SendMessageAsync(content, attachments, true);
+			await SendMessageAsync(session, content, attachments, true);
 		}
 		catch(Exception ex)
 		{
@@ -239,9 +248,9 @@ public sealed partial class SessionFeature
 					optimisticMessage.IsComplete = true;
 					optimisticMessage.IsPending = false;
 				}
-				session.Status = SessionStatusEnum.Error;
+				session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Error);
 				SessionErrorHandler.HandleException(session, ex);
-				session.MessagesSnapshot = [.. session.Messages];
+				session.Conversation.PublishMessagesSnapshot();
 			}
 			_sessionListFeature.NotifyStateChanged();
 		}
@@ -272,7 +281,7 @@ public sealed partial class SessionFeature
 				}
 			}
 
-			CurrentSession.MessagesSnapshot = [.. CurrentSession.Messages];
+			CurrentSession.Conversation.PublishMessagesSnapshot();
 		}
 		_sessionListFeature.NotifyStateChanged();
 

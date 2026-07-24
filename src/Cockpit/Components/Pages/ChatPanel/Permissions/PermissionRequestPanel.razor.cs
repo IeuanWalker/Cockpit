@@ -30,7 +30,7 @@ public sealed partial class PermissionRequestPanel : ComponentBase, IDisposable
 	bool _showDropdown = false;
 	PermissionDecisionEnum _selectedAllowOption = PermissionDecisionEnum.Once;
 	PermissionDetailsPopup _moreInfoPopup = default!;
-	PermissionRequestModel? Request => _sessionManager.CurrentSession?.PendingPermissionRequests?.Values.OrderBy(r => r.Requested).FirstOrDefault();
+	PermissionRequestModel? Request => _sessionManager.CurrentSession?.PendingInteractions.Permissions.Values.OrderBy(r => r.Requested).FirstOrDefault();
 
 	string GetAllowLabel(PermissionDecisionEnum option) => option switch
 	{

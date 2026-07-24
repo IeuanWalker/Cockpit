@@ -15,6 +15,7 @@ using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions.Models;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Skills;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.UserInputRequests;
@@ -47,6 +48,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly IAppSettingsFeature _appSettingsFeature;
 	readonly SessionHooksFactory _hooksFactory;
 	readonly CanvasWindowManager _canvasWindowManager;
+	readonly SessionInteractionCoordinator _interactionCoordinator;
 
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
@@ -70,7 +72,8 @@ public sealed partial class SessionFeature : IDisposable
 		PluginsFeature pluginsFeature,
 		IAppSettingsFeature appSettingsFeature,
 		SessionHooksFactory hooksFactory,
-		CanvasWindowManager canvasWindowManager)
+		CanvasWindowManager canvasWindowManager,
+		SessionInteractionCoordinator interactionCoordinator)
 	{
 		_clientFeature = clientFeature;
 		_logger = logger;
@@ -94,6 +97,7 @@ public sealed partial class SessionFeature : IDisposable
 		_appSettingsFeature = appSettingsFeature;
 		_hooksFactory = hooksFactory;
 		_canvasWindowManager = canvasWindowManager;
+		_interactionCoordinator = interactionCoordinator;
 
 		_clientFeature.OnConnectionStateChanged += HandleConnectionStateChanged;
 		StartEvictionLoop();
@@ -118,12 +122,13 @@ public sealed partial class SessionFeature : IDisposable
 		add => _sessionListFeature.OnStateChanged += value;
 		remove => _sessionListFeature.OnStateChanged -= value;
 	}
-	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.ActiveWorkingGroup;
-	public bool IsWorking => CurrentSession?.Status == SessionStatusEnum.Running
-		|| (CurrentSession?.ActiveWorkingGroup is not null && CurrentSession.ActiveWorkingGroup.Status == GroupStatusEnum.Running);
+	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.Conversation.ActiveWorkingGroup;
+	public bool IsWorking => CurrentSession?.Lifecycle.AgentRunState == AgentRunStateEnum.Running
+		|| CurrentSession?.Conversation.ActiveWorkingGroup?.Status == GroupStatusEnum.Running;
 
-	void HandleSessionEvent(string sessionId, SessionEvent evt)
+	void HandleSessionEvent(CopilotSession sdkSession, SessionEvent evt)
 	{
+		string sessionId = sdkSession.SessionId;
 		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 
 		if(session is null)
@@ -135,16 +140,23 @@ public sealed partial class SessionFeature : IDisposable
 			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged)
 			: null;
 
-		lock(session.SessionEventLock)
+		lock(session.Conversation.SyncRoot)
 		{
+			// Registry removal and lifecycle invalidation happen before an old SDK instance is
+			// disposed. Re-check both under the conversation lock so a queued callback cannot
+			// repopulate state that disconnect or eviction just cleared.
+			if(!_sdkRegistry.IsCurrent(sdkSession)
+				|| session.Lifecycle.SdkState == SdkSessionStateEnum.NotLoaded)
+			{
+				_logger.LogDebug("Ignoring stale event from SDK session {SessionId}", sessionId);
+				return;
+			}
+
 			_processor.Process(session, evt, streamCallback);
-			session.MessagesSnapshot = [.. session.Messages];
+			session.Conversation.PublishMessagesSnapshot();
 		}
 
-		if(session == _sessionListFeature.CurrentSession)
-		{
-			_sessionListFeature.NotifyStateChanged();
-		}
+		_sessionListFeature.NotifyStateChanged();
 	}
 
 	public void Dispose()

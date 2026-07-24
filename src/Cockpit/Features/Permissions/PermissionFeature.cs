@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Cockpit.Features.Permissions.Models;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using GitHub.Copilot.Rpc;
@@ -17,6 +18,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 	readonly GlobalDenyFeature _globalDenyFeature;
 	readonly SessionPermissionFeature _sessionPermissionFeature;
 	readonly ISessionStateProvider _sessionStateProvider;
+	readonly SessionInteractionCoordinator _interactionCoordinator;
 	readonly ILogger<PermissionFeature> _logger;
 
 	// In-memory cache of permissions
@@ -31,12 +33,14 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 		GlobalDenyFeature globalDenyFeature,
 		SessionPermissionFeature sessionPermissionFeature,
 		ISessionStateProvider sessionStateProvider,
-		ILogger<PermissionFeature> logger)
+		ILogger<PermissionFeature> logger,
+		SessionInteractionCoordinator? interactionCoordinator = null)
 	{
 		_globalPermissionFeature = globalPermissionFeature;
 		_globalDenyFeature = globalDenyFeature;
 		_sessionPermissionFeature = sessionPermissionFeature;
 		_sessionStateProvider = sessionStateProvider;
+		_interactionCoordinator = interactionCoordinator ?? new SessionInteractionCoordinator(sessionStateProvider);
 		_logger = logger;
 	}
 
@@ -56,7 +60,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 			_logger.LogInformation("Permission request: Kind={Kind}, Commands={Commands}, SessionId={SessionId}", request.Kind, string.Join(", ", permissionRequest.Commands), session.Id);
 
 			// Check permission through our service
-			PermissionDecisionEnum decision = await CheckPermissionAsync(permissionRequest, session.IsYolo);
+			PermissionDecisionEnum decision = await CheckPermissionAsync(permissionRequest, session.Ui.IsYolo);
 
 			_logger.LogInformation("Permission decision: {Decision} for {Commands}", decision, string.Join(", ", permissionRequest.Commands));
 
@@ -70,64 +74,6 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 			_logger.LogError(ex, "Error in permission handler");
 			return PermissionDecision.UserNotAvailable();
 		}
-	}
-
-	void UpdateSessionOnPermissionResolved(string sessionId, string requestId)
-	{
-		SessionModel? session = _sessionStateProvider.Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if(session is null)
-		{
-			return;
-		}
-
-		_logger.LogInformation("Permission resolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
-
-		lock(session.StatusHistoryLock)
-		{
-			session.PendingPermissionRequests.TryRemove(requestId, out _);
-
-			session.Status = session.PendingPermissionRequests.IsEmpty && session.PendingUserInputRequests.IsEmpty && session.PendingElicitationRequests.IsEmpty
-				? session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle
-				: session.PendingPermissionRequests.IsEmpty
-					? !session.PendingUserInputRequests.IsEmpty
-						? SessionStatusEnum.NeedsUserInput
-						: SessionStatusEnum.NeedsElicitation
-					: SessionStatusEnum.NeedsPermission;
-		}
-
-		// Notify UI (outside lock to avoid potential deadlocks)
-		_sessionStateProvider.NotifyStateChanged();
-	}
-
-	void UpdateSessionOnPermissionRequested(string sessionId, PermissionRequestModel request)
-	{
-		SessionModel? session = _sessionStateProvider.Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if(session is null)
-		{
-			return;
-		}
-
-		_logger.LogInformation("Permission requested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
-
-		lock(session.StatusHistoryLock)
-		{
-			if(!session.PendingPermissionRequests.TryAdd(request.Id, request))
-			{
-				_logger.LogWarning("Permission request {RequestId} already exists for session {SessionId}", request.Id, sessionId);
-				return;
-			}
-
-			// Only push to history on the first blocking request (i.e. when not already in a blocking status).
-			// Subsequent concurrent requests see NeedsPermission/NeedsUserInput and skip the push, preventing duplicates.
-			if(session.Status is not SessionStatusEnum.NeedsPermission and not SessionStatusEnum.NeedsUserInput and not SessionStatusEnum.NeedsElicitation)
-			{
-				session.StatusHistory.Push(session.Status);
-			}
-			session.Status = SessionStatusEnum.NeedsPermission;
-		}
-
-		// Notify UI (outside lock to avoid potential deadlocks)
-		_sessionStateProvider.NotifyStateChanged();
 	}
 
 	/// <summary>
@@ -213,7 +159,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 		// Store pending request using unique request ID
 		_pendingRequests[request.Id] = request;
 
-		UpdateSessionOnPermissionRequested(request.SessionId, request);
+		_interactionCoordinator.AddPermission(request.SessionId, request);
 
 		// Wait for user decision
 		try
@@ -226,7 +172,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 		{
 			_logger.LogError(ex, "Error waiting for permission decision");
 			// Clean up session state so the UI doesn't stay stuck in NeedsPermission
-			UpdateSessionOnPermissionResolved(request.SessionId, request.Id);
+			_interactionCoordinator.ResolvePermission(request.SessionId, request.Id);
 			return PermissionDecisionEnum.Denied;
 		}
 		finally
@@ -302,7 +248,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 		_logger.LogDebug("TaskCompletionSource completed: {Completed}", completed);
 
 		// Notify UI with requestId so it can be removed from session list
-		UpdateSessionOnPermissionResolved(request.SessionId, request.Id);
+		_interactionCoordinator.ResolvePermission(request.SessionId, request.Id);
 		OnPermissionResolved?.Invoke(request.SessionId, request.Id);
 	}
 
@@ -358,7 +304,7 @@ public sealed partial class PermissionFeature : IPermissionHandler, IPermissionE
 				pendingRequest.CompletionSource.TrySetResult(decision);
 
 				// Update session state and notify UI using the pending request's own session
-				UpdateSessionOnPermissionResolved(pendingRequest.SessionId, pendingRequest.Id);
+				_interactionCoordinator.ResolvePermission(pendingRequest.SessionId, pendingRequest.Id);
 				OnPermissionResolved?.Invoke(pendingRequest.SessionId, pendingRequest.Id);
 			}
 		}

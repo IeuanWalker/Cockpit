@@ -6,7 +6,7 @@
 <div class="flex items-center gap-1">
 <PickerControl @ref="_modelPicker"
                Title="Model"
-               IsDisabled="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running || _sessionListFeature.CurrentSession?.PendingPermissionRequests?.Count > 0)"
+               IsDisabled="@(_sessionListFeature.CurrentSession?.DisplayStatus == SessionStatusEnum.Running || _sessionListFeature.CurrentSession?.PendingInteractions.Permissions.Count > 0)"
                TooltipText="@GetModelPickerTooltip()"
                DropdownMinWidth="250px">
     <HeaderAction>
@@ -56,8 +56,8 @@
 {
     <PickerControl @ref="_reasoningPicker"
                    Title="Reasoning"
-                   IsDisabled="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running)"
-                   TooltipText="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running ? "You can't change reasoning while the agent is working" : null)"
+                   IsDisabled="@(_sessionListFeature.CurrentSession?.DisplayStatus == SessionStatusEnum.Running)"
+				   TooltipText="@(_sessionListFeature.CurrentSession?.DisplayStatus == SessionStatusEnum.Running ? "You can't change reasoning while the agent is working" : null)"
                    DropdownMinWidth="320px">
         <SelectedContent>
             @GetSelectedReasoningEffortDisplay()

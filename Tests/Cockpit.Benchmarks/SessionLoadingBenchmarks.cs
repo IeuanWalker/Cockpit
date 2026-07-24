@@ -101,7 +101,7 @@ public class SessionLoadingBenchmarks
 					Title = metadata.Summary ?? $"Session {metadata.SessionId[..8]}",
 					CreatedAt = metadata.StartTime.UtcDateTime,
 					LastActivity = metadata.ModifiedTime.UtcDateTime,
-					Status = SessionStatusEnum.Idle,
+					AgentRunState = AgentRunStateEnum.Idle,
 					Model = _defaultModel,
 					ReasoningEffort = _defaultModel.DefaultReasoningEffort,
 					Context = new()

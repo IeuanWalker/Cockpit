@@ -47,7 +47,7 @@ public partial class SessionModeControl : ComponentBase, IDisposable
 		}
 
 		_sessionListFeature.CurrentSession.Context.SelectedAgentMode = mode;
-		_sessionListFeature.CurrentSession.AgentModeChanged = true;
+		_sessionListFeature.CurrentSession.Lifecycle.MarkAgentModeChanged();
 
 		_ = _sessionModePersistence.SaveSessionMode(_sessionListFeature.CurrentSession);
 

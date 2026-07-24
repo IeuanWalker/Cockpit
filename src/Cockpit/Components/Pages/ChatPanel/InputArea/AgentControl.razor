@@ -2,8 +2,8 @@
 
 <PickerControl @ref="_picker" DropdownMinWidth="250px"
                Title="Agent"
-               IsDisabled="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running || _sessionListFeature.CurrentSession?.PendingPermissionRequests?.Count > 0)"
-               TooltipText="@(_sessionListFeature.CurrentSession?.Status == SessionStatusEnum.Running ? "You can't change agent while the agent is working" : null)">
+               IsDisabled="@(_sessionListFeature.CurrentSession?.DisplayStatus == SessionStatusEnum.Running || _sessionListFeature.CurrentSession?.PendingInteractions.Permissions.Count > 0)"
+			   TooltipText="@(_sessionListFeature.CurrentSession?.DisplayStatus == SessionStatusEnum.Running ? "You can't change agent while the agent is working" : null)">
     <SelectedContent>
         <svg class="icon-xs mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align:middle;display:inline-block;color:var(--text-color);">
             <path stroke-linecap="round" stroke-width="1.5" d="M12 2v3" />

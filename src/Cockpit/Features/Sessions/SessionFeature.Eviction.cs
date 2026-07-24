@@ -1,4 +1,4 @@
-using Cockpit.Features.Canvas;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
@@ -71,12 +71,19 @@ public sealed partial class SessionFeature
 			return false;
 		}
 
-		if(session.SdkState is not (SdkSessionStateEnum.Loaded or SdkSessionStateEnum.Resumed))
+		if(session.Lifecycle.SdkState is not (SdkSessionStateEnum.Loaded or SdkSessionStateEnum.Resumed))
 		{
 			return false;
 		}
 
-		if(session.Status is not SessionStatusEnum.Idle)
+		if(session.Lifecycle.AgentRunState is not AgentRunStateEnum.Idle)
+		{
+			return false;
+		}
+
+		// Pending interactions are independent of the agent run state. Evicting while the SDK
+		// is awaiting a response would strand its completion source and discard the prompt.
+		if(session.PendingInteractions.HasAny)
 		{
 			return false;
 		}
@@ -112,21 +119,16 @@ public sealed partial class SessionFeature
 
 			// Transition to NotLoaded first so LoadSession performs a full reload instead of
 			// fast-pathing to a now-empty session if called concurrently.
-			session.SdkState = SdkSessionStateEnum.NotLoaded;
+			session.Lifecycle.ResetForEviction();
 
 			// Clear message history
-			session.Messages = []; // setter also clears MessagesSnapshot
+			session.Conversation.ClearMessages();
 			session.ActiveWorkingGroup = null;
 			session.StreamingMessages.Clear();
 			session.StreamingThinkingEvents.Clear();
 			session.TokenUsageInfo = null;
 			session.PendingMessageCount = 0;
 			session.PendingTaskSummary = null;
-
-			// Clear pending model/agent change flags so reload doesn't make redundant SDK calls
-			session.ModelChanged = false;
-			session.AgentChanged = false;
-			session.AgentModeChanged = false;
 
 			// Clear context panel data (populated by LoadContextPanelDataAsync)
 			session.Context.Agents = [];
@@ -151,17 +153,14 @@ public sealed partial class SessionFeature
 			session.Context.SessionPermissionCommands = [];
 		}
 
-		lock(session.StatusHistoryLock)
-		{
-			session.StatusHistory.Clear();
-		}
-
-		session.PendingPermissionRequests.Clear();
-		session.PendingUserInputRequests.Clear();
+		_interactionCoordinator.ClearBookkeeping(
+			session.Id,
+			PendingInteractionKinds.All);
 
 		// Cancel any awaiting TCS-based handlers so SDK threads don't hang indefinitely.
 		_permissionHandler.CancelPendingRequestsForSession(session.Id);
 		_userInputHandler.CancelPendingRequestsForSession(session.Id);
+		_elicitationHandler.CancelPendingRequestsForSession(session.Id);
 
 		if(sdkSession is not null)
 		{

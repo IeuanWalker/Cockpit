@@ -2,7 +2,7 @@
 
 <div class="border-t border-app-border bg-app-sidebar p-3">
     <div class="relative">
-        @if(_sessionFeature.CurrentSession?.PendingPermissionRequests?.Count > 0 || _sessionFeature.CurrentSession?.PendingUserInputRequests?.Count > 0 || _sessionFeature.CurrentSession?.PendingElicitationRequests?.Count > 0)
+        @if(_sessionFeature.CurrentSession?.PendingInteractions.Permissions.Count > 0 || _sessionFeature.CurrentSession?.PendingInteractions.UserInputs.Count > 0 || _sessionFeature.CurrentSession?.PendingInteractions.Elicitations.Count > 0)
         {
             <div class="absolute inset-0 bg-black bg-opacity-30 z-10 rounded-lg cursor-not-allowed"></div>
         }
@@ -58,9 +58,9 @@
                 <div class="flex items-center space-x-3">
                     <ModelControl />
                     <button @onclick="ToggleYoloMode"
-                            class="px-3 py-0.5 text-xs font-medium rounded transition-colors duration-200 @(_sessionFeature.CurrentSession?.IsYolo == true ? "hover:opacity-75" : "hover:bg-app-hover")"
-                            style="@(_sessionFeature.CurrentSession?.IsYolo == true ? "background-color: var(--accent-color);" : string.Empty)"
-                            title="@(_sessionFeature.CurrentSession?.IsYolo == true ? "ENABLED: YOLO mode automatically approves all permission requests, use with caution!" : "Disabled: YOLO mode automatically approves all permission requests, use with caution!")">
+                            class="px-3 py-0.5 text-xs font-medium rounded transition-colors duration-200 @(_sessionFeature.CurrentSession?.Ui.IsYolo == true ? "hover:opacity-75" : "hover:bg-app-hover")"
+                            style="@(_sessionFeature.CurrentSession?.Ui.IsYolo == true ? "background-color: var(--accent-color);" : string.Empty)"
+                            title="@(_sessionFeature.CurrentSession?.Ui.IsYolo == true ? "ENABLED: YOLO mode automatically approves all permission requests, use with caution!" : "Disabled: YOLO mode automatically approves all permission requests, use with caution!")">
                         YOLO
                     </button>
                 </div>

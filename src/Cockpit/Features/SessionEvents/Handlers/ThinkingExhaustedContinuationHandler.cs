@@ -23,6 +23,6 @@ static class ThinkingExhaustedContinuationHandler
 			TriggeredByUserMessageId = session.Messages.LastOrDefault(m => m.IsUser)?.Id
 		};
 
-		session.Status = SessionStatusEnum.Running;
+		session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Running);
 	}
 }

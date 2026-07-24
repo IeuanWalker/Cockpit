@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Cockpit.Extensions;
 using Cockpit.Features.Sessions;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ namespace Cockpit.Features.UserInputRequests;
 public sealed class UserInputFeature : IUserInputHandler, IUserInputEventSource
 {
 	readonly ISessionStateProvider _sessionStateProvider;
+	readonly SessionInteractionCoordinator _interactionCoordinator;
 	readonly ILogger<UserInputFeature> _logger;
 
 	// In-memory cache of pending requests
@@ -22,9 +24,13 @@ public sealed class UserInputFeature : IUserInputHandler, IUserInputEventSource
 	public event Action<string, UserInputRequestModel>? OnUserInputRequested;
 	public event Action<string, string>? OnUserInputResolved;
 
-	public UserInputFeature(ISessionStateProvider sessionStateProvider, ILogger<UserInputFeature> logger)
+	public UserInputFeature(
+		ISessionStateProvider sessionStateProvider,
+		ILogger<UserInputFeature> logger,
+		SessionInteractionCoordinator? interactionCoordinator = null)
 	{
 		_sessionStateProvider = sessionStateProvider;
+		_interactionCoordinator = interactionCoordinator ?? new SessionInteractionCoordinator(sessionStateProvider);
 		_logger = logger;
 	}
 
@@ -85,7 +91,7 @@ public sealed class UserInputFeature : IUserInputHandler, IUserInputEventSource
 		try
 		{
 			// Notify UI — inside try so cleanup always runs even if a subscriber throws
-			UpdateSessionOnUserInputRequested(request.SessionId, request);
+			_interactionCoordinator.AddUserInput(request.SessionId, request);
 
 			try
 			{
@@ -108,62 +114,6 @@ public sealed class UserInputFeature : IUserInputHandler, IUserInputEventSource
 		{
 			_pendingRequests.TryRemove(request.Id, out _);
 		}
-	}
-
-	void UpdateSessionOnUserInputRequested(string sessionId, UserInputRequestModel request)
-	{
-		SessionModel? session = _sessionStateProvider.Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if(session is null)
-		{
-			return;
-		}
-
-		_logger.LogInformation("User input requested - Adding request ID: {RequestId} to session {SessionId}", request.Id, sessionId);
-
-		lock(session.StatusHistoryLock)
-		{
-			if(!session.PendingUserInputRequests.TryAdd(request.Id, request))
-			{
-				_logger.LogWarning("User input request {RequestId} already exists for session {SessionId}", request.Id, sessionId);
-				return;
-			}
-
-			// Only push to history on the first blocking request (i.e. when not already in a blocking status).
-			// Subsequent concurrent requests see NeedsPermission/NeedsUserInput and skip the push, preventing duplicates.
-			if(session.Status is not SessionStatusEnum.NeedsPermission and not SessionStatusEnum.NeedsUserInput and not SessionStatusEnum.NeedsElicitation)
-			{
-				session.StatusHistory.Push(session.Status);
-			}
-			session.Status = SessionStatusEnum.NeedsUserInput;
-		}
-
-		_sessionStateProvider.NotifyStateChanged();
-	}
-
-	void UpdateSessionOnUserInputResolved(string sessionId, string requestId)
-	{
-		SessionModel? session = _sessionStateProvider.Sessions.FirstOrDefault(s => s.Id == sessionId);
-		if(session is null)
-		{
-			return;
-		}
-
-		_logger.LogInformation("User input resolved - Removing request ID: {RequestId} from session {SessionId}", requestId, sessionId);
-
-		lock(session.StatusHistoryLock)
-		{
-			session.PendingUserInputRequests.TryRemove(requestId, out _);
-
-			session.Status = session.PendingPermissionRequests.IsEmpty && session.PendingUserInputRequests.IsEmpty && session.PendingElicitationRequests.IsEmpty
-				? session.StatusHistory.TryPop(out SessionStatusEnum prev) ? prev : SessionStatusEnum.Idle
-				: session.PendingPermissionRequests.IsEmpty
-					? !session.PendingUserInputRequests.IsEmpty
-						? SessionStatusEnum.NeedsUserInput
-						: SessionStatusEnum.NeedsElicitation
-					: SessionStatusEnum.NeedsPermission;
-		}
-
-		_sessionStateProvider.NotifyStateChanged();
 	}
 
 	/// <summary>
@@ -242,7 +192,7 @@ public sealed class UserInputFeature : IUserInputHandler, IUserInputEventSource
 			return;
 		}
 
-		UpdateSessionOnUserInputResolved(request.SessionId, request.Id);
+		_interactionCoordinator.ResolveUserInput(request.SessionId, request.Id);
 
 		try
 		{

@@ -4,6 +4,7 @@ using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
@@ -86,7 +87,7 @@ public sealed partial class SessionFeature
 
 			lock(session.SessionEventLock)
 			{
-				if(session.SdkState == SdkSessionStateEnum.NotLoaded)
+				if(session.Lifecycle.SdkState == SdkSessionStateEnum.NotLoaded)
 				{
 					continue;
 				}
@@ -96,32 +97,17 @@ public sealed partial class SessionFeature
 				session.StreamingThinkingEvents.Clear();
 
 				// Reset to NotLoaded so the reconnect handler (or user navigation) triggers a reload.
-				session.SdkState = SdkSessionStateEnum.NotLoaded;
+				session.Lifecycle.SetSdkState(SdkSessionStateEnum.NotLoaded);
 
-				// If the session was blocked waiting for permission/input, those requests are now
-				// dead. Restore status so the working panel reflects the active group correctly.
-				// Guard: if there's no active group the session should end up Idle, not Running.
-				if(session.Status is SessionStatusEnum.NeedsPermission or SessionStatusEnum.NeedsUserInput or SessionStatusEnum.NeedsElicitation)
-				{
-					session.Status = session.ActiveWorkingGroup is not null
-						? SessionStatusEnum.Running
-						: SessionStatusEnum.Idle;
-				}
-
-				// Remove from registry inside the lock to stop event delivery on stale state.
+				// Remove from registry inside the lock so message sends can't find it during cleanup; disposing below stops event delivery.
 				_sdkRegistry.TryRemove(session.Id, out sdkSession);
-				session.MessagesSnapshot = [.. session.Messages];
+				session.Conversation.PublishMessagesSnapshot();
 			}
 
 			// Clear blocking-request state outside SessionEventLock to avoid lock-ordering issues.
-			lock(session.StatusHistoryLock)
-			{
-				session.StatusHistory.Clear();
-			}
-
-			session.PendingPermissionRequests.Clear();
-			session.PendingUserInputRequests.Clear();
-			session.PendingElicitationRequests.Clear();
+			_interactionCoordinator.ClearBookkeeping(
+				session.Id,
+				PendingInteractionKinds.All);
 
 			_permissionHandler.CancelPendingRequestsForSession(session.Id);
 			_userInputHandler.CancelPendingRequestsForSession(session.Id);
@@ -160,7 +146,7 @@ public sealed partial class SessionFeature
 		_logger.LogInformation("Client reconnected — resuming current session");
 
 		SessionModel? current = _sessionListFeature.CurrentSession;
-		if(current is null || current.SdkState != SdkSessionStateEnum.NotLoaded)
+		if(current is null || current.Lifecycle.SdkState != SdkSessionStateEnum.NotLoaded)
 		{
 			return;
 		}
@@ -195,12 +181,35 @@ public sealed partial class SessionFeature
 	/// </summary>
 	async Task SilentResumeSessionAsync(SessionModel session)
 	{
+		await session.Lifecycle.SdkTransitionGate.WaitAsync();
+		try
+		{
+			await SilentResumeSessionCoreAsync(session);
+		}
+		finally
+		{
+			session.Lifecycle.SdkTransitionGate.Release();
+		}
+	}
+
+	async Task SilentResumeSessionCoreAsync(SessionModel session)
+	{
 		_logger.LogInformation("Silently resuming session {SessionId} after reconnect", session.Id);
 
 		CopilotSession? sdkSession = null;
+		SdkLifecycleTransition resumeTransition = default;
+		bool resumeClaimed = false;
 		try
 		{
-			session.SdkState = SdkSessionStateEnum.Loading;
+			if(!session.Lifecycle.TryBeginSdkTransition(
+				SdkSessionStateEnum.NotLoaded,
+				SdkSessionStateEnum.Loading,
+				out resumeTransition))
+			{
+				_logger.LogInformation("Skipping silent resume for session {SessionId} because its lifecycle state changed", session.Id);
+				return;
+			}
+			resumeClaimed = true;
 			_sessionListFeature.NotifyStateChanged();
 
 			ProviderConfig? providerConfig = await _modelFeature.GetProviderConfig(session.Model.Id);
@@ -234,11 +243,8 @@ public sealed partial class SessionFeature
 			_sdkRegistry.Register(sdkSession, evt =>
 			{
 				_logger.LogDebug("Session {SessionId} event: {EventType}", sdkSession.SessionId, evt.Type);
-				HandleSessionEvent(sdkSession.SessionId, evt);
+				HandleSessionEvent(sdkSession, evt);
 			});
-
-			session.SdkState = SdkSessionStateEnum.Resumed;
-			_sessionListFeature.NotifyStateChanged();
 
 			// Send an internal continuation prompt. The content prefix causes SessionEventProcessor
 			// to suppress both the live echo and any future replay of this message.
@@ -247,6 +253,17 @@ public sealed partial class SessionFeature
 				Prompt = SessionEventProcessor.reconnectContinuationPrefix + " Session was briefly disconnected, please continue from where you left off.",
 				Mode = MessageTurnModeExtensions.ImmediateSdkToken
 			});
+
+			if(!session.Lifecycle.TryCompleteSdkTransition(
+				resumeTransition,
+				SdkSessionStateEnum.Loading,
+				SdkSessionStateEnum.Resumed))
+			{
+				_sdkRegistry.TryRemove(session.Id, sdkSession);
+				await sdkSession.DisposeAsync();
+				return;
+			}
+			_sessionListFeature.NotifyStateChanged();
 
 			_logger.LogInformation("Silently resumed session {SessionId}", session.Id);
 		}
@@ -257,7 +274,7 @@ public sealed partial class SessionFeature
 			// Clean up any partially-registered session to avoid a stale entry in the registry.
 			if(sdkSession is not null)
 			{
-				_sdkRegistry.TryRemove(session.Id, out _);
+				_sdkRegistry.TryRemove(session.Id, sdkSession);
 				try
 				{
 					await sdkSession.DisposeAsync();
@@ -265,7 +282,13 @@ public sealed partial class SessionFeature
 				catch { }
 			}
 
-			session.SdkState = SdkSessionStateEnum.NotLoaded;
+			if(resumeClaimed)
+			{
+				session.Lifecycle.TryCompleteSdkTransition(
+					resumeTransition,
+					SdkSessionStateEnum.Loading,
+					SdkSessionStateEnum.NotLoaded);
+			}
 
 			// Fallback: finalize the broken working group visually and do a full reload.
 			lock(session.SessionEventLock)
@@ -275,14 +298,14 @@ public sealed partial class SessionFeature
 					SessionIdleHandler.Handle(session, groupStatus: GroupStatusEnum.Error);
 				}
 
-				session.MessagesSnapshot = [.. session.Messages];
+				session.Conversation.PublishMessagesSnapshot();
 			}
 
 			_sessionListFeature.NotifyStateChanged();
 
 			try
 			{
-				await LoadSession(session.Id);
+				await LoadSessionCore(session.Id, session);
 			}
 			catch(Exception loadEx)
 			{

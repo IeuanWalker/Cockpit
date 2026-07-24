@@ -91,7 +91,7 @@ public partial class ModelFeature
 			if(session.Model.Id != model.Id)
 			{
 				session.Model = model;
-				session.ModelChanged = true;
+				session.Lifecycle.MarkModelChanged();
 			}
 
 			if(modelSettings.TryGetValue("ByokConfigId", out string? byokConfigId) && !string.IsNullOrEmpty(byokConfigId))
@@ -101,7 +101,7 @@ public partial class ModelFeature
 				{
 					session.ByokConfigId = byokConfigId;
 					session.Model = byokConfig.ToModelInfo();
-					session.ModelChanged = true;
+					session.Lifecycle.MarkModelChanged();
 				}
 				else
 				{
@@ -118,7 +118,7 @@ public partial class ModelFeature
 				if(!string.IsNullOrEmpty(session.ReasoningEffort))
 				{
 					session.ReasoningEffort = null;
-					session.ModelChanged = true;
+					session.Lifecycle.MarkModelChanged();
 				}
 
 				return true;
@@ -131,7 +131,7 @@ public partial class ModelFeature
 				&& !model.SupportedReasoningEfforts.Contains(session.ReasoningEffort))
 				{
 					session.ReasoningEffort = null;
-					session.ModelChanged = true;
+					session.Lifecycle.MarkModelChanged();
 				}
 
 				return true;
@@ -140,7 +140,7 @@ public partial class ModelFeature
 			if(model.SupportedReasoningEfforts.Contains(reasoningEffort) && session.ReasoningEffort != reasoningEffort)
 			{
 				session.ReasoningEffort = reasoningEffort;
-				session.ModelChanged = true;
+				session.Lifecycle.MarkModelChanged();
 			}
 			else if(!model.SupportedReasoningEfforts.Contains(reasoningEffort))
 			{
@@ -150,7 +150,7 @@ public partial class ModelFeature
 				&& !model.SupportedReasoningEfforts.Contains(session.ReasoningEffort))
 				{
 					session.ReasoningEffort = null;
-					session.ModelChanged = true;
+					session.Lifecycle.MarkModelChanged();
 				}
 			}
 

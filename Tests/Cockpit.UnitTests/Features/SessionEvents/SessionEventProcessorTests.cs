@@ -192,7 +192,7 @@ public class SessionEventProcessorTests
 		// Arrange: enqueue mode — group should be finalized but session stays Running
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Status = SessionStatusEnum.Running;
+		session.AgentRunState = AgentRunStateEnum.Running;
 		session.Messages.Add(new ChatMessageModel { Id = "user1", IsUser = true, Content = "Hello", EventJson = null });
 		session.Messages.Add(new ChatMessageModel { Id = "user2", IsUser = true, Content = "Queued", IsPending = true, EventJson = null });
 		session.ActiveWorkingGroup = new ActivityGroupModel
