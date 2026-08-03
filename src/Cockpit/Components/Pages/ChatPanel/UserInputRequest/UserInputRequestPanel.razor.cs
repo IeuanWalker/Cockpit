@@ -31,7 +31,7 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
 	public string UserTextInput
@@ -65,6 +65,17 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 				await ResizeTextarea();
 			}
 		});
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession
+			| SessionChangeKind.ConversationStructure | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			OnStateChanged();
+		}
 	}
 
 	public Task OnSubmit()
@@ -149,6 +160,6 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

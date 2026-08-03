@@ -30,7 +30,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 
 	protected override async Task OnInitializedAsync()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		_byokFeature.OnChanged += OnByokChanged;
 
 		await RefreshModelsAsync();
@@ -39,6 +39,17 @@ public partial class ModelControl : ComponentBase, IDisposable
 	void OnStateChanged()
 	{
 		_ = InvokeAsync(StateHasChanged);
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession
+			| SessionChangeKind.SessionSummary | SessionChangeKind.ConversationStructure;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			OnStateChanged();
+		}
 	}
 
 	void OnByokChanged()
@@ -214,7 +225,7 @@ public partial class ModelControl : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionListFeature.OnStateChanged -= OnStateChanged;
+			_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 			_byokFeature.OnChanged -= OnByokChanged;
 		}
 	}

@@ -26,13 +26,23 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		Refresh();
 	}
 
 	void OnStateChanged()
 	{
 		InvokeAsync(() => { Refresh(); StateHasChanged(); });
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			OnStateChanged();
+		}
 	}
 
 	void ShowMcpServerInfo(McpServer server)
@@ -117,6 +127,6 @@ public sealed partial class MCPServers : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

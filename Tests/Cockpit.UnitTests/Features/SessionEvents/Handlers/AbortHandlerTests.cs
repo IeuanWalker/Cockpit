@@ -34,7 +34,7 @@ public class AbortHandlerTests
 		// Arrange
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, EventJson = null });
 
 		processor.Process(session, new ToolExecutionStartEvent
 		{
@@ -60,8 +60,8 @@ public class AbortHandlerTests
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Add pending user messages
-		session.Messages.Add(new ChatMessageModel { IsUser = true, IsPending = true, IsComplete = true, Content = "Pending 1", EventJson = null });
-		session.Messages.Add(new ChatMessageModel { IsUser = true, IsPending = true, IsComplete = true, Content = "Pending 2", EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, IsPending = true, IsComplete = true, Content = "Pending 1", EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, IsPending = true, IsComplete = true, Content = "Pending 2", EventJson = null });
 
 		// Act
 		processor.Process(session, new AbortEvent { Data = new AbortData { Reason = new AbortReason("test") }, Timestamp = DateTimeOffset.UtcNow });
@@ -76,7 +76,7 @@ public class AbortHandlerTests
 		// Arrange
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = true, IsPending = true, IsComplete = true, Content = "Queued", EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, IsPending = true, IsComplete = true, Content = "Queued", EventJson = null });
 
 		// Act
 		processor.Process(session, new AbortEvent { Data = new AbortData { Reason = new AbortReason("test") }, Timestamp = DateTimeOffset.UtcNow });
@@ -92,7 +92,7 @@ public class AbortHandlerTests
 		// Arrange
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, EventJson = null });
 
 		processor.Process(session, new ToolExecutionStartEvent
 		{

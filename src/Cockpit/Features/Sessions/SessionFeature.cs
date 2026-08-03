@@ -122,6 +122,11 @@ public sealed partial class SessionFeature : IDisposable
 		add => _sessionListFeature.OnStateChanged += value;
 		remove => _sessionListFeature.OnStateChanged -= value;
 	}
+	public event Action<SessionStateChange>? OnSessionStateChanged
+	{
+		add => _sessionListFeature.OnSessionStateChanged += value;
+		remove => _sessionListFeature.OnSessionStateChanged -= value;
+	}
 	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.Conversation.ActiveWorkingGroup;
 	public bool IsWorking => CurrentSession?.Lifecycle.AgentRunState == AgentRunStateEnum.Running
 		|| CurrentSession?.Conversation.ActiveWorkingGroup?.Status == GroupStatusEnum.Running;
@@ -137,8 +142,12 @@ public sealed partial class SessionFeature : IDisposable
 		}
 
 		Func<ChatMessageModel, string, Task>? streamCallback = session == _sessionListFeature.CurrentSession
-			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged)
+			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(
+				msg,
+				text,
+				() => _sessionListFeature.NotifyStateChanged(sessionId, SessionChangeKind.ConversationContent))
 			: null;
+		SessionChangeKind changeKind;
 
 		lock(session.Conversation.SyncRoot)
 		{
@@ -152,11 +161,10 @@ public sealed partial class SessionFeature : IDisposable
 				return;
 			}
 
-			_processor.Process(session, evt, streamCallback);
-			session.Conversation.PublishMessagesSnapshot();
+			changeKind = _processor.Process(session, evt, streamCallback);
 		}
 
-		_sessionListFeature.NotifyStateChanged();
+		_sessionListFeature.NotifyStateChanged(sessionId, changeKind);
 	}
 
 	public void Dispose()

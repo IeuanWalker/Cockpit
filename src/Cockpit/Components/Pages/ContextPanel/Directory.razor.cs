@@ -44,12 +44,22 @@ public partial class Directory : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
 	void OnStateChanged()
 	{
 		InvokeAsync(StateHasChanged);
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			OnStateChanged();
+		}
 	}
 
 	public void Dispose()
@@ -62,7 +72,7 @@ public partial class Directory : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionListFeature.OnStateChanged -= OnStateChanged;
+			_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 		}
 	}
 

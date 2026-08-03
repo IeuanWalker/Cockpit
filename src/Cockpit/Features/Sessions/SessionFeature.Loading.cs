@@ -177,15 +177,10 @@ public sealed partial class SessionFeature
 
 				await Task.Run(() =>
 				{
-					foreach(SessionEvent evt in events)
-					{
-						_processor.Process(tempSession, evt);
-					}
-
-					if(tempSession.ActiveWorkingGroup is not null)
-					{
-						_processor.FinalizeOpenGroup(tempSession);
-					}
+					// This temporary session is never rendered. Reconstruct the complete history
+					// before publishing its immutable snapshot so long histories do not copy the
+					// growing message list after every structural event.
+					_processor.ProcessBatch(tempSession, events, finalizeOpenGroup: true);
 				});
 				tempSession.Lifecycle.SetSuppressFinishedNotification(false);
 
@@ -239,7 +234,17 @@ public sealed partial class SessionFeature
 				registered = true;
 				_sdkSessionByokId[sessionId] = session.ByokConfigId;
 
+				// Switching to a different session already makes ChatMessages rebuild its window from
+				// the newly selected conversation. When reconnecting/reloading the session that is
+				// already selected, however, CurrentSession alone is intentionally ignored by the
+				// message component. Preserve that distinction and publish a reset only after every
+				// fallible load/switch step has succeeded.
+				SessionChangeKind successfulHistoryReplacementKind =
+					SessionLoadNotificationPolicy.GetSuccessfulHistoryReplacementKind(
+						_sessionListFeature.CurrentSession?.Id,
+						sessionId);
 				await SwitchCurrentSessionAsync(session);
+				_sessionListFeature.NotifyStateChanged(sessionId, successfulHistoryReplacementKind);
 				_logger.LogInformation("Successfully loaded session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
 				return true;
 			}
@@ -345,4 +350,14 @@ public sealed partial class SessionFeature
 			})
 		};
 
+}
+
+internal static class SessionLoadNotificationPolicy
+{
+	public static SessionChangeKind GetSuccessfulHistoryReplacementKind(
+		string? selectedSessionId,
+		string loadedSessionId) =>
+		string.Equals(selectedSessionId, loadedSessionId, StringComparison.Ordinal)
+			? SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure
+			: SessionChangeKind.None;
 }

@@ -86,7 +86,7 @@ public class SessionShutdownHandlerTests
 		// Arrange — non-routine shutdown ends the session for real; the active group must be closed
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, EventJson = null });
 
 		processor.Process(session, new ToolExecutionStartEvent
 		{

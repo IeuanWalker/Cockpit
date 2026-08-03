@@ -30,7 +30,7 @@ public sealed partial class GitBranch : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		_renderedBranch = CurrentBranch;
 	}
 
@@ -39,8 +39,18 @@ public sealed partial class GitBranch : ComponentBase, IDisposable
 		InvokeAsync(StateHasChanged);
 	}
 
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			OnStateChanged();
+		}
+	}
+
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

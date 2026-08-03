@@ -24,13 +24,23 @@ public sealed partial class Skills : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		Refresh();
 	}
 
 	void OnStateChanged()
 	{
 		InvokeAsync(() => { Refresh(); StateHasChanged(); });
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			OnStateChanged();
+		}
 	}
 
 	void ShowSkillInfo(Skill skill) => _skillInfoPopup?.Open(_allSkills, skill);
@@ -116,6 +126,6 @@ public sealed partial class Skills : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

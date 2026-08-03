@@ -47,7 +47,7 @@ public sealed class SessionConversationStateTests
 		session.Conversation.ReplaceMessages([first]);
 		ImmutableArray<ChatMessageModel> firstSnapshot = session.Conversation.MessagesSnapshot;
 
-		session.Conversation.Messages.Add(second);
+		session.Conversation.AddMessage(second);
 
 		firstSnapshot.ShouldBe([first]);
 		session.Conversation.MessagesSnapshot.ShouldBe([first]);
@@ -55,6 +55,37 @@ public sealed class SessionConversationStateTests
 		session.Conversation.PublishMessagesSnapshot();
 
 		firstSnapshot.ShouldBe([first]);
+		session.Conversation.MessagesSnapshot.ShouldBe([first, second]);
+	}
+
+	[Fact]
+	public void ContentMutation_RetainsSnapshotIdentity()
+	{
+		SessionModel session = CreateSession();
+		ChatMessageModel message = new() { Id = "message", Content = "Initial", EventJson = null };
+		session.Conversation.ReplaceMessages([message]);
+		ImmutableArray<ChatMessageModel> snapshot = session.Conversation.MessagesSnapshot;
+
+		message.Content = "Streaming update";
+
+		session.Conversation.PublishMessagesSnapshotIfChanged().ShouldBeFalse();
+		session.Conversation.MessagesSnapshot.Equals(snapshot).ShouldBeTrue();
+		session.Conversation.MessagesSnapshot[0].Content.ShouldBe("Streaming update");
+	}
+
+	[Fact]
+	public void ControlledStructuralMutation_ReplacesSnapshotIdentity()
+	{
+		SessionModel session = CreateSession();
+		ChatMessageModel first = new() { Id = "first", Content = "First", EventJson = null };
+		ChatMessageModel second = new() { Id = "second", Content = "Second", EventJson = null };
+		session.Conversation.ReplaceMessages([first]);
+		ImmutableArray<ChatMessageModel> snapshot = session.Conversation.MessagesSnapshot;
+
+		session.Conversation.AddMessage(second);
+
+		session.Conversation.PublishMessagesSnapshotIfChanged().ShouldBeTrue();
+		session.Conversation.MessagesSnapshot.Equals(snapshot).ShouldBeFalse();
 		session.Conversation.MessagesSnapshot.ShouldBe([first, second]);
 	}
 
@@ -78,7 +109,7 @@ public sealed class SessionConversationStateTests
 		SessionModel session = CreateSession();
 		for(int i = 0; i < 256; i++)
 		{
-			session.Conversation.Messages.Add(new ChatMessageModel
+			session.Conversation.AddMessage(new ChatMessageModel
 			{
 				Id = $"message-{i}",
 				Content = "Message",
@@ -86,13 +117,30 @@ public sealed class SessionConversationStateTests
 			});
 		}
 		session.Conversation.PublishMessagesSnapshot();
-		session.Conversation.Messages.Capacity.ShouldBeGreaterThan(0);
+		session.Conversation.RetainedMessageCapacity.ShouldBeGreaterThan(0);
 
 		session.Conversation.ClearMessages();
 
 		session.Conversation.Messages.ShouldBeEmpty();
-		session.Conversation.Messages.Capacity.ShouldBe(0);
+		session.Conversation.RetainedMessageCapacity.ShouldBe(0);
 		session.Conversation.MessagesSnapshot.ShouldBeEmpty();
+	}
+
+	[Fact]
+	public void Messages_ExposeReadOnlyContractsAndRejectStructuralMutation()
+	{
+		SessionModel session = CreateSession();
+		ChatMessageModel message = new() { Id = "message", Content = "Hello", EventJson = null };
+		session.Conversation.AddMessage(message);
+
+		typeof(SessionConversationState).GetProperty(nameof(SessionConversationState.Messages))!
+			.PropertyType.ShouldBe(typeof(IReadOnlyList<ChatMessageModel>));
+		typeof(SessionModel).GetProperty(nameof(SessionModel.Messages))!
+			.PropertyType.ShouldBe(typeof(IReadOnlyList<ChatMessageModel>));
+
+		IList<ChatMessageModel> runtimeView = session.Messages.ShouldBeAssignableTo<IList<ChatMessageModel>>();
+		Should.Throw<NotSupportedException>(() => runtimeView.Add(new ChatMessageModel { EventJson = null }));
+		session.Messages.ShouldBe([message]);
 	}
 
 	[Fact]

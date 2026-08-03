@@ -23,7 +23,7 @@ public sealed partial class AgentControl : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		RefreshAgents();
 	}
 
@@ -34,6 +34,16 @@ public sealed partial class AgentControl : ComponentBase, IDisposable
 			RefreshAgents();
 			StateHasChanged();
 		});
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			OnStateChanged();
+		}
 	}
 
 	void RefreshAgents()
@@ -83,6 +93,6 @@ public sealed partial class AgentControl : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

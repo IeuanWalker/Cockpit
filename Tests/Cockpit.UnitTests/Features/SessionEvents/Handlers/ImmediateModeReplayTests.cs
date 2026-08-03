@@ -122,7 +122,7 @@ public class ImmediateModeReplayTests
 		processor.FinalizeOpenGroup(session);
 
 		// Assert ordering
-		List<ChatMessageModel> messages = session.Messages;
+		List<ChatMessageModel> messages = [.. session.Messages];
 		int deepDiveIdx = messages.FindIndex(m => m.IsUser && m.Content == "Deep dive");
 		int actuallyFocusIdx = messages.IndexOf(actuallyFocusMsg);
 		int group1Idx = messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup
@@ -165,7 +165,7 @@ public class ImmediateModeReplayTests
 			IsPending = false,   // immediate mode: not queued
 			EventJson = null
 		};
-		session.Messages.Add(optimistic);
+		session.Conversation.AddMessage(optimistic);
 
 		// Act: SDK echoes the user.message (wasAgentBusy=true inside the processor)
 		processor.Process(session, new UserMessageEvent
@@ -202,7 +202,7 @@ public class ImmediateModeReplayTests
 			IsPending = true,   // enqueue mode: explicitly queued
 			EventJson = null
 		};
-		session.Messages.Add(optimistic);
+		session.Conversation.AddMessage(optimistic);
 
 		processor.Process(session, new UserMessageEvent
 		{
@@ -293,11 +293,11 @@ public class ImmediateModeReplayTests
 
 		// Expected order: "First task" → group1 → "Second task" → group2
 		// (ops for turn 1 appear between the two user messages, ops for turn 2 follow second msg)
-		int firstTaskIdx = session.Messages.FindIndex(m => m.IsUser && m.Content == "First task");
-		int secondTaskIdx = session.Messages.IndexOf(secondMsg);
-		int group1Idx = session.Messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup
+		int firstTaskIdx = session.Conversation.FindMessageIndex(m => m.IsUser && m.Content == "First task");
+		int secondTaskIdx = session.Conversation.IndexOfMessage(secondMsg);
+		int group1Idx = session.Conversation.FindMessageIndex(m => m.Type == MessageTypeEnum.ActivityGroup
 			&& m.ActivityGroup?.Tools.Any(t => t.ToolCallId == "tc1") == true);
-		int group2Idx = session.Messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup
+		int group2Idx = session.Conversation.FindMessageIndex(m => m.Type == MessageTypeEnum.ActivityGroup
 			&& m.ActivityGroup?.Tools.Any(t => t.ToolCallId == "tc2") == true);
 
 		secondTaskIdx.ShouldBeGreaterThan(firstTaskIdx, "'Second task' after 'First task'");
@@ -577,8 +577,8 @@ public class ImmediateModeReplayTests
 			IsPending = false,
 			EventJson = null
 		};
-		session.Messages.Add(u1);
-		session.Messages.Add(u2);
+		session.Conversation.AddMessage(u1);
+		session.Conversation.AddMessage(u2);
 		session.ActiveWorkingGroup = null;
 
 		// Agent emits a message with no active group → leaked to chat
@@ -711,7 +711,7 @@ public class ImmediateModeReplayTests
 			IsPending = false,
 			EventJson = null
 		};
-		session.Messages.Add(anchorMsg);
+		session.Conversation.AddMessage(anchorMsg);
 
 		// Agent emits a delta AFTER the anchor (no active group → leaked to chat)
 		processor.Process(session, new AssistantMessageDeltaEvent
@@ -728,8 +728,8 @@ public class ImmediateModeReplayTests
 		// Leaked text must be in chat at this point (after anchor "u2")
 		session.Messages.ShouldContain(m => m.Id == "leaked-msg",
 			"delta with no active group must land in chat");
-		session.Messages.IndexOf(session.Messages.First(m => m.Id == "leaked-msg"))
-			.ShouldBeGreaterThan(session.Messages.IndexOf(anchorMsg),
+		session.Conversation.IndexOfMessage(session.Messages.First(m => m.Id == "leaked-msg"))
+			.ShouldBeGreaterThan(session.Conversation.IndexOfMessage(anchorMsg),
 			"leaked message must appear after anchor user message");
 
 		// turn_start fires → creates group 2 and absorbs the leaked text

@@ -36,7 +36,7 @@ public partial class MainLayout : IDisposable
 		_authCheckFeature = authCheckFeature;
 
 		_uiStateFeature.OnStateChanged += OnStateChanged;
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		_authCheckFeature.OnStateChanged += OnStateChanged;
 	}
 
@@ -76,6 +76,14 @@ public partial class MainLayout : IDisposable
 	void OnStateChanged()
 	{
 		InvokeAsync(StateHasChanged);
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		if((change.Kind & SessionChangeKind.CurrentSession) != 0)
+		{
+			OnStateChanged();
+		}
 	}
 
 	bool _renderedHasSession;
@@ -122,7 +130,7 @@ public partial class MainLayout : IDisposable
 		if(disposing)
 		{
 			_uiStateFeature.OnStateChanged -= OnStateChanged;
-			_sessionListFeature.OnStateChanged -= OnStateChanged;
+			_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 			_authCheckFeature.OnStateChanged -= OnStateChanged;
 			_dotNetRef?.Dispose();
 		}

@@ -121,13 +121,14 @@ public sealed partial class SessionFeature
 					Timestamp = DateTime.UtcNow,
 					Type = MessageTypeEnum.Text,
 					IsComplete = false,
+					WasSentLocally = true,
 					// Immediate mode bypasses the queue — never show as pending even if agent is busy
 					IsPending = agentWasBusy && selectedTurnMode == MessageTurnModeEnum.Enqueue,
 					Attachments = attachments?.Count > 0 ? attachments : null,
 					EventJson = null
 				};
-				session.Conversation.Messages.Add(optimisticMessage);
-				session.Conversation.PublishMessagesSnapshot();
+				session.Conversation.AddMessage(optimisticMessage);
+				session.Conversation.PublishMessagesSnapshotIfChanged();
 
 				// For immediate (steering) mode: flag that a new turn is imminent so the
 				// working panel and Running status are preserved through the idle transition.
@@ -141,7 +142,9 @@ public sealed partial class SessionFeature
 					session.Conversation.HasQueuedImmediateMessage = false;
 				}
 			}
-			_sessionListFeature.NotifyStateChanged();
+			_sessionListFeature.NotifyStateChanged(
+				session.Id,
+				SessionChangeKind.ConversationStructure | SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary);
 
 			List<Attachment>? sdkAttachments = null;
 			if(attachments?.Count > 0)
@@ -209,10 +212,10 @@ public sealed partial class SessionFeature
 			{
 				lock(session.SessionEventLock)
 				{
-					session.Conversation.Messages.Remove(optimisticMessage);
-					session.Conversation.PublishMessagesSnapshot();
+					session.Conversation.RemoveMessage(optimisticMessage);
+					session.Conversation.PublishMessagesSnapshotIfChanged();
 				}
-				_sessionListFeature.NotifyStateChanged();
+				_sessionListFeature.NotifyStateChanged(session.Id, SessionChangeKind.ConversationStructure);
 			}
 
 			// Remove and dispose any previously registered SDK session before forcing a full re-resume
@@ -250,9 +253,13 @@ public sealed partial class SessionFeature
 				}
 				session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Error);
 				SessionErrorHandler.HandleException(session, ex);
-				session.Conversation.PublishMessagesSnapshot();
+				bool structureChanged = session.Conversation.PublishMessagesSnapshotIfChanged();
+				_sessionListFeature.NotifyStateChanged(
+					session.Id,
+					SessionChangeKind.ConversationContent
+						| SessionChangeKind.SessionSummary
+						| (structureChanged ? SessionChangeKind.ConversationStructure : SessionChangeKind.None));
 			}
-			_sessionListFeature.NotifyStateChanged();
 		}
 	}
 
@@ -268,8 +275,8 @@ public sealed partial class SessionFeature
 
 		lock(CurrentSession.SessionEventLock)
 		{
-			int index = CurrentSession.Messages.IndexOf(message);
-			CurrentSession.Messages.Remove(message);
+			int index = CurrentSession.Conversation.IndexOfMessage(message);
+			CurrentSession.Conversation.RemoveMessage(message);
 
 			// Remove the companion error message that was added immediately after the failed send
 			if(index >= 0 && index < CurrentSession.Messages.Count)
@@ -277,13 +284,13 @@ public sealed partial class SessionFeature
 				ChatMessageModel next = CurrentSession.Messages[index];
 				if(next.Type == MessageTypeEnum.Error && !next.IsUser)
 				{
-					CurrentSession.Messages.RemoveAt(index);
+					CurrentSession.Conversation.RemoveMessageAt(index);
 				}
 			}
 
-			CurrentSession.Conversation.PublishMessagesSnapshot();
+			CurrentSession.Conversation.PublishMessagesSnapshotIfChanged();
 		}
-		_sessionListFeature.NotifyStateChanged();
+		_sessionListFeature.NotifyStateChanged(CurrentSession.Id, SessionChangeKind.ConversationStructure);
 
 		await SendMessageAsync(content, attachments);
 	}

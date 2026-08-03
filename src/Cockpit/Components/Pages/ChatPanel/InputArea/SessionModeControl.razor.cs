@@ -19,12 +19,22 @@ public partial class SessionModeControl : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
 	void OnStateChanged()
 	{
 		InvokeAsync(StateHasChanged);
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			OnStateChanged();
+		}
 	}
 
 	SessionAgentModeEnum GetCurrentMode()
@@ -65,7 +75,7 @@ public partial class SessionModeControl : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionListFeature.OnStateChanged -= OnStateChanged;
+			_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 		}
 	}
 }

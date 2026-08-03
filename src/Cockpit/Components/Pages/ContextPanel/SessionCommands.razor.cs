@@ -19,7 +19,7 @@ public sealed partial class SessionCommands : ComponentBase, IDisposable
 	protected override void OnInitialized()
 	{
 		RefreshCommands();
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
 	void OnStateChanged()
@@ -29,6 +29,15 @@ public sealed partial class SessionCommands : ComponentBase, IDisposable
 			RefreshCommands();
 			StateHasChanged();
 		});
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionListFeature.CurrentSession?.Id, change, SessionChangeKind.CurrentSession))
+		{
+			OnStateChanged();
+		}
 	}
 
 	void RefreshCommands()
@@ -52,6 +61,6 @@ public sealed partial class SessionCommands : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

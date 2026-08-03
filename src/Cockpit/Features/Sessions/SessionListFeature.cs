@@ -14,15 +14,16 @@ public sealed class SessionListFeature : ISessionStateProvider
 	}
 
 	public event Action? OnStateChanged;
+	public event Action<SessionStateChange>? OnSessionStateChanged;
 
 	public IReadOnlyList<SessionModel> Sessions => _sessions;
 
 	public SessionModel? CurrentSession { get; private set; }
 
-	public void SetCurrentSession(SessionModel session)
+	public void SetCurrentSession(SessionModel? session)
 	{
 		CurrentSession = session;
-		NotifyStateChanged();
+		NotifyStateChanged(session?.Id, SessionChangeKind.CurrentSession);
 	}
 
 	internal void AddSession(SessionModel session)
@@ -63,20 +64,59 @@ public sealed class SessionListFeature : ISessionStateProvider
 
 		_sessions.Remove(session);
 
-		if(CurrentSession?.Id == sessionId)
+		bool removedCurrentSession = CurrentSession?.Id == sessionId;
+		if(removedCurrentSession)
 		{
 			CurrentSession = null;
 		}
 
-		NotifyStateChanged();
+		SessionChangeKind kind = SessionChangeKind.SessionCollection;
+		if(removedCurrentSession)
+		{
+			kind |= SessionChangeKind.CurrentSession;
+		}
+		NotifyStateChanged(sessionId, kind);
 	}
 
 	// Coalesce rapid burst notifications into a single render frame (~60 fps cap).
-	int _notifyPending = 0;
+	readonly Lock _notificationLock = new();
+	readonly Dictionary<string, SessionChangeKind> _pendingSessionChanges = [];
+	SessionChangeKind _pendingGlobalChanges;
+	bool _notifyPending;
 
-	public void NotifyStateChanged()
+	public void NotifyStateChanged() => NotifyStateChanged(null, SessionChangeKind.All);
+
+	public void NotifyStateChanged(string? sessionId, SessionChangeKind kind) =>
+		NotifyStateChanged(new SessionStateChange(sessionId, kind));
+
+	public void NotifyStateChanged(SessionStateChange change)
 	{
-		if(Interlocked.CompareExchange(ref _notifyPending, 1, 0) == 0)
+		if(change.Kind == SessionChangeKind.None)
+		{
+			return;
+		}
+
+		bool startNotifier = false;
+		lock(_notificationLock)
+		{
+			if(change.SessionId is null)
+			{
+				_pendingGlobalChanges |= change.Kind;
+			}
+			else
+			{
+				_pendingSessionChanges.TryGetValue(change.SessionId, out SessionChangeKind pending);
+				_pendingSessionChanges[change.SessionId] = pending | change.Kind;
+			}
+
+			if(!_notifyPending)
+			{
+				_notifyPending = true;
+				startNotifier = true;
+			}
+		}
+
+		if(startNotifier)
 		{
 			_ = NotifyStateChangedAsync();
 		}
@@ -87,14 +127,73 @@ public sealed class SessionListFeature : ISessionStateProvider
 		try
 		{
 			await Task.Delay(16, CancellationToken.None).ConfigureAwait(false);
-			Interlocked.Exchange(ref _notifyPending, 0);
-			OnStateChanged?.Invoke();
+
+			SessionChangeKind globalChanges;
+			KeyValuePair<string, SessionChangeKind>[] sessionChanges;
+			lock(_notificationLock)
+			{
+				globalChanges = _pendingGlobalChanges;
+				_pendingGlobalChanges = SessionChangeKind.None;
+				sessionChanges = [.. _pendingSessionChanges];
+				_pendingSessionChanges.Clear();
+				_notifyPending = false;
+			}
+
+			if(globalChanges != SessionChangeKind.None)
+			{
+				InvokeTypedHandlers(new SessionStateChange(null, globalChanges));
+			}
+			foreach(KeyValuePair<string, SessionChangeKind> sessionChange in sessionChanges)
+			{
+				InvokeTypedHandlers(new SessionStateChange(sessionChange.Key, sessionChange.Value));
+			}
+			InvokeCompatibilityHandlers();
 		}
 		catch(Exception ex)
 		{
 			// Swallow exceptions to prevent unobserved task exceptions from crashing the app.
 			// OnStateChanged handlers are UI update callbacks; failures here are non-critical.
 			_logger.LogDebug(ex, "StateChanged notification threw");
+		}
+	}
+
+	void InvokeTypedHandlers(SessionStateChange change)
+	{
+		if(OnSessionStateChanged is null)
+		{
+			return;
+		}
+
+		foreach(Action<SessionStateChange> handler in OnSessionStateChanged.GetInvocationList().Cast<Action<SessionStateChange>>())
+		{
+			try
+			{
+				handler(change);
+			}
+			catch(Exception ex)
+			{
+				_logger.LogDebug(ex, "Typed state change handler threw");
+			}
+		}
+	}
+
+	void InvokeCompatibilityHandlers()
+	{
+		if(OnStateChanged is null)
+		{
+			return;
+		}
+
+		foreach(Action handler in OnStateChanged.GetInvocationList().Cast<Action>())
+		{
+			try
+			{
+				handler();
+			}
+			catch(Exception ex)
+			{
+				_logger.LogDebug(ex, "StateChanged notification handler threw");
+			}
 		}
 	}
 }

@@ -24,7 +24,7 @@ public sealed partial class PermissionRequestPanel : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionManager.OnStateChanged += OnStateChanged;
+		_sessionManager.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
 	bool _showDropdown = false;
@@ -60,6 +60,17 @@ public sealed partial class PermissionRequestPanel : ComponentBase, IDisposable
 		InvokeAsync(StateHasChanged);
 	}
 
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession
+			| SessionChangeKind.ConversationStructure | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionManager.CurrentSession?.Id, change, relevantKinds))
+		{
+			OnStateChanged();
+		}
+	}
+
 	Task OnDecision(PermissionDecisionEnum decision)
 	{
 		PermissionRequestModel? currentRequest = Request;
@@ -82,6 +93,6 @@ public sealed partial class PermissionRequestPanel : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionManager.OnStateChanged -= OnStateChanged;
+		_sessionManager.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

@@ -91,7 +91,7 @@ public class SessionTaskCompleteHandlerTests
 		// assistant message content and PendingTaskSummary is cleared.
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new Cockpit.Features.SessionEvents.Models.ChatMessageModel { IsUser = true, EventJson = null });
+		session.Conversation.AddMessage(new Cockpit.Features.SessionEvents.Models.ChatMessageModel { IsUser = true, EventJson = null });
 
 		processor.Process(session, new ToolExecutionStartEvent
 		{

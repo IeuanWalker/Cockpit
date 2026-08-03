@@ -66,7 +66,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionFeature.OnStateChanged += OnStateChanged;
+		_sessionFeature.OnSessionStateChanged += OnSessionStateChanged;
 		_uiStateFeature.OnAppendChatInput += OnAppendChatInput;
 	}
 
@@ -115,6 +115,18 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 				await FocusInputAsync();
 			}
 		});
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession
+			| SessionChangeKind.SessionSummary | SessionChangeKind.ConversationStructure
+			| SessionChangeKind.WorkingState;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			OnStateChanged();
+		}
 	}
 
 	void OnUIStateChangedHandler()
@@ -677,7 +689,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	public async ValueTask DisposeAsync()
 	{
-		_sessionFeature.OnStateChanged -= OnStateChanged;
+		_sessionFeature.OnSessionStateChanged -= OnSessionStateChanged;
 		_uiStateFeature.OnAppendChatInput -= OnAppendChatInput;
 
 		if(_subscribedToUIState)

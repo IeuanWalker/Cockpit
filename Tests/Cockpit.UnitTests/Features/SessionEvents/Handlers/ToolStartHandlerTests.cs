@@ -115,9 +115,9 @@ public class ToolStartHandlerTests
 		SessionEventProcessor processor = CreateProcessor();
 
 		// Simulate a turn: user message then assistant message
-		session.Messages.Add(new ChatMessageModel { IsUser = true, Content = "Do something", EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, Content = "Do something", EventJson = null });
 		ChatMessageModel assistantMsg = new() { IsUser = false, Type = MessageTypeEnum.Text, Content = "Sure", EventJson = null };
-		session.Messages.Add(assistantMsg);
+		session.Conversation.AddMessage(assistantMsg);
 
 		ToolExecutionStartEvent evt = new()
 		{

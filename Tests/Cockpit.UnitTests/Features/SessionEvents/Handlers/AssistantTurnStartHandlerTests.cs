@@ -41,7 +41,7 @@ public class AssistantTurnStartHandlerTests
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		ChatMessageModel userMsg = new() { Id = "msg-1", Content = "Do something", IsUser = true, IsComplete = true, EventJson = null };
-		session.Messages.Add(userMsg);
+		session.Conversation.AddMessage(userMsg);
 
 		// Act
 		processor.Process(session, new AssistantTurnStartEvent
@@ -62,7 +62,7 @@ public class AssistantTurnStartHandlerTests
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		ChatMessageModel pendingMsg = new() { Id = "pending-1", Content = "Queued", IsUser = true, IsComplete = true, IsPending = true, EventJson = null };
-		session.Messages.Add(pendingMsg);
+		session.Conversation.AddMessage(pendingMsg);
 
 		// Act
 		processor.Process(session, new AssistantTurnStartEvent
@@ -89,7 +89,7 @@ public class AssistantTurnStartHandlerTests
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		ChatMessageModel userMsg = new() { Id = "msg-immediate", Content = "Actually focus", IsUser = true, IsComplete = true, IsPending = true, EventJson = null };
-		session.Messages.Add(userMsg);
+		session.Conversation.AddMessage(userMsg);
 
 		// Act: non-initial turnId — should NOT consume pending
 		processor.Process(session, new AssistantTurnStartEvent
@@ -129,9 +129,9 @@ public class AssistantTurnStartHandlerTests
 		// When multiple non-pending messages exist, the fallback must pick the last (most recent)
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { Id = "msg-1", Content = "First", IsUser = true, IsComplete = true, EventJson = null });
-		session.Messages.Add(new ChatMessageModel { Id = "msg-2", Content = "Second", IsUser = true, IsComplete = true, EventJson = null });
-		session.Messages.Add(new ChatMessageModel { Id = "msg-3", Content = "Third", IsUser = true, IsComplete = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { Id = "msg-1", Content = "First", IsUser = true, IsComplete = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { Id = "msg-2", Content = "Second", IsUser = true, IsComplete = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { Id = "msg-3", Content = "Third", IsUser = true, IsComplete = true, EventJson = null });
 
 		processor.Process(session, new AssistantTurnStartEvent
 		{
@@ -149,7 +149,7 @@ public class AssistantTurnStartHandlerTests
 		// assistant.turn_start fires within the same multi-turn response
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { Id = "msg-1", IsUser = true, IsComplete = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { Id = "msg-1", IsUser = true, IsComplete = true, EventJson = null });
 
 		processor.Process(session, new AssistantTurnStartEvent
 		{
@@ -174,7 +174,7 @@ public class AssistantTurnStartHandlerTests
 		// Non-user messages (assistant text, activity groups) must not be picked up by the fallback
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = false, Content = "Hi there", EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = false, Content = "Hi there", EventJson = null });
 
 		processor.Process(session, new AssistantTurnStartEvent
 		{

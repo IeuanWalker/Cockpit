@@ -1,5 +1,6 @@
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -32,6 +33,53 @@ public class SessionEventProcessorTests
 		}
 	};
 	static SessionEventProcessor CreateProcessor() => new(NullLogger<SessionEventProcessor>.Instance);
+
+	[Fact]
+	public void ProcessBatch_PublishesOnlyAfterCompleteHistoryAndProducesFinalSnapshot()
+	{
+		SessionModel session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+		const int eventCount = 128;
+
+		IEnumerable<SessionEvent> Events()
+		{
+			for(int i = 0; i < eventCount; i++)
+			{
+				// MoveNext is called only after the preceding event has been processed.
+				// A per-event publication would therefore expose a growing non-empty
+				// snapshot here and make this deterministic regression fail.
+				session.MessagesSnapshot.ShouldBeEmpty();
+				yield return new UserMessageEvent
+				{
+					Data = new UserMessageData { Content = $"History message {i}" },
+					Timestamp = DateTimeOffset.UtcNow.AddSeconds(i)
+				};
+			}
+		}
+
+		SessionChangeKind changeKind = processor.ProcessBatch(session, Events());
+
+		(changeKind & SessionChangeKind.ConversationStructure).ShouldNotBe(SessionChangeKind.None);
+		session.Messages.Count.ShouldBe(eventCount);
+		session.MessagesSnapshot.Count().ShouldBe(eventCount);
+		session.MessagesSnapshot.ShouldBe(session.Messages);
+	}
+
+	[Fact]
+	public void Process_LiveStructuralEventStillPublishesImmediately()
+	{
+		SessionModel session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+
+		processor.Process(session, new UserMessageEvent
+		{
+			Data = new UserMessageData { Content = "Live message" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		session.MessagesSnapshot.Count().ShouldBe(1);
+		session.MessagesSnapshot[0].Content.ShouldBe("Live message");
+	}
 
 	[Fact]
 	public void Process_UserMessage_WhenGroupOpen_FinalizesGroupFirst()
@@ -159,7 +207,7 @@ public class SessionEventProcessorTests
 		// Arrange
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, EventJson = null });
 
 		processor.Process(session, new ToolExecutionStartEvent
 		{
@@ -193,8 +241,8 @@ public class SessionEventProcessorTests
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 		session.AgentRunState = AgentRunStateEnum.Running;
-		session.Messages.Add(new ChatMessageModel { Id = "user1", IsUser = true, Content = "Hello", EventJson = null });
-		session.Messages.Add(new ChatMessageModel { Id = "user2", IsUser = true, Content = "Queued", IsPending = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { Id = "user1", IsUser = true, Content = "Hello", EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { Id = "user2", IsUser = true, Content = "Queued", IsPending = true, EventJson = null });
 		session.ActiveWorkingGroup = new ActivityGroupModel
 		{
 			Status = GroupStatusEnum.Running,
@@ -237,6 +285,95 @@ public class SessionEventProcessorTests
 			Data = new ToolExecutionCompleteData { ToolCallId = "nonexistent", Success = true },
 			Timestamp = DateTimeOffset.UtcNow
 		}));
+	}
+
+	[Fact]
+	public void Process_ToolStart_WhenItCreatesWorkingGroup_InvalidatesWorkingShell()
+	{
+		SessionModel session = CreateSession();
+
+		SessionChangeKind change = CreateProcessor().Process(session, new ToolExecutionStartEvent
+		{
+			Data = new ToolExecutionStartData { ToolCallId = "tc1", ToolName = "read_file" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		change.ShouldBe(SessionChangeKind.ConversationContent | SessionChangeKind.WorkingState);
+	}
+
+	[Fact]
+	public void Process_ToolStart_WhenWorkingGroupExists_DoesNotInvalidateWorkingShell()
+	{
+		SessionModel session = CreateSession();
+		session.ActiveWorkingGroup = new ActivityGroupModel { Status = GroupStatusEnum.Running };
+
+		SessionChangeKind change = CreateProcessor().Process(session, new ToolExecutionStartEvent
+		{
+			Data = new ToolExecutionStartData { ToolCallId = "tc1", ToolName = "read_file" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		change.ShouldBe(SessionChangeKind.ConversationContent);
+	}
+
+	[Fact]
+	public void Process_ToolStart_WhenItReplacesPlaceholderGroup_InvalidatesWorkingShell()
+	{
+		SessionModel session = CreateSession();
+		session.ActiveWorkingGroup = new ActivityGroupModel
+		{
+			Status = GroupStatusEnum.Running,
+			IsPlaceholder = true
+		};
+
+		SessionChangeKind change = CreateProcessor().Process(session, new ToolExecutionStartEvent
+		{
+			Data = new ToolExecutionStartData { ToolCallId = "tc1", ToolName = "read_file" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		change.ShouldBe(SessionChangeKind.ConversationContent | SessionChangeKind.WorkingState);
+	}
+
+	[Fact]
+	public void Process_SubagentStarted_WhenItCreatesWorkingGroup_InvalidatesWorkingShell()
+	{
+		SessionModel session = CreateSession();
+
+		SessionChangeKind change = CreateProcessor().Process(session, new SubagentStartedEvent
+		{
+			Data = new SubagentStartedData
+			{
+				ToolCallId = "sa1",
+				AgentName = "code-agent",
+				AgentDisplayName = "Code Agent",
+				AgentDescription = string.Empty
+			},
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		change.ShouldBe(SessionChangeKind.ConversationContent | SessionChangeKind.WorkingState);
+	}
+
+	[Fact]
+	public void Process_SubagentStarted_WhenWorkingGroupExists_DoesNotInvalidateWorkingShell()
+	{
+		SessionModel session = CreateSession();
+		session.ActiveWorkingGroup = new ActivityGroupModel { Status = GroupStatusEnum.Running };
+
+		SessionChangeKind change = CreateProcessor().Process(session, new SubagentStartedEvent
+		{
+			Data = new SubagentStartedData
+			{
+				ToolCallId = "sa1",
+				AgentName = "code-agent",
+				AgentDisplayName = "Code Agent",
+				AgentDescription = string.Empty
+			},
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		change.ShouldBe(SessionChangeKind.ConversationContent);
 	}
 
 	/// <summary>

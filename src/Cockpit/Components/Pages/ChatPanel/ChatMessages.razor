@@ -2,15 +2,21 @@
 @using Cockpit.Features.SessionEvents.Models
 
 <div class="chat-messages-container">
-    <div id="chatMessages" class="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-3">
-        @if(_sessionListFeature.CurrentSession?.Conversation.MessagesSnapshot is not null)
+    <div id="chatMessages" @ref="_chatMessagesElement" class="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-3">
+        @if(_window.CanMoveOlder)
         {
-            @foreach(var message in _sessionListFeature.CurrentSession.Conversation.MessagesSnapshot)
-            {
-                if(message.Type == MessageTypeEnum.ActivityGroup && message.ActivityGroup is not null)
+            <div class="message-window-sentinel" data-message-window-direction="older" aria-hidden="true"></div>
+        }
+
+        @foreach(var message in VisibleMessages)
+        {
+            <div class="message-window-item" data-message-id="@message.Id" @key="message.Id">
+                @if(message.Type == MessageTypeEnum.ActivityGroup && message.ActivityGroup is not null)
                 {
                     <!-- Activity Group (completed working) - plain inline expander -->
-                    <Opperations Group="message.ActivityGroup" />
+                    <Opperations Group="message.ActivityGroup"
+                                 Expanded="@(_expandedActivityGroupId == message.ActivityGroup.Id)"
+                                 ExpandedChanged="expanded => SetActivityGroupExpanded(message.ActivityGroup.Id, expanded)" />
                 }
                 @* Typing indicator removed - using thinking panel instead *@
                 else if(message.Type == MessageTypeEnum.Error || message.Type == MessageTypeEnum.Warning)
@@ -209,13 +215,46 @@
                         </div>
                     </div>
                 }
-            }
+            </div>
+        }
+
+        @if(_window.CanMoveNewer)
+        {
+            <div class="message-window-sentinel" data-message-window-direction="newer" aria-hidden="true"></div>
+        }
+
+        @if(_windowLoadError is not null)
+        {
+            <div class="message-window-fallback" role="alert">
+                <span>Automatic history loading is unavailable.</span>
+                <div class="message-window-fallback-actions">
+                    @if(_window.CanMoveOlder)
+                    {
+                        <button class="message-window-retry" @onclick="LoadEarlierMessages" type="button" aria-label="Load earlier conversation messages">
+                            Load earlier messages
+                        </button>
+                    }
+                    @if(_window.CanMoveNewer)
+                    {
+                        <button class="message-window-retry" @onclick="LoadNewerMessages" type="button" aria-label="Load newer conversation messages">
+                            Load newer messages
+                        </button>
+                    }
+                    <button class="message-window-retry" @onclick="RetryWindowObservers" type="button" aria-label="Retry automatic conversation history loading">
+                        Retry automatic loading
+                    </button>
+                </div>
+            </div>
         }
     </div>
 
     @if(_isScrolledUp)
     {
-        <button class="scroll-to-bottom-btn" @onclick="ScrollToBottom" title="Scroll to bottom">
+        <button class="scroll-to-bottom-btn" @onclick="ReturnToTail" title="Return to latest messages">
+            @if(_window.UnseenMessageCount > 0)
+            {
+                <span>@_window.UnseenMessageCount new</span>
+            }
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>

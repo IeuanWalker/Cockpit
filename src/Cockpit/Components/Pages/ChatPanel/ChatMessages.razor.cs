@@ -39,8 +39,21 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	}
 
 	DotNetObjectReference<ChatMessages>? _dotNetRef;
+	ElementReference _chatMessagesElement;
+	readonly MessageWindowState _window = new();
+	readonly MessageWindowTailStateSync _windowTailStateSync = new();
 	bool _isScrolledUp = false;
 	bool _pendingScrollToBottom = false;
+	bool _shiftInProgress;
+	bool _pendingWindowShiftRestore;
+	bool _observersReady;
+	bool _pendingObserverReset;
+	MessageViewportAnchor? _pendingViewportAnchor;
+	long _windowGeneration;
+	long _pendingWindowShiftGeneration;
+	string? _windowLoadError;
+	string? _expandedActivityGroupId;
+	readonly HashSet<ChatMessageModel> _observedLocallySentMessages = [];
 
 	string? _previousSessionId;
 
@@ -49,10 +62,14 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
-		_textToSpeechFeature.OnStateChanged += OnStateChanged;
-		_uiStateFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
+		_textToSpeechFeature.OnStateChanged += OnAuxiliaryStateChanged;
+		_uiStateFeature.OnStateChanged += OnAuxiliaryStateChanged;
 		_previousSessionId = _sessionListFeature.CurrentSession?.Id;
+		_window.Reset(CurrentMessages.Count);
+		ChatMessageWindowUpdatePolicy.ResetObservedLocallySentMessages(
+			_observedLocallySentMessages,
+			CurrentMessages);
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -60,8 +77,9 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		if(firstRender)
 		{
 			_dotNetRef = DotNetObjectReference.Create(this);
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupScrollAnchor", "chatMessages");
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged", nameof(ChatMessages));
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupScrollAnchor", _chatMessagesElement);
+			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", _chatMessagesElement, _dotNetRef, "OnChatScrollPositionChanged", nameof(ChatMessages));
+			await SetupWindowObservers();
 
 			// If the app loaded an existing session before this component initialized,
 			// ensure the initial view is pinned to the bottom so history shows latest messages.
@@ -71,38 +89,141 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 			}
 		}
 
+		// Synchronize before yielding to scroll/anchor work. Mutation and resize
+		// observers defer reconciliation to an animation frame, so this prevents
+		// them from treating a newly historical window as if it still held the tail.
+		if(!_shiftInProgress)
+		{
+			await SynchronizeWindowTailState();
+		}
+
 		if(_pendingScrollToBottom)
 		{
 			_pendingScrollToBottom = false;
 			await ScrollToBottom();
+		}
+
+		if(_pendingWindowShiftRestore)
+		{
+			long generation = _pendingWindowShiftGeneration;
+			_pendingWindowShiftRestore = false;
+			MessageViewportAnchor? anchor = _pendingViewportAnchor;
+			_pendingViewportAnchor = null;
+			if(generation != _windowGeneration)
+			{
+				return;
+			}
+			try
+			{
+				if(anchor is not null)
+				{
+					await _jsRuntime.InvokeVoidAsync(
+						"cockpit.restoreMessageWindowAnchor", _chatMessagesElement, anchor, generation);
+				}
+				if(generation == _windowGeneration && _observersReady)
+				{
+					_windowLoadError = null;
+				}
+			}
+			catch(Exception ex)
+			{
+				if(generation == _windowGeneration)
+				{
+					_windowLoadError = ex.Message;
+					StateHasChanged();
+				}
+			}
+			finally
+			{
+				if(generation == _windowGeneration)
+				{
+					_shiftInProgress = false;
+					await CompleteWindowShift(generation);
+				}
+			}
+		}
+
+		if(_pendingObserverReset)
+		{
+			_pendingObserverReset = false;
+			await SetupWindowObservers();
 		}
 	}
 
 	[JSInvokable]
 	public void OnChatScrollPositionChanged(bool isNearBottom)
 	{
-		_isScrolledUp = !isNearBottom;
+		bool isAtConversationTail = isNearBottom && _window.IncludesTail;
+		_window.SetFollowingTail(isAtConversationTail);
+		_isScrolledUp = !isAtConversationTail;
 		InvokeAsync(StateHasChanged);
+	}
+
+	void ReturnToTail()
+	{
+		InvalidateWindowGeneration();
+		_window.MoveToTail();
+		_pendingObserverReset = true;
+		_pendingScrollToBottom = true;
+		StateHasChanged();
 	}
 
 	async Task ScrollToBottom()
 	{
 		_isScrolledUp = false;
-		await _jsRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "chatMessages");
+		await _jsRuntime.InvokeVoidAsync("cockpit.scrollToBottom", _chatMessagesElement);
 	}
 
-	void OnStateChanged()
+	void OnSessionStateChanged(SessionStateChange change)
 	{
+		string? currentSessionId = _sessionListFeature.CurrentSession?.Id;
+		if(!ChatMessageStateChangeFilter.IsRelevant(currentSessionId, _previousSessionId, change))
+		{
+			return;
+		}
+
 		_ = InvokeAsync(async () =>
 		{
 			try
 			{
-				string? currentSessionId = _sessionListFeature.CurrentSession?.Id;
-				if(currentSessionId != _previousSessionId)
+				currentSessionId = _sessionListFeature.CurrentSession?.Id;
+				bool sessionChanged = currentSessionId != _previousSessionId;
+				if(sessionChanged)
 				{
 					_previousSessionId = currentSessionId;
+					ResetForCurrentSession();
 					_pendingScrollToBottom = true;
 					await _textToSpeechFeature.Stop();
+				}
+				else if(change.SessionId is null || change.SessionId == currentSessionId)
+				{
+					if(ChatMessageWindowUpdatePolicy.RequiresConversationReset(change.Kind))
+					{
+						// A replay clear and its first event can be coalesced. Reset against the
+						// current (possibly already non-zero) snapshot instead of depending on an
+						// intermediate empty render to restore tail-following state.
+						ResetForCurrentSession();
+						_pendingScrollToBottom = true;
+					}
+					else if((change.Kind & SessionChangeKind.ConversationStructure) != 0)
+					{
+						bool wasFollowingTail = _window.IsFollowingTail;
+						bool revealLocallySentMessage = ChatMessageWindowUpdatePolicy.ObserveNewLocallySentMessages(
+							_observedLocallySentMessages,
+							CurrentMessages);
+						_window.Synchronize(CurrentMessages.Count);
+						if(revealLocallySentMessage)
+						{
+							InvalidateWindowGeneration();
+							_window.MoveToTail();
+							_pendingObserverReset = true;
+							_pendingScrollToBottom = true;
+						}
+						else if(wasFollowingTail)
+						{
+							_pendingScrollToBottom = true;
+						}
+					}
 				}
 			}
 			catch(Exception ex)
@@ -112,6 +233,256 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 
 			StateHasChanged();
 		});
+	}
+
+	void OnAuxiliaryStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+	IReadOnlyList<ChatMessageModel> CurrentMessages =>
+		_sessionListFeature.CurrentSession?.Conversation.MessagesSnapshot ?? [];
+
+	IEnumerable<ChatMessageModel> VisibleMessages
+	{
+		get
+		{
+			IReadOnlyList<ChatMessageModel> messages = CurrentMessages;
+			int start = Math.Min(_window.StartIndex, messages.Count);
+			int count = Math.Min(_window.Count, messages.Count - start);
+			return messages.Skip(start).Take(count);
+		}
+	}
+
+	void ResetForCurrentSession()
+	{
+		InvalidateWindowGeneration();
+		_window.Reset(CurrentMessages.Count);
+		_expandedAttachments.Clear();
+		_expandedActivityGroupId = null;
+		_pendingObserverReset = true;
+		_isScrolledUp = false;
+		_windowLoadError = null;
+		ChatMessageWindowUpdatePolicy.ResetObservedLocallySentMessages(
+			_observedLocallySentMessages,
+			CurrentMessages);
+	}
+
+	void InvalidateWindowGeneration()
+	{
+		unchecked
+		{
+			_windowGeneration++;
+		}
+		_observersReady = false;
+		_shiftInProgress = false;
+		_pendingViewportAnchor = null;
+		_pendingWindowShiftRestore = false;
+		_pendingWindowShiftGeneration = 0;
+	}
+
+	[JSInvokable]
+	public Task OnMessageWindowBoundaryReached(
+		string direction,
+		MessageViewportAnchor? anchor,
+		long generation)
+		=> generation == _windowGeneration
+			? ShiftWindow(direction, anchor, generation)
+			: Task.CompletedTask;
+
+	async Task ShiftWindow(string direction, MessageViewportAnchor? anchor, long generation)
+	{
+		if(generation != _windowGeneration || _shiftInProgress)
+		{
+			return;
+		}
+
+		_shiftInProgress = true;
+		bool shifted = direction switch
+		{
+			"older" => _window.MoveOlder(),
+			"newer" => _window.MoveNewer(),
+			_ => false
+		};
+
+		if(!shifted)
+		{
+			_shiftInProgress = false;
+			await CompleteWindowShift(generation);
+			return;
+		}
+
+		if(_observersReady)
+		{
+			try
+			{
+				await _jsRuntime.InvokeVoidAsync(
+					"cockpit.beginMessageWindowShift", _chatMessagesElement, generation);
+			}
+			catch
+			{
+				// The bounded render still works; smart-scroll setup can recover on retry.
+			}
+		}
+
+		if(generation != _windowGeneration)
+		{
+			return;
+		}
+
+		_pendingViewportAnchor = anchor;
+		_pendingWindowShiftRestore = true;
+		_pendingWindowShiftGeneration = generation;
+		if(direction == "older")
+		{
+			_isScrolledUp = true;
+		}
+		await InvokeAsync(StateHasChanged);
+	}
+
+	async Task SetupWindowObservers()
+	{
+		long generation;
+		unchecked
+		{
+			generation = ++_windowGeneration;
+		}
+		_observersReady = false;
+		bool includesTail = _window.IncludesTail;
+		try
+		{
+			bool observersReady = await _jsRuntime.InvokeAsync<bool>(
+				"cockpit.setupMessageWindow",
+				_chatMessagesElement,
+				_dotNetRef,
+				nameof(OnMessageWindowBoundaryReached),
+				includesTail,
+				generation);
+			if(generation != _windowGeneration)
+			{
+				return;
+			}
+			_observersReady = observersReady;
+			_windowLoadError = observersReady ? null : "The message viewport is unavailable.";
+			if(observersReady)
+			{
+				_windowTailStateSync.MarkPublished(new(generation, includesTail));
+			}
+		}
+		catch(Exception ex)
+		{
+			if(generation == _windowGeneration)
+			{
+				_observersReady = false;
+				_windowLoadError = ex.Message;
+				StateHasChanged();
+			}
+		}
+	}
+
+	async Task SynchronizeWindowTailState()
+	{
+		if(!_windowTailStateSync.TryCreateUpdate(
+			_observersReady,
+			_windowGeneration,
+			_window.IncludesTail,
+			out MessageWindowTailStateUpdate update))
+		{
+			return;
+		}
+
+		try
+		{
+			bool applied = await _jsRuntime.InvokeAsync<bool>(
+				"cockpit.setMessageWindowTailState",
+				_chatMessagesElement,
+				update.IncludesTail,
+				update.Generation);
+			if(applied &&
+				update.Generation == _windowGeneration &&
+				update.IncludesTail == _window.IncludesTail)
+			{
+				_windowTailStateSync.MarkPublished(update);
+			}
+			else if(!applied && update.Generation == _windowGeneration)
+			{
+				_observersReady = false;
+				_windowLoadError = "The message viewport is unavailable.";
+				StateHasChanged();
+			}
+		}
+		catch(Exception ex)
+		{
+			if(update.Generation == _windowGeneration)
+			{
+				// Disable automatic retries until the explicit fallback retry runs;
+				// otherwise each error render would enqueue another failed interop call.
+				_observersReady = false;
+				_windowLoadError = ex.Message;
+				StateHasChanged();
+			}
+		}
+	}
+
+	async Task CompleteWindowShift(long generation)
+	{
+		if(generation != _windowGeneration || !_observersReady)
+		{
+			return;
+		}
+
+		bool includesTail = _window.IncludesTail;
+		try
+		{
+			bool applied = await _jsRuntime.InvokeAsync<bool>(
+				"cockpit.completeMessageWindowShift",
+				_chatMessagesElement,
+				includesTail,
+				generation);
+			if(applied && generation == _windowGeneration && includesTail == _window.IncludesTail)
+			{
+				_windowTailStateSync.MarkPublished(new(generation, includesTail));
+			}
+		}
+		catch(Exception ex)
+		{
+			if(generation == _windowGeneration)
+			{
+				_windowLoadError = ex.Message;
+				StateHasChanged();
+			}
+		}
+	}
+
+	async Task RetryWindowObservers()
+	{
+		await SetupWindowObservers();
+		StateHasChanged();
+	}
+
+	Task LoadEarlierMessages() => ManuallyShiftWindow("older");
+
+	Task LoadNewerMessages() => ManuallyShiftWindow("newer");
+
+	async Task ManuallyShiftWindow(string direction)
+	{
+		long generation = _windowGeneration;
+		MessageViewportAnchor? anchor = null;
+		try
+		{
+			anchor = await _jsRuntime.InvokeAsync<MessageViewportAnchor?>(
+				"cockpit.captureMessageWindowAnchor",
+				_chatMessagesElement);
+		}
+		catch
+		{
+			// The bounded shift still works if viewport anchoring is unavailable.
+		}
+
+		await ShiftWindow(direction, anchor, generation);
+	}
+
+	void SetActivityGroupExpanded(string groupId, bool expanded)
+	{
+		_expandedActivityGroupId = expanded ? groupId : null;
+		StateHasChanged();
 	}
 
 	readonly HashSet<ChatMessageModel> _expandedAttachments = [];
@@ -288,17 +659,18 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 
 	public async ValueTask DisposeAsync()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
-		_textToSpeechFeature.OnStateChanged -= OnStateChanged;
-		_uiStateFeature.OnStateChanged -= OnStateChanged;
+		InvalidateWindowGeneration();
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
+		_textToSpeechFeature.OnStateChanged -= OnAuxiliaryStateChanged;
+		_uiStateFeature.OnStateChanged -= OnAuxiliaryStateChanged;
 
 		await _textToSpeechFeature.Stop();
 
-		try
-		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupScrollAnchor", "chatMessages");
-			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages", nameof(ChatMessages));
-		}
+		try { await _jsRuntime.InvokeVoidAsync("cockpit.cleanupScrollAnchor", _chatMessagesElement); }
+		catch { /* component may be gone */ }
+		try { await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", _chatMessagesElement, nameof(ChatMessages)); }
+		catch { /* component may be gone */ }
+		try { await _jsRuntime.InvokeVoidAsync("cockpit.cleanupMessageWindow", _chatMessagesElement); }
 		catch { /* component may be gone */ }
 		_dotNetRef?.Dispose();
 		GC.SuppressFinalize(this);
@@ -306,4 +678,63 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 
 	[GeneratedRegex(@"#(file|folder):""((?:[^""\\]|\\.)*)""", RegexOptions.Compiled)]
 	private static partial Regex mentionRegex();
+}
+
+internal static class ChatMessageStateChangeFilter
+{
+	public static bool IsRelevant(string? currentSessionId, string? previousSessionId, SessionStateChange change)
+	{
+		if(currentSessionId != previousSessionId)
+		{
+			return (change.Kind & SessionChangeKind.CurrentSession) != 0;
+		}
+
+		SessionChangeKind relevantKinds = SessionChangeKind.ConversationContent |
+			SessionChangeKind.ConversationStructure |
+			SessionChangeKind.ConversationReset;
+		return (change.Kind & relevantKinds) != 0 &&
+			(change.SessionId is null || change.SessionId == currentSessionId);
+	}
+}
+
+internal static class ChatMessageWindowUpdatePolicy
+{
+	public static bool RequiresConversationReset(SessionChangeKind kind) =>
+		(kind & SessionChangeKind.ConversationReset) != 0;
+
+	public static void ResetObservedLocallySentMessages(
+		HashSet<ChatMessageModel> observed,
+		IReadOnlyList<ChatMessageModel> messages)
+	{
+		observed.Clear();
+		foreach(ChatMessageModel message in messages)
+		{
+			if(message.IsUser && message.WasSentLocally)
+			{
+				observed.Add(message);
+			}
+		}
+	}
+
+	public static bool ObserveNewLocallySentMessages(
+		HashSet<ChatMessageModel> observed,
+		IReadOnlyList<ChatMessageModel> messages)
+	{
+		bool foundNew = false;
+		for(int i = messages.Count - 1; i >= 0; i--)
+		{
+			ChatMessageModel message = messages[i];
+			if(!message.IsUser || !message.WasSentLocally)
+			{
+				continue;
+			}
+
+			if(!observed.Add(message))
+			{
+				break;
+			}
+			foundNew = true;
+		}
+		return foundNew;
+	}
 }

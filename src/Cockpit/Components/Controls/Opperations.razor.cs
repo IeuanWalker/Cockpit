@@ -8,6 +8,8 @@ namespace Cockpit.Components.Controls;
 public sealed partial class Opperations : IDisposable
 {
 	[Parameter] public ActivityGroupModel Group { get; set; } = default!;
+	[Parameter] public bool Expanded { get; set; }
+	[Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
 
 	readonly ITimestampFeature _timestampFeature;
 
@@ -54,8 +56,7 @@ public sealed partial class Opperations : IDisposable
 		try
 		{
 			await Task.Delay(ThresholdMs, cts.Token);
-			Group.IsExpanded = !Group.IsExpanded;
-			StateHasChanged();
+			await ExpandedChanged.InvokeAsync(!Expanded);
 		}
 		catch(OperationCanceledException) { }
 		finally

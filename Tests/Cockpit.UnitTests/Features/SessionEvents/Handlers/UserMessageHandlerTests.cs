@@ -138,7 +138,7 @@ public class UserMessageHandlerTests
 		session.ActiveWorkingGroup = new ActivityGroupModel { Status = GroupStatusEnum.Running };
 
 		// Simulate optimistic add with IsPending=true (enqueue mode)
-		session.Messages.Add(new ChatMessageModel
+		session.Conversation.AddMessage(new ChatMessageModel
 		{
 			Content = "Queued message",
 			IsUser = true,
@@ -170,7 +170,7 @@ public class UserMessageHandlerTests
 		SessionEventProcessor processor = CreateProcessor();
 		string optimisticId = "optimistic-1";
 
-		session.Messages.Add(new ChatMessageModel
+		session.Conversation.AddMessage(new ChatMessageModel
 		{
 			Id = optimisticId,
 			Content = "Queued message",
@@ -214,8 +214,8 @@ public class UserMessageHandlerTests
 			IsPending = true,
 			EventJson = null
 		};
-		session.Messages.Add(first);
-		session.Messages.Add(second);
+		session.Conversation.AddMessage(first);
+		session.Conversation.AddMessage(second);
 
 		processor.Process(session, new UserMessageEvent
 		{
@@ -242,8 +242,8 @@ public class UserMessageHandlerTests
 
 		ChatMessageModel pending1 = new() { Content = "First", IsUser = true, IsComplete = true, IsPending = true, EventJson = null };
 		ChatMessageModel pending2 = new() { Content = "Second", IsUser = true, IsComplete = true, IsPending = true, EventJson = null };
-		session.Messages.Add(pending1);
-		session.Messages.Add(pending2);
+		session.Conversation.AddMessage(pending1);
+		session.Conversation.AddMessage(pending2);
 
 		// Act: agent starts a new turn
 		processor.Process(session, new AssistantTurnStartEvent { Data = new AssistantTurnStartData { TurnId = "0" }, Timestamp = DateTimeOffset.UtcNow });
@@ -261,8 +261,8 @@ public class UserMessageHandlerTests
 
 		ChatMessageModel pending1 = new() { Content = "First", IsUser = true, IsComplete = true, IsPending = true, EventJson = null };
 		ChatMessageModel pending2 = new() { Content = "Second", IsUser = true, IsComplete = true, IsPending = true, EventJson = null };
-		session.Messages.Add(pending1);
-		session.Messages.Add(pending2);
+		session.Conversation.AddMessage(pending1);
+		session.Conversation.AddMessage(pending2);
 
 		// Initial turn for first queued message should activate only the first pending message.
 		processor.Process(session, new AssistantTurnStartEvent
@@ -336,8 +336,8 @@ public class UserMessageHandlerTests
 		// Operations group should be anchored to "First message" (ToolStartHandler sets
 		// TriggeredByUserMessageId to the last completed user message when it creates the group),
 		// so the group appears between the two user messages.
-		int activityGroupIndex = session.Messages.FindIndex(m => m.Type == MessageTypeEnum.ActivityGroup);
-		int secondMsgIndex = session.Messages.IndexOf(secondMsg);
+		int activityGroupIndex = session.Conversation.FindMessageIndex(m => m.Type == MessageTypeEnum.ActivityGroup);
+		int secondMsgIndex = session.Conversation.IndexOfMessage(secondMsg);
 		activityGroupIndex.ShouldBeLessThan(secondMsgIndex,
 			"ops group is anchored to the triggering user message, so it appears before the second user message");
 	}

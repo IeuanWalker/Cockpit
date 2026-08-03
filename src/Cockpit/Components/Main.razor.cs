@@ -10,17 +10,36 @@ public sealed partial class Main : ComponentBase, IDisposable
 	public Main(SessionListFeature sessionListFeature)
 	{
 		_sessionListFeature = sessionListFeature;
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_previousSessionId = sessionListFeature.CurrentSession?.Id;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
-	void OnStateChanged()
+	string? _previousSessionId;
+
+	void OnSessionStateChanged(SessionStateChange change)
 	{
-		InvokeAsync(StateHasChanged);
+		string? currentSessionId = _sessionListFeature.CurrentSession?.Id;
+		if(!MainStateChangeFilter.IsCurrentSessionTransition(currentSessionId, _previousSessionId, change))
+		{
+			return;
+		}
+
+		_previousSessionId = currentSessionId;
+		_ = InvokeAsync(StateHasChanged);
 	}
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 		GC.SuppressFinalize(this);
 	}
+}
+
+internal static class MainStateChangeFilter
+{
+	public static bool IsCurrentSessionTransition(
+		string? currentSessionId,
+		string? previousSessionId,
+		SessionStateChange change) =>
+		(change.Kind & SessionChangeKind.CurrentSession) != 0 && currentSessionId != previousSessionId;
 }

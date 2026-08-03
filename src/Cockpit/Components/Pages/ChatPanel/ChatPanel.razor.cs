@@ -1,136 +1,40 @@
-using Cockpit.Features.SessionEvents.Models;
 using Cockpit.Features.Sessions;
-using Cockpit.Features.Timestamp;
 using Cockpit.Features.UIState;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
-using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.ChatPanel;
 
-public partial class ChatPanel : ComponentBase, IAsyncDisposable
+public sealed partial class ChatPanel : ComponentBase, IDisposable
 {
-	readonly ITimestampFeature _timestampFeature;
 	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionFeature _sessionFeature;
-	readonly IJSRuntime _jsRuntime;
-	readonly ILogger<Main> _logger;
 	public ChatPanel(
-		ITimestampFeature timestampFeature,
 		IUIStateFeature uiStateFeature,
-		SessionFeature sessionFeature,
-		IJSRuntime jsRuntime,
-		ILogger<Main> logger)
+		SessionFeature sessionFeature)
 	{
-		_timestampFeature = timestampFeature;
 		_uiStateFeature = uiStateFeature;
 		_sessionFeature = sessionFeature;
-		_jsRuntime = jsRuntime;
-		_logger = logger;
 	}
-
-	bool _shouldScrollToBottom = false;
-	bool _forcedScrollToBottom = false;
-	bool _isUserScrolledUpFromChat = false;
-	int _lastMessageCount = 0;
-	string? _lastSessionId;
-	DotNetObjectReference<ChatPanel>? _dotNetRef;
 
 	protected override async Task OnInitializedAsync()
 	{
-		_sessionFeature.OnStateChanged += OnStateChanged;
-		_uiStateFeature.OnStateChanged += OnStateChanged;
-		_timestampFeature.OnTick += OnTimestampTick;
+		_sessionFeature.OnSessionStateChanged += OnSessionStateChanged;
+		_uiStateFeature.OnStateChanged += OnUiStateChanged;
 
 		// Load existing sessions from SDK
 		await _sessionFeature.LoadExistingSessions();
 	}
 
-	void OnTimestampTick()
-	{
-		InvokeAsync(StateHasChanged);
-	}
-
-	protected override async Task OnAfterRenderAsync(bool firstRender)
-	{
-		if(firstRender)
-		{
-			// Setup smart scroll tracking
-			_dotNetRef = DotNetObjectReference.Create(this);
-			await SetupSmartScroll();
-
-			// Initialize message count
-			_lastMessageCount = _sessionFeature.CurrentSession?.Conversation.MessagesSnapshot.Length ?? 0;
-			_lastSessionId = _sessionFeature.CurrentSession?.Id;
-		}
-
-		if(_shouldScrollToBottom && (!_isUserScrolledUpFromChat || _forcedScrollToBottom))
-		{
-			_shouldScrollToBottom = false;
-			_forcedScrollToBottom = false;
-			await ScrollToBottom();
-		}
-	}
-
-	void OnStateChanged()
+	void OnSessionStateChanged(SessionStateChange change)
 	{
 		string? currentSessionId = _sessionFeature.CurrentSession?.Id;
-		IReadOnlyList<ChatMessageModel>? messages =
-			_sessionFeature.CurrentSession?.Conversation.MessagesSnapshot;
-		int currentMessageCount = messages?.Count ?? 0;
-
-		if(currentSessionId != _lastSessionId)
+		if(ChatPanelStateChangeFilter.IsRelevant(currentSessionId, change))
 		{
-			_shouldScrollToBottom = true;
-			_forcedScrollToBottom = true;
-			_isUserScrolledUpFromChat = false;
-		}
-
-		// Only auto-follow chat if there's a new message
-		if(currentMessageCount > _lastMessageCount)
-		{
-			_shouldScrollToBottom = true;
-			if(messages?.LastOrDefault()?.IsUser == true)
-			{
-				// Always jump to latest when user sends a message
-				_isUserScrolledUpFromChat = false;
-			}
-		}
-
-		_lastSessionId = currentSessionId;
-		_lastMessageCount = currentMessageCount;
-		InvokeAsync(StateHasChanged);
-	}
-
-	async Task ScrollToBottom()
-	{
-		try
-		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "chatMessages");
-		}
-		catch(Exception ex)
-		{
-			_logger.LogDebug(ex, "Failed to scroll chat messages to bottom");
+			InvokeAsync(StateHasChanged);
 		}
 	}
 
-	async Task SetupSmartScroll()
-	{
-		try
-		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.setupSmartScroll", "chatMessages", _dotNetRef, "OnChatScrollPositionChanged", nameof(ChatPanel));
-		}
-		catch(Exception ex)
-		{
-			_logger.LogDebug(ex, "Failed to setup smart scroll for chat messages");
-		}
-	}
-
-	[JSInvokable]
-	public void OnChatScrollPositionChanged(bool isNearBottom)
-	{
-		_isUserScrolledUpFromChat = !isNearBottom;
-	}
+	void OnUiStateChanged() => InvokeAsync(StateHasChanged);
 
 	void ToggleTerminalPanel()
 	{
@@ -141,24 +45,29 @@ public partial class ChatPanel : ComponentBase, IAsyncDisposable
 		}
 	}
 
-	public async ValueTask DisposeAsync()
+	public void Dispose()
 	{
-		_sessionFeature.OnStateChanged -= OnStateChanged;
-		_uiStateFeature.OnStateChanged -= OnStateChanged;
-		_timestampFeature.OnTick -= OnTimestampTick;
-
-		// Cleanup smart scroll
-		try
-		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "chatMessages", nameof(ChatPanel));
-		}
-		catch(Exception ex)
-		{
-			_logger.LogDebug(ex, "Failed to cleanup smart scroll for chat messages");
-		}
-
-		_dotNetRef?.Dispose();
+		_sessionFeature.OnSessionStateChanged -= OnSessionStateChanged;
+		_uiStateFeature.OnStateChanged -= OnUiStateChanged;
 		GC.SuppressFinalize(this);
 	}
 
+}
+
+internal static class ChatPanelStateChangeFilter
+{
+	public static bool IsRelevant(string? currentSessionId, SessionStateChange change)
+	{
+		if(change.SessionId is not null && change.SessionId != currentSessionId)
+		{
+			return false;
+		}
+
+		const SessionChangeKind relevantChanges =
+			SessionChangeKind.CurrentSession |
+			SessionChangeKind.SessionSummary |
+			SessionChangeKind.ConversationStructure |
+			SessionChangeKind.WorkingState;
+		return (change.Kind & relevantChanges) != 0;
+	}
 }

@@ -63,10 +63,21 @@ public sealed partial class TokenUsagePanel : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
 	void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession
+			| SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
+			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			OnStateChanged();
+		}
+	}
 
 	void OpenBreakdown() => _breakdownPopup.Open(CurrentSession?.TokenUsageInfo);
 
@@ -82,7 +93,7 @@ public sealed partial class TokenUsagePanel : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 		GC.SuppressFinalize(this);
 	}
 }
