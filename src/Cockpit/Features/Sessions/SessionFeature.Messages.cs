@@ -142,9 +142,7 @@ public sealed partial class SessionFeature
 					session.Conversation.HasQueuedImmediateMessage = false;
 				}
 			}
-			_sessionListFeature.NotifyStateChanged(
-				session.Id,
-				SessionChangeKind.ConversationStructure | SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary);
+			_sessionListFeature.NotifyStateChanged(session.Id, SessionChangeKind.ConversationStructure | SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary);
 
 			List<Attachment>? sdkAttachments = null;
 			if(attachments?.Count > 0)
@@ -254,11 +252,7 @@ public sealed partial class SessionFeature
 				session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Error);
 				SessionErrorHandler.HandleException(session, ex);
 				bool structureChanged = session.Conversation.PublishMessagesSnapshotIfChanged();
-				_sessionListFeature.NotifyStateChanged(
-					session.Id,
-					SessionChangeKind.ConversationContent
-						| SessionChangeKind.SessionSummary
-						| (structureChanged ? SessionChangeKind.ConversationStructure : SessionChangeKind.None));
+				_sessionListFeature.NotifyStateChanged(session.Id, SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary | (structureChanged ? SessionChangeKind.ConversationStructure : SessionChangeKind.None));
 			}
 		}
 	}

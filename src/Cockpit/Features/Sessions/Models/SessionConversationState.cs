@@ -1,5 +1,5 @@
-using System.Collections.ObjectModel;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using Cockpit.Features.SessionEvents.Models;
 
 namespace Cockpit.Features.Sessions.Models;

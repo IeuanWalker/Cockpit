@@ -86,8 +86,7 @@ public sealed class SessionListFeature : ISessionStateProvider
 
 	public void NotifyStateChanged() => NotifyStateChanged(null, SessionChangeKind.All);
 
-	public void NotifyStateChanged(string? sessionId, SessionChangeKind kind) =>
-		NotifyStateChanged(new SessionStateChange(sessionId, kind));
+	public void NotifyStateChanged(string? sessionId, SessionChangeKind kind) => NotifyStateChanged(new SessionStateChange(sessionId, kind));
 
 	public void NotifyStateChanged(SessionStateChange change)
 	{

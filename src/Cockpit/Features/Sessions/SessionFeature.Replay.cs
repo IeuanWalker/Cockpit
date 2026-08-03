@@ -40,16 +40,11 @@ public sealed partial class SessionFeature
 			// The first replay event is processed immediately and can share the 16 ms
 			// notification frame with this clear. Preserve the reset as an explicit flag so
 			// the message window follows the replay tail even if it never observes count zero.
-			_sessionListFeature.NotifyStateChanged(
-				session.Id,
-				SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
+			_sessionListFeature.NotifyStateChanged(session.Id, SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
 
 			// Same parentId-based immediate-mode detection used during live sessions applies
 			// here — no pre-processing or reordering needed.
-			Task streamCallback(ChatMessageModel msg, string text) => SessionEventHelpers.StreamSummaryTextAsync(
-				msg,
-				text,
-				() => _sessionListFeature.NotifyStateChanged(session.Id, SessionChangeKind.ConversationContent));
+			Task streamCallback(ChatMessageModel msg, string text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, () => _sessionListFeature.NotifyStateChanged(session.Id, SessionChangeKind.ConversationContent));
 
 			DateTimeOffset? prevTimestamp = null;
 			foreach(SessionEvent evt in events)

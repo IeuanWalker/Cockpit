@@ -14,8 +14,8 @@ using Cockpit.Features.Plugins;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Sessions.Interactions;
+using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Skills;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.UserInputRequests;
@@ -154,8 +154,7 @@ public sealed partial class SessionFeature : IDisposable
 			// Registry removal and lifecycle invalidation happen before an old SDK instance is
 			// disposed. Re-check both under the conversation lock so a queued callback cannot
 			// repopulate state that disconnect or eviction just cleared.
-			if(!_sdkRegistry.IsCurrent(sdkSession)
-				|| session.Lifecycle.SdkState == SdkSessionStateEnum.NotLoaded)
+			if(!_sdkRegistry.IsCurrent(sdkSession) || session.Lifecycle.SdkState == SdkSessionStateEnum.NotLoaded)
 			{
 				_logger.LogDebug("Ignoring stale event from SDK session {SessionId}", sessionId);
 				return;

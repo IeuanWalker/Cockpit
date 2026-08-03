@@ -239,10 +239,7 @@ public sealed partial class SessionFeature
 				// already selected, however, CurrentSession alone is intentionally ignored by the
 				// message component. Preserve that distinction and publish a reset only after every
 				// fallible load/switch step has succeeded.
-				SessionChangeKind successfulHistoryReplacementKind =
-					SessionLoadNotificationPolicy.GetSuccessfulHistoryReplacementKind(
-						_sessionListFeature.CurrentSession?.Id,
-						sessionId);
+				SessionChangeKind successfulHistoryReplacementKind = SessionLoadNotificationPolicy.GetSuccessfulHistoryReplacementKind(_sessionListFeature.CurrentSession?.Id, sessionId);
 				await SwitchCurrentSessionAsync(session);
 				_sessionListFeature.NotifyStateChanged(sessionId, successfulHistoryReplacementKind);
 				_logger.LogInformation("Successfully loaded session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
@@ -352,12 +349,10 @@ public sealed partial class SessionFeature
 
 }
 
-internal static class SessionLoadNotificationPolicy
+static class SessionLoadNotificationPolicy
 {
 	public static SessionChangeKind GetSuccessfulHistoryReplacementKind(
 		string? selectedSessionId,
 		string loadedSessionId) =>
-		string.Equals(selectedSessionId, loadedSessionId, StringComparison.Ordinal)
-			? SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure
-			: SessionChangeKind.None;
+		string.Equals(selectedSessionId, loadedSessionId, StringComparison.Ordinal) ? SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure : SessionChangeKind.None;
 }
