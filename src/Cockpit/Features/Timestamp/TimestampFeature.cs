@@ -28,30 +28,30 @@ sealed class TimestampFeature : ITimestampFeature
 		DateTimeOffset now = _timeProvider.GetUtcNow();
 		TimeSpan elapsed = now - utcTime;
 
-		if (elapsed < TimeSpan.Zero)
+		if(elapsed < TimeSpan.Zero)
 		{
 			return "just now";
 		}
 
-		if (elapsed.TotalSeconds < 60)
+		if(elapsed.TotalSeconds < 60)
 		{
 			return "just now";
 		}
 
-		if (elapsed.TotalMinutes < 60)
+		if(elapsed.TotalMinutes < 60)
 		{
 			int minutes = (int)elapsed.TotalMinutes;
 			return minutes == 1 ? "1 minute ago" : $"{minutes} minutes ago";
 		}
 
-		if (elapsed.TotalHours < 24)
+		if(elapsed.TotalHours < 24)
 		{
 			int hours = (int)elapsed.TotalHours;
 			return hours == 1 ? "1 hour ago" : $"{hours} hours ago";
 		}
 
 		int days = (int)elapsed.TotalDays;
-		if (days < 7)
+		if(days < 7)
 		{
 			return days == 1 ? "1 day ago" : $"{days} days ago";
 		}
@@ -69,17 +69,17 @@ sealed class TimestampFeature : ITimestampFeature
 		DateTime endTime = end ?? _timeProvider.GetLocalNow().DateTime;
 		TimeSpan duration = endTime - start;
 
-		if (duration.TotalSeconds < 1)
+		if(duration.TotalSeconds < 1)
 		{
 			return "<1s";
 		}
 
-		if (duration.TotalSeconds < 60)
+		if(duration.TotalSeconds < 60)
 		{
 			return $"{duration.TotalSeconds:F1}s";
 		}
 
-		if (duration.TotalMinutes < 60)
+		if(duration.TotalMinutes < 60)
 		{
 			return $"{duration.TotalMinutes:F1}m";
 		}

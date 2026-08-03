@@ -76,7 +76,7 @@ public class SessionCreationBenchmarks
 	{
 		await Io(modelResolveMs);        // GetDefaultModel (+ synchronous GetProviderConfig)
 		await Io(gitContextMs);          // GetContext — blocks here before doing anything else
-		// build SessionConfig (synchronous)
+										 // build SessionConfig (synchronous)
 		await Io(createSdkSessionMs);    // client.CreateSessionAsync
 		await Io(loadContextPanelMs);    // LoadContextPanelDataAsync
 		await Io(saveMs);                // SaveSessionModel
@@ -98,7 +98,7 @@ public class SessionCreationBenchmarks
 		Task<int> gitContextTask = ResolveGitContext();   // start early, don't await yet
 
 		await Io(modelResolveMs);        // GetDefaultModel (+ synchronous GetProviderConfig)
-		// build SessionConfig (synchronous) — does not need git context
+										 // build SessionConfig (synchronous) — does not need git context
 		await Io(createSdkSessionMs);    // client.CreateSessionAsync — git runs concurrently
 
 		_ = await gitContextTask;        // await git just before it's consumed (already done)

@@ -268,7 +268,7 @@ public class UserAppSettings
 		get
 		{
 			string? json = _preferences.Get<string?>(Keys.systemMessageSectionOverrides, null);
-			if (string.IsNullOrEmpty(json))
+			if(string.IsNullOrEmpty(json))
 			{
 				return [];
 			}

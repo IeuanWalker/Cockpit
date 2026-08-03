@@ -1,5 +1,5 @@
-using Cockpit.Features.Byok;
 using Cockpit.Extensions;
+using Cockpit.Features.Byok;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging;

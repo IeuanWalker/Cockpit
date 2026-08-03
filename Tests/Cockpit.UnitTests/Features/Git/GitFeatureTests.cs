@@ -200,9 +200,9 @@ public sealed class GitFeatureTests
 		GitFeature feature = Create((_, args) => args[0] switch
 		{
 			"rev-parse" when args[1] == "--show-toplevel" => Task.FromResult<string?>("/repo"),
-			"rev-parse" when args[1] == "--abbrev-ref"    => Task.FromResult<string?>("feature/my-branch"),
-			"remote"                                       => Task.FromResult<string?>("https://github.com/owner/repo.git"),
-			_                                              => Task.FromResult<string?>(null)
+			"rev-parse" when args[1] == "--abbrev-ref" => Task.FromResult<string?>("feature/my-branch"),
+			"remote" => Task.FromResult<string?>("https://github.com/owner/repo.git"),
+			_ => Task.FromResult<string?>(null)
 		});
 
 		try
@@ -227,9 +227,9 @@ public sealed class GitFeatureTests
 		GitFeature feature = Create((_, args) => args[0] switch
 		{
 			"rev-parse" when args[1] == "--show-toplevel" => Task.FromResult<string?>("/repo"),
-			"rev-parse"                                    => Task.FromResult<string?>("main"),
-			"remote"                                       => Task.FromResult<string?>("git@github.com:owner/my-project.git"),
-			_                                              => Task.FromResult<string?>(null)
+			"rev-parse" => Task.FromResult<string?>("main"),
+			"remote" => Task.FromResult<string?>("git@github.com:owner/my-project.git"),
+			_ => Task.FromResult<string?>(null)
 		});
 
 		try
@@ -274,8 +274,8 @@ public sealed class GitFeatureTests
 		GitFeature feature = Create((_, args) => args[0] switch
 		{
 			"rev-parse" when args[1] == "--show-toplevel" => Task.FromResult<string?>("/repo"),
-			"rev-parse"                                    => Task.FromResult<string?>("main"),
-			_                                              => Task.FromResult<string?>(null) // no remote
+			"rev-parse" => Task.FromResult<string?>("main"),
+			_ => Task.FromResult<string?>(null) // no remote
 		});
 
 		try
@@ -312,7 +312,7 @@ public sealed class GitFeatureTests
 	{
 		GitFeature feature = Create((_, args) =>
 			args[0] == "status" ? Task.FromResult<string?>("")
-			                    : Task.FromResult<string?>(null));
+								: Task.FromResult<string?>(null));
 
 		List<GitChangedFileModel> files = await feature.GetChangedFiles("C:\\repo");
 
@@ -335,8 +335,8 @@ public sealed class GitFeatureTests
 		GitFeature feature = Create((_, args) => args[0] switch
 		{
 			"status" => Task.FromResult<string?>(" M src/Foo.cs"),
-			"diff"   => Task.FromResult<string?>("--- a/src/Foo.cs\n+++ b/src/Foo.cs\n@@ -1 +1 @@\n-old\n+new"),
-			_        => Task.FromResult<string?>(null)
+			"diff" => Task.FromResult<string?>("--- a/src/Foo.cs\n+++ b/src/Foo.cs\n@@ -1 +1 @@\n-old\n+new"),
+			_ => Task.FromResult<string?>(null)
 		});
 
 		List<GitChangedFileModel> files = await feature.GetChangedFiles("C:\\repo");
@@ -352,7 +352,7 @@ public sealed class GitFeatureTests
 		GitFeature feature = Create((_, args) => args[0] switch
 		{
 			"status" => Task.FromResult<string?>("R  old/Name.cs -> new/Name.cs"),
-			_        => Task.FromResult<string?>(null)
+			_ => Task.FromResult<string?>(null)
 		});
 
 		List<GitChangedFileModel> files = await feature.GetChangedFiles("C:\\repo");

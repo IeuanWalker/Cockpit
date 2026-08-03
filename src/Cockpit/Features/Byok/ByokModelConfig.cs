@@ -33,7 +33,7 @@ public sealed class ByokModelConfig
 			Name = Name
 		};
 
-		if (MaxContextWindowTokens.HasValue || SupportsVision || SupportsReasoning)
+		if(MaxContextWindowTokens.HasValue || SupportsVision || SupportsReasoning)
 		{
 			ModelCapabilities capabilities = new()
 			{
@@ -44,7 +44,7 @@ public sealed class ByokModelConfig
 				}
 			};
 
-			if (MaxContextWindowTokens.HasValue)
+			if(MaxContextWindowTokens.HasValue)
 			{
 				capabilities.Limits = new ModelLimits { MaxContextWindowTokens = MaxContextWindowTokens.Value };
 			}

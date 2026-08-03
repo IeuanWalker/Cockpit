@@ -1,4 +1,3 @@
-using Cockpit.Features.AppSettings;
 using Cockpit.UnitTests.Features.AppSettings;
 using Shouldly;
 
