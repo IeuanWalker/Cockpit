@@ -2,271 +2,271 @@
 @using Cockpit.Features.Sessions.Models
 
 <div class="h-full min-h-0 flex flex-col">
-@if(ShowSearch)
-{
-    <div class="px-2 py-1.5 border-b border-app-border">
-        <div class="flex items-center gap-1">
-            <div class="flex-1 relative">
-                <input type="text"
-                       @ref="_sessionSearch"
-                       @bind="SearchText"
-                       @bind:event="oninput"
-                       placeholder="Search sessions..."
-                       aria-label="Search sessions"
-                       id="sessionSearch"
-                       class="w-full px-2 py-1 rounded text-xs focus:outline-none"
-                       style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);" />
-                @if(!string.IsNullOrEmpty(_searchText))
-                {
-                    <button @onclick="ClearAndFocusSearch"
-                            class="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-app-hover rounded">
-                        <svg class="w-3 h-3 secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                }
+    @if(ShowSearch)
+    {
+        <div class="px-2 py-1.5 border-b border-app-border">
+            <div class="flex items-center gap-1">
+                <div class="flex-1 relative">
+                    <input type="text"
+                           @ref="_sessionSearch"
+                           @bind="SearchText"
+                           @bind:event="oninput"
+                           placeholder="Search sessions..."
+                           aria-label="Search sessions"
+                           id="sessionSearch"
+                           class="w-full px-2 py-1 rounded text-xs focus:outline-none"
+                           style="background-color: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-color);" />
+                    @if(!string.IsNullOrEmpty(_searchText))
+                    {
+                        <button @onclick="ClearAndFocusSearch"
+                                class="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-app-hover rounded">
+                            <svg class="w-3 h-3 secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    }
+                </div>
+                <button @onclick="ToggleFilterPanel"
+                        class="p-1 rounded flex-shrink-0 @(_showFilterPanel || HasActiveFilters ? "hover:opacity-75" : "hover:bg-app-hover")"
+                        style="@(_showFilterPanel || HasActiveFilters ? "background-color: var(--accent-color);" : string.Empty)"
+                        title="Filter">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                </button>
             </div>
-            <button @onclick="ToggleFilterPanel"
-                    class="p-1 rounded flex-shrink-0 @(_showFilterPanel || HasActiveFilters ? "hover:opacity-75" : "hover:bg-app-hover")"
-                    style="@(_showFilterPanel || HasActiveFilters ? "background-color: var(--accent-color);" : string.Empty)"
-                    title="Filter">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-            </button>
-        </div>
-        @if(_showFilterPanel)
-        {
-            <div class="mt-1.5 border border-app-border rounded p-2 text-xs space-y-1" style="background-color: var(--sidebar-color);">
-                @if(UniqueCwds.Any())
-                {
-                    <div>
-                        <div class="secondary-text font-medium mb-1 uppercase tracking-wide" style="font-size: 10px;">Working Directory</div>
-                        @foreach(var group in GroupedCwds)
-                        {
-                            var items = group.ToList();
-                            var allSelected = items.All(cwd => _filterCwds.Contains(cwd));
-                            var anySelected = items.Any(cwd => _filterCwds.Contains(cwd));
-                            var isMulti = items.Count > 1;
-                            var isExpanded = _expandedCwdGroups.Contains(group.Key);
-                            var groupActive = allSelected || anySelected;
-
-                            <!-- Group header row -->
-                            <div class="flex items-center gap-0.5">
-                                <button @onclick="() => ToggleCwdGroup(group)"
-                                        role="checkbox"
-                                        aria-checked="@(allSelected ? "true" : anySelected ? "mixed" : "false")"
-                                        class="flex-1 flex items-center gap-1.5 py-0.5 px-1 hover:bg-app-hover rounded text-left min-w-0"
-                                        title="@string.Join("\n", items)">
-                                    <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24">
-                                        <rect x="3" y="3" width="18" height="18" rx="2"
-                                              fill="@(allSelected || anySelected ? "var(--accent-color)" : "none")"
-                                              stroke="@(allSelected || anySelected ? "var(--accent-color)" : "currentColor")"
-                                              stroke-width="2" />
-                                        @if(allSelected)
-                                        {
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" stroke="white" fill="none" d="M6 12l4 4 8-8" />
-                                        }
-                                        else if(anySelected)
-                                        {
-                                            <line x1="7" y1="12" x2="17" y2="12" stroke-width="2.5" stroke-linecap="round" stroke="white" />
-                                        }
-                                    </svg>
-                                    <span class="truncate text-xs text-app-title">@group.Key</span>
-                                    @if(isMulti)
-                                    {
-                                        <span class="text-xs secondary-text flex-shrink-0">(@items.Count)</span>
-                                    }
-                                </button>
-                                @if(isMulti)
-                                {
-                                    <button @onclick="() => ToggleCwdGroupExpand(group.Key)"
-                                            class="p-0.5 hover:bg-app-hover rounded flex-shrink-0"
-                                            title="@(isExpanded ? "Collapse" : "Expand")">
-                                        <svg class="w-3 h-3 secondary-text transition-transform @(isExpanded ? "" : "-rotate-90")" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                }
-                            </div>
-
-                            <!-- Individual items (only for multi-path groups when expanded) -->
-                            @if(isMulti && isExpanded)
+            @if(_showFilterPanel)
+            {
+                <div class="mt-1.5 border border-app-border rounded p-2 text-xs space-y-1" style="background-color: var(--sidebar-color);">
+                    @if(UniqueCwds.Any())
+                    {
+                        <div>
+                            <div class="secondary-text font-medium mb-1 uppercase tracking-wide" style="font-size: 10px;">Working Directory</div>
+                            @foreach(var group in GroupedCwds)
                             {
-                                @foreach(var cwd in items)
-                                {
-                                    var cwdActive = _filterCwds.Contains(cwd);
-                                    <button @onclick="() => ToggleCwdFilter(cwd)"
+                                var items = group.ToList();
+                                var allSelected = items.All(cwd => _filterCwds.Contains(cwd));
+                                var anySelected = items.Any(cwd => _filterCwds.Contains(cwd));
+                                var isMulti = items.Count > 1;
+                                var isExpanded = _expandedCwdGroups.Contains(group.Key);
+                                var groupActive = allSelected || anySelected;
+
+                                <!-- Group header row -->
+                                <div class="flex items-center gap-0.5">
+                                    <button @onclick="() => ToggleCwdGroup(group)"
                                             role="checkbox"
-                                            aria-checked="@(cwdActive ? "true" : "false")"
-                                            class="w-full flex items-center gap-1.5 py-0.5 pl-5 pr-1 hover:bg-app-hover rounded text-left">
+                                            aria-checked="@(allSelected ? "true" : anySelected ? "mixed" : "false")"
+                                            class="flex-1 flex items-center gap-1.5 py-0.5 px-1 hover:bg-app-hover rounded text-left min-w-0"
+                                            title="@string.Join("\n", items)">
                                         <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24">
                                             <rect x="3" y="3" width="18" height="18" rx="2"
-                                                  fill="@(cwdActive ? "var(--accent-color)" : "none")"
-                                                  stroke="@(cwdActive ? "var(--accent-color)" : "currentColor")"
+                                                  fill="@(allSelected || anySelected ? "var(--accent-color)" : "none")"
+                                                  stroke="@(allSelected || anySelected ? "var(--accent-color)" : "currentColor")"
                                                   stroke-width="2" />
-                                            @if(cwdActive)
+                                            @if(allSelected)
                                             {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" stroke="white" fill="none" d="M6 12l4 4 8-8" />
                                             }
+                                            else if(anySelected)
+                                            {
+                                                <line x1="7" y1="12" x2="17" y2="12" stroke-width="2.5" stroke-linecap="round" stroke="white" />
+                                            }
                                         </svg>
-                                        <span class="truncate text-xs secondary-text" title="@cwd">@cwd</span>
+                                        <span class="truncate text-xs text-app-title">@group.Key</span>
+                                        @if(isMulti)
+                                        {
+                                            <span class="text-xs secondary-text flex-shrink-0">(@items.Count)</span>
+                                        }
                                     </button>
+                                    @if(isMulti)
+                                    {
+                                        <button @onclick="() => ToggleCwdGroupExpand(group.Key)"
+                                                class="p-0.5 hover:bg-app-hover rounded flex-shrink-0"
+                                                title="@(isExpanded ? "Collapse" : "Expand")">
+                                            <svg class="w-3 h-3 secondary-text transition-transform @(isExpanded ? "" : "-rotate-90")" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    }
+                                </div>
+
+                                <!-- Individual items (only for multi-path groups when expanded) -->
+                                @if(isMulti && isExpanded)
+                                {
+                                    @foreach(var cwd in items)
+                                    {
+                                        var cwdActive = _filterCwds.Contains(cwd);
+                                        <button @onclick="() => ToggleCwdFilter(cwd)"
+                                                role="checkbox"
+                                                aria-checked="@(cwdActive ? "true" : "false")"
+                                                class="w-full flex items-center gap-1.5 py-0.5 pl-5 pr-1 hover:bg-app-hover rounded text-left">
+                                            <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24">
+                                                <rect x="3" y="3" width="18" height="18" rx="2"
+                                                      fill="@(cwdActive ? "var(--accent-color)" : "none")"
+                                                      stroke="@(cwdActive ? "var(--accent-color)" : "currentColor")"
+                                                      stroke-width="2" />
+                                                @if(cwdActive)
+                                                {
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" stroke="white" fill="none" d="M6 12l4 4 8-8" />
+                                                }
+                                            </svg>
+                                            <span class="truncate text-xs secondary-text" title="@cwd">@cwd</span>
+                                        </button>
+                                    }
                                 }
                             }
-                        }
-                    </div>
-                }
-                @if(UniqueRepos.Any())
-                {
-                    <div>
-                        <div class="secondary-text font-medium mb-1 uppercase tracking-wide" style="font-size: 10px;">Repository</div>
-                        @foreach(var repo in UniqueRepos)
-                        {
-                            var repoActive = _filterRepos.Contains(repo);
-                            <button @onclick="() => ToggleRepoFilter(repo)"
-                                    role="checkbox"
-                                    aria-checked="@(repoActive ? "true" : "false")"
-                                    class="w-full flex items-center gap-1.5 py-0.5 px-1 hover:bg-app-hover rounded text-left">
-                                <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24">
-                                    <rect x="3" y="3" width="18" height="18" rx="2"
-                                          fill="@(repoActive ? "var(--accent-color)" : "none")"
-                                          stroke="@(repoActive ? "var(--accent-color)" : "currentColor")"
-                                          stroke-width="2" />
-                                    @if(repoActive)
-                                    {
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" stroke="white" fill="none" d="M6 12l4 4 8-8" />
-                                    }
-                                </svg>
-                                <span class="truncate text-xs text-app-title" title="@repo">@repo</span>
-                            </button>
-                        }
-                    </div>
-                }
-                @if(!UniqueCwds.Any() && !UniqueRepos.Any())
-                {
-                    <span class="secondary-text">No filter options available</span>
-                }
-            </div>
-        }
-    </div>
-}
-
-@if(_showGroupByPanel)
-{
-    <div class="px-2 py-1.5 border-b border-app-border">
-        <div class="border border-app-border rounded p-2 text-xs" style="background-color: var(--sidebar-color);">
-            <div class="secondary-text font-medium mb-1 uppercase tracking-wide" style="font-size: 10px;">Group by</div>
-            <button @onclick="() => SetGroupByMode(SessionListViewMode.Project)"
-                    class="w-full flex items-center gap-1.5 py-1 px-1 hover:bg-app-hover rounded text-left">
-                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    @if(IsGroupingByProject)
-                    {
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12l4 4L19 6" />
+                        </div>
                     }
-                </svg>
-                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-                </svg>
-                <span class="text-xs text-app-title">Project</span>
-            </button>
-            <button @onclick="() => SetGroupByMode(SessionListViewMode.Updated)"
-                    class="w-full flex items-center gap-1.5 py-1 px-1 hover:bg-app-hover rounded text-left">
-                <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    @if(!IsGroupingByProject)
+                    @if(UniqueRepos.Any())
                     {
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12l4 4L19 6" />
+                        <div>
+                            <div class="secondary-text font-medium mb-1 uppercase tracking-wide" style="font-size: 10px;">Repository</div>
+                            @foreach(var repo in UniqueRepos)
+                            {
+                                var repoActive = _filterRepos.Contains(repo);
+                                <button @onclick="() => ToggleRepoFilter(repo)"
+                                        role="checkbox"
+                                        aria-checked="@(repoActive ? "true" : "false")"
+                                        class="w-full flex items-center gap-1.5 py-0.5 px-1 hover:bg-app-hover rounded text-left">
+                                    <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"
+                                              fill="@(repoActive ? "var(--accent-color)" : "none")"
+                                              stroke="@(repoActive ? "var(--accent-color)" : "currentColor")"
+                                              stroke-width="2" />
+                                        @if(repoActive)
+                                        {
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" stroke="white" fill="none" d="M6 12l4 4 8-8" />
+                                        }
+                                    </svg>
+                                    <span class="truncate text-xs text-app-title" title="@repo">@repo</span>
+                                </button>
+                            }
+                        </div>
                     }
-                </svg>
-                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
-                <span class="text-xs text-app-title">Updated</span>
-            </button>
-        </div>
-    </div>
-}
-
-<div class="flex-1 min-h-0 overflow-y-auto scrollbar-thin relative"
-     tabindex="0"
-     aria-label="Sessions">
-    @if(IsSearchActive && Rows.Count == 0)
-    {
-        <div class="px-3 py-4 text-center">
-            <span class="secondary-text text-xs">No sessions found</span>
+                    @if(!UniqueCwds.Any() && !UniqueRepos.Any())
+                    {
+                        <span class="secondary-text">No filter options available</span>
+                    }
+                </div>
+            }
         </div>
     }
-    else
+
+    @if(_showGroupByPanel)
     {
-        <Virtualize TItem="SessionListRow"
-                    Items="@Rows"
-                    Context="row"
-                    ItemSize="@VirtualRowHeight"
-                    OverscanCount="@VirtualOverscanCount"
-                    SpacerElement="div">
-            <div @key="row.Key" class="h-12 overflow-hidden" style="height: 48px; min-height: 48px; max-height: 48px;">
-                @switch(row)
-                {
-                    case SessionListSessionRow sessionRow:
-                        <div class="h-full @(sessionRow.IsIndented ? "pl-4" : string.Empty)">
-                            <SessionListItem Session="@sessionRow.Session"
-                                             IsActive="@(_sessionFeature.CurrentSession?.Id == sessionRow.Session.Id)"
-                                             OnSelect="SelectSession"
-                                             OnDelete="@(e => ShowDeleteDialog(sessionRow.Session, e))"
-                                             TimeAgo="@GetTimeAgo(sessionRow.Session.LastActivity)" />
-                        </div>
-                        break;
-                    case SessionListProjectHeaderRow group:
-                        <div class="group h-full flex items-center rounded hover:bg-app-hover secondary-text">
-                            <button @onclick="() => ToggleProjectGroupExpand(group.GroupId)"
-                                    class="h-full flex-1 min-w-0 px-3 text-sm font-semibold flex items-center gap-1.5 text-left"
-                                    aria-expanded="@group.IsExpanded">
-                                <div class="relative w-3.5 h-3.5 flex-shrink-0">
-                                    <svg class="absolute inset-0 m-auto w-3.5 h-3.5 text-app-title opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
-                                        @if(group.IsExpanded)
+        <div class="px-2 py-1.5 border-b border-app-border">
+            <div class="border border-app-border rounded p-2 text-xs" style="background-color: var(--sidebar-color);">
+                <div class="secondary-text font-medium mb-1 uppercase tracking-wide" style="font-size: 10px;">Group by</div>
+                <button @onclick="() => SetGroupByMode(SessionListViewMode.Project)"
+                        class="w-full flex items-center gap-1.5 py-1 px-1 hover:bg-app-hover rounded text-left">
+                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        @if(IsGroupingByProject)
+                        {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12l4 4L19 6" />
+                        }
+                    </svg>
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                    </svg>
+                    <span class="text-xs text-app-title">Project</span>
+                </button>
+                <button @onclick="() => SetGroupByMode(SessionListViewMode.Updated)"
+                        class="w-full flex items-center gap-1.5 py-1 px-1 hover:bg-app-hover rounded text-left">
+                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        @if(!IsGroupingByProject)
+                        {
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12l4 4L19 6" />
+                        }
+                    </svg>
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    <span class="text-xs text-app-title">Updated</span>
+                </button>
+            </div>
+        </div>
+    }
+
+    <div class="flex-1 min-h-0 overflow-y-auto scrollbar-thin relative"
+         tabindex="0"
+         aria-label="Sessions">
+        @if(IsSearchActive && Rows.Count == 0)
+        {
+            <div class="px-3 py-4 text-center">
+                <span class="secondary-text text-xs">No sessions found</span>
+            </div>
+        }
+        else
+        {
+            <Virtualize TItem="SessionListRow"
+                        Items="@Rows"
+                        Context="row"
+                        ItemSize="@VirtualRowHeight"
+                        OverscanCount="@VirtualOverscanCount"
+                        SpacerElement="div">
+                <div @key="row.Key" class="h-12 overflow-hidden" style="height: 48px; min-height: 48px; max-height: 48px;">
+                    @switch(row)
+                    {
+                        case SessionListSessionRow sessionRow:
+                            <div class="h-full @(sessionRow.IsIndented ? "pl-4" : string.Empty)">
+                                <SessionListItem Session="@sessionRow.Session"
+                                                 IsActive="@(_sessionFeature.CurrentSession?.Id == sessionRow.Session.Id)"
+                                                 OnSelect="SelectSession"
+                                                 OnDelete="@(e => ShowDeleteDialog(sessionRow.Session, e))"
+                                                 TimeAgo="@GetTimeAgo(sessionRow.Session.LastActivity)" />
+                            </div>
+                            break;
+                        case SessionListProjectHeaderRow group:
+                            <div class="group h-full flex items-center rounded hover:bg-app-hover secondary-text">
+                                <button @onclick="() => ToggleProjectGroupExpand(group.GroupId)"
+                                        class="h-full flex-1 min-w-0 px-3 text-sm font-semibold flex items-center gap-1.5 text-left"
+                                        aria-expanded="@group.IsExpanded">
+                                    <div class="relative w-3.5 h-3.5 flex-shrink-0">
+                                        <svg class="absolute inset-0 m-auto w-3.5 h-3.5 text-app-title opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" viewBox="0 0 20 20">
+                                            @if(group.IsExpanded)
+                                            {
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 0 1 1.414 0L10 10.586l3.293-3.293a1 1 0 1 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 0-1.414z" clip-rule="evenodd" />
+                                            }
+                                            else
+                                            {
+                                                <path fill-rule="evenodd" d="M7.293 5.293a1 1 0 0 1 1.414 0L12.414 9l-3.707 3.707a1 1 0 0 1-1.414-1.414L9.586 9 7.293 6.707a1 1 0 0 1 0-1.414z" clip-rule="evenodd" />
+                                            }
+                                        </svg>
+                                        @if(group.IsQuickChat)
                                         {
-                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 0 1 1.414 0L10 10.586l3.293-3.293a1 1 0 1 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 0-1.414z" clip-rule="evenodd" />
+                                            <svg class="absolute inset-0 m-auto w-3.5 h-3.5 group-hover:opacity-0 transition-opacity" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12a8.25 8.25 0 0 1 8.25-8.25h3a8.25 8.25 0 0 1 0 16.5h-1.386a1.5 1.5 0 0 0-.948.337l-2.793 2.234A.75.75 0 0 1 7 22.485V20.25A8.25 8.25 0 0 1 2.25 12Z" />
+                                            </svg>
                                         }
                                         else
                                         {
-                                            <path fill-rule="evenodd" d="M7.293 5.293a1 1 0 0 1 1.414 0L12.414 9l-3.707 3.707a1 1 0 0 1-1.414-1.414L9.586 9 7.293 6.707a1 1 0 0 1 0-1.414z" clip-rule="evenodd" />
+                                            <svg class="absolute inset-0 m-auto w-3.5 h-3.5 group-hover:opacity-0 transition-opacity" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                                            </svg>
                                         }
+                                    </div>
+                                    <span class="truncate">@group.Name</span>
+                                </button>
+                                <button @onclick="() => CreateSessionFromGroup(group)"
+                                        class="flex-shrink-0 p-1 mr-1 rounded hover:bg-app-hover opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="@(group.IsQuickChat ? "Create new quick chat session" : "Create new session in this project")">
+                                    <svg class="w-3 h-3 secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                     </svg>
-                                    @if(group.IsQuickChat)
-                                    {
-                                        <svg class="absolute inset-0 m-auto w-3.5 h-3.5 group-hover:opacity-0 transition-opacity" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12a8.25 8.25 0 0 1 8.25-8.25h3a8.25 8.25 0 0 1 0 16.5h-1.386a1.5 1.5 0 0 0-.948.337l-2.793 2.234A.75.75 0 0 1 7 22.485V20.25A8.25 8.25 0 0 1 2.25 12Z" />
-                                        </svg>
-                                    }
-                                    else
-                                    {
-                                        <svg class="absolute inset-0 m-auto w-3.5 h-3.5 group-hover:opacity-0 transition-opacity" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-                                        </svg>
-                                    }
-                                </div>
-                                <span class="truncate">@group.Name</span>
-                            </button>
-                            <button @onclick="() => CreateSessionFromGroup(group)"
-                                    class="flex-shrink-0 p-1 mr-1 rounded hover:bg-app-hover opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title="@(group.IsQuickChat ? "Create new quick chat session" : "Create new session in this project")">
-                                <svg class="w-3 h-3 secondary-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                </svg>
-                            </button>
-                        </div>
-                        break;
-                    case SessionListShowMoreRow showMore:
-                        <div class="h-full flex items-center px-7">
-                            <button @onclick="() => ToggleProjectSessionLimitExpand(showMore.GroupId)"
-                                    class="text-xs secondary-text hover:text-app-title">
-                                @(showMore.IsExpanded ? "Show less" : "Show more")
-                            </button>
-                        </div>
-                        break;
-                }
-            </div>
-        </Virtualize>
-    }
-</div>
+                                </button>
+                            </div>
+                            break;
+                        case SessionListShowMoreRow showMore:
+                            <div class="h-full flex items-center px-7">
+                                <button @onclick="() => ToggleProjectSessionLimitExpand(showMore.GroupId)"
+                                        class="text-xs secondary-text hover:text-app-title">
+                                    @(showMore.IsExpanded ? "Show less" : "Show more")
+                                </button>
+                            </div>
+                            break;
+                    }
+                </div>
+            </Virtualize>
+        }
+    </div>
 </div>

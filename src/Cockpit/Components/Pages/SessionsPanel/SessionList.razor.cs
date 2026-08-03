@@ -9,8 +9,8 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 
 public partial class SessionList : ComponentBase, IDisposable
 {
-	const float VirtualRowHeight = 48;
-	const int VirtualOverscanCount = 5;
+	const float virtualRowHeight = 48;
+	const int virtualOverscanCount = 5;
 
 	[Parameter] public DeleteSessionPopup? DeletePopup { get; set; }
 	[Parameter] public bool ShowSearch { get; set; }
@@ -86,8 +86,7 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	protected override void OnParametersSet()
 	{
-		if(!ShowSearch &&
-		   (!string.IsNullOrEmpty(_searchText) || _filterCwds.Count > 0 || _filterRepos.Count > 0))
+		if(!ShowSearch && (!string.IsNullOrEmpty(_searchText) || _filterCwds.Count > 0 || _filterRepos.Count > 0))
 		{
 			_searchText = string.Empty;
 			_focusSearchRequested = false;
@@ -107,8 +106,7 @@ public partial class SessionList : ComponentBase, IDisposable
 		}
 	}
 
-	bool IsSearchActive => ShowSearch &&
-		(!string.IsNullOrWhiteSpace(_searchText) || _filterCwds.Count > 0 || _filterRepos.Count > 0);
+	bool IsSearchActive => ShowSearch && (!string.IsNullOrWhiteSpace(_searchText) || _filterCwds.Count > 0 || _filterRepos.Count > 0);
 	bool HasActiveFilters => _filterCwds.Count > 0 || _filterRepos.Count > 0;
 	bool IsGroupingByProject => _groupByMode == SessionListViewMode.Project;
 
@@ -250,8 +248,7 @@ public partial class SessionList : ComponentBase, IDisposable
 		InvalidateProjection();
 	}
 
-	Task CreateSessionFromGroup(SessionListProjectHeaderRow group) =>
-		OnCreateSessionFromPath.InvokeAsync(group.CreateSessionPath);
+	Task CreateSessionFromGroup(SessionListProjectHeaderRow group) => OnCreateSessionFromPath.InvokeAsync(group.CreateSessionPath);
 
 	protected override void OnInitialized()
 	{
@@ -267,10 +264,7 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		const SessionChangeKind projectionChanges =
-			SessionChangeKind.SessionSummary |
-			SessionChangeKind.SessionCollection |
-			SessionChangeKind.CurrentSession;
+		const SessionChangeKind projectionChanges = SessionChangeKind.SessionSummary | SessionChangeKind.SessionCollection | SessionChangeKind.CurrentSession;
 		if((change.Kind & projectionChanges) == 0)
 		{
 			return;

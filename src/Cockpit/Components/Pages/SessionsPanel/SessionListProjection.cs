@@ -2,23 +2,23 @@ using Cockpit.Features.Sessions.Models;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
 
-internal enum SessionListViewMode
+enum SessionListViewMode
 {
 	Project,
 	Updated
 }
 
-internal abstract record SessionListRow
+abstract record SessionListRow
 {
 	public abstract string Key { get; }
 }
 
-internal sealed record SessionListSessionRow(SessionModel Session, bool IsIndented) : SessionListRow
+sealed record SessionListSessionRow(SessionModel Session, bool IsIndented) : SessionListRow
 {
 	public override string Key => $"session:{Session.Id}";
 }
 
-internal sealed record SessionListProjectHeaderRow(
+sealed record SessionListProjectHeaderRow(
 	string GroupId,
 	string Name,
 	bool IsQuickChat,
@@ -28,12 +28,12 @@ internal sealed record SessionListProjectHeaderRow(
 	public override string Key => $"project:{GroupId}";
 }
 
-internal sealed record SessionListShowMoreRow(string GroupId, bool IsExpanded) : SessionListRow
+sealed record SessionListShowMoreRow(string GroupId, bool IsExpanded) : SessionListRow
 {
 	public override string Key => $"show-more:{GroupId}";
 }
 
-internal sealed record SessionListProjectionOptions(
+sealed record SessionListProjectionOptions(
 	SessionListViewMode ViewMode,
 	string? ActiveSessionId,
 	string SearchText,
@@ -42,10 +42,10 @@ internal sealed record SessionListProjectionOptions(
 	IReadOnlySet<string> ExpandedProjectGroups,
 	IReadOnlySet<string> ExpandedProjectSessionGroups);
 
-internal static class SessionListProjection
+static class SessionListProjection
 {
-	const int CollapsedSessionLimit = 5;
-	const int ExpandedSessionLimit = 15;
+	const int collapsedSessionLimit = 5;
+	const int expandedSessionLimit = 15;
 
 	public static IReadOnlyList<SessionListRow> Build(
 		IEnumerable<SessionModel> sessions,
@@ -70,42 +70,34 @@ internal static class SessionListProjection
 		return BuildProjectRows(sortedSessions, options);
 	}
 
-	static IEnumerable<SessionModel> Filter(
-		IEnumerable<SessionModel> sessions,
-		SessionListProjectionOptions options)
+	static IEnumerable<SessionModel> Filter(IEnumerable<SessionModel> sessions, SessionListProjectionOptions options)
 	{
 		if(!string.IsNullOrWhiteSpace(options.SearchText))
 		{
-			sessions = sessions.Where(session =>
-				session.Title.Contains(options.SearchText, StringComparison.OrdinalIgnoreCase));
+			sessions = sessions.Where(session => session.Title.Contains(options.SearchText, StringComparison.OrdinalIgnoreCase));
 		}
 
 		if(options.FilterCwds.Count > 0)
 		{
-			sessions = sessions.Where(session => options.FilterCwds.Contains(
-				NormalizePath(session.Context.CurrentWorkingDirectory ?? string.Empty)));
+			sessions = sessions.Where(session => options.FilterCwds.Contains(NormalizePath(session.Context.CurrentWorkingDirectory ?? string.Empty)));
 		}
 
 		if(options.FilterRepos.Count > 0)
 		{
-			sessions = sessions.Where(session =>
-				options.FilterRepos.Contains(session.Context.Repository ?? string.Empty));
+			sessions = sessions.Where(session => options.FilterRepos.Contains(session.Context.Repository ?? string.Empty));
 		}
 
 		return sessions;
 	}
 
-	static IReadOnlyList<SessionListRow> BuildProjectRows(
-		IReadOnlyList<SessionModel> sortedSessions,
-		SessionListProjectionOptions options)
+	static IReadOnlyList<SessionListRow> BuildProjectRows(IReadOnlyList<SessionModel> sortedSessions, SessionListProjectionOptions options)
 	{
 		List<ProjectSessionGroup> groups = BuildProjectGroups(sortedSessions);
 		List<SessionListRow> rows = [];
 
 		foreach(ProjectSessionGroup group in groups)
 		{
-			bool containsActiveSession = options.ActiveSessionId is not null &&
-				group.Sessions.Any(session => session.Id == options.ActiveSessionId);
+			bool containsActiveSession = options.ActiveSessionId is not null && group.Sessions.Any(session => session.Id == options.ActiveSessionId);
 			bool isExpanded = options.ExpandedProjectGroups.Contains(group.Id) || containsActiveSession;
 			rows.Add(new SessionListProjectHeaderRow(
 				group.Id,
@@ -119,13 +111,9 @@ internal static class SessionListProjection
 				continue;
 			}
 
-			int limit = options.ExpandedProjectSessionGroups.Contains(group.Id)
-				? ExpandedSessionLimit
-				: CollapsedSessionLimit;
+			int limit = options.ExpandedProjectSessionGroups.Contains(group.Id) ? expandedSessionLimit : collapsedSessionLimit;
 			List<SessionModel> visibleSessions = [.. group.Sessions.Take(limit)];
-			SessionModel? activeSession = options.ActiveSessionId is null
-				? null
-				: group.Sessions.FirstOrDefault(session => session.Id == options.ActiveSessionId);
+			SessionModel? activeSession = options.ActiveSessionId is null ? null : group.Sessions.FirstOrDefault(session => session.Id == options.ActiveSessionId);
 			if(activeSession is not null && visibleSessions.All(session => session.Id != activeSession.Id))
 			{
 				visibleSessions.Add(activeSession);
@@ -136,11 +124,9 @@ internal static class SessionListProjection
 				rows.Add(new SessionListSessionRow(session, true));
 			}
 
-			if(group.Sessions.Count > CollapsedSessionLimit)
+			if(group.Sessions.Count > collapsedSessionLimit)
 			{
-				rows.Add(new SessionListShowMoreRow(
-					group.Id,
-					options.ExpandedProjectSessionGroups.Contains(group.Id)));
+				rows.Add(new SessionListShowMoreRow(group.Id, options.ExpandedProjectSessionGroups.Contains(group.Id)));
 			}
 		}
 
@@ -181,13 +167,9 @@ internal static class SessionListProjection
 		return groups;
 	}
 
-	internal static string NormalizePath(string path) =>
-		string.IsNullOrEmpty(path)
-			? string.Empty
-			: path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+	internal static string NormalizePath(string path) => string.IsNullOrEmpty(path) ? string.Empty : path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-	static bool IsQuickChatSession(SessionModel session) =>
-		string.IsNullOrWhiteSpace(session.Context.CurrentWorkingDirectory);
+	static bool IsQuickChatSession(SessionModel session) => string.IsNullOrWhiteSpace(session.Context.CurrentWorkingDirectory);
 
 	static string GetProjectGroupKey(SessionModel session)
 	{
@@ -223,9 +205,7 @@ internal static class SessionListProjection
 	static string GetPreferredProjectPath(SessionModel session)
 	{
 		string gitRoot = NormalizePath(session.Context.GitRoot ?? string.Empty);
-		return string.IsNullOrWhiteSpace(gitRoot)
-			? NormalizePath(session.Context.CurrentWorkingDirectory ?? string.Empty)
-			: gitRoot;
+		return string.IsNullOrWhiteSpace(gitRoot) ? NormalizePath(session.Context.CurrentWorkingDirectory ?? string.Empty) : gitRoot;
 	}
 
 	static string? GetCreateSessionPath(ProjectSessionGroup group)

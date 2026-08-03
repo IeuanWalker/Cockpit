@@ -151,11 +151,9 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	}
 }
 
-internal static class SessionPanelStateChangeFilter
+static class SessionPanelStateChangeFilter
 {
-	const SessionChangeKind RelevantChanges =
-		SessionChangeKind.SessionCollection | SessionChangeKind.CurrentSession;
+	const SessionChangeKind relevantChanges = SessionChangeKind.SessionCollection | SessionChangeKind.CurrentSession;
 
-	public static bool IsRelevant(SessionStateChange change) =>
-		(change.Kind & RelevantChanges) != 0;
+	public static bool IsRelevant(SessionStateChange change) => (change.Kind & relevantChanges) != 0;
 }
