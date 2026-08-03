@@ -30,7 +30,7 @@ static class ToolStartHandler
 			// AssistantMessageDeltaHandler when no active group was present).
 			if(triggerMsg is not null)
 			{
-				int anchorIndex = session.Messages.IndexOf(triggerMsg);
+				int anchorIndex = session.Conversation.IndexOfMessage(triggerMsg);
 				if(anchorIndex >= 0)
 				{
 					for(int i = anchorIndex + 1; i < session.Messages.Count;)
@@ -46,7 +46,7 @@ static class ToolStartHandler
 								Timestamp = m.Timestamp.LocalDateTime,
 								EventJson = m.EventJson
 							});
-							session.Messages.RemoveAt(i);
+							session.Conversation.RemoveMessageAt(i);
 							if(m.Id is not null)
 							{
 								session.StreamingMessages.Remove(m.Id);

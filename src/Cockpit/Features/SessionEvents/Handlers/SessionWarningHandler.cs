@@ -23,6 +23,6 @@ static class SessionWarningHandler
 			EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 		};
 
-		session.Messages.Add(message);
+		session.Conversation.AddMessage(message);
 	}
 }

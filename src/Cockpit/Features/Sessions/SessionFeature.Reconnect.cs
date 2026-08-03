@@ -101,7 +101,6 @@ public sealed partial class SessionFeature
 
 				// Remove from registry inside the lock so message sends can't find it during cleanup; disposing below stops event delivery.
 				_sdkRegistry.TryRemove(session.Id, out sdkSession);
-				session.Conversation.PublishMessagesSnapshot();
 			}
 
 			// Clear blocking-request state outside SessionEventLock to avoid lock-ordering issues.
@@ -131,7 +130,7 @@ public sealed partial class SessionFeature
 			}
 		}
 
-		_sessionListFeature.NotifyStateChanged();
+		_sessionListFeature.NotifyStateChanged(null, SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary);
 		_logger.LogInformation("SDK state reset complete after client disconnect");
 	}
 
@@ -291,17 +290,20 @@ public sealed partial class SessionFeature
 			}
 
 			// Fallback: finalize the broken working group visually and do a full reload.
+			SessionChangeKind changeKind = SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary;
 			lock(session.SessionEventLock)
 			{
 				if(session.ActiveWorkingGroup is not null)
 				{
 					SessionIdleHandler.Handle(session, groupStatus: GroupStatusEnum.Error);
+					if(session.Conversation.PublishMessagesSnapshotIfChanged())
+					{
+						changeKind |= SessionChangeKind.ConversationStructure;
+					}
 				}
-
-				session.Conversation.PublishMessagesSnapshot();
 			}
 
-			_sessionListFeature.NotifyStateChanged();
+			_sessionListFeature.NotifyStateChanged(session.Id, changeKind);
 
 			try
 			{

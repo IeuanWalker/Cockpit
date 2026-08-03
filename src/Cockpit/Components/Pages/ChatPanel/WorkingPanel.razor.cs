@@ -33,8 +33,11 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	Timer? _timer;
 	bool _isUserScrolledUpFromWorking = false;
 	bool _scrollTrackingSetup = false;
+	bool _pendingScrollTrackingCleanup;
 	bool _pendingScrollToBottom = false;
 	DotNetObjectReference<WorkingPanel>? _dotNetRef;
+	ElementReference _workingContentElement;
+	ElementReference _registeredWorkingContentElement;
 
 	string? _prevSessionId;
 	string? _prevWorkingGroupId;
@@ -52,6 +55,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 			// Reset so OnAfterRenderAsync re-attaches scroll tracking to the new element.
 			// The working group change may cause #workingContent to be briefly removed and
 			// recreated (new group starts with empty events), invalidating any prior setup.
+			_pendingScrollTrackingCleanup = _scrollTrackingSetup;
 			_scrollTrackingSetup = false;
 			_prevSessionId = currentSessionId;
 			_prevWorkingGroupId = currentWorkingGroupId;
@@ -75,8 +79,16 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 			_dotNetRef = DotNetObjectReference.Create(this);
 		}
 
+		if(_pendingScrollTrackingCleanup)
+		{
+			_pendingScrollTrackingCleanup = false;
+			await CleanupSmartScroll();
+		}
+
+		bool hasWorkingContent = IsVisible && Group?.GetEventsSnapshot().Count > 0;
+
 		// Cleanup smart scroll when panel becomes invisible (element leaving DOM)
-		if(!IsVisible && _scrollTrackingSetup)
+		if(!hasWorkingContent && _scrollTrackingSetup)
 		{
 			_scrollTrackingSetup = false;
 			await CleanupSmartScroll();
@@ -89,7 +101,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 		// Only mark as set up if the element was found — the element is conditionally rendered
 		// and may not exist yet on the first render (when events are still empty). When that
 		// happens, leave _scrollTrackingSetup = false so the next render retries.
-		if(IsVisible && _dotNetRef is not null && !_scrollTrackingSetup)
+		if(hasWorkingContent && _dotNetRef is not null && !_scrollTrackingSetup)
 		{
 			_scrollTrackingSetup = await SetupSmartScroll();
 			if(_scrollTrackingSetup)
@@ -101,7 +113,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 			}
 		}
 
-		if(_pendingScrollToBottom && IsVisible)
+		if(_pendingScrollToBottom && hasWorkingContent)
 		{
 			_pendingScrollToBottom = false;
 			await ScrollToBottom();
@@ -112,7 +124,12 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	{
 		try
 		{
-			return await _jsRuntime.InvokeAsync<bool>("cockpit.setupSmartScroll", "workingContent", _dotNetRef, "OnWorkingPanelScrollPositionChanged", nameof(WorkingPanel));
+			bool setup = await _jsRuntime.InvokeAsync<bool>("cockpit.setupSmartScroll", _workingContentElement, _dotNetRef, "OnWorkingPanelScrollPositionChanged", nameof(WorkingPanel));
+			if(setup)
+			{
+				_registeredWorkingContentElement = _workingContentElement;
+			}
+			return setup;
 		}
 		catch(Exception ex)
 		{
@@ -132,7 +149,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.scrollToBottom", "workingContent");
+			await _jsRuntime.InvokeVoidAsync("cockpit.scrollToBottom", _workingContentElement);
 		}
 		catch(Exception ex)
 		{
@@ -144,7 +161,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	{
 		try
 		{
-			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", "workingContent", nameof(WorkingPanel));
+			await _jsRuntime.InvokeVoidAsync("cockpit.cleanupSmartScroll", _registeredWorkingContentElement, nameof(WorkingPanel));
 		}
 		catch(Exception ex)
 		{
@@ -156,7 +173,7 @@ public sealed partial class WorkingPanel : IAsyncDisposable
 	{
 		_timer?.Dispose();
 
-		if(_scrollTrackingSetup)
+		if(_scrollTrackingSetup || _pendingScrollTrackingCleanup)
 		{
 			await CleanupSmartScroll();
 		}

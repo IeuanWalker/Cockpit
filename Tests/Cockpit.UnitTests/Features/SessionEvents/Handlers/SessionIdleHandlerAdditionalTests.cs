@@ -43,7 +43,7 @@ public class SessionIdleHandlerAdditionalTests
 		// PendingTaskSummary must be consumed (set to null) once session.idle fires
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, EventJson = null });
 		session.PendingTaskSummary = "Task done!";
 
 		processor.Process(session, new ToolExecutionStartEvent
@@ -73,7 +73,7 @@ public class SessionIdleHandlerAdditionalTests
 		// whose content comes from that value (set immediately because no onStreamSummary delegate)
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, EventJson = null });
 		session.PendingTaskSummary = "Here is the summary";
 
 		processor.Process(session, new ToolExecutionStartEvent
@@ -104,7 +104,7 @@ public class SessionIdleHandlerAdditionalTests
 		// to a summary ChatMessageModel and removed from the group's events
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
-		session.Messages.Add(new ChatMessageModel { IsUser = true, EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, EventJson = null });
 
 		processor.Process(session, new ToolExecutionStartEvent
 		{
@@ -148,7 +148,7 @@ public class SessionIdleHandlerAdditionalTests
 		SessionEventProcessor processor = CreateProcessor();
 
 		ChatMessageModel userMsg1 = new() { Id = "u1", IsUser = true, Content = "First task", IsComplete = true, EventJson = null };
-		session.Messages.Add(userMsg1);
+		session.Conversation.AddMessage(userMsg1);
 
 		processor.Process(session, new AssistantTurnStartEvent
 		{
@@ -202,7 +202,7 @@ public class SessionIdleHandlerAdditionalTests
 		SessionModel session = CreateSession();
 		SessionEventProcessor processor = CreateProcessor();
 
-		session.Messages.Add(new ChatMessageModel { IsUser = true, Content = "Do something", EventJson = null });
+		session.Conversation.AddMessage(new ChatMessageModel { IsUser = true, Content = "Do something", EventJson = null });
 
 		processor.Process(session, new AssistantTurnStartEvent
 		{
@@ -248,7 +248,7 @@ public class SessionIdleHandlerAdditionalTests
 		SessionEventProcessor processor = CreateProcessor();
 
 		ChatMessageModel userMsg1 = new() { Id = "u1", IsUser = true, Content = "First task", IsComplete = true, EventJson = null };
-		session.Messages.Add(userMsg1);
+		session.Conversation.AddMessage(userMsg1);
 
 		processor.Process(session, new AssistantTurnStartEvent
 		{

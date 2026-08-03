@@ -31,7 +31,7 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
 	public string UserTextInput
@@ -45,26 +45,23 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 
 	UserInputRequestDetailsPopup _detailsPopup = default!;
 
-	bool ShowInfoPopup { get; set; }
-
 	void ShowRequestInfo() => _detailsPopup.Open();
 
-	void HideRequestInfo()
+	void OnSessionStateChanged(SessionStateChange change)
 	{
-		ShowInfoPopup = false;
-	}
-
-	void OnStateChanged()
-	{
-		InvokeAsync(async () =>
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.ConversationStructure | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			StateHasChanged();
-			if(Request is not null)
+			InvokeAsync(async () =>
 			{
-				await Task.Delay(10);
-				await ResizeTextarea();
-			}
-		});
+				StateHasChanged();
+				if(Request is not null)
+				{
+					await Task.Delay(10);
+					await ResizeTextarea();
+				}
+			});
+		}
 	}
 
 	public Task OnSubmit()
@@ -149,6 +146,6 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

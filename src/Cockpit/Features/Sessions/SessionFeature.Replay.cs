@@ -37,11 +37,14 @@ public sealed partial class SessionFeature
 				session.Conversation.ClearMessages();
 				session.ActiveWorkingGroup = null;
 			}
-			_sessionListFeature.NotifyStateChanged();
+			// The first replay event is processed immediately and can share the 16 ms
+			// notification frame with this clear. Preserve the reset as an explicit flag so
+			// the message window follows the replay tail even if it never observes count zero.
+			_sessionListFeature.NotifyStateChanged(session.Id, SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
 
 			// Same parentId-based immediate-mode detection used during live sessions applies
 			// here — no pre-processing or reordering needed.
-			Task streamCallback(ChatMessageModel msg, string text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged);
+			Task streamCallback(ChatMessageModel msg, string text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, () => _sessionListFeature.NotifyStateChanged(session.Id, SessionChangeKind.ConversationContent));
 
 			DateTimeOffset? prevTimestamp = null;
 			foreach(SessionEvent evt in events)
@@ -55,25 +58,25 @@ public sealed partial class SessionFeature
 					await Task.Delay(delayMs, cancellationToken);
 				}
 
+				SessionChangeKind changeKind;
 				lock(session.SessionEventLock)
 				{
-					_processor.Process(session, evt, streamCallback);
-					session.Conversation.PublishMessagesSnapshot();
+					changeKind = _processor.Process(session, evt, streamCallback);
 				}
-				_sessionListFeature.NotifyStateChanged();
+				_sessionListFeature.NotifyStateChanged(session.Id, changeKind);
 
 				prevTimestamp = evt.Timestamp;
 			}
 
+			SessionChangeKind finalChangeKind = SessionChangeKind.None;
 			lock(session.SessionEventLock)
 			{
 				if(session.ActiveWorkingGroup is not null)
 				{
-					_processor.FinalizeOpenGroup(session);
+					finalChangeKind = _processor.FinalizeOpenGroup(session);
 				}
-				session.Conversation.PublishMessagesSnapshot();
 			}
-			_sessionListFeature.NotifyStateChanged();
+			_sessionListFeature.NotifyStateChanged(session.Id, finalChangeKind);
 
 			_logger.LogInformation("Replay complete for session {SessionId} — {MessageCount} messages", session.Id, session.Messages.Count);
 		}

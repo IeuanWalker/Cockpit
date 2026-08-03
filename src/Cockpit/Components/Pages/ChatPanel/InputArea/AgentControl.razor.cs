@@ -23,17 +23,21 @@ public sealed partial class AgentControl : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		RefreshAgents();
 	}
 
-	void OnStateChanged()
+	void OnSessionStateChanged(SessionStateChange change)
 	{
-		InvokeAsync(() =>
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			RefreshAgents();
-			StateHasChanged();
-		});
+			InvokeAsync(() =>
+			{
+				RefreshAgents();
+				StateHasChanged();
+			});
+		}
 	}
 
 	void RefreshAgents()
@@ -83,6 +87,6 @@ public sealed partial class AgentControl : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

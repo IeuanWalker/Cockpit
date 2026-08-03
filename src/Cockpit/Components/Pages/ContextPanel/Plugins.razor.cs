@@ -21,13 +21,21 @@ public sealed partial class Plugins : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		Refresh();
 	}
 
-	async void OnStateChanged()
+	void OnSessionStateChanged(SessionStateChange change)
 	{
-		await InvokeAsync(() => { Refresh(); StateHasChanged(); });
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			InvokeAsync(() =>
+			{
+				Refresh();
+				StateHasChanged();
+			});
+		}
 	}
 
 	void ShowPluginInfo(SdkPlugin plugin) => _pluginInfoPopup?.Open(_allPlugins, plugin);
@@ -50,6 +58,6 @@ public sealed partial class Plugins : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

@@ -26,7 +26,7 @@ static class SessionErrorHandler
 			EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 		};
 
-		session.Messages.Add(message);
+		session.Conversation.AddMessage(message);
 		session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Error);
 
 		// Clear streaming state left over from the interrupted turn
@@ -46,7 +46,7 @@ static class SessionErrorHandler
 			EventJson = [new Lazy<string>(() => SerializeExceptionEventJson(session, ex))]
 		};
 
-		session.Messages.Add(message);
+		session.Conversation.AddMessage(message);
 		session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Error);
 	}
 

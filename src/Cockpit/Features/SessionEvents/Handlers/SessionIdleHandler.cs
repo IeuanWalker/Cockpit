@@ -141,13 +141,13 @@ static class SessionIdleHandler
 			int triggerIndex = -1;
 			if(!string.IsNullOrEmpty(group.TriggeredByUserMessageId))
 			{
-				triggerIndex = session.Messages.FindIndex(m => m.Id == group.TriggeredByUserMessageId);
+				triggerIndex = session.Conversation.FindMessageIndex(m => m.Id == group.TriggeredByUserMessageId);
 				anchorIndex = triggerIndex;
 			}
 
 			if(!string.IsNullOrEmpty(group.InitialMessageId))
 			{
-				int initialIndex = session.Messages.FindIndex(m => m.Id == group.InitialMessageId);
+				int initialIndex = session.Conversation.FindMessageIndex(m => m.Id == group.InitialMessageId);
 				// Only use InitialMessageId if it's after the triggering user message (or no trigger exists)
 				if(initialIndex >= 0 && initialIndex > anchorIndex)
 				{
@@ -220,7 +220,7 @@ static class SessionIdleHandler
 					activityIndex = 0;
 				}
 
-				session.Messages.Insert(activityIndex, activityMessage);
+				session.Conversation.InsertMessage(activityIndex, activityMessage);
 				activityInsertedAt = activityIndex;
 				Debug.WriteLine($"Inserted activity group at index {activityIndex} (anchor={anchorIndex})");
 			}
@@ -241,11 +241,11 @@ static class SessionIdleHandler
 				else
 				{
 					// No anchor — fall back to inserting before the first pending message
-					int pendingIdx = session.Messages.FindIndex(m => m.IsUser && m.IsPending);
+					int pendingIdx = session.Conversation.FindMessageIndex(m => m.IsUser && m.IsPending);
 					summaryIndex = pendingIdx >= 0 ? pendingIdx : session.Messages.Count;
 				}
 
-				session.Messages.Insert(summaryIndex, summaryMsg);
+				session.Conversation.InsertMessage(summaryIndex, summaryMsg);
 				Debug.WriteLine($"Added summary message to chat at index {summaryIndex}: {summaryMsg.Id}");
 
 				if(onStreamSummary is not null)
@@ -292,13 +292,13 @@ static class SessionIdleHandler
 		if(keepRunning)
 		{
 			session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Running);
-				session.ActiveWorkingGroup = new ActivityGroupModel
-				{
-					StartTime = eventTimestamp.LocalDateTime,
-					Status = GroupStatusEnum.Running,
-					IsExpanded = true,
-					IsPlaceholder = true
-				};
+			session.ActiveWorkingGroup = new ActivityGroupModel
+			{
+				StartTime = eventTimestamp.LocalDateTime,
+				Status = GroupStatusEnum.Running,
+				IsExpanded = true,
+				IsPlaceholder = true
+			};
 		}
 		else
 		{

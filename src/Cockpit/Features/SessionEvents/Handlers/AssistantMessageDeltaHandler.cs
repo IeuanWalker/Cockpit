@@ -87,7 +87,7 @@ static class AssistantMessageDeltaHandler
 				EventJson = []
 			};
 			session.StreamingMessages[messageId] = msg;
-			session.Messages.Add(msg);
+			session.Conversation.AddMessage(msg);
 		}
 
 		msg.EventJson?.Add(new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt)));

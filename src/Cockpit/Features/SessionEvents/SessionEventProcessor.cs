@@ -1,5 +1,6 @@
 using Cockpit.Features.SessionEvents.Handlers;
 using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
@@ -33,8 +34,59 @@ public sealed class SessionEventProcessor
 	/// Pass <paramref name="onStreamSummary"/> to stream the idle-event summary progressively;
 	/// pass <c>null</c> for background (non-visible) sessions.
 	/// </summary>
-	public void Process(SessionModel session, SessionEvent evt, Func<ChatMessageModel, string, Task>? onStreamSummary = null)
+	public SessionChangeKind Process(SessionModel session, SessionEvent evt, Func<ChatMessageModel, string, Task>? onStreamSummary = null)
+		=> ProcessCore(session, evt, onStreamSummary, publishStructuralSnapshot: true);
+
+	/// <summary>
+	/// Replays a batch of events while publishing at most one structural message snapshot.
+	/// This is intended for non-rendered history reconstruction; live/realtime callers should
+	/// continue to use <see cref="Process(SessionModel, SessionEvent, Func{ChatMessageModel, string, Task}?)"/>.
+	/// </summary>
+	public SessionChangeKind ProcessBatch(
+		SessionModel session,
+		IEnumerable<SessionEvent> events,
+		Func<ChatMessageModel, string, Task>? onStreamSummary = null,
+		bool finalizeOpenGroup = false)
 	{
+		ArgumentNullException.ThrowIfNull(events);
+
+		long structuralVersion = session.Conversation.StructuralVersion;
+		SessionChangeKind changeKind = SessionChangeKind.None;
+		try
+		{
+			foreach(SessionEvent evt in events)
+			{
+				changeKind |= ProcessCore(session, evt, onStreamSummary, publishStructuralSnapshot: false);
+			}
+
+			if(finalizeOpenGroup && session.ActiveWorkingGroup is not null)
+			{
+				changeKind |= FinalizeOpenGroupCore(session, publishStructuralSnapshot: false);
+			}
+		}
+		finally
+		{
+			// Keep the render-facing snapshot coherent even if enumeration itself fails.
+			// ProcessCore isolates handler exceptions, so this is normally one publication
+			// after the complete batch rather than one growing copy per structural event.
+			if(session.Conversation.StructuralVersion != structuralVersion)
+			{
+				session.Conversation.PublishMessagesSnapshotIfChanged();
+			}
+		}
+
+		return changeKind;
+	}
+
+	SessionChangeKind ProcessCore(
+		SessionModel session,
+		SessionEvent evt,
+		Func<ChatMessageModel, string, Task>? onStreamSummary,
+		bool publishStructuralSnapshot)
+	{
+		long structuralVersion = session.Conversation.StructuralVersion;
+		ActivityGroupModel? priorWorkingGroup = session.ActiveWorkingGroup;
+		SessionChangeKind changeKind = ClassifyChange(evt);
 		try
 		{
 			switch(evt)
@@ -350,10 +402,75 @@ public sealed class SessionEventProcessor
 		{
 			_logger.LogError(ex, "Error handling session event {EventType} for session {SessionId}", evt.Type, session.Id);
 		}
+
+		if(session.Conversation.StructuralVersion != structuralVersion)
+		{
+			if(publishStructuralSnapshot)
+			{
+				session.Conversation.PublishMessagesSnapshotIfChanged();
+			}
+			changeKind |= SessionChangeKind.ConversationStructure;
+		}
+
+		// The working panel is owned by ChatPanel, while high-frequency updates within an
+		// existing group are rendered by WorkingPanel itself. Notify the shell only when the
+		// group reference changes so tool/subagent deltas do not rerender the whole chat panel.
+		if(!ReferenceEquals(session.ActiveWorkingGroup, priorWorkingGroup))
+		{
+			changeKind |= SessionChangeKind.WorkingState;
+		}
+
+		return changeKind;
 	}
+
+	static SessionChangeKind ClassifyChange(SessionEvent evt) => evt switch
+	{
+		UserMessageEvent => SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary,
+		AssistantTurnStartEvent => SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary,
+		AssistantMessageDeltaEvent => SessionChangeKind.ConversationContent,
+		AssistantMessageEvent => SessionChangeKind.ConversationContent,
+		AssistantReasoningDeltaEvent => SessionChangeKind.ConversationContent,
+		AssistantReasoningEvent => SessionChangeKind.ConversationContent,
+		ToolExecutionStartEvent => SessionChangeKind.ConversationContent,
+		ToolExecutionCompleteEvent => SessionChangeKind.ConversationContent,
+		ToolExecutionProgressEvent => SessionChangeKind.ConversationContent,
+		ToolExecutionPartialResultEvent => SessionChangeKind.ConversationContent,
+		SubagentStartedEvent => SessionChangeKind.ConversationContent,
+		SubagentCompletedEvent => SessionChangeKind.ConversationContent,
+		SubagentFailedEvent => SessionChangeKind.ConversationContent,
+		SessionTaskCompleteEvent => SessionChangeKind.ConversationContent,
+		SessionIdleEvent => SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary,
+		SessionErrorEvent => SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary,
+		SessionTitleChangedEvent => SessionChangeKind.SessionSummary,
+		AbortEvent => SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary,
+		SessionShutdownEvent => SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary,
+		SessionWarningEvent => SessionChangeKind.ConversationContent,
+		SessionCompactionStartEvent => SessionChangeKind.ConversationContent,
+		SessionCompactionCompleteEvent => SessionChangeKind.ConversationContent,
+		SessionContextChangedEvent => SessionChangeKind.SessionSummary,
+		SessionUsageInfoEvent => SessionChangeKind.ConversationContent,
+		PendingMessagesModifiedEvent => SessionChangeKind.ConversationContent,
+		_ => SessionChangeKind.None
+	};
 
 	/// <summary>
 	/// Finalizes any open <see cref="ActivityGroup"/> on the session (e.g. after abrupt termination during replay).
 	/// </summary>
-	public void FinalizeOpenGroup(SessionModel session) => SessionIdleHandler.Handle(session, logger: _logger);
+	public SessionChangeKind FinalizeOpenGroup(SessionModel session) => FinalizeOpenGroupCore(session, publishStructuralSnapshot: true);
+
+	SessionChangeKind FinalizeOpenGroupCore(SessionModel session, bool publishStructuralSnapshot)
+	{
+		long structuralVersion = session.Conversation.StructuralVersion;
+		SessionIdleHandler.Handle(session, logger: _logger);
+		SessionChangeKind changeKind = SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary;
+		if(session.Conversation.StructuralVersion != structuralVersion)
+		{
+			if(publishStructuralSnapshot)
+			{
+				session.Conversation.PublishMessagesSnapshotIfChanged();
+			}
+			changeKind |= SessionChangeKind.ConversationStructure;
+		}
+		return changeKind;
+	}
 }

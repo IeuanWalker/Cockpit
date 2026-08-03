@@ -23,17 +23,21 @@ public sealed partial class Agents : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		Refresh();
 	}
 
-	void OnStateChanged()
+	void OnSessionStateChanged(SessionStateChange change)
 	{
-		InvokeAsync(() =>
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			Refresh();
-			StateHasChanged();
-		});
+			InvokeAsync(() =>
+			{
+				Refresh();
+				StateHasChanged();
+			});
+		}
 	}
 
 	void ShowAgentInfo(AgentProfile agent) => _agentInfoPopup?.Open(_allAgents, agent);
@@ -62,6 +66,6 @@ public sealed partial class Agents : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

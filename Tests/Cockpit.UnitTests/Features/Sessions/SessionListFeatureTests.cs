@@ -30,6 +30,15 @@ public class SessionListFeatureTests
 
 	static SessionListFeature CreateFeature() => new(NullLogger<SessionListFeature>.Instance);
 
+	static async Task AssertNoNotificationAsync(Task notification)
+	{
+		Task timeout = Task.Delay(100, TestContext.Current.CancellationToken);
+		Task completed = await Task.WhenAny(notification, timeout);
+
+		completed.ShouldBe(timeout, "no additional notification should be raised after the coalesced callback");
+		await timeout;
+	}
+
 	[Fact]
 	public void AddSession_InsertsAtFront()
 	{
@@ -51,15 +60,14 @@ public class SessionListFeatureTests
 		SessionModel session = MakeSession("x");
 		feature.AddSession(session);
 
-		bool eventFired = false;
-		feature.OnStateChanged += () => eventFired = true;
+		TaskCompletionSource fired = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnStateChanged += () => fired.TrySetResult();
 
 		feature.SetCurrentSession(session);
 
-		await Task.Delay(50, TestContext.Current.CancellationToken);
+		await fired.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
 		feature.CurrentSession.ShouldBe(session);
-		eventFired.ShouldBeTrue();
 	}
 
 	[Fact]
@@ -151,12 +159,26 @@ public class SessionListFeatureTests
 	{
 		SessionListFeature feature = CreateFeature();
 		int callCount = 0;
-		feature.OnStateChanged += () => callCount++;
+		TaskCompletionSource firstNotification = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		TaskCompletionSource unexpectedNotification = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnStateChanged += () =>
+		{
+			int count = Interlocked.Increment(ref callCount);
+			if(count == 1)
+			{
+				firstNotification.TrySetResult();
+			}
+			else
+			{
+				unexpectedNotification.TrySetResult();
+			}
+		};
 
 		feature.NotifyStateChanged();
 		feature.NotifyStateChanged();
 
-		await Task.Delay(50, TestContext.Current.CancellationToken);
+		await firstNotification.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+		await AssertNoNotificationAsync(unexpectedNotification.Task);
 
 		// Two rapid calls are coalesced into a single notification
 		callCount.ShouldBe(1);
@@ -167,7 +189,20 @@ public class SessionListFeatureTests
 	{
 		SessionListFeature feature = CreateFeature();
 		int callCount = 0;
-		feature.OnStateChanged += () => callCount++;
+		TaskCompletionSource firstNotification = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		TaskCompletionSource unexpectedNotification = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnStateChanged += () =>
+		{
+			int count = Interlocked.Increment(ref callCount);
+			if(count == 1)
+			{
+				firstNotification.TrySetResult();
+			}
+			else
+			{
+				unexpectedNotification.TrySetResult();
+			}
+		};
 
 		Should.NotThrow(() =>
 		{
@@ -177,7 +212,8 @@ public class SessionListFeatureTests
 			}
 		});
 
-		await Task.Delay(100, TestContext.Current.CancellationToken);
+		await firstNotification.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+		await AssertNoNotificationAsync(unexpectedNotification.Task);
 
 		callCount.ShouldBe(1);
 	}
@@ -229,8 +265,10 @@ public class SessionListFeatureTests
 		SessionListFeature feature = CreateFeature();
 		SessionModel session = MakeSession("x");
 		feature.AddSession(session);
+		TaskCompletionSource initialNotification = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnStateChanged += () => initialNotification.TrySetResult();
 		feature.SetCurrentSession(session);
-		await Task.Delay(50, TestContext.Current.CancellationToken);
+		await initialNotification.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
 		TaskCompletionSource eventFiredTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		feature.OnStateChanged += () => eventFiredTcs.TrySetResult();
@@ -261,18 +299,31 @@ public class SessionListFeatureTests
 	{
 		SessionListFeature feature = CreateFeature();
 		int callCount = 0;
-		feature.OnStateChanged += () => Interlocked.Increment(ref callCount);
+		TaskCompletionSource firstNotification = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		TaskCompletionSource unexpectedNotification = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnStateChanged += () =>
+		{
+			int count = Interlocked.Increment(ref callCount);
+			if(count == 1)
+			{
+				firstNotification.TrySetResult();
+			}
+			else
+			{
+				unexpectedNotification.TrySetResult();
+			}
+		};
 
 		for(int i = 0; i < 50; i++)
 		{
 			feature.NotifyStateChanged();
 		}
 
-		await Task.Delay(100, TestContext.Current.CancellationToken);
+		await firstNotification.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+		await AssertNoNotificationAsync(unexpectedNotification.Task);
 
-		// Rapid burst should be coalesced — we get far fewer notifications than calls
-		callCount.ShouldBeLessThan(50);
-		callCount.ShouldBeGreaterThan(0);
+		// The entire synchronous burst lands in the same coalescing interval.
+		callCount.ShouldBe(1);
 	}
 
 	[Fact]
@@ -280,17 +331,110 @@ public class SessionListFeatureTests
 	{
 		SessionListFeature feature = CreateFeature();
 		int callCount = 0;
-		feature.OnStateChanged += () => Interlocked.Increment(ref callCount);
+		TaskCompletionSource firstNotification = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		TaskCompletionSource secondNotification = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnStateChanged += () =>
+		{
+			int count = Interlocked.Increment(ref callCount);
+			if(count == 1)
+			{
+				firstNotification.TrySetResult();
+			}
+			else if(count == 2)
+			{
+				secondNotification.TrySetResult();
+			}
+		};
 
 		feature.NotifyStateChanged();
-		await Task.Delay(50, TestContext.Current.CancellationToken);
+		await firstNotification.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
 		int afterFirst = callCount;
 		afterFirst.ShouldBe(1);
 
 		feature.NotifyStateChanged();
-		await Task.Delay(50, TestContext.Current.CancellationToken);
+		await secondNotification.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
 		callCount.ShouldBe(2);
+	}
+
+	[Fact]
+	public async Task TypedNotifications_RapidChangesForSession_UnionFlags()
+	{
+		SessionListFeature feature = CreateFeature();
+		TaskCompletionSource<SessionStateChange> fired = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnSessionStateChanged += change => fired.TrySetResult(change);
+
+		feature.NotifyStateChanged("session", SessionChangeKind.ConversationContent);
+		feature.NotifyStateChanged("session", SessionChangeKind.SessionSummary);
+		feature.NotifyStateChanged("session", SessionChangeKind.ConversationStructure);
+
+		SessionStateChange change = await fired.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+		change.SessionId.ShouldBe("session");
+		change.Kind.ShouldBe(SessionChangeKind.ConversationContent | SessionChangeKind.ConversationStructure | SessionChangeKind.SessionSummary);
+	}
+
+	[Fact]
+	public async Task TypedNotifications_ReplayResetCoalescedWithFirstEvent_PreservesResetFlag()
+	{
+		SessionListFeature feature = CreateFeature();
+		TaskCompletionSource<SessionStateChange> fired = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnSessionStateChanged += change => fired.TrySetResult(change);
+
+		feature.NotifyStateChanged("session", SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
+		feature.NotifyStateChanged("session", SessionChangeKind.ConversationContent | SessionChangeKind.ConversationStructure);
+
+		SessionStateChange change = await fired.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+		change.SessionId.ShouldBe("session");
+		(change.Kind & SessionChangeKind.ConversationReset).ShouldBe(SessionChangeKind.ConversationReset);
+		(change.Kind & SessionChangeKind.ConversationStructure).ShouldBe(SessionChangeKind.ConversationStructure);
+		(change.Kind & SessionChangeKind.ConversationContent).ShouldBe(SessionChangeKind.ConversationContent);
+	}
+
+	[Fact]
+	public async Task TypedNotifications_SameSessionReloadResetCoalescesWithSwitchNotification()
+	{
+		SessionListFeature feature = CreateFeature();
+		SessionModel session = MakeSession("session");
+		feature.AddSession(session);
+		TaskCompletionSource<SessionStateChange> fired = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnSessionStateChanged += change => fired.TrySetResult(change);
+
+		// Mirrors the successful load ordering: SwitchCurrentSessionAsync publishes first,
+		// then the same-session history replacement publishes its explicit reset.
+		feature.SetCurrentSession(session);
+		feature.NotifyStateChanged(session.Id, SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
+
+		SessionStateChange change = await fired.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+		change.SessionId.ShouldBe(session.Id);
+		change.Kind.ShouldBe(SessionChangeKind.CurrentSession | SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
+	}
+
+	[Fact]
+	public async Task TypedNotifications_ChangesForDifferentSessions_RemainDistinct()
+	{
+		SessionListFeature feature = CreateFeature();
+		List<SessionStateChange> changes = [];
+		TaskCompletionSource fired = new(TaskCreationOptions.RunContinuationsAsynchronously);
+		feature.OnSessionStateChanged += change =>
+		{
+			lock(changes)
+			{
+				changes.Add(change);
+				if(changes.Count == 2)
+				{
+					fired.TrySetResult();
+				}
+			}
+		};
+
+		feature.NotifyStateChanged("first", SessionChangeKind.ConversationContent);
+		feature.NotifyStateChanged("second", SessionChangeKind.SessionSummary);
+
+		await fired.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+		changes.ShouldContain(new SessionStateChange("first", SessionChangeKind.ConversationContent));
+		changes.ShouldContain(new SessionStateChange("second", SessionChangeKind.SessionSummary));
 	}
 }

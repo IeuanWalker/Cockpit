@@ -50,7 +50,7 @@ static class AssistantTurnStartHandler
 			// this avoids mistakenly swallowing legitimate prior-turn response messages.
 			if(!string.IsNullOrEmpty(triggeredById))
 			{
-				int anchorIndex = session.Messages.FindIndex(m => m.Id == triggeredById);
+				int anchorIndex = session.Conversation.FindMessageIndex(m => m.Id == triggeredById);
 				if(anchorIndex >= 0)
 				{
 					for(int i = anchorIndex + 1; i < session.Messages.Count;)
@@ -66,7 +66,7 @@ static class AssistantTurnStartHandler
 								Timestamp = m.Timestamp.LocalDateTime,
 								EventJson = m.EventJson
 							});
-							session.Messages.RemoveAt(i);
+							session.Conversation.RemoveMessageAt(i);
 							if(m.Id is not null)
 							{
 								session.StreamingMessages.Remove(m.Id);

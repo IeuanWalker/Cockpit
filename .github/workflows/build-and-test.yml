@@ -32,3 +32,6 @@ jobs:
 
       - name: Run tests
         run: dotnet test Cockpit.slnx --no-build --configuration Release
+
+      - name: Run JavaScript tests
+        run: node --test Tests/Cockpit.JavaScriptTests/scroll.test.mjs

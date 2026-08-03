@@ -117,6 +117,7 @@ public sealed partial class SessionFeature
 			_sdkSessionByokId[chatSession.Id] = chatSession.ByokConfigId;
 
 			_sessionListFeature.AddSession(chatSession);
+			_sessionListFeature.NotifyStateChanged(chatSession.Id, SessionChangeKind.SessionCollection);
 
 			// These three writes are best-effort metadata used only to *resume* the session later
 			// (saved model id, agent, agent-mode). They have no bearing on the SessionModel returned

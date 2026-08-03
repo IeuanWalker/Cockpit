@@ -56,7 +56,7 @@ public sealed partial class SessionFeature
 
 			PopulateSessionsFromMetadata(sessionMetadataList, defaultModel, _sessionListFeature, _logger);
 
-			_sessionListFeature.NotifyStateChanged();
+			_sessionListFeature.NotifyStateChanged(null, SessionChangeKind.SessionCollection);
 			_logger.LogInformation("Successfully loaded {Count} sessions", _sessionListFeature.Sessions.Count);
 		}
 		catch(Exception ex)

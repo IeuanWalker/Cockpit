@@ -67,7 +67,7 @@ static class UserMessageHandler
 				Attachments = attachments,
 				EventJson = [new Lazy<string>(() => SessionEventHelpers.SerializeEvent(evt))]
 			};
-			session.Messages.Add(message);
+			session.Conversation.AddMessage(message);
 		}
 
 		session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Running);

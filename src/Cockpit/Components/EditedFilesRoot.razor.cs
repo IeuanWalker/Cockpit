@@ -69,7 +69,7 @@ public sealed partial class EditedFilesRoot : ComponentBase, IAsyncDisposable
 	{
 		_splitView = _appSettingsFeature.DiffSplitView;
 		_treeView = _appSettingsFeature.DiffTreeView;
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		_windowService.OnNavigateToFile += OnNavigateToFile;
 
 		GitChangedFileModel? initial = _windowService.PendingInitialFile ?? Files.FirstOrDefault();
@@ -99,16 +99,20 @@ public sealed partial class EditedFilesRoot : ComponentBase, IAsyncDisposable
 		}
 	}
 
-	void OnStateChanged()
+	void OnSessionStateChanged(SessionStateChange change)
 	{
-		if(_selectedFile is not null && !Files.Contains(_selectedFile))
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary | SessionChangeKind.ConversationStructure | SessionChangeKind.ConversationContent;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			GitChangedFileModel? refreshed = Files.FirstOrDefault(f => f.Path == _selectedFile.Path);
-			_selectedFile = refreshed;
-		}
+			if(_selectedFile is not null && !Files.Contains(_selectedFile))
+			{
+				GitChangedFileModel? refreshed = Files.FirstOrDefault(f => f.Path == _selectedFile.Path);
+				_selectedFile = refreshed;
+			}
 
-		_cachedNodes = null;
-		InvokeAsync(StateHasChanged);
+			_cachedNodes = null;
+			InvokeAsync(StateHasChanged);
+		}
 	}
 
 	void SelectFile(GitChangedFileModel file) => _selectedFile = file;
@@ -222,7 +226,7 @@ public sealed partial class EditedFilesRoot : ComponentBase, IAsyncDisposable
 
 	public async ValueTask DisposeAsync()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 		_themeStateFeature.OnThemeChanged -= OnThemeChangedHandler;
 		_windowService.OnNavigateToFile -= OnNavigateToFile;
 	}

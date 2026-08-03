@@ -26,7 +26,7 @@ public sealed partial class AllowedCommands : ComponentBase, IDisposable
 	{
 		RefreshCount();
 		_globalPermissionFeature.OnPermissionsChanged += OnStateChanged;
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
 	void OnStateChanged()
@@ -36,6 +36,14 @@ public sealed partial class AllowedCommands : ComponentBase, IDisposable
 			RefreshCount();
 			StateHasChanged();
 		});
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, SessionChangeKind.CurrentSession))
+		{
+			OnStateChanged();
+		}
 	}
 
 	int _renderedCommandsCount = -1;
@@ -62,6 +70,6 @@ public sealed partial class AllowedCommands : ComponentBase, IDisposable
 	public void Dispose()
 	{
 		_globalPermissionFeature.OnPermissionsChanged -= OnStateChanged;
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

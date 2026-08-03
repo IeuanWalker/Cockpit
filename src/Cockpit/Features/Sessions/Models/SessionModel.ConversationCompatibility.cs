@@ -8,7 +8,7 @@ namespace Cockpit.Features.Sessions.Models;
 /// </summary>
 public partial class SessionModel
 {
-	public List<ChatMessageModel> Messages => Conversation.Messages;
+	public IReadOnlyList<ChatMessageModel> Messages => Conversation.Messages;
 
 	public IReadOnlyList<ChatMessageModel> MessagesSnapshot => Conversation.MessagesSnapshot;
 

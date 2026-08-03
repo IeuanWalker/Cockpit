@@ -13,6 +13,12 @@ public sealed class ChatMessageModel
 	public string? ToolName { get; set; }
 	public bool IsStreaming { get; set; }
 	public bool IsComplete { get; set; } = true;
+	/// <summary>
+	/// True when this user message originated from this app's send path. This remains true
+	/// after the SDK echo confirms the optimistic message so the viewport can distinguish a
+	/// local send from user messages received during replay or from another source.
+	/// </summary>
+	public bool WasSentLocally { get; set; }
 	public string? ReasoningContent { get; set; }
 	public Dictionary<string, object>? Metadata { get; set; }
 	public ActivityGroupModel? ActivityGroup { get; set; }

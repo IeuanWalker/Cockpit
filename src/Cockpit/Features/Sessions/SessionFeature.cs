@@ -14,8 +14,8 @@ using Cockpit.Features.Plugins;
 using Cockpit.Features.Sdk;
 using Cockpit.Features.SessionEvents;
 using Cockpit.Features.SessionEvents.Models;
-using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Sessions.Interactions;
+using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Skills;
 using Cockpit.Features.Terminal;
 using Cockpit.Features.UserInputRequests;
@@ -122,6 +122,11 @@ public sealed partial class SessionFeature : IDisposable
 		add => _sessionListFeature.OnStateChanged += value;
 		remove => _sessionListFeature.OnStateChanged -= value;
 	}
+	public event Action<SessionStateChange>? OnSessionStateChanged
+	{
+		add => _sessionListFeature.OnSessionStateChanged += value;
+		remove => _sessionListFeature.OnSessionStateChanged -= value;
+	}
 	public ActivityGroupModel? ActiveWorkingGroup => CurrentSession?.Conversation.ActiveWorkingGroup;
 	public bool IsWorking => CurrentSession?.Lifecycle.AgentRunState == AgentRunStateEnum.Running
 		|| CurrentSession?.Conversation.ActiveWorkingGroup?.Status == GroupStatusEnum.Running;
@@ -137,26 +142,28 @@ public sealed partial class SessionFeature : IDisposable
 		}
 
 		Func<ChatMessageModel, string, Task>? streamCallback = session == _sessionListFeature.CurrentSession
-			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(msg, text, _sessionListFeature.NotifyStateChanged)
+			? (msg, text) => SessionEventHelpers.StreamSummaryTextAsync(
+				msg,
+				text,
+				() => _sessionListFeature.NotifyStateChanged(sessionId, SessionChangeKind.ConversationContent))
 			: null;
+		SessionChangeKind changeKind;
 
 		lock(session.Conversation.SyncRoot)
 		{
 			// Registry removal and lifecycle invalidation happen before an old SDK instance is
 			// disposed. Re-check both under the conversation lock so a queued callback cannot
 			// repopulate state that disconnect or eviction just cleared.
-			if(!_sdkRegistry.IsCurrent(sdkSession)
-				|| session.Lifecycle.SdkState == SdkSessionStateEnum.NotLoaded)
+			if(!_sdkRegistry.IsCurrent(sdkSession) || session.Lifecycle.SdkState == SdkSessionStateEnum.NotLoaded)
 			{
 				_logger.LogDebug("Ignoring stale event from SDK session {SessionId}", sessionId);
 				return;
 			}
 
-			_processor.Process(session, evt, streamCallback);
-			session.Conversation.PublishMessagesSnapshot();
+			changeKind = _processor.Process(session, evt, streamCallback);
 		}
 
-		_sessionListFeature.NotifyStateChanged();
+		_sessionListFeature.NotifyStateChanged(sessionId, changeKind);
 	}
 
 	public void Dispose()

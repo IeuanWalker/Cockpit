@@ -29,8 +29,16 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionFeature.OnStateChanged += OnStateChanged;
+		_sessionFeature.OnSessionStateChanged += OnSessionStateChanged;
 		_uiStateFeature.OnStateChanged += OnStateChanged;
+	}
+
+	void OnSessionStateChanged(SessionStateChange change)
+	{
+		if(SessionPanelStateChangeFilter.IsRelevant(change))
+		{
+			OnStateChanged();
+		}
 	}
 
 	void OnStateChanged()
@@ -136,9 +144,16 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	{
 		if(disposing)
 		{
-			_sessionFeature.OnStateChanged -= OnStateChanged;
+			_sessionFeature.OnSessionStateChanged -= OnSessionStateChanged;
 			_uiStateFeature.OnStateChanged -= OnStateChanged;
 			_dotNetHelper?.Dispose();
 		}
 	}
+}
+
+static class SessionPanelStateChangeFilter
+{
+	const SessionChangeKind relevantChanges = SessionChangeKind.SessionCollection | SessionChangeKind.CurrentSession;
+
+	public static bool IsRelevant(SessionStateChange change) => (change.Kind & relevantChanges) != 0;
 }

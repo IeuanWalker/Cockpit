@@ -1,4 +1,7 @@
+using System.Collections.Immutable;
 using Cockpit.Features.SessionEvents;
+using Cockpit.Features.SessionEvents.Models;
+using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -70,6 +73,32 @@ public class AssistantMessageDeltaHandlerTests
 		// Assert — single message with concatenated content
 		session.Messages.Count.ShouldBe(1);
 		session.Messages[0].Content.ShouldBe("Hello world");
+	}
+
+	[Fact]
+	public void Process_ContentDeltaRetainsPublishedSnapshotIdentity()
+	{
+		SessionModel session = CreateSession();
+		SessionEventProcessor processor = CreateProcessor();
+		const string messageId = "stream";
+
+		SessionChangeKind firstChange = processor.Process(session, new AssistantMessageDeltaEvent
+		{
+			Data = new AssistantMessageDeltaData { MessageId = messageId, DeltaContent = "Hello " },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+		ImmutableArray<ChatMessageModel> firstSnapshot = session.Conversation.MessagesSnapshot;
+
+		SessionChangeKind secondChange = processor.Process(session, new AssistantMessageDeltaEvent
+		{
+			Data = new AssistantMessageDeltaData { MessageId = messageId, DeltaContent = "world" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		firstChange.ShouldBe(SessionChangeKind.ConversationContent | SessionChangeKind.ConversationStructure);
+		secondChange.ShouldBe(SessionChangeKind.ConversationContent);
+		session.Conversation.MessagesSnapshot.Equals(firstSnapshot).ShouldBeTrue();
+		session.Conversation.MessagesSnapshot[0].Content.ShouldBe("Hello world");
 	}
 
 	[Fact]

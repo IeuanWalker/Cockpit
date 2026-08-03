@@ -25,7 +25,7 @@ public sealed partial class ElicitationRequestPanel : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
 	public ElicitationRequestModel? Request => _sessionListFeature.CurrentSession?.PendingInteractions.Elicitations.Values.OrderBy(r => r.Requested).FirstOrDefault();
@@ -67,13 +67,17 @@ public sealed partial class ElicitationRequestPanel : ComponentBase, IDisposable
 		_elicitationFeature.ResolveElicitationRequest(request.Id, null);
 	}
 
-	void OnStateChanged()
+	void OnSessionStateChanged(SessionStateChange change)
 	{
-		InvokeAsync(StateHasChanged);
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.ConversationStructure | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			InvokeAsync(StateHasChanged);
+		}
 	}
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

@@ -38,15 +38,19 @@ public sealed partial class EditedFiles : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionListFeature.OnStateChanged += OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		List<GitChangedFileModel>? list = _sessionListFeature.CurrentSession?.Context?.EditedFiles;
 		_renderedFilesList = list;
 		_renderedFilesCount = list?.Count ?? 0;
 	}
 
-	void OnStateChanged()
+	void OnSessionStateChanged(SessionStateChange change)
 	{
-		InvokeAsync(StateHasChanged);
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		{
+			InvokeAsync(StateHasChanged);
+		}
 	}
 
 	void OpenDiffWindow(GitChangedFileModel? initialFile)
@@ -56,6 +60,6 @@ public sealed partial class EditedFiles : ComponentBase, IDisposable
 
 	public void Dispose()
 	{
-		_sessionListFeature.OnStateChanged -= OnStateChanged;
+		_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 	}
 }

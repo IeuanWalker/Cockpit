@@ -1,6 +1,6 @@
 namespace Cockpit.Features.Sessions.Models;
 
-internal readonly record struct SdkLifecycleTransition(long Version);
+readonly record struct SdkLifecycleTransition(long Version);
 
 /// <summary>
 /// State that describes the SDK connection and agent lifecycle for a session.

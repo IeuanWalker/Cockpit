@@ -66,7 +66,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	protected override void OnInitialized()
 	{
-		_sessionFeature.OnStateChanged += OnStateChanged;
+		_sessionFeature.OnSessionStateChanged += OnSessionStateChanged;
 		_uiStateFeature.OnAppendChatInput += OnAppendChatInput;
 	}
 
@@ -98,23 +98,27 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		}
 	}
 
-	void OnStateChanged()
+	void OnSessionStateChanged(SessionStateChange change)
 	{
-		InvokeAsync(async () =>
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary | SessionChangeKind.ConversationStructure | SessionChangeKind.WorkingState;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			string? currentSessionId = _sessionFeature.CurrentSession?.Id;
-			bool sessionChanged = currentSessionId != _lastSessionId;
-			_lastSessionId = currentSessionId;
-
-			StateHasChanged();
-
-			if(sessionChanged)
+			InvokeAsync(async () =>
 			{
-				await Task.Delay(textareaResizeYieldMs);
-				await SyncDomFromUserInput();
-				await FocusInputAsync();
-			}
-		});
+				string? currentSessionId = _sessionFeature.CurrentSession?.Id;
+				bool sessionChanged = currentSessionId != _lastSessionId;
+				_lastSessionId = currentSessionId;
+
+				StateHasChanged();
+
+				if(sessionChanged)
+				{
+					await Task.Delay(textareaResizeYieldMs);
+					await SyncDomFromUserInput();
+					await FocusInputAsync();
+				}
+			});
+		}
 	}
 
 	void OnUIStateChangedHandler()
@@ -677,7 +681,7 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 
 	public async ValueTask DisposeAsync()
 	{
-		_sessionFeature.OnStateChanged -= OnStateChanged;
+		_sessionFeature.OnSessionStateChanged -= OnSessionStateChanged;
 		_uiStateFeature.OnAppendChatInput -= OnAppendChatInput;
 
 		if(_subscribedToUIState)
