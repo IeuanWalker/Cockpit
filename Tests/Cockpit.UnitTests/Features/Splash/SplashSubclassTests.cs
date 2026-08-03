@@ -1,5 +1,4 @@
 using Cockpit.Features.Splash;
-using Cockpit.Features.Canvas;
 using Shouldly;
 
 namespace Cockpit.UnitTests.Features.Splash;

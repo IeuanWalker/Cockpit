@@ -325,6 +325,7 @@ public sealed partial class SessionFeature
 			_ => null  // None → skip
 		};
 
+	static readonly string[] value = ["html"];
 	static CanvasDeclaration CreateCockpitCanvasDeclaration()
 		=> new()
 		{
@@ -334,7 +335,7 @@ public sealed partial class SessionFeature
 			InputSchema = JsonSerializer.SerializeToElement(new
 			{
 				type = "object",
-				required = new[] { "html" },
+				required = value,
 				properties = new
 				{
 					html = new

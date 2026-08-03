@@ -99,7 +99,7 @@ public sealed class AuthCheckFeatureTests
 		int callCount = 0;
 		feature.OnStateChanged += () =>
 		{
-			if (callCount == 0)
+			if(callCount == 0)
 			{
 				firstObservedState = feature.State;
 			}
@@ -113,7 +113,7 @@ public sealed class AuthCheckFeatureTests
 		{
 			await feature.CheckAuthAsync(isRecheck: false, cts.Token);
 		}
-		catch (OperationCanceledException) { }
+		catch(OperationCanceledException) { }
 
 		firstObservedState.ShouldBe(AuthState.Checking);
 	}

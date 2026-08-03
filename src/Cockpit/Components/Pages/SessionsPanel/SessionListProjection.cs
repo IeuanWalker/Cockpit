@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Cockpit.Features.Sessions.Models;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
@@ -90,6 +91,7 @@ static class SessionListProjection
 		return sessions;
 	}
 
+	[SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
 	static IReadOnlyList<SessionListRow> BuildProjectRows(IReadOnlyList<SessionModel> sortedSessions, SessionListProjectionOptions options)
 	{
 		List<ProjectSessionGroup> groups = BuildProjectGroups(sortedSessions);

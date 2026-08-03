@@ -45,12 +45,12 @@ public sealed partial class SessionFeature
 		return true;
 	}
 
-	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, GitHub.Copilot.ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
+	public async Task RestartSession(string sessionId, string newModelId, string? newReasoningEffort = null, ProviderConfig? providerConfig = null, CancellationToken cancellationToken = default)
 	{
 		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
 		{
-			await RestartSessionCore(sessionId, newModelId, newReasoningEffort, providerConfig, cancellationToken, null, null);
+			await RestartSessionCore(sessionId, newModelId, newReasoningEffort, providerConfig, null, null, cancellationToken);
 			return;
 		}
 
@@ -63,9 +63,9 @@ public sealed partial class SessionFeature
 				newModelId,
 				newReasoningEffort,
 				providerConfig,
-				cancellationToken,
 				session,
-				restartTransition);
+				restartTransition,
+				cancellationToken);
 		}
 		finally
 		{
@@ -77,10 +77,10 @@ public sealed partial class SessionFeature
 		string sessionId,
 		string newModelId,
 		string? newReasoningEffort,
-		GitHub.Copilot.ProviderConfig? providerConfig,
-		CancellationToken cancellationToken,
+		ProviderConfig? providerConfig,
 		SessionModel? expectedSession,
-		SdkLifecycleTransition? restartTransition)
+		SdkLifecycleTransition? restartTransition,
+		CancellationToken cancellationToken)
 	{
 		CopilotSession? newSdkSession = null;
 		bool registered = false;
@@ -335,10 +335,7 @@ public sealed partial class SessionFeature
 
 			// Transition the lifecycle state first so resolving pending interactions reveals Idle.
 			SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
-			if(session is not null)
-			{
-				session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Idle);
-			}
+			session?.Lifecycle.SetAgentRunState(AgentRunStateEnum.Idle);
 
 			// Cancel any pending permission/user-input/elicitation requests so they are removed from the UI immediately
 			_permissionHandler.CancelPendingRequestsForSession(sessionId);

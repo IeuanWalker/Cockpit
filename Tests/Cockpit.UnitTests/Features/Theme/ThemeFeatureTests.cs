@@ -180,7 +180,7 @@ public class ThemeFeatureTests
 		(ThemeFeature feature, _) = Create();
 		await feature.Initialize();
 		await feature.Initialize(); // second call is a no-op
-		// No assertion needed beyond no exception; the _isInitialized guard is tested implicitly.
+									// No assertion needed beyond no exception; the _isInitialized guard is tested implicitly.
 	}
 
 	// -------------------------------------------------------------------------
