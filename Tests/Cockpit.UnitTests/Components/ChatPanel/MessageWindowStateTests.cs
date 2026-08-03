@@ -123,9 +123,7 @@ public sealed class MessageWindowStateTests
 		state.Synchronize(23);
 		state.IsFollowingTail.ShouldBeFalse();
 
-		SessionChangeKind coalescedKind = SessionChangeKind.ConversationReset
-			| SessionChangeKind.ConversationStructure
-			| SessionChangeKind.ConversationContent;
+		SessionChangeKind coalescedKind = SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure | SessionChangeKind.ConversationContent;
 		if(ChatMessageWindowUpdatePolicy.RequiresConversationReset(coalescedKind))
 		{
 			// The empty snapshot was never observed: the first replay message is already present.
@@ -151,9 +149,7 @@ public sealed class MessageWindowStateTests
 		state.MoveOlder();
 		state.IsFollowingTail.ShouldBeFalse();
 
-		SessionChangeKind coalescedKind = SessionChangeKind.CurrentSession
-			| SessionChangeKind.ConversationReset
-			| SessionChangeKind.ConversationStructure;
+		SessionChangeKind coalescedKind = SessionChangeKind.CurrentSession | SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure;
 		if(ChatMessageWindowUpdatePolicy.RequiresConversationReset(coalescedKind))
 		{
 			state.Reset(totalCount: 18);
@@ -231,16 +227,14 @@ public sealed class MessageWindowStateTests
 	public void NewlySentLocalUserMessage_CanForceHistoryWindowToTail()
 	{
 		MessageWindowState state = new(maximumSize: 10, shiftSize: 5);
-		List<ChatMessageModel> messages = Enumerable.Range(0, 20).Select(_ => Message(false)).ToList();
+		List<ChatMessageModel> messages = [.. Enumerable.Range(0, 20).Select(_ => Message(false))];
 		state.Reset(messages.Count);
 		state.MoveOlder();
 		HashSet<ChatMessageModel> observedLocalMessages = [];
 		ChatMessageWindowUpdatePolicy.ResetObservedLocallySentMessages(observedLocalMessages, messages);
 
 		messages.Add(Message(true, wasSentLocally: true));
-		bool revealLocalSend = ChatMessageWindowUpdatePolicy.ObserveNewLocallySentMessages(
-			observedLocalMessages,
-			messages);
+		bool revealLocalSend = ChatMessageWindowUpdatePolicy.ObserveNewLocallySentMessages(observedLocalMessages, messages);
 		state.Synchronize(messages.Count);
 		if(revealLocalSend)
 		{
@@ -260,16 +254,14 @@ public sealed class MessageWindowStateTests
 	public void RemoteUserOrAssistantAppend_DoesNotForceHistoryWindowToTail(bool isUser)
 	{
 		MessageWindowState state = new(maximumSize: 10, shiftSize: 5);
-		List<ChatMessageModel> messages = Enumerable.Range(0, 20).Select(_ => Message(false)).ToList();
+		List<ChatMessageModel> messages = [.. Enumerable.Range(0, 20).Select(_ => Message(false))];
 		state.Reset(messages.Count);
 		state.MoveOlder();
 		HashSet<ChatMessageModel> observedLocalMessages = [];
 		ChatMessageWindowUpdatePolicy.ResetObservedLocallySentMessages(observedLocalMessages, messages);
 
 		messages.Add(Message(isUser));
-		bool revealLocalSend = ChatMessageWindowUpdatePolicy.ObserveNewLocallySentMessages(
-			observedLocalMessages,
-			messages);
+		bool revealLocalSend = ChatMessageWindowUpdatePolicy.ObserveNewLocallySentMessages(observedLocalMessages, messages);
 		state.Synchronize(messages.Count);
 
 		revealLocalSend.ShouldBeFalse();
