@@ -15,8 +15,8 @@
                 {
                     <!-- Activity Group (completed working) - plain inline expander -->
                     <Opperations Group="message.ActivityGroup"
-                                 Expanded="@(_expandedActivityGroupId == message.ActivityGroup.Id)"
-                                 ExpandedChanged="expanded => SetActivityGroupExpanded(message.ActivityGroup.Id, expanded)" />
+                                 Expanded="@message.ActivityGroup.IsExpanded"
+                                 ExpandedChanged="expanded => SetActivityGroupExpanded(message.ActivityGroup, expanded)" />
                 }
                 @* Typing indicator removed - using thinking panel instead *@
                 else if(message.Type == MessageTypeEnum.Error || message.Type == MessageTypeEnum.Warning)

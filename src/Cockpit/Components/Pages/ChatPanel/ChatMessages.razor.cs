@@ -52,7 +52,6 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	long _windowGeneration;
 	long _pendingWindowShiftGeneration;
 	string? _windowLoadError;
-	string? _expandedActivityGroupId;
 	readonly HashSet<ChatMessageModel> _observedLocallySentMessages = [];
 
 	string? _previousSessionId;
@@ -256,7 +255,6 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		InvalidateWindowGeneration();
 		_window.Reset(CurrentMessages.Count);
 		_expandedAttachments.Clear();
-		_expandedActivityGroupId = null;
 		_pendingObserverReset = true;
 		_isScrolledUp = false;
 		_windowLoadError = null;
@@ -479,11 +477,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 		await ShiftWindow(direction, anchor, generation);
 	}
 
-	void SetActivityGroupExpanded(string groupId, bool expanded)
-	{
-		_expandedActivityGroupId = expanded ? groupId : null;
-		StateHasChanged();
-	}
+	internal static void SetActivityGroupExpanded(ActivityGroupModel group, bool expanded) => group.IsExpanded = expanded;
 
 	readonly HashSet<ChatMessageModel> _expandedAttachments = [];
 
