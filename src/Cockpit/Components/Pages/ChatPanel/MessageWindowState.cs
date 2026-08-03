@@ -4,7 +4,7 @@ namespace Cockpit.Components.Pages.ChatPanel;
 /// Maintains a bounded, overlapping window over an append-oriented message list.
 /// The UI owns viewport anchoring; this type only decides which indices are rendered.
 /// </summary>
-internal sealed class MessageWindowState(int maximumSize = 225, int shiftSize = 50)
+sealed class MessageWindowState(int maximumSize = 225, int shiftSize = 50)
 {
 	public int MaximumSize { get; } = maximumSize > 0
 		? maximumSize
@@ -132,13 +132,13 @@ public sealed class MessageViewportAnchor
 	public double Offset { get; set; }
 }
 
-internal readonly record struct MessageWindowTailStateUpdate(long Generation, bool IncludesTail);
+readonly record struct MessageWindowTailStateUpdate(long Generation, bool IncludesTail);
 
 /// <summary>
 /// Tracks the tail state last published to the JavaScript observer registration.
 /// The generation is part of the identity because stale registrations reject updates.
 /// </summary>
-internal sealed class MessageWindowTailStateSync
+sealed class MessageWindowTailStateSync
 {
 	long? _publishedGeneration;
 	bool _publishedIncludesTail;
@@ -149,8 +149,7 @@ internal sealed class MessageWindowTailStateSync
 		bool includesTail,
 		out MessageWindowTailStateUpdate update)
 	{
-		if(!observersReady ||
-			(_publishedGeneration == generation && _publishedIncludesTail == includesTail))
+		if(!observersReady || (_publishedGeneration == generation && _publishedIncludesTail == includesTail))
 		{
 			update = default;
 			return false;
