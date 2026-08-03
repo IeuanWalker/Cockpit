@@ -658,10 +658,10 @@ cockpit.setupMessageWindow = function setupMessageWindow(
             direction,
             anchor,
             callbackGeneration).catch(() => {
-            if (state.generation === callbackGeneration) {
-                state.inFlight = false;
-            }
-        });
+                if (state.generation === callbackGeneration) {
+                    state.inFlight = false;
+                }
+            });
     }, {
         root: element,
         rootMargin: '800px 0px 800px 0px',
