@@ -8,9 +8,7 @@ public sealed class SessionLoadNotificationPolicyTests
 	[Fact]
 	public void SuccessfulHistoryReplacement_ForAlreadySelectedSession_RequestsConversationReset()
 	{
-		SessionChangeKind kind = SessionLoadNotificationPolicy.GetSuccessfulHistoryReplacementKind(
-			selectedSessionId: "selected",
-			loadedSessionId: "selected");
+		SessionChangeKind kind = SessionLoadNotificationPolicy.GetSuccessfulHistoryReplacementKind(selectedSessionId: "selected", loadedSessionId: "selected");
 
 		kind.ShouldBe(SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
 	}
@@ -18,12 +16,9 @@ public sealed class SessionLoadNotificationPolicyTests
 	[Theory]
 	[InlineData(null)]
 	[InlineData("background")]
-	public void SuccessfulHistoryReplacement_ForSessionThatWasNotSelected_DoesNotDuplicateSwitchNotification(
-		string? selectedSessionId)
+	public void SuccessfulHistoryReplacement_ForSessionThatWasNotSelected_DoesNotDuplicateSwitchNotification(string? selectedSessionId)
 	{
-		SessionChangeKind kind = SessionLoadNotificationPolicy.GetSuccessfulHistoryReplacementKind(
-			selectedSessionId,
-			loadedSessionId: "loaded");
+		SessionChangeKind kind = SessionLoadNotificationPolicy.GetSuccessfulHistoryReplacementKind(selectedSessionId, loadedSessionId: "loaded");
 
 		kind.ShouldBe(SessionChangeKind.None);
 	}
@@ -31,9 +26,7 @@ public sealed class SessionLoadNotificationPolicyTests
 	[Fact]
 	public void SuccessfulHistoryReplacement_UsesOrdinalSessionIdentity()
 	{
-		SessionChangeKind kind = SessionLoadNotificationPolicy.GetSuccessfulHistoryReplacementKind(
-			selectedSessionId: "SESSION",
-			loadedSessionId: "session");
+		SessionChangeKind kind = SessionLoadNotificationPolicy.GetSuccessfulHistoryReplacementKind(selectedSessionId: "SESSION", loadedSessionId: "session");
 
 		kind.ShouldBe(SessionChangeKind.None);
 	}

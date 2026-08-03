@@ -133,10 +133,8 @@ public sealed class SessionConversationStateTests
 		ChatMessageModel message = new() { Id = "message", Content = "Hello", EventJson = null };
 		session.Conversation.AddMessage(message);
 
-		typeof(SessionConversationState).GetProperty(nameof(SessionConversationState.Messages))!
-			.PropertyType.ShouldBe(typeof(IReadOnlyList<ChatMessageModel>));
-		typeof(SessionModel).GetProperty(nameof(SessionModel.Messages))!
-			.PropertyType.ShouldBe(typeof(IReadOnlyList<ChatMessageModel>));
+		typeof(SessionConversationState).GetProperty(nameof(SessionConversationState.Messages))!.PropertyType.ShouldBe(typeof(IReadOnlyList<ChatMessageModel>));
+		typeof(SessionModel).GetProperty(nameof(SessionModel.Messages))!.PropertyType.ShouldBe(typeof(IReadOnlyList<ChatMessageModel>));
 
 		IList<ChatMessageModel> runtimeView = session.Messages.ShouldBeAssignableTo<IList<ChatMessageModel>>();
 		Should.Throw<NotSupportedException>(() => runtimeView.Add(new ChatMessageModel { EventJson = null }));

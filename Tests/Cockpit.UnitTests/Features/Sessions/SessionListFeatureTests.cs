@@ -371,10 +371,7 @@ public class SessionListFeatureTests
 
 		SessionStateChange change = await fired.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 		change.SessionId.ShouldBe("session");
-		change.Kind.ShouldBe(
-			SessionChangeKind.ConversationContent
-			| SessionChangeKind.ConversationStructure
-			| SessionChangeKind.SessionSummary);
+		change.Kind.ShouldBe(SessionChangeKind.ConversationContent | SessionChangeKind.ConversationStructure | SessionChangeKind.SessionSummary);
 	}
 
 	[Fact]
@@ -384,16 +381,10 @@ public class SessionListFeatureTests
 		TaskCompletionSource<SessionStateChange> fired = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		feature.OnSessionStateChanged += change => fired.TrySetResult(change);
 
-		feature.NotifyStateChanged(
-			"session",
-			SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
-		feature.NotifyStateChanged(
-			"session",
-			SessionChangeKind.ConversationContent | SessionChangeKind.ConversationStructure);
+		feature.NotifyStateChanged("session", SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
+		feature.NotifyStateChanged("session", SessionChangeKind.ConversationContent | SessionChangeKind.ConversationStructure);
 
-		SessionStateChange change = await fired.Task.WaitAsync(
-			TimeSpan.FromSeconds(5),
-			TestContext.Current.CancellationToken);
+		SessionStateChange change = await fired.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
 		change.SessionId.ShouldBe("session");
 		(change.Kind & SessionChangeKind.ConversationReset).ShouldBe(SessionChangeKind.ConversationReset);
@@ -413,19 +404,12 @@ public class SessionListFeatureTests
 		// Mirrors the successful load ordering: SwitchCurrentSessionAsync publishes first,
 		// then the same-session history replacement publishes its explicit reset.
 		feature.SetCurrentSession(session);
-		feature.NotifyStateChanged(
-			session.Id,
-			SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
+		feature.NotifyStateChanged(session.Id, SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
 
-		SessionStateChange change = await fired.Task.WaitAsync(
-			TimeSpan.FromSeconds(5),
-			TestContext.Current.CancellationToken);
+		SessionStateChange change = await fired.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 
 		change.SessionId.ShouldBe(session.Id);
-		change.Kind.ShouldBe(
-			SessionChangeKind.CurrentSession
-			| SessionChangeKind.ConversationReset
-			| SessionChangeKind.ConversationStructure);
+		change.Kind.ShouldBe(SessionChangeKind.CurrentSession | SessionChangeKind.ConversationReset | SessionChangeKind.ConversationStructure);
 	}
 
 	[Fact]

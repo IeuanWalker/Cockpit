@@ -5,15 +5,14 @@ namespace Cockpit.UnitTests.Features.Sessions;
 
 public sealed class SessionStateChangeFilterTests
 {
-	const SessionChangeKind RelevantKinds =
-		SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
+	const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
 
 	[Fact]
 	public void BackgroundSessionChange_IsIgnored()
 	{
 		SessionStateChange change = new("background", SessionChangeKind.SessionSummary);
 
-		SessionStateChangeFilter.IsRelevantToCurrentSession("current", change, RelevantKinds)
+		SessionStateChangeFilter.IsRelevantToCurrentSession("current", change, relevantKinds)
 			.ShouldBeFalse();
 	}
 
@@ -22,7 +21,7 @@ public sealed class SessionStateChangeFilterTests
 	{
 		SessionStateChange change = new("current", SessionChangeKind.SessionSummary);
 
-		SessionStateChangeFilter.IsRelevantToCurrentSession("current", change, RelevantKinds)
+		SessionStateChangeFilter.IsRelevantToCurrentSession("current", change, relevantKinds)
 			.ShouldBeTrue();
 	}
 
@@ -31,7 +30,7 @@ public sealed class SessionStateChangeFilterTests
 	{
 		SessionStateChange change = new(null, SessionChangeKind.SessionSummary);
 
-		SessionStateChangeFilter.IsRelevantToCurrentSession("current", change, RelevantKinds)
+		SessionStateChangeFilter.IsRelevantToCurrentSession("current", change, relevantKinds)
 			.ShouldBeTrue();
 	}
 
@@ -40,7 +39,7 @@ public sealed class SessionStateChangeFilterTests
 	{
 		SessionStateChange change = new("current", SessionChangeKind.ConversationContent);
 
-		SessionStateChangeFilter.IsRelevantToCurrentSession("current", change, RelevantKinds)
+		SessionStateChangeFilter.IsRelevantToCurrentSession("current", change, relevantKinds)
 			.ShouldBeFalse();
 	}
 
@@ -49,7 +48,7 @@ public sealed class SessionStateChangeFilterTests
 	{
 		SessionStateChange change = new("new-current", SessionChangeKind.CurrentSession);
 
-		SessionStateChangeFilter.IsRelevantToCurrentSession(null, change, RelevantKinds)
+		SessionStateChangeFilter.IsRelevantToCurrentSession(null, change, relevantKinds)
 			.ShouldBeTrue();
 	}
 }
