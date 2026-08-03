@@ -51,10 +51,9 @@ public sealed partial class ChatPanel : ComponentBase, IDisposable
 		_uiStateFeature.OnStateChanged -= OnUiStateChanged;
 		GC.SuppressFinalize(this);
 	}
-
 }
 
-internal static class ChatPanelStateChangeFilter
+static class ChatPanelStateChangeFilter
 {
 	public static bool IsRelevant(string? currentSessionId, SessionStateChange change)
 	{
@@ -63,11 +62,7 @@ internal static class ChatPanelStateChangeFilter
 			return false;
 		}
 
-		const SessionChangeKind relevantChanges =
-			SessionChangeKind.CurrentSession |
-			SessionChangeKind.SessionSummary |
-			SessionChangeKind.ConversationStructure |
-			SessionChangeKind.WorkingState;
+		const SessionChangeKind relevantChanges = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary | SessionChangeKind.ConversationStructure | SessionChangeKind.WorkingState;
 		return (change.Kind & relevantChanges) != 0;
 	}
 }
