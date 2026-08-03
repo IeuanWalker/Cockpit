@@ -61,7 +61,7 @@ public class SessionEventProcessorTests
 
 		(changeKind & SessionChangeKind.ConversationStructure).ShouldNotBe(SessionChangeKind.None);
 		session.Messages.Count.ShouldBe(eventCount);
-		session.MessagesSnapshot.Count().ShouldBe(eventCount);
+		session.MessagesSnapshot.Count.ShouldBe(eventCount);
 		session.MessagesSnapshot.ShouldBe(session.Messages);
 	}
 
@@ -77,7 +77,7 @@ public class SessionEventProcessorTests
 			Timestamp = DateTimeOffset.UtcNow
 		});
 
-		session.MessagesSnapshot.Count().ShouldBe(1);
+		session.MessagesSnapshot.Count.ShouldBe(1);
 		session.MessagesSnapshot[0].Content.ShouldBe("Live message");
 	}
 
