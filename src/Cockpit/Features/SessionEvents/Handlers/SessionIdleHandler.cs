@@ -292,13 +292,13 @@ static class SessionIdleHandler
 		if(keepRunning)
 		{
 			session.Lifecycle.SetAgentRunState(AgentRunStateEnum.Running);
-				session.ActiveWorkingGroup = new ActivityGroupModel
-				{
-					StartTime = eventTimestamp.LocalDateTime,
-					Status = GroupStatusEnum.Running,
-					IsExpanded = true,
-					IsPlaceholder = true
-				};
+			session.ActiveWorkingGroup = new ActivityGroupModel
+			{
+				StartTime = eventTimestamp.LocalDateTime,
+				Status = GroupStatusEnum.Running,
+				IsExpanded = true,
+				IsPlaceholder = true
+			};
 		}
 		else
 		{

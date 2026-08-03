@@ -456,8 +456,7 @@ public sealed class SessionEventProcessor
 	/// <summary>
 	/// Finalizes any open <see cref="ActivityGroup"/> on the session (e.g. after abrupt termination during replay).
 	/// </summary>
-	public SessionChangeKind FinalizeOpenGroup(SessionModel session)
-		=> FinalizeOpenGroupCore(session, publishStructuralSnapshot: true);
+	public SessionChangeKind FinalizeOpenGroup(SessionModel session) => FinalizeOpenGroupCore(session, publishStructuralSnapshot: true);
 
 	SessionChangeKind FinalizeOpenGroupCore(SessionModel session, bool publishStructuralSnapshot)
 	{
