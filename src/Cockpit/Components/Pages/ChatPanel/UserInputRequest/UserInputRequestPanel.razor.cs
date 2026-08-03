@@ -45,36 +45,22 @@ public sealed partial class UserInputRequestPanel : ComponentBase, IDisposable
 
 	UserInputRequestDetailsPopup _detailsPopup = default!;
 
-	bool ShowInfoPopup { get; set; }
-
 	void ShowRequestInfo() => _detailsPopup.Open();
-
-	void HideRequestInfo()
-	{
-		ShowInfoPopup = false;
-	}
-
-	void OnStateChanged()
-	{
-		InvokeAsync(async () =>
-		{
-			StateHasChanged();
-			if(Request is not null)
-			{
-				await Task.Delay(10);
-				await ResizeTextarea();
-			}
-		});
-	}
 
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession
-			| SessionChangeKind.ConversationStructure | SessionChangeKind.SessionSummary;
-		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
-			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.ConversationStructure | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			OnStateChanged();
+			InvokeAsync(async () =>
+			{
+				StateHasChanged();
+				if(Request is not null)
+				{
+					await Task.Delay(10);
+					await ResizeTextarea();
+				}
+			});
 		}
 	}
 
