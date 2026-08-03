@@ -680,7 +680,7 @@ public partial class ChatMessages : ComponentBase, IAsyncDisposable
 	private static partial Regex mentionRegex();
 }
 
-internal static class ChatMessageStateChangeFilter
+static class ChatMessageStateChangeFilter
 {
 	public static bool IsRelevant(string? currentSessionId, string? previousSessionId, SessionStateChange change)
 	{
@@ -689,22 +689,16 @@ internal static class ChatMessageStateChangeFilter
 			return (change.Kind & SessionChangeKind.CurrentSession) != 0;
 		}
 
-		SessionChangeKind relevantKinds = SessionChangeKind.ConversationContent |
-			SessionChangeKind.ConversationStructure |
-			SessionChangeKind.ConversationReset;
-		return (change.Kind & relevantKinds) != 0 &&
-			(change.SessionId is null || change.SessionId == currentSessionId);
+		SessionChangeKind relevantKinds = SessionChangeKind.ConversationContent | SessionChangeKind.ConversationStructure | SessionChangeKind.ConversationReset;
+		return (change.Kind & relevantKinds) != 0 && (change.SessionId is null || change.SessionId == currentSessionId);
 	}
 }
 
-internal static class ChatMessageWindowUpdatePolicy
+static class ChatMessageWindowUpdatePolicy
 {
-	public static bool RequiresConversationReset(SessionChangeKind kind) =>
-		(kind & SessionChangeKind.ConversationReset) != 0;
+	public static bool RequiresConversationReset(SessionChangeKind kind) => (kind & SessionChangeKind.ConversationReset) != 0;
 
-	public static void ResetObservedLocallySentMessages(
-		HashSet<ChatMessageModel> observed,
-		IReadOnlyList<ChatMessageModel> messages)
+	public static void ResetObservedLocallySentMessages(HashSet<ChatMessageModel> observed, IReadOnlyList<ChatMessageModel> messages)
 	{
 		observed.Clear();
 		foreach(ChatMessageModel message in messages)
@@ -716,9 +710,7 @@ internal static class ChatMessageWindowUpdatePolicy
 		}
 	}
 
-	public static bool ObserveNewLocallySentMessages(
-		HashSet<ChatMessageModel> observed,
-		IReadOnlyList<ChatMessageModel> messages)
+	public static bool ObserveNewLocallySentMessages(HashSet<ChatMessageModel> observed, IReadOnlyList<ChatMessageModel> messages)
 	{
 		bool foundNew = false;
 		for(int i = messages.Count - 1; i >= 0; i--)
