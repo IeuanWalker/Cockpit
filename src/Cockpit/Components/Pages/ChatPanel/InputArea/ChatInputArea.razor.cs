@@ -98,34 +98,26 @@ public partial class ChatInputArea : ComponentBase, IAsyncDisposable
 		}
 	}
 
-	void OnStateChanged()
-	{
-		InvokeAsync(async () =>
-		{
-			string? currentSessionId = _sessionFeature.CurrentSession?.Id;
-			bool sessionChanged = currentSessionId != _lastSessionId;
-			_lastSessionId = currentSessionId;
-
-			StateHasChanged();
-
-			if(sessionChanged)
-			{
-				await Task.Delay(textareaResizeYieldMs);
-				await SyncDomFromUserInput();
-				await FocusInputAsync();
-			}
-		});
-	}
-
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession
-			| SessionChangeKind.SessionSummary | SessionChangeKind.ConversationStructure
-			| SessionChangeKind.WorkingState;
-		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
-			_sessionFeature.CurrentSession?.Id, change, relevantKinds))
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary | SessionChangeKind.ConversationStructure | SessionChangeKind.WorkingState;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			OnStateChanged();
+			InvokeAsync(async () =>
+			{
+				string? currentSessionId = _sessionFeature.CurrentSession?.Id;
+				bool sessionChanged = currentSessionId != _lastSessionId;
+				_lastSessionId = currentSessionId;
+
+				StateHasChanged();
+
+				if(sessionChanged)
+				{
+					await Task.Delay(textareaResizeYieldMs);
+					await SyncDomFromUserInput();
+					await FocusInputAsync();
+				}
+			});
 		}
 	}
 
