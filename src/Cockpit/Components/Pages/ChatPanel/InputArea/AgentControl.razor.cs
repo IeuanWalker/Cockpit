@@ -27,22 +27,16 @@ public sealed partial class AgentControl : ComponentBase, IDisposable
 		RefreshAgents();
 	}
 
-	void OnStateChanged()
-	{
-		InvokeAsync(() =>
-		{
-			RefreshAgents();
-			StateHasChanged();
-		});
-	}
-
 	void OnSessionStateChanged(SessionStateChange change)
 	{
 		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
-		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
-			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			OnStateChanged();
+			InvokeAsync(() =>
+			{
+				RefreshAgents();
+				StateHasChanged();
+			});
 		}
 	}
 
