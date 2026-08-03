@@ -40,8 +40,7 @@ public sealed partial class AllowedCommands : ComponentBase, IDisposable
 
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
-			_sessionListFeature.CurrentSession?.Id, change, SessionChangeKind.CurrentSession))
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, SessionChangeKind.CurrentSession))
 		{
 			OnStateChanged();
 		}
