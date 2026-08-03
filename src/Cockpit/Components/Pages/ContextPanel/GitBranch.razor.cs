@@ -34,18 +34,12 @@ public sealed partial class GitBranch : ComponentBase, IDisposable
 		_renderedBranch = CurrentBranch;
 	}
 
-	void OnStateChanged()
-	{
-		InvokeAsync(StateHasChanged);
-	}
-
 	void OnSessionStateChanged(SessionStateChange change)
 	{
 		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
-		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
-			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			OnStateChanged();
+			InvokeAsync(StateHasChanged);
 		}
 	}
 

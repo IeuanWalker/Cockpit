@@ -44,18 +44,12 @@ public sealed partial class EditedFiles : ComponentBase, IDisposable
 		_renderedFilesCount = list?.Count ?? 0;
 	}
 
-	void OnStateChanged()
-	{
-		InvokeAsync(StateHasChanged);
-	}
-
 	void OnSessionStateChanged(SessionStateChange change)
 	{
 		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
-		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
-			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			OnStateChanged();
+			InvokeAsync(StateHasChanged);
 		}
 	}
 

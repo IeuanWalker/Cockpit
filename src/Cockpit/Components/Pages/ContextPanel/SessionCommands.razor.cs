@@ -22,21 +22,15 @@ public sealed partial class SessionCommands : ComponentBase, IDisposable
 		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
-	void OnStateChanged()
-	{
-		InvokeAsync(() =>
-		{
-			RefreshCommands();
-			StateHasChanged();
-		});
-	}
-
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
-			_sessionListFeature.CurrentSession?.Id, change, SessionChangeKind.CurrentSession))
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, SessionChangeKind.CurrentSession))
 		{
-			OnStateChanged();
+			InvokeAsync(() =>
+			{
+				RefreshCommands();
+				StateHasChanged();
+			});
 		}
 	}
 

@@ -47,18 +47,12 @@ public partial class Directory : ComponentBase, IDisposable
 		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 	}
 
-	void OnStateChanged()
-	{
-		InvokeAsync(StateHasChanged);
-	}
-
 	void OnSessionStateChanged(SessionStateChange change)
 	{
 		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary;
-		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
-			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			OnStateChanged();
+			InvokeAsync(StateHasChanged);
 		}
 	}
 
