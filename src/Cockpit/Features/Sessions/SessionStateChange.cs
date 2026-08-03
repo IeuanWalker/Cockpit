@@ -57,7 +57,6 @@ public static class SessionStateChangeFilter
 			return true;
 		}
 
-		return change.SessionId is null
-			|| string.Equals(change.SessionId, currentSessionId, StringComparison.Ordinal);
+		return change.SessionId is null || string.Equals(change.SessionId, currentSessionId, StringComparison.Ordinal);
 	}
 }

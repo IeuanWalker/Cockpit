@@ -67,19 +67,12 @@ public sealed partial class ElicitationRequestPanel : ComponentBase, IDisposable
 		_elicitationFeature.ResolveElicitationRequest(request.Id, null);
 	}
 
-	void OnStateChanged()
-	{
-		InvokeAsync(StateHasChanged);
-	}
-
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession
-			| SessionChangeKind.ConversationStructure | SessionChangeKind.SessionSummary;
-		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
-			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.ConversationStructure | SessionChangeKind.SessionSummary;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			OnStateChanged();
+			InvokeAsync(StateHasChanged);
 		}
 	}
 
