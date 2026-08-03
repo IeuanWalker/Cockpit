@@ -130,19 +130,19 @@ public class SessionListProjectionTests
 		string? cwd = "",
 		string? repository = null,
 		string? title = null) => new()
-	{
-		Id = id,
-		Title = title ?? id,
-		CreatedAt = lastActivity,
-		LastActivity = lastActivity,
-		Model = testModel,
-		Context = new Cockpit.Features.Sessions.Models.SessionContext
 		{
-			CurrentWorkingDirectory = cwd,
-			WorkspacePath = null,
-			GitRoot = null,
-			Repository = repository,
-			Branch = null
-		}
-	};
+			Id = id,
+			Title = title ?? id,
+			CreatedAt = lastActivity,
+			LastActivity = lastActivity,
+			Model = testModel,
+			Context = new Cockpit.Features.Sessions.Models.SessionContext
+			{
+				CurrentWorkingDirectory = cwd,
+				WorkspacePath = null,
+				GitRoot = null,
+				Repository = repository,
+				Branch = null
+			}
+		};
 }
