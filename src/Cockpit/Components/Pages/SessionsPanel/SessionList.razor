@@ -201,8 +201,8 @@
             <Virtualize TItem="SessionListRow"
                         Items="@Rows"
                         Context="row"
-                        ItemSize="@VirtualRowHeight"
-                        OverscanCount="@VirtualOverscanCount"
+                        ItemSize="@virtualRowHeight"
+                        OverscanCount="@virtualOverscanCount"
                         SpacerElement="div">
                 <div @key="row.Key" class="h-12 overflow-hidden" style="height: 48px; min-height: 48px; max-height: 48px;">
                     @switch(row)
