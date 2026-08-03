@@ -80,7 +80,7 @@ public partial class MainLayout : IDisposable
 
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		if((change.Kind & SessionChangeKind.CurrentSession) != 0)
+		if(change.Kind.HasFlag(SessionChangeKind.CurrentSession))
 		{
 			OnStateChanged();
 		}
