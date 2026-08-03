@@ -36,19 +36,12 @@ public partial class ModelControl : ComponentBase, IDisposable
 		await RefreshModelsAsync();
 	}
 
-	void OnStateChanged()
-	{
-		_ = InvokeAsync(StateHasChanged);
-	}
-
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession
-			| SessionChangeKind.SessionSummary | SessionChangeKind.ConversationStructure;
-		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
-			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary | SessionChangeKind.ConversationStructure;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			OnStateChanged();
+			InvokeAsync(StateHasChanged);
 		}
 	}
 
