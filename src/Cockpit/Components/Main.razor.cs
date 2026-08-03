@@ -35,7 +35,7 @@ public sealed partial class Main : ComponentBase, IDisposable
 	}
 }
 
-internal static class MainStateChangeFilter
+static class MainStateChangeFilter
 {
 	public static bool IsCurrentSessionTransition(
 		string? currentSessionId,

@@ -99,27 +99,19 @@ public sealed partial class EditedFilesRoot : ComponentBase, IAsyncDisposable
 		}
 	}
 
-	void OnStateChanged()
-	{
-		if(_selectedFile is not null && !Files.Contains(_selectedFile))
-		{
-			GitChangedFileModel? refreshed = Files.FirstOrDefault(f => f.Path == _selectedFile.Path);
-			_selectedFile = refreshed;
-		}
-
-		_cachedNodes = null;
-		InvokeAsync(StateHasChanged);
-	}
-
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession
-			| SessionChangeKind.SessionSummary | SessionChangeKind.ConversationStructure
-			| SessionChangeKind.ConversationContent;
-		if(SessionStateChangeFilter.IsRelevantToCurrentSession(
-			_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
+		const SessionChangeKind relevantKinds = SessionChangeKind.CurrentSession | SessionChangeKind.SessionSummary | SessionChangeKind.ConversationStructure | SessionChangeKind.ConversationContent;
+		if(SessionStateChangeFilter.IsRelevantToCurrentSession(_sessionListFeature.CurrentSession?.Id, change, relevantKinds))
 		{
-			OnStateChanged();
+			if(_selectedFile is not null && !Files.Contains(_selectedFile))
+			{
+				GitChangedFileModel? refreshed = Files.FirstOrDefault(f => f.Path == _selectedFile.Path);
+				_selectedFile = refreshed;
+			}
+
+			_cachedNodes = null;
+			InvokeAsync(StateHasChanged);
 		}
 	}
 
