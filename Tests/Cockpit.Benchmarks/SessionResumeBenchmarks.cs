@@ -5,8 +5,6 @@ using BenchmarkDotNet.Toolchains.InProcess.Emit;
 
 // BenchmarkDotNet requires benchmark methods to be public instance members; CA1822 would
 // otherwise suggest making these static.
-#pragma warning disable CA1822
-
 namespace Cockpit.Benchmarks;
 
 /// <summary>

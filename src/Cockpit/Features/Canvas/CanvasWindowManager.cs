@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Cockpit.Features.Theme;
 using GitHub.Copilot;
@@ -31,6 +32,7 @@ public sealed class CanvasWindowManager
 	/// Opens a new canvas window for the given request and returns the open result.
 	/// Called by <see cref="SessionCanvasHandler.OnOpenAsync"/>.
 	/// </summary>
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
 	public Task<CanvasProviderOpenResult> OpenAsync(CanvasProviderOpenRequest request, CancellationToken cancellationToken)
 	{
 		string title = TryExtractString(request.Input, "title") ?? request.CanvasId;
@@ -46,9 +48,7 @@ public sealed class CanvasWindowManager
 			}
 
 			NotifyInstanceChanged(existingInstance.InstanceId);
-			_logger.LogInformation(
-				"Updated existing canvas window for instance {InstanceId} (canvasId={CanvasId}, session={SessionId})",
-				existingInstance.InstanceId, existingInstance.CanvasId, existingInstance.SessionId);
+			_logger.LogInformation("Updated existing canvas window for instance {InstanceId} (canvasId={CanvasId}, session={SessionId})", existingInstance.InstanceId, existingInstance.CanvasId, existingInstance.SessionId);
 
 			return Task.FromResult(new CanvasProviderOpenResult
 			{
@@ -66,9 +66,7 @@ public sealed class CanvasWindowManager
 		};
 
 		_instances[instance.InstanceId] = instance;
-		_logger.LogInformation(
-			"Opening canvas window for instance {InstanceId} (canvasId={CanvasId}, session={SessionId})",
-			instance.InstanceId, instance.CanvasId, instance.SessionId);
+		_logger.LogInformation("Opening canvas window for instance {InstanceId} (canvasId={CanvasId}, session={SessionId})", instance.InstanceId, instance.CanvasId, instance.SessionId);
 
 		MainThread.BeginInvokeOnMainThread(() =>
 		{
@@ -95,6 +93,7 @@ public sealed class CanvasWindowManager
 	/// <summary>
 	/// Closes the canvas window for the given instance. Called by <see cref="SessionCanvasHandler.OnCloseAsync"/>.
 	/// </summary>
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
 	public Task CloseAsync(string instanceId, CancellationToken cancellationToken)
 	{
 		if(!_instances.TryRemove(instanceId, out CanvasInstanceModel? instance))
@@ -197,7 +196,8 @@ public sealed class CanvasWindowManager
 		}
 	}
 
-	Window BuildWindow(CanvasInstanceModel instance, bool isLightTheme){
+	Window BuildWindow(CanvasInstanceModel instance, bool isLightTheme)
+	{
 		Color bg = isLightTheme ? Color.FromArgb("#F8F8F8") : Color.FromArgb("#181818");
 		Color fg = isLightTheme ? Color.FromArgb("#3B3B3B") : Color.FromArgb("#CCCCCC");
 		string title = instance.Title ?? "Canvas";

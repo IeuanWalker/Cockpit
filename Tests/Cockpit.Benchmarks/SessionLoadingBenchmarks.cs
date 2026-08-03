@@ -4,7 +4,6 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using ModelInfo = GitHub.Copilot.ModelInfo;
 using SdkSessionContext = GitHub.Copilot.SessionContext;
@@ -63,7 +62,7 @@ public class SessionLoadingBenchmarks
 				Context = new SdkSessionContext
 				{
 					// Mix of resolvable paths and null to exercise both normalization branches.
-					WorkingDirectory = i % 2 == 0 ? validDir : null,
+					WorkingDirectory = i % 2 == 0 ? validDir : string.Empty,
 					GitRoot = i % 2 == 0 ? validDir : null,
 					Repository = i % 2 == 0 ? "owner/repo" : null,
 					Branch = i % 2 == 0 ? "main" : null

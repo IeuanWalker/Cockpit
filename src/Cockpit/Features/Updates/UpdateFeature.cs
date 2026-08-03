@@ -704,7 +704,7 @@ public sealed partial class UpdateFeature : IDisposable
 	static string SanitizePathSegment(string value)
 	{
 		char[] invalid = Path.GetInvalidFileNameChars();
-		char[] chars = value.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray();
+		char[] chars = [.. value.Select(ch => invalid.Contains(ch) ? '_' : ch)];
 		return new string(chars);
 	}
 
