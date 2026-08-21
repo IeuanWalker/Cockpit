@@ -1,0 +1,56 @@
+<div @ref="_projectItem"
+     class="project-item group"
+     @onmouseenter="ShowTooltip"
+     @onmouseleave="HideTooltip">
+    <button type="button"
+            class="project-toggle"
+            aria-expanded="@(IsExpanded ? "true" : "false")"
+            aria-describedby="@TooltipId"
+            @onclick="HandleToggle"
+            @onfocus="ShowTooltip"
+            @onblur="HideTooltip">
+        <svg class="project-folder @(IsExpanded ? "expanded" : string.Empty)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path class="project-folder-closed" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+            <path class="project-folder-open" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 8V7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v1M4 10h17l-2 9H5l-2-9h1Z" />
+        </svg>
+        <span class="truncate">@Name</span>
+    </button>
+    <button type="button"
+            @onclick="HandleCreate"
+            class="project-add"
+            title="Create new session in this project"
+            aria-label="Create new session in @Name"
+            aria-describedby="@TooltipId"
+            @onfocus="ShowTooltip"
+            @onblur="HideTooltip">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+    </button>
+</div>
+
+<div @ref="_tooltip" id="@TooltipId" class="project-tooltip" popover="manual" role="tooltip">
+    <div class="project-tooltip-heading">@Name</div>
+    <div class="project-tooltip-label">New sessions open in</div>
+    <div class="project-tooltip-row project-tooltip-path">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+        </svg>
+        <span>@CreateSessionLocation</span>
+    </div>
+    @if(!string.IsNullOrWhiteSpace(Repository))
+    {
+        <div class="project-tooltip-row project-tooltip-repository">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M6 3v12m0 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm12-12a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 6c0 4-2 6-6 6H6" />
+            </svg>
+            <span>@Repository</span>
+        </div>
+    }
+    <div class="project-tooltip-row">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8 12h8M8 8h8M8 16h5M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+        </svg>
+        <span>@SessionCountText</span>
+    </div>
+</div>

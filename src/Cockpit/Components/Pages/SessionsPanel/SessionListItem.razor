@@ -2,9 +2,11 @@
 @using Cockpit.Components.Controls
 @using Microsoft.AspNetCore.Components.Web
 
-<div class="session-item px-3 py-1.5 hover:bg-app-hover cursor-pointer @(IsActive ? "bg-app-active" : "") border-l-2 @(IsActive ? "" : "border-transparent") flex items-center group relative @(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading ? "pointer-events-none" : "")"
+<div @ref="_sessionItem"
+     class="session-item mx-2 px-3 py-1.5 rounded hover:bg-app-hover @(IsActive ? "bg-app-active" : "") @(!Compact && ListStatus is not null ? "has-status" : "") @(Compact ? "compact" : "") border-l-2 @(IsActive ? "" : "border-transparent") flex items-center group relative"
      style="@(IsActive ? "border-left-color: var(--accent-color);" : "")"
-     @onclick="HandleSelect">
+     @onmouseenter="ShowTooltip"
+     @onmouseleave="HideTooltip">
     @if(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading)
     {
         <div class="absolute inset-0 flex items-center justify-center gap-1.5 z-10" style="background: var(--sidebar-color); opacity: 0.85;">
@@ -14,20 +16,102 @@
             <span class="text-xs secondary-text">Loading...</span>
         </div>
     }
-    <div class="flex-1 min-w-0 @(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading ? "opacity-30" : "")">
-        <div class="text-xs @(IsActive ? "font-medium text-app-title" : "") truncate">@Session.Title</div>
-        <SessionStatusBadge Status="@Session.DisplayStatus"
-                            Variant="@SessionStatusVariant.SessionList"
-                            FallbackText="@TimeAgo" />
-    </div>
+    <button type="button"
+            class="session-select flex-1 min-w-0 text-left @(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading ? "opacity-30" : "")"
+            disabled="@(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading)"
+            aria-current="@(IsActive ? "true" : null)"
+            aria-describedby="@TooltipId"
+            @onclick="HandleSelect"
+            @onfocus="ShowTooltip"
+            @onblur="HideTooltip">
+        @if(Compact)
+        {
+            <div class="flex items-center gap-1.5 min-w-0">
+                <div class="flex-1 min-w-0 text-xs @(IsActive ? "font-medium text-app-title" : "") truncate">@Session.Title</div>
+                <SessionStatusBadge Status="@ListStatus"
+                                    Variant="@SessionStatusVariant.SessionList"
+                                    FallbackText="@ListStatusText" />
+            </div>
+        }
+        else
+        {
+            <div class="text-xs @(IsActive ? "font-medium text-app-title" : "") truncate">@Session.Title</div>
+            <SessionStatusBadge Status="@ListStatus"
+                                Variant="@SessionStatusVariant.SessionList"
+                                FallbackText="@ListStatusText" />
+        }
+    </button>
     <div class="session-delete-overlay absolute right-0 top-0 bottom-0 flex items-center justify-end pr-1.5 opacity-0" style="width: 5rem;">
-        <button @onclick="HandleDelete"
+        <button type="button"
+                @onclick="HandleDelete"
                 @onclick:stopPropagation="true"
                 class="session-delete-btn p-1 hover:bg-red-500/20 rounded"
-                title="Delete session">
+                disabled="@(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading)"
+                title="Delete session"
+                aria-label="Delete @Session.Title"
+                aria-describedby="@TooltipId"
+                @onfocus="ShowTooltip"
+                @onblur="HideTooltip">
             <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
         </button>
     </div>
+</div>
+
+<div @ref="_tooltip" id="@TooltipId" class="session-tooltip" popover="manual" role="tooltip">
+    <div class="session-tooltip-heading">
+        <strong>@Session.Title</strong>
+        <span>@TimeAgo</span>
+    </div>
+    <div class="session-tooltip-row">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+        </svg>
+        <span title="@WorkingDirectoryLabel">@WorkingDirectoryLabel</span>
+    </div>
+    @if(!string.IsNullOrWhiteSpace(Session.Context.Branch))
+    {
+        <div class="session-tooltip-row">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M6 3v12m0 0a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm12-12a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 6c0 4-2 6-6 6H6" />
+            </svg>
+            <span>@Session.Context.Branch</span>
+        </div>
+    }
+    <div class="session-tooltip-row">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 3a9 9 0 1 0 9 9M12 3v9l6.5-6.5" />
+        </svg>
+        <span>@Session.Context.SelectedAgentMode.ToDisplayLabel() mode · @Session.Model.Name</span>
+    </div>
+    @if(HoverStats is { } stats)
+    {
+        <div class="session-tooltip-stats">
+            <div class="session-tooltip-stat">
+                <span>Messages</span>
+                <strong>@FormatCount(stats.MessageCount)</strong>
+            </div>
+            <div class="session-tooltip-stat">
+                <span>Agent time</span>
+                <strong>@FormatDuration(stats.AgentWorkingTime)</strong>
+            </div>
+            <div class="session-tooltip-stat">
+                <span>Tool calls</span>
+                <strong>@FormatCount(stats.ToolCallCount)</strong>
+            </div>
+            <div class="session-tooltip-stat">
+                <span>Agent turns</span>
+                <strong>@FormatCount(stats.AgentTurnCount)</strong>
+            </div>
+            <div class="session-tooltip-stat session-tooltip-stat-wide">
+                <span>Tokens</span>
+                <strong>
+                    @(stats.CurrentTokens is not null
+                        ? $"{FormatTokens(stats.CurrentTokens.Value)}{(stats.TokenLimit > 0 ? $" / {FormatTokens(stats.TokenLimit.Value)}" : string.Empty)}"
+                        : "Unavailable")
+                </strong>
+            </div>
+        </div>
+    }
 </div>

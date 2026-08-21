@@ -11,39 +11,46 @@ public class SessionListProjectionTests
 	static readonly DateTime baseline = new(2026, 7, 25, 12, 0, 0, DateTimeKind.Utc);
 
 	[Fact]
-	public void UpdatedView_SortsSessionsAndCreatesStableKeys()
+	public void Search_SortsSessionsAndCreatesScopedStableKeys()
 	{
 		SessionModel older = CreateSession("older", baseline);
 		SessionModel newer = CreateSession("newer", baseline.AddMinutes(1));
 
-		IReadOnlyList<SessionListRow> rows = Build([older, newer], SessionListViewMode.Updated);
+		IReadOnlyList<SessionListRow> rows = Build([older, newer], searchText: "er");
 
-		rows.Select(row => row.Key).ShouldBe(["session:newer", "session:older"]);
-		rows.All(row => row is SessionListSessionRow { IsIndented: false }).ShouldBeTrue();
+		rows.Select(row => row.Key).ShouldBe(["session:search:newer", "session:search:older"]);
+		rows.All(row => row is SessionListSessionRow { IndentLevel: 0 }).ShouldBeTrue();
 	}
 
 	[Fact]
-	public void ProjectView_PutsQuickChatFirstAndFlattensExpandedGroup()
+	public void Sections_PutChatsBeforeProjectsAndRecents()
 	{
 		SessionModel project = CreateSession("project", baseline, "C:\\work\\Cockpit", "owner/Cockpit");
-		SessionModel quickChat = CreateSession("quick", baseline.AddMinutes(-1), string.Empty);
+		SessionModel chat = CreateSession("chat", baseline.AddMinutes(-1), string.Empty);
+		string projectId = ProjectId(project);
+		HashSet<SessionListSection> expandedSections = [SessionListSection.Chats, SessionListSection.Projects];
 
 		IReadOnlyList<SessionListRow> rows = Build(
-			[project, quickChat],
-			SessionListViewMode.Project,
-			expandedGroups: new HashSet<string>(["quick-chat", "name:Cockpit"], StringComparer.OrdinalIgnoreCase));
+			[project, chat],
+			expandedSections: expandedSections,
+			expandedProjectGroups: new HashSet<string>([projectId], SessionProjectIdentityResolver.ProjectIdComparer));
 
 		rows.Select(row => row.Key).ShouldBe([
-			"project:quick-chat",
-			"session:quick",
-			"project:name:Cockpit",
-			"session:project"
+			"section:Chats",
+			"session:chats:chat",
+			"section:Projects",
+			$"project:{projectId}",
+			$"session:{projectId}:project",
+			"section:Recents"
 		]);
-		rows[1].ShouldBeOfType<SessionListSessionRow>().IsIndented.ShouldBeTrue();
+		rows.OfType<SessionListSessionRow>().Select(row => row.IndentLevel).ShouldBe([1, 2]);
+		SessionListProjectHeaderRow projectHeader = rows.OfType<SessionListProjectHeaderRow>().Single();
+		projectHeader.CreateSessionPath.ShouldBe("C:\\work\\Cockpit");
+		projectHeader.SessionCount.ShouldBe(1);
 	}
 
 	[Fact]
-	public void ProjectView_IncludesActiveSessionBeyondCollapsedLimit()
+	public void CollapsedProject_DoesNotRenderItsSessions()
 	{
 		List<SessionModel> sessions = [.. Enumerable.Range(0, 7)
 			.Select(index => CreateSession(
@@ -54,19 +61,16 @@ public class SessionListProjectionTests
 
 		IReadOnlyList<SessionListRow> rows = Build(
 			sessions,
-			SessionListViewMode.Project,
-			activeSessionId: "session-6");
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Projects]));
 
-		SessionListProjectHeaderRow header = rows[0].ShouldBeOfType<SessionListProjectHeaderRow>();
-		header.IsExpanded.ShouldBeTrue();
-		rows.OfType<SessionListSessionRow>().Select(row => row.Session.Id).ShouldBe([
-			"session-0", "session-1", "session-2", "session-3", "session-4", "session-6"
-		]);
-		rows[^1].ShouldBeOfType<SessionListShowMoreRow>().IsExpanded.ShouldBeFalse();
+		rows.OfType<SessionListSectionHeaderRow>().Single(row => row.Section == SessionListSection.Projects).IsExpanded.ShouldBeTrue();
+		rows.OfType<SessionListProjectHeaderRow>().Single().IsExpanded.ShouldBeFalse();
+		rows.OfType<SessionListSessionRow>().ShouldBeEmpty();
+		rows.OfType<SessionListShowMoreRow>().ShouldBeEmpty();
 	}
 
 	[Fact]
-	public void ProjectView_ExpandedLimitShowsFifteenSessionsAndShowLessRow()
+	public void ProjectPagination_ShowsConfiguredPageAndKeepsBothControlsAvailable()
 	{
 		List<SessionModel> sessions = [.. Enumerable.Range(0, 20)
 			.Select(index => CreateSession(
@@ -74,16 +78,158 @@ public class SessionListProjectionTests
 				baseline.AddMinutes(-index),
 				"C:\\work\\Cockpit",
 				"Cockpit"))];
-		HashSet<string> groups = new(["name:Cockpit"], StringComparer.OrdinalIgnoreCase);
+		Dictionary<string, int> sessionLimits = new(StringComparer.OrdinalIgnoreCase)
+		{
+			[ProjectId(sessions[0])] = 15
+		};
+		string projectId = ProjectId(sessions[0]);
 
 		IReadOnlyList<SessionListRow> rows = Build(
 			sessions,
-			SessionListViewMode.Project,
-			expandedGroups: groups,
-			expandedSessionGroups: groups);
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Projects]),
+			expandedProjectGroups: new HashSet<string>([projectId], SessionProjectIdentityResolver.ProjectIdComparer),
+			sessionLimits: sessionLimits);
 
 		rows.OfType<SessionListSessionRow>().Count().ShouldBe(15);
-		rows[^1].ShouldBeOfType<SessionListShowMoreRow>().IsExpanded.ShouldBeTrue();
+		SessionListShowMoreRow showMore = rows.OfType<SessionListShowMoreRow>().Single();
+		showMore.HasMore.ShouldBeTrue();
+		showMore.CanShowLess.ShouldBeTrue();
+		showMore.VisibleCount.ShouldBe(15);
+		showMore.TotalCount.ShouldBe(20);
+	}
+
+	[Fact]
+	public void RecentsSection_ProducesOneVirtualizableCollectionInActivityOrder()
+	{
+		List<SessionModel> sessions = [.. Enumerable.Range(0, 100)
+			.Select(index => CreateSession($"session-{index}", baseline.AddMinutes(-index)))];
+
+		IReadOnlyList<SessionListRow> rows = Build(sessions, expandedSections: new HashSet<SessionListSection>([SessionListSection.Recents]));
+
+		SessionListRecentsRow recents = rows.OfType<SessionListRecentsRow>().Single();
+		recents.Sessions.Count.ShouldBe(100);
+		recents.Sessions.Select(session => session.Id).ShouldBe(
+			Enumerable.Range(0, 100).Select(index => $"session-{index}"));
+		rows.OfType<SessionListSessionRow>().ShouldBeEmpty();
+		rows.OfType<SessionListShowMoreRow>().ShouldBeEmpty();
+	}
+
+	[Fact]
+	public void CollapsedRecentsSection_DoesNotProduceAVirtualizableCollection()
+	{
+		List<SessionModel> sessions = [.. Enumerable.Range(0, 20)
+			.Select(index => CreateSession($"session-{index}", baseline.AddMinutes(-index)))];
+
+		IReadOnlyList<SessionListRow> rows = Build(sessions);
+
+		rows.OfType<SessionListRecentsRow>().ShouldBeEmpty();
+	}
+
+	[Fact]
+	public void MostRecentProjectGroup_UsesTheProjectWithTheLatestSession()
+	{
+		SessionModel older = CreateSession("older", baseline, "C:\\work\\Older", "owner/Older");
+		SessionModel newer = CreateSession("newer", baseline.AddMinutes(1), "C:\\work\\Newer", "owner/Newer");
+		SessionModel chat = CreateSession("chat", baseline.AddMinutes(2), string.Empty);
+
+		SessionListProjectionSource source = SessionListProjection.CreateSource([older, newer, chat]);
+
+		source.MostRecentProjectGroupId.ShouldBe(ProjectId(newer));
+		source.ProjectGroupIds.ShouldBe(new HashSet<string>([ProjectId(older), ProjectId(newer)], SessionProjectIdentityResolver.ProjectIdComparer), ignoreOrder: true);
+	}
+
+	[Fact]
+	public void Source_CanBeReusedAcrossSearchAndDisplayOptionChanges()
+	{
+		SessionModel first = CreateSession("first", baseline, "C:\\work\\First", "owner/First");
+		SessionModel second = CreateSession("second", baseline.AddMinutes(1), "C:\\work\\Second", "owner/Second");
+		SessionListProjectionSource source = SessionListProjection.CreateSource([first, second]);
+
+		IReadOnlyList<SessionListRow> searchRows = Build(source, searchText: "first");
+		IReadOnlyList<SessionListRow> sectionRows = Build(
+			source,
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Projects]));
+
+		searchRows.Select(row => row.Key).ShouldBe(["session:search:first"]);
+		sectionRows.OfType<SessionListProjectHeaderRow>().Select(row => row.GroupId)
+			.ShouldBe([ProjectId(second), ProjectId(first)]);
+	}
+
+	[Fact]
+	public void Projects_WithTheSameNameInDifferentLocations_RemainSeparateAndAreDisambiguated()
+	{
+		string firstRoot = ProjectPath("ClientA", "App");
+		string secondRoot = ProjectPath("ClientB", "App");
+		SessionModel first = CreateSession("first", baseline, firstRoot, "owner-a/App");
+		SessionModel second = CreateSession("second", baseline.AddMinutes(1), secondRoot, "owner-b/App");
+
+		IReadOnlyList<SessionListRow> rows = Build(
+			[first, second],
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Projects]));
+
+		SessionListProjectHeaderRow[] projects = [.. rows.OfType<SessionListProjectHeaderRow>()];
+		projects.Length.ShouldBe(2);
+		projects.Select(project => project.GroupId).Distinct(SessionProjectIdentityResolver.ProjectIdComparer).Count().ShouldBe(2);
+		projects.Select(project => project.Name).ShouldContain("App - ClientA");
+		projects.Select(project => project.Name).ShouldContain("App - ClientB");
+		projects.Select(project => project.CreateSessionPath).ShouldContain(firstRoot);
+		projects.Select(project => project.CreateSessionPath).ShouldContain(secondRoot);
+	}
+
+	[Fact]
+	public void Projects_WithTheSameGitRootAndDifferentWorkingSubdirectories_AreCombined()
+	{
+		string root = ProjectPath("Cockpit");
+		SessionModel first = CreateSession("first", baseline, Path.Combine(root, "src"), "owner/Cockpit", gitRoot: root);
+		SessionModel second = CreateSession("second", baseline.AddMinutes(1), Path.Combine(root, "Tests"), null, gitRoot: root);
+		string projectId = ProjectId(first);
+
+		IReadOnlyList<SessionListRow> rows = Build(
+			[first, second],
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Projects]),
+			expandedProjectGroups: new HashSet<string>([projectId], SessionProjectIdentityResolver.ProjectIdComparer));
+
+		SessionListProjectHeaderRow project = rows.OfType<SessionListProjectHeaderRow>().Single();
+		project.CreateSessionPath.ShouldBe(root);
+		project.Repository.ShouldBe("owner/Cockpit");
+		project.SessionCount.ShouldBe(2);
+		rows.OfType<SessionListSessionRow>().Select(row => row.Session.Id).ShouldBe(["second", "first"]);
+	}
+
+	[Fact]
+	public void Projects_MainCheckoutAndWorktreeOfTheSameRepositoryAreCombined()
+	{
+		string checkoutRoot = ProjectPath("Github-Mine", "Cockpit");
+		string worktreeRoot = ProjectPath("copilot-worktrees", "Cockpit", "ieuanwalker-symmetrical-system");
+		SessionModel checkout = CreateSession("checkout", baseline, checkoutRoot, "IeuanWalker/Cockpit", gitRoot: checkoutRoot);
+		SessionModel worktree = CreateSession("worktree", baseline.AddMinutes(1), worktreeRoot, "IeuanWalker/Cockpit", gitRoot: worktreeRoot);
+
+		IReadOnlyList<SessionListRow> rows = Build(
+			[checkout, worktree],
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Projects]));
+
+		SessionListProjectHeaderRow project = rows.OfType<SessionListProjectHeaderRow>().Single();
+		project.Name.ShouldBe("Cockpit");
+		project.CreateSessionPath.ShouldBe(checkoutRoot);
+		project.Repository.ShouldBe("IeuanWalker/Cockpit");
+		project.SessionCount.ShouldBe(2);
+	}
+
+	[Fact]
+	public void Projects_DuplicateNamesUseTheShortestUniqueParentSuffix()
+	{
+		string firstRoot = ProjectPath("ClientA", "Shared", "App");
+		string secondRoot = ProjectPath("ClientB", "Shared", "App");
+		SessionModel first = CreateSession("first", baseline, firstRoot);
+		SessionModel second = CreateSession("second", baseline.AddMinutes(1), secondRoot);
+
+		IReadOnlyList<SessionListRow> rows = Build(
+			[first, second],
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Projects]));
+
+		string[] names = [.. rows.OfType<SessionListProjectHeaderRow>().Select(project => project.Name)];
+		names.ShouldContain($"App - {Path.Combine("ClientA", "Shared")}");
+		names.ShouldContain($"App - {Path.Combine("ClientB", "Shared")}");
 	}
 
 	[Fact]
@@ -94,42 +240,54 @@ public class SessionListProjectionTests
 		SessionModel wrongRepo = CreateSession("repo", baseline, "C:\\work\\Cockpit", "owner/Other", "Performance work");
 
 		IReadOnlyList<SessionListRow> rows = SessionListProjection.Build(
-			[match, wrongTitle, wrongRepo],
+			SessionListProjection.CreateSource([match, wrongTitle, wrongRepo]),
 			new SessionListProjectionOptions(
-				SessionListViewMode.Project,
-				null,
 				"performance",
 				new HashSet<string>(["C:\\work\\Cockpit"], StringComparer.OrdinalIgnoreCase),
 				new HashSet<string>(["owner/Cockpit"], StringComparer.OrdinalIgnoreCase),
+				new HashSet<SessionListSection>(),
 				new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-				new HashSet<string>(StringComparer.OrdinalIgnoreCase)));
+				new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)));
 
-		rows.Select(row => row.Key).ShouldBe(["session:match"]);
+		rows.Select(row => row.Key).ShouldBe(["session:search:match"]);
 	}
 
 	static IReadOnlyList<SessionListRow> Build(
 		IEnumerable<SessionModel> sessions,
-		SessionListViewMode mode,
-		string? activeSessionId = null,
-		IReadOnlySet<string>? expandedGroups = null,
-		IReadOnlySet<string>? expandedSessionGroups = null) =>
+		string searchText = "",
+		IReadOnlySet<SessionListSection>? expandedSections = null,
+		IReadOnlySet<string>? expandedProjectGroups = null,
+		IReadOnlyDictionary<string, int>? sessionLimits = null) =>
+		Build(
+			SessionListProjection.CreateSource(sessions),
+			searchText,
+			expandedSections,
+			expandedProjectGroups,
+			sessionLimits);
+
+	static IReadOnlyList<SessionListRow> Build(
+		SessionListProjectionSource source,
+		string searchText = "",
+		IReadOnlySet<SessionListSection>? expandedSections = null,
+		IReadOnlySet<string>? expandedProjectGroups = null,
+		IReadOnlyDictionary<string, int>? sessionLimits = null) =>
 		SessionListProjection.Build(
-			sessions,
+			source,
 			new SessionListProjectionOptions(
-				mode,
-				activeSessionId,
-				string.Empty,
+				searchText,
 				new HashSet<string>(StringComparer.OrdinalIgnoreCase),
 				new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-				expandedGroups ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-				expandedSessionGroups ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase)));
+				expandedSections ?? new HashSet<SessionListSection>(),
+				expandedProjectGroups ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+				sessionLimits ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)));
 
 	static SessionModel CreateSession(
 		string id,
 		DateTime lastActivity,
 		string? cwd = "",
 		string? repository = null,
-		string? title = null) => new()
+		string? title = null,
+		string? gitRoot = null) => new()
 		{
 			Id = id,
 			Title = title ?? id,
@@ -140,9 +298,13 @@ public class SessionListProjectionTests
 			{
 				CurrentWorkingDirectory = cwd,
 				WorkspacePath = null,
-				GitRoot = null,
+				GitRoot = gitRoot,
 				Repository = repository,
 				Branch = null
 			}
 		};
+
+	static string ProjectId(SessionModel session) => SessionProjectIdentityResolver.Resolve(session).ShouldNotBeNull().Id;
+
+	static string ProjectPath(params string[] segments) => Path.GetFullPath(Path.Combine([Path.GetTempPath(), "CockpitProjectTests", .. segments]));
 }

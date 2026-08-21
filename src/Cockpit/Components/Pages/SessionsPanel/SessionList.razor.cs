@@ -1,4 +1,3 @@
-using Cockpit.Features.AppSettings;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Timestamp;
@@ -9,40 +8,35 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 
 public partial class SessionList : ComponentBase, IDisposable
 {
-	const float virtualRowHeight = 48;
-	const int virtualOverscanCount = 5;
-
 	[Parameter] public DeleteSessionPopup? DeletePopup { get; set; }
 	[Parameter] public bool ShowSearch { get; set; }
 	[Parameter] public EventCallback<string?> OnCreateSessionFromPath { get; set; }
-	[Parameter] public EventCallback<bool> OnGroupByPanelOpenChanged { get; set; }
 
 	readonly ITimestampFeature _timestampFeature;
 	readonly SessionFeature _sessionFeature;
-	readonly IAppSettingsFeature _appSettingsFeature;
 
 	public SessionList(
 		ITimestampFeature timestampFeature,
-		SessionFeature sessionFeature,
-		IAppSettingsFeature appSettingsFeature)
+		SessionFeature sessionFeature)
 	{
 		_timestampFeature = timestampFeature;
 		_sessionFeature = sessionFeature;
-		_appSettingsFeature = appSettingsFeature;
 	}
 
 	string _searchText = string.Empty;
 	ElementReference _sessionSearch;
 	bool _focusSearchRequested;
 	bool _showFilterPanel;
-	bool _showGroupByPanel;
-	SessionListViewMode _groupByMode = SessionListViewMode.Project;
 	readonly HashSet<string> _filterCwds = new(StringComparer.OrdinalIgnoreCase);
 	readonly HashSet<string> _filterRepos = new(StringComparer.OrdinalIgnoreCase);
 	readonly HashSet<string> _expandedCwdGroups = new(StringComparer.OrdinalIgnoreCase);
-	readonly HashSet<string> _expandedProjectGroups = new(StringComparer.OrdinalIgnoreCase);
-	readonly HashSet<string> _expandedProjectSessionGroups = new(StringComparer.OrdinalIgnoreCase);
+	readonly HashSet<SessionListSection> _expandedSections = [SessionListSection.Projects];
+	readonly HashSet<string> _expandedProjectGroups = new(SessionProjectIdentityResolver.ProjectIdComparer);
+	readonly Dictionary<string, int> _sessionLimits = new(SessionProjectIdentityResolver.ProjectIdComparer);
+	bool _projectExpansionInitialized;
 	ICollection<SessionListRow> _rows = [];
+	SessionListProjectionSource? _projectionSource;
+	bool _projectionSourceDirty = true;
 	bool _projectionDirty = true;
 	long _lastTimestampMinute = -1;
 
@@ -67,16 +61,23 @@ public partial class SessionList : ComponentBase, IDisposable
 		{
 			if(_projectionDirty)
 			{
+				if(_projectionSourceDirty || _projectionSource is null)
+				{
+					_projectionSource = SessionListProjection.CreateSource(_sessionFeature.Sessions);
+					_projectionSourceDirty = false;
+					InitializeDefaultProjectExpansion(_projectionSource);
+					PruneStaleProjectState(_projectionSource);
+				}
+
 				_rows = [.. SessionListProjection.Build(
-					_sessionFeature.Sessions,
+					_projectionSource,
 					new SessionListProjectionOptions(
-						_groupByMode,
-						_sessionFeature.CurrentSession?.Id,
 						_searchText,
 						_filterCwds,
 						_filterRepos,
+						_expandedSections,
 						_expandedProjectGroups,
-						_expandedProjectSessionGroups))];
+						_sessionLimits))];
 				_projectionDirty = false;
 			}
 
@@ -108,7 +109,6 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	bool IsSearchActive => ShowSearch && (!string.IsNullOrWhiteSpace(_searchText) || _filterCwds.Count > 0 || _filterRepos.Count > 0);
 	bool HasActiveFilters => _filterCwds.Count > 0 || _filterRepos.Count > 0;
-	bool IsGroupingByProject => _groupByMode == SessionListViewMode.Project;
 
 	IEnumerable<string> UniqueCwds => _sessionFeature.Sessions
 		.Select(session => SessionListProjection.NormalizePath(session.Context.CurrentWorkingDirectory ?? string.Empty))
@@ -132,40 +132,9 @@ public partial class SessionList : ComponentBase, IDisposable
 		.Distinct(StringComparer.OrdinalIgnoreCase)
 		.OrderBy(repository => repository, StringComparer.OrdinalIgnoreCase);
 
-	async Task ToggleFilterPanel()
+	void ToggleFilterPanel()
 	{
 		_showFilterPanel = !_showFilterPanel;
-		if(_showFilterPanel)
-		{
-			await SetGroupByPanelOpen(false);
-		}
-	}
-
-	public Task ToggleGroupByPanelFromHeader() => SetGroupByPanelOpen(!_showGroupByPanel);
-
-	public bool IsGroupByPanelOpen => _showGroupByPanel;
-
-	async Task SetGroupByPanelOpen(bool isOpen)
-	{
-		_showGroupByPanel = isOpen;
-		if(_showGroupByPanel)
-		{
-			_showFilterPanel = false;
-		}
-
-		await OnGroupByPanelOpenChanged.InvokeAsync(_showGroupByPanel);
-	}
-
-	async Task SetGroupByMode(SessionListViewMode mode)
-	{
-		if(_groupByMode != mode)
-		{
-			_groupByMode = mode;
-			_appSettingsFeature.SessionListGroupBy = mode.ToString();
-			InvalidateProjection();
-		}
-
-		await SetGroupByPanelOpen(false);
 	}
 
 	public Task FocusSearchAsync()
@@ -238,13 +207,54 @@ public partial class SessionList : ComponentBase, IDisposable
 		InvalidateProjection();
 	}
 
-	void ToggleProjectSessionLimitExpand(string groupId)
+	void InitializeDefaultProjectExpansion(SessionListProjectionSource source)
 	{
-		if(!_expandedProjectSessionGroups.Remove(groupId))
+		if(_projectExpansionInitialized)
 		{
-			_expandedProjectSessionGroups.Add(groupId);
+			return;
 		}
 
+		_projectExpansionInitialized = true;
+		string? mostRecentProjectGroupId = source.MostRecentProjectGroupId;
+		if(mostRecentProjectGroupId is not null)
+		{
+			_expandedProjectGroups.Add(mostRecentProjectGroupId);
+		}
+	}
+
+	void PruneStaleProjectState(SessionListProjectionSource source)
+	{
+		IReadOnlySet<string> projectGroupIds = source.ProjectGroupIds;
+		_expandedProjectGroups.RemoveWhere(groupId => !projectGroupIds.Contains(groupId));
+
+		foreach(string groupId in _sessionLimits.Keys
+			.Where(groupId => !string.Equals(groupId, "chats", StringComparison.OrdinalIgnoreCase) && !projectGroupIds.Contains(groupId))
+			.ToList())
+		{
+			_sessionLimits.Remove(groupId);
+		}
+	}
+
+	void ToggleSectionExpand(SessionListSection section)
+	{
+		if(!_expandedSections.Remove(section))
+		{
+			_expandedSections.Add(section);
+		}
+
+		InvalidateProjection();
+	}
+
+	void ShowMoreSessions(string groupId)
+	{
+		int currentLimit = _sessionLimits.GetValueOrDefault(groupId, SessionListProjection.initialSessionLimit);
+		_sessionLimits[groupId] = currentLimit + SessionListProjection.sessionPageSize;
+		InvalidateProjection();
+	}
+
+	void ShowLessSessions(string groupId)
+	{
+		_sessionLimits.Remove(groupId);
 		InvalidateProjection();
 	}
 
@@ -252,25 +262,31 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	protected override void OnInitialized()
 	{
-		_groupByMode = ParseGroupByMode(_appSettingsFeature.SessionListGroupBy);
 		_sessionFeature.OnSessionStateChanged += OnSessionStateChanged;
 		_timestampFeature.OnTick += OnTimestampTick;
 	}
 
-	static SessionListViewMode ParseGroupByMode(string? storedValue) =>
-		Enum.TryParse(storedValue, true, out SessionListViewMode parsedMode) && Enum.IsDefined(parsedMode)
-			? parsedMode
-			: SessionListViewMode.Project;
-
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		const SessionChangeKind projectionChanges = SessionChangeKind.SessionSummary | SessionChangeKind.SessionCollection | SessionChangeKind.CurrentSession;
-		if((change.Kind & projectionChanges) == 0)
+		const SessionChangeKind sourceChanges = SessionChangeKind.SessionSummary | SessionChangeKind.SessionCollection;
+		const SessionChangeKind projectionChanges = sourceChanges | SessionChangeKind.CurrentSession;
+		const SessionChangeKind itemChanges = SessionChangeKind.ConversationContent |
+			SessionChangeKind.ConversationStructure |
+			SessionChangeKind.ConversationReset |
+			SessionChangeKind.WorkingState;
+		if((change.Kind & (projectionChanges | itemChanges)) == 0)
 		{
 			return;
 		}
 
-		InvalidateProjection();
+		if((change.Kind & sourceChanges) != 0)
+		{
+			InvalidateProjectionSource();
+		}
+		else if((change.Kind & SessionChangeKind.CurrentSession) != 0)
+		{
+			InvalidateProjection();
+		}
 		_ = InvokeAsync(StateHasChanged);
 	}
 
@@ -287,6 +303,12 @@ public partial class SessionList : ComponentBase, IDisposable
 	}
 
 	void InvalidateProjection() => _projectionDirty = true;
+
+	void InvalidateProjectionSource()
+	{
+		_projectionSourceDirty = true;
+		_projectionDirty = true;
+	}
 
 	async Task SelectSession(SessionModel session) => await _sessionFeature.LoadSession(session.Id);
 
