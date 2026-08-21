@@ -2,7 +2,8 @@
 @using Cockpit.Components.Controls
 @using Microsoft.AspNetCore.Components.Web
 
-<div class="session-item mx-2 px-3 py-1.5 rounded hover:bg-app-hover @(IsActive ? "bg-app-active" : "") @(!Compact && ListStatus is not null ? "has-status" : "") @(Compact ? "compact" : "") border-l-2 @(IsActive ? "" : "border-transparent") flex items-center group relative"
+<div @ref="_sessionItem"
+     class="session-item mx-2 px-3 py-1.5 rounded hover:bg-app-hover @(IsActive ? "bg-app-active" : "") @(!Compact && ListStatus is not null ? "has-status" : "") @(Compact ? "compact" : "") border-l-2 @(IsActive ? "" : "border-transparent") flex items-center group relative"
      style="@(IsActive ? "border-left-color: var(--accent-color);" : "")"
      @onmouseenter="ShowTooltip"
      @onmouseleave="HideTooltip">
@@ -15,8 +16,7 @@
             <span class="text-xs secondary-text">Loading...</span>
         </div>
     }
-    <button @ref="_sessionItem"
-            type="button"
+    <button type="button"
             class="session-select flex-1 min-w-0 text-left @(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading ? "opacity-30" : "")"
             disabled="@(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading)"
             aria-current="@(IsActive ? "true" : null)"
