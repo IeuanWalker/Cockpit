@@ -1,6 +1,11 @@
 .session-item {
     box-sizing: border-box;
-    height: 100%;
+    min-height: 2rem;
+    transition: min-height 150ms ease;
+}
+
+.session-item.has-status {
+    min-height: 2.75rem;
 }
 
 .session-delete-overlay {
@@ -14,4 +19,108 @@
 
 .session-item.bg-app-active .session-delete-overlay {
     background: linear-gradient(to right, transparent, var(--active-color) 60%);
+}
+
+.session-tooltip {
+    background: var(--tooltip-bg, #252525);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+    color: var(--text-color);
+    display: none;
+    font-size: 0.75rem;
+    inset: auto;
+    margin: 0;
+    max-width: 22rem;
+    min-width: 19rem;
+    padding: 0.75rem;
+    pointer-events: auto;
+    position: fixed;
+}
+
+.session-tooltip:popover-open {
+    display: block;
+}
+
+.session-tooltip::backdrop {
+    background: transparent;
+}
+
+.session-tooltip-heading {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.6rem;
+}
+
+.session-tooltip-heading strong {
+    flex: 1;
+    font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.session-tooltip-heading span {
+    color: var(--secondary-text);
+    flex-shrink: 0;
+}
+
+.session-tooltip-row {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+    min-width: 0;
+    padding-top: 0.35rem;
+}
+
+.session-tooltip-row svg {
+    color: var(--secondary-text);
+    flex-shrink: 0;
+    height: 0.9rem;
+    width: 0.9rem;
+}
+
+.session-tooltip-row span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.session-tooltip-stats {
+    border-top: 1px solid var(--border-color);
+    display: grid;
+    gap: 0.55rem 1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 0.75rem;
+    padding-top: 0.7rem;
+}
+
+.session-tooltip-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.session-tooltip-stat > span {
+    color: var(--secondary-text);
+    font-size: 0.65rem;
+}
+
+.session-tooltip-stat > strong {
+    font-size: 0.75rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.session-tooltip-stat-wide {
+    grid-column: 1 / -1;
+}
+
+.light-theme .session-tooltip {
+    background: rgba(255, 255, 255, 0.98);
 }

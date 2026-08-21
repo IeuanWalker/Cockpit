@@ -1,47 +1,45 @@
-using Cockpit.Features.AppSettings;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Timestamp;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
 
 public partial class SessionList : ComponentBase, IDisposable
 {
-	const float virtualRowHeight = 48;
-	const int virtualOverscanCount = 5;
-
 	[Parameter] public DeleteSessionPopup? DeletePopup { get; set; }
 	[Parameter] public bool ShowSearch { get; set; }
 	[Parameter] public EventCallback<string?> OnCreateSessionFromPath { get; set; }
-	[Parameter] public EventCallback<bool> OnGroupByPanelOpenChanged { get; set; }
+	[Inject] public required IJSRuntime JSRuntime { get; set; }
 
 	readonly ITimestampFeature _timestampFeature;
 	readonly SessionFeature _sessionFeature;
-	readonly IAppSettingsFeature _appSettingsFeature;
 
 	public SessionList(
 		ITimestampFeature timestampFeature,
-		SessionFeature sessionFeature,
-		IAppSettingsFeature appSettingsFeature)
+		SessionFeature sessionFeature)
 	{
 		_timestampFeature = timestampFeature;
 		_sessionFeature = sessionFeature;
-		_appSettingsFeature = appSettingsFeature;
 	}
 
 	string _searchText = string.Empty;
 	ElementReference _sessionSearch;
 	bool _focusSearchRequested;
 	bool _showFilterPanel;
-	bool _showGroupByPanel;
-	SessionListViewMode _groupByMode = SessionListViewMode.Project;
 	readonly HashSet<string> _filterCwds = new(StringComparer.OrdinalIgnoreCase);
 	readonly HashSet<string> _filterRepos = new(StringComparer.OrdinalIgnoreCase);
 	readonly HashSet<string> _expandedCwdGroups = new(StringComparer.OrdinalIgnoreCase);
-	readonly HashSet<string> _expandedProjectGroups = new(StringComparer.OrdinalIgnoreCase);
-	readonly HashSet<string> _expandedProjectSessionGroups = new(StringComparer.OrdinalIgnoreCase);
+	readonly HashSet<SessionListSection> _expandedSections = [SessionListSection.Projects];
+	readonly HashSet<string> _expandedProjectGroups = new(SessionProjectIdentityResolver.ProjectIdComparer);
+	readonly Dictionary<string, int> _sessionLimits = new(SessionProjectIdentityResolver.ProjectIdComparer);
+	int _recentSessionLimit = SessionListProjection.InitialSessionLimit;
+	bool _projectExpansionInitialized;
+	bool _loadingMoreRecents;
+	ElementReference _recentsLoadMoreSentinel;
+	DotNetObjectReference<SessionList>? _dotNetReference;
 	ICollection<SessionListRow> _rows = [];
 	bool _projectionDirty = true;
 	long _lastTimestampMinute = -1;
@@ -67,16 +65,19 @@ public partial class SessionList : ComponentBase, IDisposable
 		{
 			if(_projectionDirty)
 			{
+				InitializeDefaultProjectExpansion();
+				PruneStaleProjectState();
 				_rows = [.. SessionListProjection.Build(
 					_sessionFeature.Sessions,
 					new SessionListProjectionOptions(
-						_groupByMode,
 						_sessionFeature.CurrentSession?.Id,
 						_searchText,
 						_filterCwds,
 						_filterRepos,
+						_expandedSections,
 						_expandedProjectGroups,
-						_expandedProjectSessionGroups))];
+						_sessionLimits,
+						_recentSessionLimit))];
 				_projectionDirty = false;
 			}
 
@@ -104,11 +105,20 @@ public partial class SessionList : ComponentBase, IDisposable
 			_focusSearchRequested = false;
 			await _sessionSearch.FocusAsync();
 		}
+
+		_dotNetReference ??= DotNetObjectReference.Create(this);
+		if(HasMoreRecents)
+		{
+			await JSRuntime.InvokeVoidAsync("cockpit.observeSessionListLoadMore", _recentsLoadMoreSentinel, _dotNetReference);
+		}
+		else
+		{
+			await JSRuntime.InvokeVoidAsync("cockpit.cleanupSessionListLoadMore");
+		}
 	}
 
 	bool IsSearchActive => ShowSearch && (!string.IsNullOrWhiteSpace(_searchText) || _filterCwds.Count > 0 || _filterRepos.Count > 0);
 	bool HasActiveFilters => _filterCwds.Count > 0 || _filterRepos.Count > 0;
-	bool IsGroupingByProject => _groupByMode == SessionListViewMode.Project;
 
 	IEnumerable<string> UniqueCwds => _sessionFeature.Sessions
 		.Select(session => SessionListProjection.NormalizePath(session.Context.CurrentWorkingDirectory ?? string.Empty))
@@ -132,40 +142,9 @@ public partial class SessionList : ComponentBase, IDisposable
 		.Distinct(StringComparer.OrdinalIgnoreCase)
 		.OrderBy(repository => repository, StringComparer.OrdinalIgnoreCase);
 
-	async Task ToggleFilterPanel()
+	void ToggleFilterPanel()
 	{
 		_showFilterPanel = !_showFilterPanel;
-		if(_showFilterPanel)
-		{
-			await SetGroupByPanelOpen(false);
-		}
-	}
-
-	public Task ToggleGroupByPanelFromHeader() => SetGroupByPanelOpen(!_showGroupByPanel);
-
-	public bool IsGroupByPanelOpen => _showGroupByPanel;
-
-	async Task SetGroupByPanelOpen(bool isOpen)
-	{
-		_showGroupByPanel = isOpen;
-		if(_showGroupByPanel)
-		{
-			_showFilterPanel = false;
-		}
-
-		await OnGroupByPanelOpenChanged.InvokeAsync(_showGroupByPanel);
-	}
-
-	async Task SetGroupByMode(SessionListViewMode mode)
-	{
-		if(_groupByMode != mode)
-		{
-			_groupByMode = mode;
-			_appSettingsFeature.SessionListGroupBy = mode.ToString();
-			InvalidateProjection();
-		}
-
-		await SetGroupByPanelOpen(false);
 	}
 
 	public Task FocusSearchAsync()
@@ -238,29 +217,85 @@ public partial class SessionList : ComponentBase, IDisposable
 		InvalidateProjection();
 	}
 
-	void ToggleProjectSessionLimitExpand(string groupId)
+	void InitializeDefaultProjectExpansion()
 	{
-		if(!_expandedProjectSessionGroups.Remove(groupId))
+		if(_projectExpansionInitialized)
 		{
-			_expandedProjectSessionGroups.Add(groupId);
+			return;
+		}
+
+		_projectExpansionInitialized = true;
+		string? mostRecentProjectGroupId = SessionListProjection.GetMostRecentProjectGroupId(_sessionFeature.Sessions);
+		if(mostRecentProjectGroupId is not null)
+		{
+			_expandedProjectGroups.Add(mostRecentProjectGroupId);
+		}
+	}
+
+	void PruneStaleProjectState()
+	{
+		IReadOnlySet<string> projectGroupIds = SessionListProjection.GetProjectGroupIds(_sessionFeature.Sessions);
+		_expandedProjectGroups.RemoveWhere(groupId => !projectGroupIds.Contains(groupId));
+
+		foreach(string groupId in _sessionLimits.Keys
+			.Where(groupId => !string.Equals(groupId, "chats", StringComparison.OrdinalIgnoreCase) && !projectGroupIds.Contains(groupId))
+			.ToList())
+		{
+			_sessionLimits.Remove(groupId);
+		}
+	}
+
+	void ToggleSectionExpand(SessionListSection section)
+	{
+		if(!_expandedSections.Remove(section))
+		{
+			_expandedSections.Add(section);
 		}
 
 		InvalidateProjection();
+	}
+
+	void ShowMoreSessions(string groupId)
+	{
+		int currentLimit = _sessionLimits.GetValueOrDefault(groupId, SessionListProjection.InitialSessionLimit);
+		_sessionLimits[groupId] = currentLimit + SessionListProjection.SessionPageSize;
+		InvalidateProjection();
+	}
+
+	void ShowLessSessions(string groupId)
+	{
+		_sessionLimits.Remove(groupId);
+		InvalidateProjection();
+	}
+
+	bool HasMoreRecents => !IsSearchActive &&
+		_expandedSections.Contains(SessionListSection.Recents) &&
+		_recentSessionLimit < _sessionFeature.Sessions.Count;
+
+	[JSInvokable]
+	public Task LoadMoreRecents()
+	{
+		if(_loadingMoreRecents || !HasMoreRecents)
+		{
+			return Task.CompletedTask;
+		}
+
+		_loadingMoreRecents = true;
+		_recentSessionLimit = Math.Min(
+			_recentSessionLimit + SessionListProjection.SessionPageSize,
+			_sessionFeature.Sessions.Count);
+		InvalidateProjection();
+		_loadingMoreRecents = false;
+		return InvokeAsync(StateHasChanged);
 	}
 
 	Task CreateSessionFromGroup(SessionListProjectHeaderRow group) => OnCreateSessionFromPath.InvokeAsync(group.CreateSessionPath);
 
 	protected override void OnInitialized()
 	{
-		_groupByMode = ParseGroupByMode(_appSettingsFeature.SessionListGroupBy);
 		_sessionFeature.OnSessionStateChanged += OnSessionStateChanged;
 		_timestampFeature.OnTick += OnTimestampTick;
 	}
-
-	static SessionListViewMode ParseGroupByMode(string? storedValue) =>
-		Enum.TryParse(storedValue, true, out SessionListViewMode parsedMode) && Enum.IsDefined(parsedMode)
-			? parsedMode
-			: SessionListViewMode.Project;
 
 	void OnSessionStateChanged(SessionStateChange change)
 	{
@@ -306,6 +341,8 @@ public partial class SessionList : ComponentBase, IDisposable
 		{
 			_sessionFeature.OnSessionStateChanged -= OnSessionStateChanged;
 			_timestampFeature.OnTick -= OnTimestampTick;
+			_dotNetReference?.Dispose();
+			_ = JSRuntime.InvokeVoidAsync("cockpit.cleanupSessionListLoadMore");
 		}
 	}
 }
