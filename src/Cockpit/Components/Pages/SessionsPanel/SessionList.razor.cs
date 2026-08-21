@@ -247,8 +247,8 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	void ShowMoreSessions(string groupId)
 	{
-		int currentLimit = _sessionLimits.GetValueOrDefault(groupId, SessionListProjection.InitialSessionLimit);
-		_sessionLimits[groupId] = currentLimit + SessionListProjection.SessionPageSize;
+		int currentLimit = _sessionLimits.GetValueOrDefault(groupId, SessionListProjection.initialSessionLimit);
+		_sessionLimits[groupId] = currentLimit + SessionListProjection.sessionPageSize;
 		InvalidateProjection();
 	}
 

@@ -1,8 +1,8 @@
+using System.Globalization;
 using Cockpit.Features.Sessions.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
-using System.Globalization;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
 

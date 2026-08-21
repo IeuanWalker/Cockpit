@@ -9,10 +9,10 @@
     padding: 0.4rem 0.5rem;
 }
 
-.project-item:hover,
-.project-item:focus-within {
-    background-color: var(--hover-color);
-}
+    .project-item:hover,
+    .project-item:focus-within {
+        background-color: var(--hover-color);
+    }
 
 .project-toggle {
     align-items: center;
@@ -24,11 +24,11 @@
     text-align: left;
 }
 
-.project-toggle:focus-visible,
-.project-add:focus-visible {
-    outline: 2px solid var(--accent-color);
-    outline-offset: 2px;
-}
+    .project-toggle:focus-visible,
+    .project-add:focus-visible {
+        outline: 2px solid var(--accent-color);
+        outline-offset: 2px;
+    }
 
 .project-folder {
     color: var(--secondary-text);
@@ -38,22 +38,22 @@
     width: 0.9rem;
 }
 
-.project-folder.expanded {
-    transform: scale(1.08);
-}
+    .project-folder.expanded {
+        transform: scale(1.08);
+    }
 
-.project-folder path {
-    transition: opacity 150ms ease;
-}
+    .project-folder path {
+        transition: opacity 150ms ease;
+    }
 
-.project-folder-open,
-.project-folder.expanded .project-folder-closed {
-    opacity: 0;
-}
+    .project-folder-open,
+    .project-folder.expanded .project-folder-closed {
+        opacity: 0;
+    }
 
-.project-folder.expanded .project-folder-open {
-    opacity: 1;
-}
+    .project-folder.expanded .project-folder-open {
+        opacity: 1;
+    }
 
 .project-add {
     border-radius: 0.25rem;
@@ -64,21 +64,21 @@
     padding: 0.25rem;
 }
 
-.project-item:hover .project-add,
-.project-item:focus-within .project-add,
-.project-add:focus-visible {
-    opacity: 1;
-}
+    .project-item:hover .project-add,
+    .project-item:focus-within .project-add,
+    .project-add:focus-visible {
+        opacity: 1;
+    }
 
-.project-add:hover {
-    background-color: var(--active-color);
-    color: var(--text-color);
-}
+    .project-add:hover {
+        background-color: var(--active-color);
+        color: var(--text-color);
+    }
 
-.project-add svg {
-    height: 0.875rem;
-    width: 0.875rem;
-}
+    .project-add svg {
+        height: 0.875rem;
+        width: 0.875rem;
+    }
 
 .project-tooltip {
     background: var(--tooltip-bg, #252525);
@@ -97,13 +97,13 @@
     position: fixed;
 }
 
-.project-tooltip:popover-open {
-    display: block;
-}
+    .project-tooltip:popover-open {
+        display: block;
+    }
 
-.project-tooltip::backdrop {
-    background: transparent;
-}
+    .project-tooltip::backdrop {
+        background: transparent;
+    }
 
 .project-tooltip-heading {
     font-weight: 600;
@@ -123,12 +123,12 @@
     padding-top: 0.4rem;
 }
 
-.project-tooltip-row svg {
-    color: var(--secondary-text);
-    flex-shrink: 0;
-    height: 0.9rem;
-    width: 0.9rem;
-}
+    .project-tooltip-row svg {
+        color: var(--secondary-text);
+        flex-shrink: 0;
+        height: 0.9rem;
+        width: 0.9rem;
+    }
 
 .project-tooltip-path span {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;

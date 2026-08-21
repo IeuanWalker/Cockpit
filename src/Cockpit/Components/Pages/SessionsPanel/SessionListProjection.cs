@@ -49,7 +49,7 @@ sealed record SessionListShowMoreRow(
 {
 	public override string Key => $"show-more:{GroupId}";
 	public bool HasMore => VisibleCount < TotalCount;
-	public bool CanShowLess => VisibleCount > SessionListProjection.InitialSessionLimit;
+	public bool CanShowLess => VisibleCount > SessionListProjection.initialSessionLimit;
 }
 
 sealed record SessionListProjectionOptions(
@@ -92,8 +92,8 @@ sealed class ProjectSessionGroup(
 
 static class SessionListProjection
 {
-	internal const int InitialSessionLimit = 5;
-	internal const int SessionPageSize = 10;
+	internal const int initialSessionLimit = 5;
+	internal const int sessionPageSize = 10;
 
 	public static SessionListProjectionSource CreateSource(IEnumerable<SessionModel> sessions)
 	{
@@ -133,6 +133,7 @@ static class SessionListProjection
 		return sessions;
 	}
 
+	[SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "The helper also accepts the complete sorted session list.")]
 	static IReadOnlyList<SessionListRow> BuildSectionRows(SessionListProjectionSource source, SessionListProjectionOptions options)
 	{
 		List<SessionListRow> rows = [];
@@ -162,7 +163,6 @@ static class SessionListProjection
 		return rows;
 	}
 
-	[SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "The helper also accepts the complete sorted session list.")]
 	static void AddLimitedSessions(
 		List<SessionListRow> rows,
 		IReadOnlyList<SessionModel> sessions,
@@ -170,7 +170,7 @@ static class SessionListProjection
 		int indentLevel,
 		SessionListProjectionOptions options)
 	{
-		int limit = options.SessionLimits.GetValueOrDefault(groupId, InitialSessionLimit);
+		int limit = options.SessionLimits.GetValueOrDefault(groupId, initialSessionLimit);
 		List<SessionModel> visibleSessions = [.. sessions.Take(limit)];
 
 		foreach(SessionModel session in visibleSessions.OrderByDescending(session => session.LastActivity))
@@ -178,7 +178,7 @@ static class SessionListProjection
 			rows.Add(new SessionListSessionRow(session, indentLevel, groupId));
 		}
 
-		if(sessions.Count > InitialSessionLimit)
+		if(sessions.Count > initialSessionLimit)
 		{
 			rows.Add(new SessionListShowMoreRow(groupId, indentLevel, visibleSessions.Count, sessions.Count));
 		}
@@ -342,6 +342,7 @@ static class SessionListProjection
 		}
 	}
 
+	[SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "The helper also accepts the complete sorted session list.")]
 	static IReadOnlyList<string> GetParentLabels(string rootPath)
 	{
 		List<string> labels = [];

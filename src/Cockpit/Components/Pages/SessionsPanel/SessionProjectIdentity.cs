@@ -2,7 +2,7 @@ using Cockpit.Features.Sessions.Models;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
 
-internal sealed record SessionProjectIdentity(
+sealed record SessionProjectIdentity(
 	string Id,
 	string RootId,
 	string? RepositoryId,
@@ -10,7 +10,7 @@ internal sealed record SessionProjectIdentity(
 	string BaseName,
 	string? Repository);
 
-internal static class SessionProjectIdentityResolver
+static class SessionProjectIdentityResolver
 {
 	internal static StringComparer PathComparer { get; } = OperatingSystem.IsWindows()
 		? StringComparer.OrdinalIgnoreCase

@@ -5,28 +5,28 @@
     transition: min-height 150ms ease;
 }
 
-.session-item.has-status {
-    min-height: 2.75rem;
-}
+    .session-item.has-status {
+        min-height: 2.75rem;
+    }
 
-.session-item.compact {
-    height: 2rem;
-    min-height: 2rem;
-}
+    .session-item.compact {
+        height: 2rem;
+        min-height: 2rem;
+    }
 
 .session-select {
     cursor: pointer;
 }
 
-.session-select:focus-visible {
-    border-radius: 0.25rem;
-    outline: 2px solid var(--accent-color);
-    outline-offset: 2px;
-}
+    .session-select:focus-visible {
+        border-radius: 0.25rem;
+        outline: 2px solid var(--accent-color);
+        outline-offset: 2px;
+    }
 
-.session-select:disabled {
-    cursor: default;
-}
+    .session-select:disabled {
+        cursor: default;
+    }
 
 .session-delete-overlay {
     border-radius: 0 0.375rem 0.375rem 0;
@@ -60,13 +60,13 @@
     position: fixed;
 }
 
-.session-tooltip:popover-open {
-    display: block;
-}
+    .session-tooltip:popover-open {
+        display: block;
+    }
 
-.session-tooltip::backdrop {
-    background: transparent;
-}
+    .session-tooltip::backdrop {
+        background: transparent;
+    }
 
 .session-tooltip-heading {
     align-items: center;
@@ -75,19 +75,19 @@
     margin-bottom: 0.6rem;
 }
 
-.session-tooltip-heading strong {
-    flex: 1;
-    font-weight: 600;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+    .session-tooltip-heading strong {
+        flex: 1;
+        font-weight: 600;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 
-.session-tooltip-heading span {
-    color: var(--secondary-text);
-    flex-shrink: 0;
-}
+    .session-tooltip-heading span {
+        color: var(--secondary-text);
+        flex-shrink: 0;
+    }
 
 .session-tooltip-row {
     align-items: center;
@@ -97,18 +97,18 @@
     padding-top: 0.35rem;
 }
 
-.session-tooltip-row svg {
-    color: var(--secondary-text);
-    flex-shrink: 0;
-    height: 0.9rem;
-    width: 0.9rem;
-}
+    .session-tooltip-row svg {
+        color: var(--secondary-text);
+        flex-shrink: 0;
+        height: 0.9rem;
+        width: 0.9rem;
+    }
 
-.session-tooltip-row span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+    .session-tooltip-row span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 
 .session-tooltip-stats {
     border-top: 1px solid var(--border-color);
@@ -126,18 +126,18 @@
     min-width: 0;
 }
 
-.session-tooltip-stat > span {
-    color: var(--secondary-text);
-    font-size: 0.65rem;
-}
+    .session-tooltip-stat > span {
+        color: var(--secondary-text);
+        font-size: 0.65rem;
+    }
 
-.session-tooltip-stat > strong {
-    font-size: 0.75rem;
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
+    .session-tooltip-stat > strong {
+        font-size: 0.75rem;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 
 .session-tooltip-stat-wide {
     grid-column: 1 / -1;

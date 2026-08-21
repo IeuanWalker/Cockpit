@@ -3,7 +3,7 @@ using Cockpit.Features.Sessions.Models;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
 
-internal sealed record SessionHoverStats(
+sealed record SessionHoverStats(
 	int MessageCount,
 	TimeSpan AgentWorkingTime,
 	int ToolCallCount,
@@ -11,7 +11,7 @@ internal sealed record SessionHoverStats(
 	double? CurrentTokens,
 	double? TokenLimit);
 
-internal static class SessionHoverStatsCalculator
+static class SessionHoverStatsCalculator
 {
 	internal static SessionHoverStats? Calculate(SessionModel session, DateTime now)
 	{
