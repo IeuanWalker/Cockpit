@@ -48,7 +48,6 @@ public sealed partial class SessionListItem
 	async Task HideTooltip()
 	{
 		await JSRuntime.InvokeVoidAsync("cockpit.hideSessionTooltip", _tooltip);
-		_hoverStats = null;
 		_hasCalculatedHoverStats = false;
 	}
 
