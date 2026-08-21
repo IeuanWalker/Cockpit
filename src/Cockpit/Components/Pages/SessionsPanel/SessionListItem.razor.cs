@@ -20,9 +20,11 @@ public sealed partial class SessionListItem
 	ElementReference _sessionItem;
 	ElementReference _tooltip;
 	readonly string _tooltipId = $"session-tooltip-{Guid.NewGuid():N}";
+	SessionHoverStats? _hoverStats;
+	bool _hasCalculatedHoverStats;
 	SessionStatusEnum? ListStatus => Session.DisplayStatus == SessionStatusEnum.Idle ? null : Session.DisplayStatus;
 	string ListStatusText => Session.DisplayStatus == SessionStatusEnum.Error ? "Error" : "Idle";
-	SessionHoverStats? HoverStats => SessionHoverStatsCalculator.Calculate(Session, DateTime.Now);
+	SessionHoverStats? HoverStats => _hoverStats;
 	string TooltipId => _tooltipId;
 
 	string WorkingDirectoryLabel => string.IsNullOrWhiteSpace(Session.Context.CurrentWorkingDirectory)
@@ -31,8 +33,24 @@ public sealed partial class SessionListItem
 
 	async Task HandleSelect() => await OnSelect.InvokeAsync(Session);
 	async Task HandleDelete(MouseEventArgs e) => await OnDelete.InvokeAsync(e);
-	async Task ShowTooltip() => await JSRuntime.InvokeVoidAsync("cockpit.showSessionTooltip", _sessionItem, _tooltip);
-	async Task HideTooltip() => await JSRuntime.InvokeVoidAsync("cockpit.hideSessionTooltip", _tooltip);
+	async Task ShowTooltip()
+	{
+		if(!_hasCalculatedHoverStats)
+		{
+			_hoverStats = SessionHoverStatsCalculator.Calculate(Session, DateTime.Now);
+			_hasCalculatedHoverStats = true;
+			await InvokeAsync(StateHasChanged);
+		}
+
+		await JSRuntime.InvokeVoidAsync("cockpit.showSessionTooltip", _sessionItem, _tooltip);
+	}
+
+	async Task HideTooltip()
+	{
+		await JSRuntime.InvokeVoidAsync("cockpit.hideSessionTooltip", _tooltip);
+		_hoverStats = null;
+		_hasCalculatedHoverStats = false;
+	}
 
 	static string FormatCount(int count) => count.ToString("N0", CultureInfo.CurrentCulture);
 

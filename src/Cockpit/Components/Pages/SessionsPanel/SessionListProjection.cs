@@ -322,7 +322,7 @@ static class SessionListProjection
 
 				foreach(ProjectSessionGroup group in resolvedThisRound)
 				{
-					group.Name = $"{group.BaseName} - {candidates[group]}";
+					group.Name = $"{group.BaseName} — {candidates[group]}";
 					usedLabels.Add(candidates[group]);
 					unresolved.Remove(group);
 				}
@@ -331,7 +331,7 @@ static class SessionListProjection
 				{
 					foreach(ProjectSessionGroup group in unresolved)
 					{
-						group.Name = $"{group.BaseName} - {group.RootPath}";
+						group.Name = $"{group.BaseName} — {group.RootPath}";
 					}
 
 					break;

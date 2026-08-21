@@ -172,7 +172,8 @@
                     @switch(row)
                     {
                         case SessionListSectionHeaderRow section:
-                            <button @onclick="() => ToggleSectionExpand(section.Section)"
+                            <button type="button"
+                                    @onclick="() => ToggleSectionExpand(section.Section)"
                                     class="session-section-header"
                                     aria-expanded="@(section.IsExpanded ? "true" : "false")">
                                 <span>@section.Name</span>
@@ -222,11 +223,11 @@
                                  style="padding-left: @(showMore.IndentLevel * 12 + 12)px;">
                                 @if(showMore.HasMore)
                                 {
-                                    <button @onclick="() => ShowMoreSessions(showMore.GroupId)">Show more</button>
+                                    <button type="button" @onclick="() => ShowMoreSessions(showMore.GroupId)">Show more</button>
                                 }
                                 @if(showMore.CanShowLess)
                                 {
-                                    <button @onclick="() => ShowLessSessions(showMore.GroupId)">Show less</button>
+                                    <button type="button" @onclick="() => ShowLessSessions(showMore.GroupId)">Show less</button>
                                 }
                             </div>
                             break;
