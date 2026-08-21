@@ -170,8 +170,8 @@ public class SessionListProjectionTests
 		SessionListProjectHeaderRow[] projects = [.. rows.OfType<SessionListProjectHeaderRow>()];
 		projects.Length.ShouldBe(2);
 		projects.Select(project => project.GroupId).Distinct(SessionProjectIdentityResolver.ProjectIdComparer).Count().ShouldBe(2);
-		projects.Select(project => project.Name).ShouldContain("App — ClientA");
-		projects.Select(project => project.Name).ShouldContain("App — ClientB");
+		projects.Select(project => project.Name).ShouldContain("App - ClientA");
+		projects.Select(project => project.Name).ShouldContain("App - ClientB");
 		projects.Select(project => project.CreateSessionPath).ShouldContain(firstRoot);
 		projects.Select(project => project.CreateSessionPath).ShouldContain(secondRoot);
 	}
@@ -228,8 +228,8 @@ public class SessionListProjectionTests
 			expandedSections: new HashSet<SessionListSection>([SessionListSection.Projects]));
 
 		string[] names = [.. rows.OfType<SessionListProjectHeaderRow>().Select(project => project.Name)];
-		names.ShouldContain($"App — {Path.Combine("ClientA", "Shared")}");
-		names.ShouldContain($"App — {Path.Combine("ClientB", "Shared")}");
+		names.ShouldContain($"App - {Path.Combine("ClientA", "Shared")}");
+		names.ShouldContain($"App - {Path.Combine("ClientB", "Shared")}");
 	}
 
 	[Fact]
