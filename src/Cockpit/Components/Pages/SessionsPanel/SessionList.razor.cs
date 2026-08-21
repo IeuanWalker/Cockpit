@@ -3,7 +3,6 @@ using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Timestamp;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
 
@@ -12,7 +11,6 @@ public partial class SessionList : ComponentBase, IDisposable
 	[Parameter] public DeleteSessionPopup? DeletePopup { get; set; }
 	[Parameter] public bool ShowSearch { get; set; }
 	[Parameter] public EventCallback<string?> OnCreateSessionFromPath { get; set; }
-	[Inject] public required IJSRuntime JSRuntime { get; set; }
 
 	readonly ITimestampFeature _timestampFeature;
 	readonly SessionFeature _sessionFeature;
@@ -35,12 +33,10 @@ public partial class SessionList : ComponentBase, IDisposable
 	readonly HashSet<SessionListSection> _expandedSections = [SessionListSection.Projects];
 	readonly HashSet<string> _expandedProjectGroups = new(SessionProjectIdentityResolver.ProjectIdComparer);
 	readonly Dictionary<string, int> _sessionLimits = new(SessionProjectIdentityResolver.ProjectIdComparer);
-	int _recentSessionLimit = SessionListProjection.InitialSessionLimit;
 	bool _projectExpansionInitialized;
-	bool _loadingMoreRecents;
-	ElementReference _recentsLoadMoreSentinel;
-	DotNetObjectReference<SessionList>? _dotNetReference;
 	ICollection<SessionListRow> _rows = [];
+	SessionListProjectionSource? _projectionSource;
+	bool _projectionSourceDirty = true;
 	bool _projectionDirty = true;
 	long _lastTimestampMinute = -1;
 
@@ -65,19 +61,23 @@ public partial class SessionList : ComponentBase, IDisposable
 		{
 			if(_projectionDirty)
 			{
-				InitializeDefaultProjectExpansion();
-				PruneStaleProjectState();
+				if(_projectionSourceDirty || _projectionSource is null)
+				{
+					_projectionSource = SessionListProjection.CreateSource(_sessionFeature.Sessions);
+					_projectionSourceDirty = false;
+					InitializeDefaultProjectExpansion(_projectionSource);
+					PruneStaleProjectState(_projectionSource);
+				}
+
 				_rows = [.. SessionListProjection.Build(
-					_sessionFeature.Sessions,
+					_projectionSource,
 					new SessionListProjectionOptions(
-						_sessionFeature.CurrentSession?.Id,
 						_searchText,
 						_filterCwds,
 						_filterRepos,
 						_expandedSections,
 						_expandedProjectGroups,
-						_sessionLimits,
-						_recentSessionLimit))];
+						_sessionLimits))];
 				_projectionDirty = false;
 			}
 
@@ -104,16 +104,6 @@ public partial class SessionList : ComponentBase, IDisposable
 		{
 			_focusSearchRequested = false;
 			await _sessionSearch.FocusAsync();
-		}
-
-		_dotNetReference ??= DotNetObjectReference.Create(this);
-		if(HasMoreRecents)
-		{
-			await JSRuntime.InvokeVoidAsync("cockpit.observeSessionListLoadMore", _recentsLoadMoreSentinel, _dotNetReference);
-		}
-		else
-		{
-			await JSRuntime.InvokeVoidAsync("cockpit.cleanupSessionListLoadMore");
 		}
 	}
 
@@ -217,7 +207,7 @@ public partial class SessionList : ComponentBase, IDisposable
 		InvalidateProjection();
 	}
 
-	void InitializeDefaultProjectExpansion()
+	void InitializeDefaultProjectExpansion(SessionListProjectionSource source)
 	{
 		if(_projectExpansionInitialized)
 		{
@@ -225,16 +215,16 @@ public partial class SessionList : ComponentBase, IDisposable
 		}
 
 		_projectExpansionInitialized = true;
-		string? mostRecentProjectGroupId = SessionListProjection.GetMostRecentProjectGroupId(_sessionFeature.Sessions);
+		string? mostRecentProjectGroupId = source.MostRecentProjectGroupId;
 		if(mostRecentProjectGroupId is not null)
 		{
 			_expandedProjectGroups.Add(mostRecentProjectGroupId);
 		}
 	}
 
-	void PruneStaleProjectState()
+	void PruneStaleProjectState(SessionListProjectionSource source)
 	{
-		IReadOnlySet<string> projectGroupIds = SessionListProjection.GetProjectGroupIds(_sessionFeature.Sessions);
+		IReadOnlySet<string> projectGroupIds = source.ProjectGroupIds;
 		_expandedProjectGroups.RemoveWhere(groupId => !projectGroupIds.Contains(groupId));
 
 		foreach(string groupId in _sessionLimits.Keys
@@ -268,27 +258,6 @@ public partial class SessionList : ComponentBase, IDisposable
 		InvalidateProjection();
 	}
 
-	bool HasMoreRecents => !IsSearchActive &&
-		_expandedSections.Contains(SessionListSection.Recents) &&
-		_recentSessionLimit < _sessionFeature.Sessions.Count;
-
-	[JSInvokable]
-	public Task LoadMoreRecents()
-	{
-		if(_loadingMoreRecents || !HasMoreRecents)
-		{
-			return Task.CompletedTask;
-		}
-
-		_loadingMoreRecents = true;
-		_recentSessionLimit = Math.Min(
-			_recentSessionLimit + SessionListProjection.SessionPageSize,
-			_sessionFeature.Sessions.Count);
-		InvalidateProjection();
-		_loadingMoreRecents = false;
-		return InvokeAsync(StateHasChanged);
-	}
-
 	Task CreateSessionFromGroup(SessionListProjectHeaderRow group) => OnCreateSessionFromPath.InvokeAsync(group.CreateSessionPath);
 
 	protected override void OnInitialized()
@@ -299,13 +268,25 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		const SessionChangeKind projectionChanges = SessionChangeKind.SessionSummary | SessionChangeKind.SessionCollection | SessionChangeKind.CurrentSession;
-		if((change.Kind & projectionChanges) == 0)
+		const SessionChangeKind sourceChanges = SessionChangeKind.SessionSummary | SessionChangeKind.SessionCollection;
+		const SessionChangeKind projectionChanges = sourceChanges | SessionChangeKind.CurrentSession;
+		const SessionChangeKind itemChanges = SessionChangeKind.ConversationContent |
+			SessionChangeKind.ConversationStructure |
+			SessionChangeKind.ConversationReset |
+			SessionChangeKind.WorkingState;
+		if((change.Kind & (projectionChanges | itemChanges)) == 0)
 		{
 			return;
 		}
 
-		InvalidateProjection();
+		if((change.Kind & sourceChanges) != 0)
+		{
+			InvalidateProjectionSource();
+		}
+		else if((change.Kind & SessionChangeKind.CurrentSession) != 0)
+		{
+			InvalidateProjection();
+		}
 		_ = InvokeAsync(StateHasChanged);
 	}
 
@@ -322,6 +303,12 @@ public partial class SessionList : ComponentBase, IDisposable
 	}
 
 	void InvalidateProjection() => _projectionDirty = true;
+
+	void InvalidateProjectionSource()
+	{
+		_projectionSourceDirty = true;
+		_projectionDirty = true;
+	}
 
 	async Task SelectSession(SessionModel session) => await _sessionFeature.LoadSession(session.Id);
 
@@ -341,8 +328,6 @@ public partial class SessionList : ComponentBase, IDisposable
 		{
 			_sessionFeature.OnSessionStateChanged -= OnSessionStateChanged;
 			_timestampFeature.OnTick -= OnTimestampTick;
-			_dotNetReference?.Dispose();
-			_ = JSRuntime.InvokeVoidAsync("cockpit.cleanupSessionListLoadMore");
 		}
 	}
 }

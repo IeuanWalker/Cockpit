@@ -43,9 +43,9 @@
     padding-top: 0.25rem;
 }
 
-.recents-load-more-sentinel {
-    height: 1px;
-    pointer-events: none;
+.session-recents-virtualized-row {
+    height: 2rem;
+    overflow: visible;
 }
 
 .session-show-more button {

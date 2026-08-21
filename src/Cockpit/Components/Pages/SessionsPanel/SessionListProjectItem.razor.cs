@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
@@ -19,20 +18,14 @@ public partial class SessionListProjectItem
 
 	ElementReference _projectItem;
 	ElementReference _tooltip;
+	readonly string _tooltipId = $"project-tooltip-{Guid.NewGuid():N}";
 
 	string CreateSessionLocation => CreateSessionPath ?? "Default working directory";
 	string SessionCountText => SessionCount == 1 ? "1 session" : $"{SessionCount} sessions";
+	string TooltipId => _tooltipId;
 
 	Task HandleToggle() => OnToggle.InvokeAsync();
 	Task HandleCreate() => OnCreate.InvokeAsync();
-
-	async Task HandleKeyDown(KeyboardEventArgs e)
-	{
-		if(e.Key is "Enter" or " ")
-		{
-			await HandleToggle();
-		}
-	}
 
 	async Task ShowTooltip() => await JSRuntime.InvokeVoidAsync("cockpit.showSessionTooltip", _projectItem, _tooltip);
 	async Task HideTooltip() => await JSRuntime.InvokeVoidAsync("cockpit.hideSessionTooltip", _tooltip);

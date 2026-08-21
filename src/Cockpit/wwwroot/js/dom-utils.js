@@ -2,7 +2,6 @@
     const cockpit = window.cockpit ??= {};
     const pendingAutoResizeFrames = new WeakMap();
     const sessionTooltipStateByElement = new WeakMap();
-    let sessionListLoadMoreObserver = null;
     const maxTextareaHeightPx = 300;
     const autoHeight = 'auto';
 
@@ -138,31 +137,4 @@
         scheduleSessionTooltipHide(tooltip);
     };
 
-    cockpit.cleanupSessionListLoadMore = () => {
-        sessionListLoadMoreObserver?.disconnect();
-        sessionListLoadMoreObserver = null;
-    };
-
-    cockpit.observeSessionListLoadMore = (sentinel, dotNetReference) => {
-        cockpit.cleanupSessionListLoadMore();
-        if (!(sentinel instanceof HTMLElement) || !dotNetReference) {
-            return;
-        }
-
-        const scrollContainer = sentinel.closest('[data-session-scroll-container]');
-        sessionListLoadMoreObserver = new IntersectionObserver((entries) => {
-            if (!entries.some(entry => entry.isIntersecting)) {
-                return;
-            }
-
-            sessionListLoadMoreObserver?.disconnect();
-            sessionListLoadMoreObserver = null;
-            dotNetReference.invokeMethodAsync('LoadMoreRecents').catch(() => {});
-        }, {
-            root: scrollContainer,
-            rootMargin: '200px 0px',
-            threshold: 0
-        });
-        sessionListLoadMoreObserver.observe(sentinel);
-    };
 })();

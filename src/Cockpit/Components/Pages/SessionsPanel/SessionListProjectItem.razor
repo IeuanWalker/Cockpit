@@ -1,29 +1,35 @@
 <div @ref="_projectItem"
      class="project-item group"
-     @onclick="HandleToggle"
      @onmouseenter="ShowTooltip"
-     @onmouseleave="HideTooltip"
-     role="button"
-     tabindex="0"
-     aria-expanded="@IsExpanded"
-     @onkeydown="HandleKeyDown">
-    <svg class="project-folder @(IsExpanded ? "expanded" : string.Empty)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path class="project-folder-closed" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
-        <path class="project-folder-open" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 8V7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v1M4 10h17l-2 9H5l-2-9h1Z" />
-    </svg>
-    <span class="truncate">@Name</span>
-    <button @onclick="HandleCreate"
-            @onclick:stopPropagation="true"
+     @onmouseleave="HideTooltip">
+    <button type="button"
+            class="project-toggle"
+            aria-expanded="@(IsExpanded ? "true" : "false")"
+            aria-describedby="@TooltipId"
+            @onclick="HandleToggle"
+            @onfocus="ShowTooltip"
+            @onblur="HideTooltip">
+        <svg class="project-folder @(IsExpanded ? "expanded" : string.Empty)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path class="project-folder-closed" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+            <path class="project-folder-open" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 8V7a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v1M4 10h17l-2 9H5l-2-9h1Z" />
+        </svg>
+        <span class="truncate">@Name</span>
+    </button>
+    <button type="button"
+            @onclick="HandleCreate"
             class="project-add"
             title="Create new session in this project"
-            aria-label="Create new session in @Name">
+            aria-label="Create new session in @Name"
+            aria-describedby="@TooltipId"
+            @onfocus="ShowTooltip"
+            @onblur="HideTooltip">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
     </button>
 </div>
 
-<div @ref="_tooltip" class="project-tooltip" popover="manual" role="tooltip">
+<div @ref="_tooltip" id="@TooltipId" class="project-tooltip" popover="manual" role="tooltip">
     <div class="project-tooltip-heading">@Name</div>
     <div class="project-tooltip-label">New sessions open in</div>
     <div class="project-tooltip-row project-tooltip-path">

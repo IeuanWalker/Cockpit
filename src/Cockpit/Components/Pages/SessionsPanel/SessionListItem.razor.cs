@@ -1,4 +1,3 @@
-using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -7,12 +6,12 @@ using System.Globalization;
 
 namespace Cockpit.Components.Pages.SessionsPanel;
 
-public sealed partial class SessionListItem : IDisposable
+public sealed partial class SessionListItem
 {
 	[Inject] public required IJSRuntime JSRuntime { get; set; }
-	[Inject] public required SessionListFeature SessionListFeature { get; set; }
 
 	[Parameter] public required SessionModel Session { get; set; }
+	[Parameter] public bool Compact { get; set; }
 	[Parameter] public bool IsActive { get; set; }
 	[Parameter] public EventCallback<SessionModel> OnSelect { get; set; }
 	[Parameter] public EventCallback<MouseEventArgs> OnDelete { get; set; }
@@ -20,9 +19,11 @@ public sealed partial class SessionListItem : IDisposable
 
 	ElementReference _sessionItem;
 	ElementReference _tooltip;
+	readonly string _tooltipId = $"session-tooltip-{Guid.NewGuid():N}";
 	SessionStatusEnum? ListStatus => Session.DisplayStatus == SessionStatusEnum.Idle ? null : Session.DisplayStatus;
 	string ListStatusText => Session.DisplayStatus == SessionStatusEnum.Error ? "Error" : "Idle";
 	SessionHoverStats? HoverStats => SessionHoverStatsCalculator.Calculate(Session, DateTime.Now);
+	string TooltipId => _tooltipId;
 
 	string WorkingDirectoryLabel => string.IsNullOrWhiteSpace(Session.Context.CurrentWorkingDirectory)
 		? "No working directory"
@@ -32,24 +33,6 @@ public sealed partial class SessionListItem : IDisposable
 	async Task HandleDelete(MouseEventArgs e) => await OnDelete.InvokeAsync(e);
 	async Task ShowTooltip() => await JSRuntime.InvokeVoidAsync("cockpit.showSessionTooltip", _sessionItem, _tooltip);
 	async Task HideTooltip() => await JSRuntime.InvokeVoidAsync("cockpit.hideSessionTooltip", _tooltip);
-
-	protected override void OnInitialized()
-	{
-		SessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
-	}
-
-	void OnSessionStateChanged(SessionStateChange change)
-	{
-		const SessionChangeKind statsChanges = SessionChangeKind.ConversationContent |
-			SessionChangeKind.ConversationStructure |
-			SessionChangeKind.ConversationReset |
-			SessionChangeKind.WorkingState;
-		if((change.Kind & statsChanges) != 0 &&
-			(change.SessionId is null || string.Equals(change.SessionId, Session.Id, StringComparison.Ordinal)))
-		{
-			_ = InvokeAsync(StateHasChanged);
-		}
-	}
 
 	static string FormatCount(int count) => count.ToString("N0", CultureInfo.CurrentCulture);
 
@@ -86,11 +69,5 @@ public sealed partial class SessionListItem : IDisposable
 		}
 
 		return ((int)tokens).ToString("N0", CultureInfo.CurrentCulture);
-	}
-
-	public void Dispose()
-	{
-		SessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
-		GC.SuppressFinalize(this);
 	}
 }

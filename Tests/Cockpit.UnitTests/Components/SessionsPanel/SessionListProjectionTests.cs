@@ -50,7 +50,7 @@ public class SessionListProjectionTests
 	}
 
 	[Fact]
-	public void ActiveProjectSession_DoesNotPreventItsProjectFromBeingCollapsed()
+	public void CollapsedProject_DoesNotRenderItsSessions()
 	{
 		List<SessionModel> sessions = [.. Enumerable.Range(0, 7)
 			.Select(index => CreateSession(
@@ -61,7 +61,6 @@ public class SessionListProjectionTests
 
 		IReadOnlyList<SessionListRow> rows = Build(
 			sessions,
-			activeSessionId: "session-6",
 			expandedSections: new HashSet<SessionListSection>([SessionListSection.Projects]));
 
 		rows.OfType<SessionListSectionHeaderRow>().Single(row => row.Section == SessionListSection.Projects).IsExpanded.ShouldBeTrue();
@@ -100,32 +99,30 @@ public class SessionListProjectionTests
 	}
 
 	[Fact]
-	public void RecentsSection_ShowsTheFiveMostRecentlyActiveSessions()
+	public void RecentsSection_ProducesOneVirtualizableCollectionInActivityOrder()
 	{
-		List<SessionModel> sessions = [.. Enumerable.Range(0, 7)
+		List<SessionModel> sessions = [.. Enumerable.Range(0, 100)
 			.Select(index => CreateSession($"session-{index}", baseline.AddMinutes(-index)))];
 
 		IReadOnlyList<SessionListRow> rows = Build(sessions, expandedSections: new HashSet<SessionListSection>([SessionListSection.Recents]));
 
-		rows.OfType<SessionListSessionRow>().Select(row => row.Session.Id).ShouldBe([
-			"session-0", "session-1", "session-2", "session-3", "session-4"
-		]);
+		SessionListRecentsRow recents = rows.OfType<SessionListRecentsRow>().Single();
+		recents.Sessions.Count.ShouldBe(100);
+		recents.Sessions.Select(session => session.Id).ShouldBe(
+			Enumerable.Range(0, 100).Select(index => $"session-{index}"));
+		rows.OfType<SessionListSessionRow>().ShouldBeEmpty();
 		rows.OfType<SessionListShowMoreRow>().ShouldBeEmpty();
 	}
 
 	[Fact]
-	public void RecentsPagination_ShowsTheRequestedNumberWithoutAButtonRow()
+	public void CollapsedRecentsSection_DoesNotProduceAVirtualizableCollection()
 	{
 		List<SessionModel> sessions = [.. Enumerable.Range(0, 20)
 			.Select(index => CreateSession($"session-{index}", baseline.AddMinutes(-index)))];
 
-		IReadOnlyList<SessionListRow> rows = Build(
-			sessions,
-			expandedSections: new HashSet<SessionListSection>([SessionListSection.Recents]),
-			recentSessionLimit: 15);
+		IReadOnlyList<SessionListRow> rows = Build(sessions);
 
-		rows.OfType<SessionListSessionRow>().Count().ShouldBe(15);
-		rows.OfType<SessionListShowMoreRow>().ShouldBeEmpty();
+		rows.OfType<SessionListRecentsRow>().ShouldBeEmpty();
 	}
 
 	[Fact]
@@ -135,9 +132,27 @@ public class SessionListProjectionTests
 		SessionModel newer = CreateSession("newer", baseline.AddMinutes(1), "C:\\work\\Newer", "owner/Newer");
 		SessionModel chat = CreateSession("chat", baseline.AddMinutes(2), string.Empty);
 
-		string? groupId = SessionListProjection.GetMostRecentProjectGroupId([older, newer, chat]);
+		SessionListProjectionSource source = SessionListProjection.CreateSource([older, newer, chat]);
 
-		groupId.ShouldBe(ProjectId(newer));
+		source.MostRecentProjectGroupId.ShouldBe(ProjectId(newer));
+		source.ProjectGroupIds.ShouldBe(new HashSet<string>([ProjectId(older), ProjectId(newer)], SessionProjectIdentityResolver.ProjectIdComparer), ignoreOrder: true);
+	}
+
+	[Fact]
+	public void Source_CanBeReusedAcrossSearchAndDisplayOptionChanges()
+	{
+		SessionModel first = CreateSession("first", baseline, "C:\\work\\First", "owner/First");
+		SessionModel second = CreateSession("second", baseline.AddMinutes(1), "C:\\work\\Second", "owner/Second");
+		SessionListProjectionSource source = SessionListProjection.CreateSource([first, second]);
+
+		IReadOnlyList<SessionListRow> searchRows = Build(source, searchText: "first");
+		IReadOnlyList<SessionListRow> sectionRows = Build(
+			source,
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Projects]));
+
+		searchRows.Select(row => row.Key).ShouldBe(["session:search:first"]);
+		sectionRows.OfType<SessionListProjectHeaderRow>().Select(row => row.GroupId)
+			.ShouldBe([ProjectId(second), ProjectId(first)]);
 	}
 
 	[Fact]
@@ -225,39 +240,46 @@ public class SessionListProjectionTests
 		SessionModel wrongRepo = CreateSession("repo", baseline, "C:\\work\\Cockpit", "owner/Other", "Performance work");
 
 		IReadOnlyList<SessionListRow> rows = SessionListProjection.Build(
-			[match, wrongTitle, wrongRepo],
+			SessionListProjection.CreateSource([match, wrongTitle, wrongRepo]),
 			new SessionListProjectionOptions(
-				null,
 				"performance",
 				new HashSet<string>(["C:\\work\\Cockpit"], StringComparer.OrdinalIgnoreCase),
 				new HashSet<string>(["owner/Cockpit"], StringComparer.OrdinalIgnoreCase),
 				new HashSet<SessionListSection>(),
 				new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-				new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
-				SessionListProjection.InitialSessionLimit));
+				new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)));
 
 		rows.Select(row => row.Key).ShouldBe(["session:search:match"]);
 	}
 
 	static IReadOnlyList<SessionListRow> Build(
 		IEnumerable<SessionModel> sessions,
-		string? activeSessionId = null,
 		string searchText = "",
 		IReadOnlySet<SessionListSection>? expandedSections = null,
 		IReadOnlySet<string>? expandedProjectGroups = null,
-		IReadOnlyDictionary<string, int>? sessionLimits = null,
-		int recentSessionLimit = SessionListProjection.InitialSessionLimit) =>
+		IReadOnlyDictionary<string, int>? sessionLimits = null) =>
+		Build(
+			SessionListProjection.CreateSource(sessions),
+			searchText,
+			expandedSections,
+			expandedProjectGroups,
+			sessionLimits);
+
+	static IReadOnlyList<SessionListRow> Build(
+		SessionListProjectionSource source,
+		string searchText = "",
+		IReadOnlySet<SessionListSection>? expandedSections = null,
+		IReadOnlySet<string>? expandedProjectGroups = null,
+		IReadOnlyDictionary<string, int>? sessionLimits = null) =>
 		SessionListProjection.Build(
-			sessions,
+			source,
 			new SessionListProjectionOptions(
-				activeSessionId,
 				searchText,
 				new HashSet<string>(StringComparer.OrdinalIgnoreCase),
 				new HashSet<string>(StringComparer.OrdinalIgnoreCase),
 				expandedSections ?? new HashSet<SessionListSection>(),
 				expandedProjectGroups ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-				sessionLimits ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
-				recentSessionLimit));
+				sessionLimits ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)));
 
 	static SessionModel CreateSession(
 		string id,

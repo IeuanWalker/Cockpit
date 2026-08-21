@@ -2,10 +2,8 @@
 @using Cockpit.Components.Controls
 @using Microsoft.AspNetCore.Components.Web
 
-<div @ref="_sessionItem"
-     class="session-item mx-2 px-3 py-1.5 rounded hover:bg-app-hover cursor-pointer @(IsActive ? "bg-app-active" : "") @(ListStatus is not null ? "has-status" : "") border-l-2 @(IsActive ? "" : "border-transparent") flex items-center group relative @(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading ? "pointer-events-none" : "")"
+<div class="session-item mx-2 px-3 py-1.5 rounded hover:bg-app-hover @(IsActive ? "bg-app-active" : "") @(!Compact && ListStatus is not null ? "has-status" : "") @(Compact ? "compact" : "") border-l-2 @(IsActive ? "" : "border-transparent") flex items-center group relative"
      style="@(IsActive ? "border-left-color: var(--accent-color);" : "")"
-     @onclick="HandleSelect"
      @onmouseenter="ShowTooltip"
      @onmouseleave="HideTooltip">
     @if(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading)
@@ -17,17 +15,43 @@
             <span class="text-xs secondary-text">Loading...</span>
         </div>
     }
-    <div class="flex-1 min-w-0 @(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading ? "opacity-30" : "")">
-        <div class="text-xs @(IsActive ? "font-medium text-app-title" : "") truncate">@Session.Title</div>
-        <SessionStatusBadge Status="@ListStatus"
-                            Variant="@SessionStatusVariant.SessionList"
-                            FallbackText="@ListStatusText" />
-    </div>
+    <button @ref="_sessionItem"
+            type="button"
+            class="session-select flex-1 min-w-0 text-left @(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading ? "opacity-30" : "")"
+            disabled="@(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading)"
+            aria-current="@(IsActive ? "true" : null)"
+            aria-describedby="@TooltipId"
+            @onclick="HandleSelect"
+            @onfocus="ShowTooltip"
+            @onblur="HideTooltip">
+        @if(Compact)
+        {
+            <div class="flex items-center gap-1.5 min-w-0">
+                <div class="flex-1 min-w-0 text-xs @(IsActive ? "font-medium text-app-title" : "") truncate">@Session.Title</div>
+                <SessionStatusBadge Status="@ListStatus"
+                                    Variant="@SessionStatusVariant.SessionList"
+                                    FallbackText="@ListStatusText" />
+            </div>
+        }
+        else
+        {
+            <div class="text-xs @(IsActive ? "font-medium text-app-title" : "") truncate">@Session.Title</div>
+            <SessionStatusBadge Status="@ListStatus"
+                                Variant="@SessionStatusVariant.SessionList"
+                                FallbackText="@ListStatusText" />
+        }
+    </button>
     <div class="session-delete-overlay absolute right-0 top-0 bottom-0 flex items-center justify-end pr-1.5 opacity-0" style="width: 5rem;">
-        <button @onclick="HandleDelete"
+        <button type="button"
+                @onclick="HandleDelete"
                 @onclick:stopPropagation="true"
                 class="session-delete-btn p-1 hover:bg-red-500/20 rounded"
-                title="Delete session">
+                disabled="@(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading)"
+                title="Delete session"
+                aria-label="Delete @Session.Title"
+                aria-describedby="@TooltipId"
+                @onfocus="ShowTooltip"
+                @onblur="HideTooltip">
             <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
@@ -35,7 +59,7 @@
     </div>
 </div>
 
-<div @ref="_tooltip" class="session-tooltip" popover="manual" role="tooltip">
+<div @ref="_tooltip" id="@TooltipId" class="session-tooltip" popover="manual" role="tooltip">
     <div class="session-tooltip-heading">
         <strong>@Session.Title</strong>
         <span>@TimeAgo</span>

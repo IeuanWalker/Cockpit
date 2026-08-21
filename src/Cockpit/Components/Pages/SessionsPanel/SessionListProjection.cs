@@ -25,6 +25,11 @@ sealed record SessionListSessionRow(SessionModel Session, int IndentLevel, strin
 	public override string Key => $"session:{ScopeId}:{Session.Id}";
 }
 
+sealed record SessionListRecentsRow(ICollection<SessionModel> Sessions) : SessionListRow
+{
+	public override string Key => "recents:sessions";
+}
+
 sealed record SessionListProjectHeaderRow(
 	string GroupId,
 	string Name,
@@ -48,31 +53,64 @@ sealed record SessionListShowMoreRow(
 }
 
 sealed record SessionListProjectionOptions(
-	string? ActiveSessionId,
 	string SearchText,
 	IReadOnlySet<string> FilterCwds,
 	IReadOnlySet<string> FilterRepos,
 	IReadOnlySet<SessionListSection> ExpandedSections,
 	IReadOnlySet<string> ExpandedProjectGroups,
-	IReadOnlyDictionary<string, int> SessionLimits,
-	int RecentSessionLimit);
+	IReadOnlyDictionary<string, int> SessionLimits);
+
+sealed record SessionListProjectionSource(
+	IReadOnlyList<SessionModel> SortedSessions,
+	IReadOnlyList<ProjectSessionGroup> ProjectGroups)
+{
+	public ICollection<SessionModel> SortedSessionItems { get; } = SortedSessions as ICollection<SessionModel> ?? [.. SortedSessions];
+
+	public IReadOnlySet<string> ProjectGroupIds { get; } = ProjectGroups
+		.Select(group => group.Id)
+		.ToHashSet(SessionProjectIdentityResolver.ProjectIdComparer);
+
+	public string? MostRecentProjectGroupId => ProjectGroups.FirstOrDefault()?.Id;
+}
+
+sealed class ProjectSessionGroup(
+	string id,
+	string baseName,
+	string rootPath,
+	string? repository,
+	IReadOnlyList<SessionModel> sessions,
+	DateTime lastActivity)
+{
+	public string Id { get; } = id;
+	public string BaseName { get; } = baseName;
+	public string RootPath { get; } = rootPath;
+	public string? Repository { get; } = repository;
+	public IReadOnlyList<SessionModel> Sessions { get; } = sessions;
+	public DateTime LastActivity { get; } = lastActivity;
+	public string Name { get; set; } = baseName;
+}
 
 static class SessionListProjection
 {
 	internal const int InitialSessionLimit = 5;
 	internal const int SessionPageSize = 10;
 
-	public static IReadOnlyList<SessionListRow> Build(IEnumerable<SessionModel> sessions, SessionListProjectionOptions options)
+	public static SessionListProjectionSource CreateSource(IEnumerable<SessionModel> sessions)
 	{
 		List<SessionModel> sortedSessions = [.. sessions.OrderByDescending(session => session.LastActivity)];
+		return new SessionListProjectionSource(sortedSessions, BuildProjectGroups(sortedSessions));
+	}
+
+	public static IReadOnlyList<SessionListRow> Build(SessionListProjectionSource source, SessionListProjectionOptions options)
+	{
 		bool isSearchActive = !string.IsNullOrWhiteSpace(options.SearchText) || options.FilterCwds.Count > 0 || options.FilterRepos.Count > 0;
 
 		if(isSearchActive)
 		{
-			return [.. Filter(sortedSessions, options).Select(session => new SessionListSessionRow(session, 0, "search"))];
+			return [.. Filter(source.SortedSessions, options).Select(session => new SessionListSessionRow(session, 0, "search"))];
 		}
 
-		return BuildSectionRows(sortedSessions, options);
+		return BuildSectionRows(source, options);
 	}
 
 	static IEnumerable<SessionModel> Filter(IEnumerable<SessionModel> sessions, SessionListProjectionOptions options)
@@ -95,11 +133,10 @@ static class SessionListProjection
 		return sessions;
 	}
 
-	static IReadOnlyList<SessionListRow> BuildSectionRows(IReadOnlyList<SessionModel> sortedSessions, SessionListProjectionOptions options)
+	static IReadOnlyList<SessionListRow> BuildSectionRows(SessionListProjectionSource source, SessionListProjectionOptions options)
 	{
 		List<SessionListRow> rows = [];
-		List<SessionModel> chatSessions = [.. sortedSessions.Where(IsChatSession)];
-		List<ProjectSessionGroup> projectGroups = BuildProjectGroups(sortedSessions);
+		List<SessionModel> chatSessions = [.. source.SortedSessions.Where(IsChatSession)];
 
 		bool chatsExpanded = options.ExpandedSections.Contains(SessionListSection.Chats);
 		rows.Add(new SessionListSectionHeaderRow(SessionListSection.Chats, "Chats", chatsExpanded));
@@ -112,17 +149,14 @@ static class SessionListProjection
 		rows.Add(new SessionListSectionHeaderRow(SessionListSection.Projects, "Projects", projectsExpanded));
 		if(projectsExpanded)
 		{
-			AddProjectRows(rows, projectGroups, options);
+			AddProjectRows(rows, source.ProjectGroups, options);
 		}
 
 		bool recentsExpanded = options.ExpandedSections.Contains(SessionListSection.Recents);
 		rows.Add(new SessionListSectionHeaderRow(SessionListSection.Recents, "Recents", recentsExpanded));
 		if(recentsExpanded)
 		{
-			foreach(SessionModel session in sortedSessions.Take(options.RecentSessionLimit))
-			{
-				rows.Add(new SessionListSessionRow(session, 1, "recents"));
-			}
+			rows.Add(new SessionListRecentsRow(source.SortedSessionItems));
 		}
 
 		return rows;
@@ -346,14 +380,6 @@ static class SessionListProjection
 		return labels;
 	}
 
-	internal static string? GetMostRecentProjectGroupId(IEnumerable<SessionModel> sessions)
-		=> BuildProjectGroups([.. sessions.OrderByDescending(session => session.LastActivity)]).FirstOrDefault()?.Id;
-
-	internal static IReadOnlySet<string> GetProjectGroupIds(IEnumerable<SessionModel> sessions)
-		=> BuildProjectGroups([.. sessions.OrderByDescending(session => session.LastActivity)])
-			.Select(group => group.Id)
-			.ToHashSet(SessionProjectIdentityResolver.ProjectIdComparer);
-
 	internal static string NormalizePath(string path) => string.IsNullOrWhiteSpace(path)
 		? string.Empty
 		: SessionProjectIdentityResolver.NormalizePath(path);
@@ -362,20 +388,4 @@ static class SessionListProjection
 
 	sealed record ProjectSessionEntry(SessionModel Session, SessionProjectIdentity? Identity);
 
-	sealed class ProjectSessionGroup(
-		string id,
-		string baseName,
-		string rootPath,
-		string? repository,
-		IReadOnlyList<SessionModel> sessions,
-		DateTime lastActivity)
-	{
-		public string Id { get; } = id;
-		public string BaseName { get; } = baseName;
-		public string RootPath { get; } = rootPath;
-		public string? Repository { get; } = repository;
-		public IReadOnlyList<SessionModel> Sessions { get; } = sessions;
-		public DateTime LastActivity { get; } = lastActivity;
-		public string Name { get; set; } = baseName;
-	}
 }
