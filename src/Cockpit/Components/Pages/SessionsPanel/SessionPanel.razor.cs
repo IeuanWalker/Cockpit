@@ -40,7 +40,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	{
 		if(SessionPanelStateChangeFilter.RequiresPinReconciliation(change))
 		{
-			_ = ReconcilePinsAsync();
+			_ = InvokeAsync(ReconcilePinsAsync);
 		}
 
 		if(SessionPanelStateChangeFilter.IsRelevant(change))
