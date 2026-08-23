@@ -280,6 +280,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	}
 
 	Task CreateSessionFromGroup(SessionListProjectHeaderRow group) => OnCreateSessionFromPath.InvokeAsync(group.CreateSessionPath);
+	Task CreateChatSession() => OnCreateSessionFromPath.InvokeAsync(null);
 	Task ToggleSessionPin(string sessionId) => _pinnedItemsFeature.ToggleSessionAsync(sessionId);
 	Task ToggleProjectPin(string projectId) => _pinnedItemsFeature.ToggleProjectAsync(projectId);
 
