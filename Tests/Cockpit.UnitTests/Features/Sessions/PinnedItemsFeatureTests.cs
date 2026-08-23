@@ -124,6 +124,41 @@ public sealed class PinnedItemsFeatureTests : IDisposable
 	}
 
 	[Fact]
+	public async Task ReplaceSessionIdAsync_TransfersPinnedSessionAndPersistsReplacement()
+	{
+		PinnedItemsFeature feature = CreateFeature();
+		await feature.ToggleSessionAsync("previous-session");
+		int notifications = 0;
+		feature.OnChanged += () => notifications++;
+
+		await feature.ReplaceSessionIdAsync("previous-session", "replacement-session");
+
+		feature.IsSessionPinned("previous-session").ShouldBeFalse();
+		feature.IsSessionPinned("replacement-session").ShouldBeTrue();
+		notifications.ShouldBe(1);
+		PinnedItemsFeature reloaded = CreateFeature();
+		await reloaded.InitializeAsync();
+		reloaded.IsSessionPinned("previous-session").ShouldBeFalse();
+		reloaded.IsSessionPinned("replacement-session").ShouldBeTrue();
+	}
+
+	[Fact]
+	public async Task ReplaceSessionIdAsync_WhenPreviousSessionIsNotPinned_DoesNotNotifyOrCreatePin()
+	{
+		PinnedItemsFeature feature = CreateFeature();
+		await feature.InitializeAsync();
+		int notifications = 0;
+		feature.OnChanged += () => notifications++;
+
+		await feature.ReplaceSessionIdAsync("previous-session", "replacement-session");
+
+		feature.IsSessionPinned("previous-session").ShouldBeFalse();
+		feature.IsSessionPinned("replacement-session").ShouldBeFalse();
+		notifications.ShouldBe(0);
+		File.Exists(_filePath).ShouldBeFalse();
+	}
+
+	[Fact]
 	public async Task ReconcileAsync_WhenNothingChanges_DoesNotNotifyOrRewriteFile()
 	{
 		PinnedItemsFeature feature = CreateFeature();

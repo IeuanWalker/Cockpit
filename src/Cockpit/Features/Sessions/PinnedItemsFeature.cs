@@ -93,6 +93,46 @@ public sealed class PinnedItemsFeature
 	}
 
 	/// <summary>
+	/// Transfers a pin when an existing session is assigned a replacement SDK identifier.
+	/// </summary>
+	public async Task ReplaceSessionIdAsync(string previousSessionId, string replacementSessionId)
+	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(previousSessionId);
+		ArgumentException.ThrowIfNullOrWhiteSpace(replacementSessionId);
+
+		if(string.Equals(previousSessionId, replacementSessionId, StringComparison.Ordinal))
+		{
+			return;
+		}
+
+		await _initializationTask.ConfigureAwait(false);
+
+		bool changed = false;
+		await _lock.WaitAsync().ConfigureAwait(false);
+		try
+		{
+			if(_sessionIds.Contains(previousSessionId))
+			{
+				HashSet<string> updated = new(_sessionIds, StringComparer.Ordinal);
+				updated.Remove(previousSessionId);
+				updated.Add(replacementSessionId);
+				Volatile.Write(ref _sessionIds, updated);
+				await SaveAsync().ConfigureAwait(false);
+				changed = true;
+			}
+		}
+		finally
+		{
+			_lock.Release();
+		}
+
+		if(changed)
+		{
+			NotifyChanged();
+		}
+	}
+
+	/// <summary>
 	/// Removes pins whose corresponding session or project no longer exists, migrating project aliases
 	/// to the current canonical project identifiers when supplied.
 	/// </summary>
