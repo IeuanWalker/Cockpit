@@ -158,12 +158,13 @@ public sealed class SessionListFeature : ISessionStateProvider
 
 	void InvokeTypedHandlers(SessionStateChange change)
 	{
-		if(OnSessionStateChanged is null)
+		Action<SessionStateChange>? handlers = OnSessionStateChanged;
+		if(handlers is null)
 		{
 			return;
 		}
 
-		foreach(Action<SessionStateChange> handler in OnSessionStateChanged.GetInvocationList().Cast<Action<SessionStateChange>>())
+		foreach(Action<SessionStateChange> handler in handlers.GetInvocationList().Cast<Action<SessionStateChange>>())
 		{
 			try
 			{
@@ -178,12 +179,13 @@ public sealed class SessionListFeature : ISessionStateProvider
 
 	void InvokeCompatibilityHandlers()
 	{
-		if(OnStateChanged is null)
+		Action? handlers = OnStateChanged;
+		if(handlers is null)
 		{
 			return;
 		}
 
-		foreach(Action handler in OnStateChanged.GetInvocationList().Cast<Action>())
+		foreach(Action handler in handlers.GetInvocationList().Cast<Action>())
 		{
 			try
 			{

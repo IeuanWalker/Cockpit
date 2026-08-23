@@ -275,12 +275,13 @@ public sealed class PinnedItemsFeature
 
 	void NotifyChanged()
 	{
-		if(OnChanged is null)
+		Action? handlers = OnChanged;
+		if(handlers is null)
 		{
 			return;
 		}
 
-		foreach(Action handler in OnChanged.GetInvocationList().Cast<Action>())
+		foreach(Action handler in handlers.GetInvocationList().Cast<Action>())
 		{
 			try
 			{
