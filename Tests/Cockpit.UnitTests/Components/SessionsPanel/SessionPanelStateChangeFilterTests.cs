@@ -8,6 +8,28 @@ public sealed class SessionPanelStateChangeFilterTests
 {
 	[Theory]
 	[InlineData(SessionChangeKind.SessionCollection)]
+	[InlineData(SessionChangeKind.SessionContext)]
+	[InlineData(SessionChangeKind.SessionSummary | SessionChangeKind.SessionContext)]
+	public void RequiresPinReconciliation_ForCollectionOrContextChanges_ReturnsTrue(SessionChangeKind kind)
+	{
+		SessionPanelStateChangeFilter.RequiresPinReconciliation(new SessionStateChange("session", kind)).ShouldBeTrue();
+	}
+
+	[Theory]
+	[InlineData(SessionChangeKind.None)]
+	[InlineData(SessionChangeKind.CurrentSession)]
+	[InlineData(SessionChangeKind.ConversationContent)]
+	[InlineData(SessionChangeKind.ConversationStructure)]
+	[InlineData(SessionChangeKind.SessionSummary)]
+	[InlineData(SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary)]
+	[InlineData(SessionChangeKind.WorkingState)]
+	public void RequiresPinReconciliation_ForUnrelatedChanges_ReturnsFalse(SessionChangeKind kind)
+	{
+		SessionPanelStateChangeFilter.RequiresPinReconciliation(new SessionStateChange("session", kind)).ShouldBeFalse();
+	}
+
+	[Theory]
+	[InlineData(SessionChangeKind.SessionCollection)]
 	[InlineData(SessionChangeKind.CurrentSession)]
 	[InlineData(SessionChangeKind.SessionCollection | SessionChangeKind.SessionSummary)]
 	public void IsRelevant_ForShellChanges_ReturnsTrue(SessionChangeKind kind)

@@ -5,6 +5,7 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 
 enum SessionListSection
 {
+	Pinned,
 	Chats,
 	Projects,
 	Recents
@@ -32,22 +33,24 @@ sealed record SessionListRecentsRow(ICollection<SessionModel> Sessions) : Sessio
 
 sealed record SessionListProjectHeaderRow(
 	string GroupId,
+	string ScopeId,
 	string Name,
 	bool IsExpanded,
 	string? CreateSessionPath,
 	int SessionCount,
 	string? Repository) : SessionListRow
 {
-	public override string Key => $"project:{GroupId}";
+	public override string Key => $"project:{ScopeId}:{GroupId}";
 }
 
 sealed record SessionListShowMoreRow(
 	string GroupId,
+	string ScopeId,
 	int IndentLevel,
 	int VisibleCount,
 	int TotalCount) : SessionListRow
 {
-	public override string Key => $"show-more:{GroupId}";
+	public override string Key => $"show-more:{ScopeId}";
 	public bool HasMore => VisibleCount < TotalCount;
 	public bool CanShowLess => VisibleCount > SessionListProjection.initialSessionLimit;
 }
@@ -58,7 +61,9 @@ sealed record SessionListProjectionOptions(
 	IReadOnlySet<string> FilterRepos,
 	IReadOnlySet<SessionListSection> ExpandedSections,
 	IReadOnlySet<string> ExpandedProjectGroups,
-	IReadOnlyDictionary<string, int> SessionLimits);
+	IReadOnlyDictionary<string, int> SessionLimits,
+	IReadOnlySet<string> PinnedSessionIds,
+	IReadOnlySet<string> PinnedProjectIds);
 
 sealed record SessionListProjectionSource(
 	IReadOnlyList<SessionModel> SortedSessions,
@@ -69,6 +74,9 @@ sealed record SessionListProjectionSource(
 	public IReadOnlySet<string> ProjectGroupIds { get; } = ProjectGroups
 		.Select(group => group.Id)
 		.ToHashSet(SessionProjectIdentityResolver.ProjectIdComparer);
+	public IReadOnlyDictionary<string, string> ProjectGroupIdAliases { get; } = ProjectGroups
+		.SelectMany(group => group.AliasIds.Select(alias => new KeyValuePair<string, string>(alias, group.Id)))
+		.ToDictionary(pair => pair.Key, pair => pair.Value, SessionProjectIdentityResolver.ProjectIdComparer);
 
 	public string? MostRecentProjectGroupId => ProjectGroups.FirstOrDefault()?.Id;
 }
@@ -78,6 +86,7 @@ sealed class ProjectSessionGroup(
 	string baseName,
 	string rootPath,
 	string? repository,
+	IReadOnlySet<string> aliasIds,
 	IReadOnlyList<SessionModel> sessions,
 	DateTime lastActivity)
 {
@@ -85,6 +94,7 @@ sealed class ProjectSessionGroup(
 	public string BaseName { get; } = baseName;
 	public string RootPath { get; } = rootPath;
 	public string? Repository { get; } = repository;
+	public IReadOnlySet<string> AliasIds { get; } = aliasIds;
 	public IReadOnlyList<SessionModel> Sessions { get; } = sessions;
 	public DateTime LastActivity { get; } = lastActivity;
 	public string Name { get; set; } = baseName;
@@ -137,27 +147,54 @@ static class SessionListProjection
 	static IReadOnlyList<SessionListRow> BuildSectionRows(SessionListProjectionSource source, SessionListProjectionOptions options)
 	{
 		List<SessionListRow> rows = [];
-		List<SessionModel> chatSessions = [.. source.SortedSessions.Where(IsChatSession)];
+		List<ProjectSessionGroup> pinnedProjects = [.. source.ProjectGroups
+			.Where(group => options.PinnedProjectIds.Contains(group.Id))];
+		HashSet<string> pinnedProjectSessionIds = pinnedProjects
+			.SelectMany(group => group.Sessions)
+			.Select(session => session.Id)
+			.ToHashSet(StringComparer.Ordinal);
+		List<SessionModel> pinnedSessions = [.. source.SortedSessions
+			.Where(session => options.PinnedSessionIds.Contains(session.Id) && !pinnedProjectSessionIds.Contains(session.Id))];
+		HashSet<string> sessionsMovedToPinned = new(options.PinnedSessionIds, StringComparer.Ordinal);
+		sessionsMovedToPinned.UnionWith(pinnedProjectSessionIds);
+		List<SessionModel> chatSessions = [.. source.SortedSessions
+			.Where(session => IsChatSession(session) && !sessionsMovedToPinned.Contains(session.Id))];
+		List<ProjectSessionGroup> regularProjects = [.. source.ProjectGroups
+			.Where(group => !options.PinnedProjectIds.Contains(group.Id))];
+		ICollection<SessionModel> recentSessions = sessionsMovedToPinned.Count == 0
+			? source.SortedSessionItems
+			: [.. source.SortedSessions.Where(session => !sessionsMovedToPinned.Contains(session.Id))];
+
+		if(pinnedProjects.Count > 0 || pinnedSessions.Count > 0)
+		{
+			bool pinnedExpanded = options.ExpandedSections.Contains(SessionListSection.Pinned);
+			rows.Add(new SessionListSectionHeaderRow(SessionListSection.Pinned, "Pinned", pinnedExpanded));
+			if(pinnedExpanded)
+			{
+				AddProjectRows(rows, pinnedProjects, "pinned", options);
+				AddLimitedSessions(rows, pinnedSessions, "pinned-sessions", "pinned-sessions", 1, options);
+			}
+		}
 
 		bool chatsExpanded = options.ExpandedSections.Contains(SessionListSection.Chats);
 		rows.Add(new SessionListSectionHeaderRow(SessionListSection.Chats, "Chats", chatsExpanded));
 		if(chatsExpanded)
 		{
-			AddLimitedSessions(rows, chatSessions, "chats", 1, options);
+			AddLimitedSessions(rows, chatSessions, "chats", "chats", 1, options);
 		}
 
 		bool projectsExpanded = options.ExpandedSections.Contains(SessionListSection.Projects);
 		rows.Add(new SessionListSectionHeaderRow(SessionListSection.Projects, "Projects", projectsExpanded));
 		if(projectsExpanded)
 		{
-			AddProjectRows(rows, source.ProjectGroups, options);
+			AddProjectRows(rows, regularProjects, "projects", options, options.PinnedSessionIds);
 		}
 
 		bool recentsExpanded = options.ExpandedSections.Contains(SessionListSection.Recents);
 		rows.Add(new SessionListSectionHeaderRow(SessionListSection.Recents, "Recents", recentsExpanded));
 		if(recentsExpanded)
 		{
-			rows.Add(new SessionListRecentsRow(source.SortedSessionItems));
+			rows.Add(new SessionListRecentsRow(recentSessions));
 		}
 
 		return rows;
@@ -167,6 +204,7 @@ static class SessionListProjection
 		List<SessionListRow> rows,
 		IReadOnlyList<SessionModel> sessions,
 		string groupId,
+		string scopeId,
 		int indentLevel,
 		SessionListProjectionOptions options)
 	{
@@ -175,25 +213,39 @@ static class SessionListProjection
 
 		foreach(SessionModel session in visibleSessions.OrderByDescending(session => session.LastActivity))
 		{
-			rows.Add(new SessionListSessionRow(session, indentLevel, groupId));
+			rows.Add(new SessionListSessionRow(session, indentLevel, scopeId));
 		}
 
 		if(sessions.Count > initialSessionLimit)
 		{
-			rows.Add(new SessionListShowMoreRow(groupId, indentLevel, visibleSessions.Count, sessions.Count));
+			rows.Add(new SessionListShowMoreRow(groupId, scopeId, indentLevel, visibleSessions.Count, sessions.Count));
 		}
 	}
 
-	static void AddProjectRows(List<SessionListRow> rows, IEnumerable<ProjectSessionGroup> groups, SessionListProjectionOptions options)
+	static void AddProjectRows(
+		List<SessionListRow> rows,
+		IEnumerable<ProjectSessionGroup> groups,
+		string sectionScope,
+		SessionListProjectionOptions options,
+		IReadOnlySet<string>? excludedSessionIds = null)
 	{
 		foreach(ProjectSessionGroup group in groups)
 		{
+			IReadOnlyList<SessionModel> sessions = excludedSessionIds is null
+				? group.Sessions
+				: [.. group.Sessions.Where(session => !excludedSessionIds.Contains(session.Id))];
+			if(sessions.Count == 0)
+			{
+				continue;
+			}
+
 			bool isExpanded = options.ExpandedProjectGroups.Contains(group.Id);
-			rows.Add(new SessionListProjectHeaderRow(group.Id, group.Name, isExpanded, group.RootPath, group.Sessions.Count, group.Repository));
+			string projectScope = $"{sectionScope}:{group.Id}";
+			rows.Add(new SessionListProjectHeaderRow(group.Id, sectionScope, group.Name, isExpanded, group.RootPath, sessions.Count, group.Repository));
 
 			if(isExpanded)
 			{
-				AddLimitedSessions(rows, group.Sessions, group.Id, 2, options);
+				AddLimitedSessions(rows, sessions, group.Id, projectScope, 2, options);
 			}
 		}
 	}
@@ -249,12 +301,18 @@ static class SessionListProjection
 				string? repository = entries
 					.Select(entry => entry.Session.Context.Repository)
 					.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? identity.Repository;
+				HashSet<string> aliasIds = entries
+					.SelectMany(entry => new[] { entry.Identity!.RootId, entry.Identity.RepositoryId })
+					.Where(value => value is not null)
+					.Select(value => value!)
+					.ToHashSet(SessionProjectIdentityResolver.ProjectIdComparer);
 
 				return new ProjectSessionGroup(
 					groupId,
 					baseName,
 					identity.RootPath,
 					repository,
+					aliasIds,
 					[.. entries.Select(entry => entry.Session)],
 					entries[0].Session.LastActivity);
 			})];

@@ -173,7 +173,9 @@ public sealed partial class SessionFeature
 				{
 					_sdkRegistry.Remove(chatSession.Id);
 					_sdkSessionByokId.TryRemove(chatSession.Id, out _);
+					string previousSessionId = chatSession.Id;
 					chatSession.Id = newSdkSession.SessionId;
+					await _pinnedItemsFeature.ReplaceSessionIdAsync(previousSessionId, chatSession.Id);
 					chatSession.Context.WorkspacePath = newSdkSession.WorkspacePath;
 				}
 			}

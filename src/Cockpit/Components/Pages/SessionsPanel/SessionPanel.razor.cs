@@ -10,15 +10,18 @@ public partial class SessionPanel : ComponentBase, IDisposable
 {
 	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionFeature _sessionFeature;
+	readonly PinnedItemsFeature _pinnedItemsFeature;
 	readonly IJSRuntime _jsRuntime;
 
 	public SessionPanel(
 		IUIStateFeature uiStateFeature,
 		SessionFeature sessionFeature,
+		PinnedItemsFeature pinnedItemsFeature,
 		IJSRuntime jsRuntime)
 	{
 		_uiStateFeature = uiStateFeature;
 		_sessionFeature = sessionFeature;
+		_pinnedItemsFeature = pinnedItemsFeature;
 		_jsRuntime = jsRuntime;
 	}
 
@@ -35,6 +38,11 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	void OnSessionStateChanged(SessionStateChange change)
 	{
+		if(SessionPanelStateChangeFilter.RequiresPinReconciliation(change))
+		{
+			_ = InvokeAsync(ReconcilePinsAsync);
+		}
+
 		if(SessionPanelStateChangeFilter.IsRelevant(change))
 		{
 			OnStateChanged();
@@ -51,8 +59,28 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	protected override async Task OnInitializedAsync()
 	{
 		_isLoadingSessions = true;
+		Task initializePinsTask = _pinnedItemsFeature.InitializeAsync();
 		await _sessionFeature.LoadExistingSessions();
+		await initializePinsTask;
+		await ReconcilePinsAsync();
 		_isLoadingSessions = false;
+	}
+
+	async Task ReconcilePinsAsync()
+	{
+		if(!_sessionFeature.HasSuccessfullyLoadedExistingSessions)
+		{
+			return;
+		}
+
+		SessionListProjectionSource source = SessionListProjection.CreateSource(_sessionFeature.Sessions);
+		HashSet<string> sessionIds = _sessionFeature.Sessions
+			.Select(session => session.Id)
+			.ToHashSet(StringComparer.Ordinal);
+		await _pinnedItemsFeature.ReconcileAsync(
+			sessionIds,
+			source.ProjectGroupIds,
+			source.ProjectGroupIdAliases);
 	}
 
 	bool _isRefreshingSessions = false;
@@ -137,6 +165,10 @@ public partial class SessionPanel : ComponentBase, IDisposable
 static class SessionPanelStateChangeFilter
 {
 	const SessionChangeKind relevantChanges = SessionChangeKind.SessionCollection | SessionChangeKind.CurrentSession;
+	const SessionChangeKind pinReconciliationChanges = SessionChangeKind.SessionCollection | SessionChangeKind.SessionContext;
 
 	public static bool IsRelevant(SessionStateChange change) => (change.Kind & relevantChanges) != 0;
+
+	public static bool RequiresPinReconciliation(SessionStateChange change) =>
+		(change.Kind & pinReconciliationChanges) != 0;
 }

@@ -41,7 +41,22 @@
                                 FallbackText="@ListStatusText" />
         }
     </button>
-    <div class="session-delete-overlay absolute right-0 top-0 bottom-0 flex items-center justify-end pr-1.5 opacity-0" style="width: 5rem;">
+    <div class="session-actions-overlay absolute right-0 top-0 bottom-0 flex items-center justify-end gap-0.5 pr-1.5" style="width: 5rem;">
+        <button type="button"
+                @onclick="HandleTogglePin"
+                @onclick:stopPropagation="true"
+                class="session-pin-btn @(IsPinned ? "is-pinned" : string.Empty) p-1 rounded"
+                disabled="@(Session.Lifecycle.SdkState == SdkSessionStateEnum.Loading)"
+                title="@PinActionLabel"
+                aria-label="@PinActionLabel @Session.Title"
+                aria-pressed="@(IsPinned ? "true" : "false")"
+                aria-describedby="@TooltipId"
+                @onfocus="ShowTooltip"
+                @onblur="HideTooltip">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 17v5M9 2h6v2.5a2 2 0 0 0 .586 1.414L17 7.328V11l2 2v1H5v-1l2-2V7.328l1.414-1.414A2 2 0 0 0 9 4.5V2Z" />
+            </svg>
+        </button>
         <button type="button"
                 @onclick="HandleDelete"
                 @onclick:stopPropagation="true"

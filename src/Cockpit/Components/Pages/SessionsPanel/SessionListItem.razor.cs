@@ -13,8 +13,10 @@ public sealed partial class SessionListItem
 	[Parameter] public required SessionModel Session { get; set; }
 	[Parameter] public bool Compact { get; set; }
 	[Parameter] public bool IsActive { get; set; }
+	[Parameter] public bool IsPinned { get; set; }
 	[Parameter] public EventCallback<SessionModel> OnSelect { get; set; }
 	[Parameter] public EventCallback<MouseEventArgs> OnDelete { get; set; }
+	[Parameter] public EventCallback OnTogglePin { get; set; }
 	[Parameter] public required string TimeAgo { get; set; }
 
 	ElementReference _sessionItem;
@@ -24,6 +26,7 @@ public sealed partial class SessionListItem
 	bool _hasCalculatedHoverStats;
 	SessionStatusEnum? ListStatus => Session.DisplayStatus == SessionStatusEnum.Idle ? null : Session.DisplayStatus;
 	string ListStatusText => Session.DisplayStatus == SessionStatusEnum.Error ? "Error" : "Idle";
+	string PinActionLabel => IsPinned ? "Unpin session" : "Pin session";
 	SessionHoverStats? HoverStats => _hoverStats;
 	string TooltipId => _tooltipId;
 
@@ -33,6 +36,7 @@ public sealed partial class SessionListItem
 
 	async Task HandleSelect() => await OnSelect.InvokeAsync(Session);
 	async Task HandleDelete(MouseEventArgs e) => await OnDelete.InvokeAsync(e);
+	async Task HandleTogglePin() => await OnTogglePin.InvokeAsync();
 	async Task ShowTooltip()
 	{
 		if(!_hasCalculatedHoverStats)

@@ -187,7 +187,9 @@
                                  style="padding-left: @(sessionRow.IndentLevel * 12)px;">
                                 <SessionListItem Session="@sessionRow.Session"
                                                  IsActive="@(_sessionFeature.CurrentSession?.Id == sessionRow.Session.Id)"
+                                                 IsPinned="@_pinnedItemsFeature.IsSessionPinned(sessionRow.Session.Id)"
                                                  OnSelect="SelectSession"
+                                                 OnTogglePin="() => ToggleSessionPin(sessionRow.Session.Id)"
                                                  OnDelete="@(e => ShowDeleteDialog(sessionRow.Session, e))"
                                                  TimeAgo="@GetTimeAgo(sessionRow.Session.LastActivity)" />
                             </div>
@@ -201,7 +203,9 @@
                                     <SessionListItem Session="@recentSession"
                                                      Compact="true"
                                                      IsActive="@(_sessionFeature.CurrentSession?.Id == recentSession.Id)"
+                                                     IsPinned="@_pinnedItemsFeature.IsSessionPinned(recentSession.Id)"
                                                      OnSelect="SelectSession"
+                                                     OnTogglePin="() => ToggleSessionPin(recentSession.Id)"
                                                      OnDelete="@(e => ShowDeleteDialog(recentSession, e))"
                                                      TimeAgo="@GetTimeAgo(recentSession.LastActivity)" />
                                 </div>
@@ -211,10 +215,12 @@
                             <SessionListProjectItem GroupId="@group.GroupId"
                                                     Name="@group.Name"
                                                     IsExpanded="@group.IsExpanded"
+                                                    IsPinned="@_pinnedItemsFeature.IsProjectPinned(group.GroupId)"
                                                     CreateSessionPath="@group.CreateSessionPath"
                                                     Repository="@group.Repository"
                                                     SessionCount="@group.SessionCount"
                                                     OnToggle="() => ToggleProjectGroupExpand(group.GroupId)"
+                                                    OnTogglePin="() => ToggleProjectPin(group.GroupId)"
                                                     OnCreate="() => CreateSessionFromGroup(group)" />
                             break;
                         case SessionListShowMoreRow showMore:

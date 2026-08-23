@@ -49,6 +49,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly SessionHooksFactory _hooksFactory;
 	readonly CanvasWindowManager _canvasWindowManager;
 	readonly SessionInteractionCoordinator _interactionCoordinator;
+	readonly PinnedItemsFeature _pinnedItemsFeature;
 
 	public SessionFeature(
 		CopilotClientFeature clientFeature,
@@ -73,7 +74,8 @@ public sealed partial class SessionFeature : IDisposable
 		IAppSettingsFeature appSettingsFeature,
 		SessionHooksFactory hooksFactory,
 		CanvasWindowManager canvasWindowManager,
-		SessionInteractionCoordinator interactionCoordinator)
+		SessionInteractionCoordinator interactionCoordinator,
+		PinnedItemsFeature pinnedItemsFeature)
 	{
 		_clientFeature = clientFeature;
 		_logger = logger;
@@ -98,6 +100,7 @@ public sealed partial class SessionFeature : IDisposable
 		_hooksFactory = hooksFactory;
 		_canvasWindowManager = canvasWindowManager;
 		_interactionCoordinator = interactionCoordinator;
+		_pinnedItemsFeature = pinnedItemsFeature;
 
 		_clientFeature.OnConnectionStateChanged += HandleConnectionStateChanged;
 		StartEvictionLoop();

@@ -447,7 +447,7 @@ public sealed class SessionEventProcessor
 		SessionWarningEvent => SessionChangeKind.ConversationContent,
 		SessionCompactionStartEvent => SessionChangeKind.ConversationContent,
 		SessionCompactionCompleteEvent => SessionChangeKind.ConversationContent,
-		SessionContextChangedEvent => SessionChangeKind.SessionSummary,
+		SessionContextChangedEvent => SessionChangeKind.SessionSummary | SessionChangeKind.SessionContext,
 		SessionUsageInfoEvent => SessionChangeKind.ConversationContent,
 		PendingMessagesModifiedEvent => SessionChangeKind.ConversationContent,
 		_ => SessionChangeKind.None

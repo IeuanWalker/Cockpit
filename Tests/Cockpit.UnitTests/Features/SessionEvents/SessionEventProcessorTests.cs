@@ -35,6 +35,32 @@ public class SessionEventProcessorTests
 	static SessionEventProcessor CreateProcessor() => new(NullLogger<SessionEventProcessor>.Instance);
 
 	[Fact]
+	public void Process_ContextChanged_IdentifiesContextAndSummaryChanges()
+	{
+		SessionChangeKind change = CreateProcessor().Process(CreateSession(), new SessionContextChangedEvent
+		{
+			Data = new SessionContextChangedData { Cwd = "C:\\work\\Cockpit" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		(change & SessionChangeKind.SessionContext).ShouldNotBe(SessionChangeKind.None);
+		(change & SessionChangeKind.SessionSummary).ShouldNotBe(SessionChangeKind.None);
+	}
+
+	[Fact]
+	public void Process_RoutineSummaryChange_DoesNotIdentifyContextChange()
+	{
+		SessionChangeKind change = CreateProcessor().Process(CreateSession(), new SessionTitleChangedEvent
+		{
+			Data = new SessionTitleChangedData { Title = "Updated title" },
+			Timestamp = DateTimeOffset.UtcNow
+		});
+
+		(change & SessionChangeKind.SessionSummary).ShouldNotBe(SessionChangeKind.None);
+		(change & SessionChangeKind.SessionContext).ShouldBe(SessionChangeKind.None);
+	}
+
+	[Fact]
 	public void ProcessBatch_PublishesOnlyAfterCompleteHistoryAndProducesFinalSnapshot()
 	{
 		SessionModel session = CreateSession();
