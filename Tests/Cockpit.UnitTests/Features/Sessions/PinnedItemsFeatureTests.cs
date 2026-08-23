@@ -80,6 +80,27 @@ public sealed class PinnedItemsFeatureTests : IDisposable
 	}
 
 	[Fact]
+	public async Task InitializeAsync_WhenPinsAreLoaded_DoesNotNotify()
+	{
+		Directory.CreateDirectory(_directory);
+		await File.WriteAllTextAsync(
+			_filePath,
+			"""
+			{ "Version": 1, "SessionIds": ["session-1"], "ProjectIds": ["project-1"] }
+			""",
+			TestContext.Current.CancellationToken);
+		PinnedItemsFeature feature = CreateFeature();
+		int notifications = 0;
+		feature.OnChanged += () => notifications++;
+
+		await feature.InitializeAsync();
+
+		feature.IsSessionPinned("session-1").ShouldBeTrue();
+		feature.IsProjectPinned("project-1").ShouldBeTrue();
+		notifications.ShouldBe(0);
+	}
+
+	[Fact]
 	public async Task ToggleAsync_WhenAlreadyPinned_UnpinsAndPersistsRemoval()
 	{
 		PinnedItemsFeature feature = CreateFeature();

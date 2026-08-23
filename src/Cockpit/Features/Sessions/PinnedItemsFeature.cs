@@ -227,11 +227,6 @@ public sealed class PinnedItemsFeature
 
 			Volatile.Write(ref _sessionIds, sessionIds);
 			Volatile.Write(ref _projectIds, projectIds);
-
-			if(sessionIds.Count > 0 || projectIds.Count > 0)
-			{
-				NotifyChanged();
-			}
 		}
 		catch(Exception ex)
 		{
