@@ -16,7 +16,10 @@ public class SessionListProjectionTests
 		SessionModel older = CreateSession("older", baseline);
 		SessionModel newer = CreateSession("newer", baseline.AddMinutes(1));
 
-		IReadOnlyList<SessionListRow> rows = Build([older, newer], searchText: "er");
+		IReadOnlyList<SessionListRow> rows = Build(
+			[older, newer],
+			searchText: "er",
+			pinnedSessionIds: new HashSet<string>(["newer"], StringComparer.Ordinal));
 
 		rows.Select(row => row.Key).ShouldBe(["session:search:newer", "session:search:older"]);
 		rows.All(row => row is SessionListSessionRow { IndentLevel: 0 }).ShouldBeTrue();
@@ -39,14 +42,120 @@ public class SessionListProjectionTests
 			"section:Chats",
 			"session:chats:chat",
 			"section:Projects",
-			$"project:{projectId}",
-			$"session:{projectId}:project",
+			$"project:projects:{projectId}",
+			$"session:projects:{projectId}:project",
 			"section:Recents"
 		]);
 		rows.OfType<SessionListSessionRow>().Select(row => row.IndentLevel).ShouldBe([1, 2]);
 		SessionListProjectHeaderRow projectHeader = rows.OfType<SessionListProjectHeaderRow>().Single();
 		projectHeader.CreateSessionPath.ShouldBe("C:\\work\\Cockpit");
 		projectHeader.SessionCount.ShouldBe(1);
+	}
+
+	[Fact]
+	public void PinnedSection_IsHiddenWhenThereAreNoPinsOrOnlyUnresolvedPins()
+	{
+		SessionModel session = CreateSession("session", baseline, "C:\\work\\Cockpit", "owner/Cockpit");
+
+		IReadOnlyList<SessionListRow> withoutPins = Build([session]);
+		IReadOnlyList<SessionListRow> withUnresolvedPins = Build(
+			[session],
+			pinnedSessionIds: new HashSet<string>(["missing-session"], StringComparer.Ordinal),
+			pinnedProjectIds: new HashSet<string>(["repo:missing/project"], SessionProjectIdentityResolver.ProjectIdComparer));
+
+		withoutPins.OfType<SessionListSectionHeaderRow>().Select(row => row.Section)
+			.ShouldBe([SessionListSection.Chats, SessionListSection.Projects, SessionListSection.Recents]);
+		withUnresolvedPins.OfType<SessionListSectionHeaderRow>().Select(row => row.Section)
+			.ShouldBe([SessionListSection.Chats, SessionListSection.Projects, SessionListSection.Recents]);
+	}
+
+	[Fact]
+	public void ExpandedPinnedSection_RendersProjectsBeforeIndividualSessionsAndAppearsFirst()
+	{
+		SessionModel older = CreateSession("older", baseline, "C:\\work\\Cockpit", "owner/Cockpit");
+		SessionModel newer = CreateSession("newer", baseline.AddMinutes(1), "C:\\work\\Cockpit", "owner/Cockpit");
+		string projectId = ProjectId(older);
+
+		IReadOnlyList<SessionListRow> rows = Build(
+			[older, newer],
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Pinned]),
+			expandedProjectGroups: new HashSet<string>([projectId], SessionProjectIdentityResolver.ProjectIdComparer),
+			pinnedSessionIds: new HashSet<string>(["older"], StringComparer.Ordinal),
+			pinnedProjectIds: new HashSet<string>([projectId], SessionProjectIdentityResolver.ProjectIdComparer));
+
+		rows.Select(row => row.Key).ShouldBe([
+			"section:Pinned",
+			$"project:pinned:{projectId}",
+			$"session:pinned:{projectId}:newer",
+			$"session:pinned:{projectId}:older",
+			"section:Chats",
+			"section:Projects",
+			"section:Recents"
+		]);
+		rows.OfType<SessionListSectionHeaderRow>().First().Name.ShouldBe("Pinned");
+	}
+
+	[Fact]
+	public void PinnedProject_IsRemovedFromProjectsAndRecents()
+	{
+		List<SessionModel> sessions = [.. Enumerable.Range(0, 7)
+			.Select(index => CreateSession(
+				$"session-{index}",
+				baseline.AddMinutes(-index),
+				"C:\\work\\Cockpit",
+				"owner/Cockpit"))];
+		string projectId = ProjectId(sessions[0]);
+
+		IReadOnlyList<SessionListRow> rows = Build(
+			sessions,
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Pinned, SessionListSection.Projects, SessionListSection.Recents]),
+			expandedProjectGroups: new HashSet<string>([projectId], SessionProjectIdentityResolver.ProjectIdComparer),
+			pinnedProjectIds: new HashSet<string>([projectId], SessionProjectIdentityResolver.ProjectIdComparer));
+
+		rows.OfType<SessionListProjectHeaderRow>().Select(row => row.Key)
+			.ShouldBe([$"project:pinned:{projectId}"]);
+		rows.OfType<SessionListShowMoreRow>().Select(row => row.Key)
+			.ShouldBe([$"show-more:pinned:{projectId}"]);
+		rows.OfType<SessionListRecentsRow>().Single().Sessions.ShouldBeEmpty();
+	}
+
+	[Fact]
+	public void PinnedSession_IsRemovedFromItsProjectAndRecents()
+	{
+		SessionModel pinned = CreateSession("pinned", baseline.AddMinutes(1), "C:\\work\\Cockpit", "owner/Cockpit");
+		SessionModel regular = CreateSession("regular", baseline, "C:\\work\\Cockpit", "owner/Cockpit");
+		string projectId = ProjectId(pinned);
+
+		IReadOnlyList<SessionListRow> rows = Build(
+			[pinned, regular],
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Pinned, SessionListSection.Projects, SessionListSection.Recents]),
+			expandedProjectGroups: new HashSet<string>([projectId], SessionProjectIdentityResolver.ProjectIdComparer),
+			pinnedSessionIds: new HashSet<string>([pinned.Id], StringComparer.Ordinal));
+
+		rows.OfType<SessionListSessionRow>().Select(row => row.Key).ShouldBe([
+			"session:pinned-sessions:pinned",
+			$"session:projects:{projectId}:regular"
+		]);
+		rows.OfType<SessionListProjectHeaderRow>().Single().SessionCount.ShouldBe(1);
+		rows.OfType<SessionListRecentsRow>().Single().Sessions.Select(session => session.Id).ShouldBe([regular.Id]);
+	}
+
+	[Fact]
+	public void PinnedChat_IsRemovedFromChatsAndRecents()
+	{
+		SessionModel pinned = CreateSession("pinned", baseline.AddMinutes(1), string.Empty);
+		SessionModel regular = CreateSession("regular", baseline, string.Empty);
+
+		IReadOnlyList<SessionListRow> rows = Build(
+			[pinned, regular],
+			expandedSections: new HashSet<SessionListSection>([SessionListSection.Pinned, SessionListSection.Chats, SessionListSection.Recents]),
+			pinnedSessionIds: new HashSet<string>([pinned.Id], StringComparer.Ordinal));
+
+		rows.OfType<SessionListSessionRow>().Select(row => row.Key).ShouldBe([
+			"session:pinned-sessions:pinned",
+			"session:chats:regular"
+		]);
+		rows.OfType<SessionListRecentsRow>().Single().Sessions.Select(session => session.Id).ShouldBe([regular.Id]);
 	}
 
 	[Fact]
@@ -247,7 +356,9 @@ public class SessionListProjectionTests
 				new HashSet<string>(["owner/Cockpit"], StringComparer.OrdinalIgnoreCase),
 				new HashSet<SessionListSection>(),
 				new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-				new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)));
+				new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
+				new HashSet<string>(StringComparer.Ordinal),
+				new HashSet<string>(SessionProjectIdentityResolver.ProjectIdComparer)));
 
 		rows.Select(row => row.Key).ShouldBe(["session:search:match"]);
 	}
@@ -257,20 +368,26 @@ public class SessionListProjectionTests
 		string searchText = "",
 		IReadOnlySet<SessionListSection>? expandedSections = null,
 		IReadOnlySet<string>? expandedProjectGroups = null,
-		IReadOnlyDictionary<string, int>? sessionLimits = null) =>
+		IReadOnlyDictionary<string, int>? sessionLimits = null,
+		IReadOnlySet<string>? pinnedSessionIds = null,
+		IReadOnlySet<string>? pinnedProjectIds = null) =>
 		Build(
 			SessionListProjection.CreateSource(sessions),
 			searchText,
 			expandedSections,
 			expandedProjectGroups,
-			sessionLimits);
+			sessionLimits,
+			pinnedSessionIds,
+			pinnedProjectIds);
 
 	static IReadOnlyList<SessionListRow> Build(
 		SessionListProjectionSource source,
 		string searchText = "",
 		IReadOnlySet<SessionListSection>? expandedSections = null,
 		IReadOnlySet<string>? expandedProjectGroups = null,
-		IReadOnlyDictionary<string, int>? sessionLimits = null) =>
+		IReadOnlyDictionary<string, int>? sessionLimits = null,
+		IReadOnlySet<string>? pinnedSessionIds = null,
+		IReadOnlySet<string>? pinnedProjectIds = null) =>
 		SessionListProjection.Build(
 			source,
 			new SessionListProjectionOptions(
@@ -279,7 +396,9 @@ public class SessionListProjectionTests
 				new HashSet<string>(StringComparer.OrdinalIgnoreCase),
 				expandedSections ?? new HashSet<SessionListSection>(),
 				expandedProjectGroups ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase),
-				sessionLimits ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)));
+				sessionLimits ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase),
+				pinnedSessionIds ?? new HashSet<string>(StringComparer.Ordinal),
+				pinnedProjectIds ?? new HashSet<string>(SessionProjectIdentityResolver.ProjectIdComparer)));
 
 	static SessionModel CreateSession(
 		string id,

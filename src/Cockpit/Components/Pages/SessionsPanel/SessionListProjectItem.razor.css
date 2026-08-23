@@ -25,6 +25,7 @@
 }
 
     .project-toggle:focus-visible,
+    .project-pin:focus-visible,
     .project-add:focus-visible {
         outline: 2px solid var(--accent-color);
         outline-offset: 2px;
@@ -55,26 +56,39 @@
         opacity: 1;
     }
 
+.project-pin,
 .project-add {
     border-radius: 0.25rem;
     color: var(--secondary-text);
     flex-shrink: 0;
-    margin-left: auto;
     opacity: 0;
     padding: 0.25rem;
 }
 
+.project-pin {
+    margin-left: auto;
+}
+
+    .project-pin.is-pinned {
+        color: var(--accent-color);
+    }
+
+    .project-item:hover .project-pin,
+    .project-item:focus-within .project-pin,
+    .project-pin:focus-visible,
     .project-item:hover .project-add,
     .project-item:focus-within .project-add,
     .project-add:focus-visible {
         opacity: 1;
     }
 
+    .project-pin:hover,
     .project-add:hover {
         background-color: var(--active-color);
         color: var(--text-color);
     }
 
+    .project-pin svg,
     .project-add svg {
         height: 0.875rem;
         width: 0.875rem;

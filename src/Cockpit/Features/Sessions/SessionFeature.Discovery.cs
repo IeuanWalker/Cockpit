@@ -10,6 +10,8 @@ public sealed partial class SessionFeature
 	Task? _loadExistingSessionsTask;
 	readonly Lock _loadGate = new();
 
+	internal bool HasSuccessfullyLoadedExistingSessions { get; private set; }
+
 	public Task LoadExistingSessions()
 	{
 		lock(_loadGate)
@@ -48,6 +50,7 @@ public sealed partial class SessionFeature
 			ModelInfo defaultModel = await defaultModelTask;
 			if(sessionMetadataList.Count == 0)
 			{
+				HasSuccessfullyLoadedExistingSessions = true;
 				_logger.LogInformation("No existing sessions found");
 				return;
 			}
@@ -55,6 +58,7 @@ public sealed partial class SessionFeature
 			_logger.LogInformation("Found {Count} existing sessions", sessionMetadataList.Count);
 
 			PopulateSessionsFromMetadata(sessionMetadataList, defaultModel, _sessionListFeature, _logger);
+			HasSuccessfullyLoadedExistingSessions = true;
 
 			_sessionListFeature.NotifyStateChanged(null, SessionChangeKind.SessionCollection);
 			_logger.LogInformation("Successfully loaded {Count} sessions", _sessionListFeature.Sessions.Count);

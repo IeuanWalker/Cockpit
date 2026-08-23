@@ -28,20 +28,41 @@
         cursor: default;
     }
 
-.session-delete-overlay {
+.session-actions-overlay {
     border-radius: 0 0.375rem 0.375rem 0;
+    opacity: 0;
     transition: opacity 0.15s ease-in-out;
 }
 
-.session-item:hover .session-delete-overlay,
-.session-item:focus-within .session-delete-overlay {
+.session-item:hover .session-actions-overlay,
+.session-item:focus-within .session-actions-overlay {
     opacity: 1;
     background: linear-gradient(to right, transparent, var(--hover-color) 60%);
 }
 
-.session-item.bg-app-active .session-delete-overlay {
+.session-item.bg-app-active .session-actions-overlay {
     background: linear-gradient(to right, transparent, var(--active-color) 60%);
 }
+
+.session-pin-btn {
+    color: var(--secondary-text);
+    flex-shrink: 0;
+}
+
+    .session-pin-btn:hover {
+        background-color: var(--active-color);
+        color: var(--text-color);
+    }
+
+    .session-pin-btn.is-pinned {
+        color: var(--accent-color);
+    }
+
+    .session-pin-btn:focus-visible,
+    .session-delete-btn:focus-visible {
+        outline: 2px solid var(--accent-color);
+        outline-offset: 1px;
+    }
 
 .session-tooltip {
     background: var(--tooltip-bg, #252525);

@@ -10,15 +10,18 @@ public partial class SessionPanel : ComponentBase, IDisposable
 {
 	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionFeature _sessionFeature;
+	readonly PinnedItemsFeature _pinnedItemsFeature;
 	readonly IJSRuntime _jsRuntime;
 
 	public SessionPanel(
 		IUIStateFeature uiStateFeature,
 		SessionFeature sessionFeature,
+		PinnedItemsFeature pinnedItemsFeature,
 		IJSRuntime jsRuntime)
 	{
 		_uiStateFeature = uiStateFeature;
 		_sessionFeature = sessionFeature;
+		_pinnedItemsFeature = pinnedItemsFeature;
 		_jsRuntime = jsRuntime;
 	}
 
@@ -35,6 +38,11 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	void OnSessionStateChanged(SessionStateChange change)
 	{
+		if((change.Kind & SessionChangeKind.SessionCollection) != 0)
+		{
+			_ = ReconcilePinsAsync();
+		}
+
 		if(SessionPanelStateChangeFilter.IsRelevant(change))
 		{
 			OnStateChanged();
@@ -51,8 +59,25 @@ public partial class SessionPanel : ComponentBase, IDisposable
 	protected override async Task OnInitializedAsync()
 	{
 		_isLoadingSessions = true;
+		Task initializePinsTask = _pinnedItemsFeature.InitializeAsync();
 		await _sessionFeature.LoadExistingSessions();
+		await initializePinsTask;
+		await ReconcilePinsAsync();
 		_isLoadingSessions = false;
+	}
+
+	async Task ReconcilePinsAsync()
+	{
+		if(!_sessionFeature.HasSuccessfullyLoadedExistingSessions)
+		{
+			return;
+		}
+
+		SessionListProjectionSource source = SessionListProjection.CreateSource(_sessionFeature.Sessions);
+		HashSet<string> sessionIds = _sessionFeature.Sessions
+			.Select(session => session.Id)
+			.ToHashSet(StringComparer.Ordinal);
+		await _pinnedItemsFeature.ReconcileAsync(sessionIds, source.ProjectGroupIds);
 	}
 
 	bool _isRefreshingSessions = false;

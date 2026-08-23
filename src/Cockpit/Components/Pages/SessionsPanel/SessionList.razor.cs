@@ -14,13 +14,16 @@ public partial class SessionList : ComponentBase, IDisposable
 
 	readonly ITimestampFeature _timestampFeature;
 	readonly SessionFeature _sessionFeature;
+	readonly PinnedItemsFeature _pinnedItemsFeature;
 
 	public SessionList(
 		ITimestampFeature timestampFeature,
-		SessionFeature sessionFeature)
+		SessionFeature sessionFeature,
+		PinnedItemsFeature pinnedItemsFeature)
 	{
 		_timestampFeature = timestampFeature;
 		_sessionFeature = sessionFeature;
+		_pinnedItemsFeature = pinnedItemsFeature;
 	}
 
 	string _searchText = string.Empty;
@@ -30,7 +33,7 @@ public partial class SessionList : ComponentBase, IDisposable
 	readonly HashSet<string> _filterCwds = new(StringComparer.OrdinalIgnoreCase);
 	readonly HashSet<string> _filterRepos = new(StringComparer.OrdinalIgnoreCase);
 	readonly HashSet<string> _expandedCwdGroups = new(StringComparer.OrdinalIgnoreCase);
-	readonly HashSet<SessionListSection> _expandedSections = [SessionListSection.Projects];
+	readonly HashSet<SessionListSection> _expandedSections = [SessionListSection.Pinned, SessionListSection.Projects];
 	readonly HashSet<string> _expandedProjectGroups = new(SessionProjectIdentityResolver.ProjectIdComparer);
 	readonly Dictionary<string, int> _sessionLimits = new(SessionProjectIdentityResolver.ProjectIdComparer);
 	bool _projectExpansionInitialized;
@@ -77,7 +80,15 @@ public partial class SessionList : ComponentBase, IDisposable
 						_filterRepos,
 						_expandedSections,
 						_expandedProjectGroups,
-						_sessionLimits))];
+						_sessionLimits,
+						_projectionSource.SortedSessions
+							.Where(session => _pinnedItemsFeature.IsSessionPinned(session.Id))
+							.Select(session => session.Id)
+							.ToHashSet(StringComparer.Ordinal),
+						_projectionSource.ProjectGroups
+							.Where(group => _pinnedItemsFeature.IsProjectPinned(group.Id))
+							.Select(group => group.Id)
+							.ToHashSet(SessionProjectIdentityResolver.ProjectIdComparer)))];
 				_projectionDirty = false;
 			}
 
@@ -259,11 +270,22 @@ public partial class SessionList : ComponentBase, IDisposable
 	}
 
 	Task CreateSessionFromGroup(SessionListProjectHeaderRow group) => OnCreateSessionFromPath.InvokeAsync(group.CreateSessionPath);
+	Task ToggleSessionPin(string sessionId) => _pinnedItemsFeature.ToggleSessionAsync(sessionId);
+	Task ToggleProjectPin(string projectId) => _pinnedItemsFeature.ToggleProjectAsync(projectId);
 
 	protected override void OnInitialized()
 	{
 		_sessionFeature.OnSessionStateChanged += OnSessionStateChanged;
+		_pinnedItemsFeature.OnChanged += OnPinnedItemsChanged;
 		_timestampFeature.OnTick += OnTimestampTick;
+	}
+
+	protected override async Task OnInitializedAsync() => await _pinnedItemsFeature.InitializeAsync();
+
+	void OnPinnedItemsChanged()
+	{
+		InvalidateProjection();
+		_ = InvokeAsync(StateHasChanged);
 	}
 
 	void OnSessionStateChanged(SessionStateChange change)
@@ -327,6 +349,7 @@ public partial class SessionList : ComponentBase, IDisposable
 		if(disposing)
 		{
 			_sessionFeature.OnSessionStateChanged -= OnSessionStateChanged;
+			_pinnedItemsFeature.OnChanged -= OnPinnedItemsChanged;
 			_timestampFeature.OnTick -= OnTimestampTick;
 		}
 	}
