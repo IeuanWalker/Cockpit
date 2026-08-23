@@ -208,6 +208,28 @@ public class SessionListProjectionTests
 	}
 
 	[Fact]
+	public void PruneStaleSessionLimits_PreservesSyntheticGroupsAndRemovesMissingProjects()
+	{
+		Dictionary<string, int> sessionLimits = new(SessionProjectIdentityResolver.ProjectIdComparer)
+		{
+			[SessionList.chatsGroupId] = 15,
+			[SessionList.pinnedSessionsGroupId] = 15,
+			["repo:owner/current"] = 15,
+			["repo:owner/missing"] = 15
+		};
+
+		SessionList.PruneStaleSessionLimits(
+			sessionLimits,
+			new HashSet<string>(["repo:owner/current"], SessionProjectIdentityResolver.ProjectIdComparer));
+
+		sessionLimits.Keys.ShouldBe([
+			SessionList.chatsGroupId,
+			SessionList.pinnedSessionsGroupId,
+			"repo:owner/current"
+		], ignoreOrder: true);
+	}
+
+	[Fact]
 	public void RecentsSection_ProducesOneVirtualizableCollectionInActivityOrder()
 	{
 		List<SessionModel> sessions = [.. Enumerable.Range(0, 100)
@@ -245,6 +267,22 @@ public class SessionListProjectionTests
 
 		source.MostRecentProjectGroupId.ShouldBe(ProjectId(newer));
 		source.ProjectGroupIds.ShouldBe(new HashSet<string>([ProjectId(older), ProjectId(newer)], SessionProjectIdentityResolver.ProjectIdComparer), ignoreOrder: true);
+	}
+
+	[Fact]
+	public void ProjectGroupAliases_MapPathIdentityToRepositoryIdentityWhenMetadataBecomesAvailable()
+	{
+		string root = ProjectPath("Cockpit");
+		SessionModel withoutRepository = CreateSession("without-repository", baseline, root, gitRoot: root);
+		SessionModel withRepository = CreateSession("with-repository", baseline.AddMinutes(1), root, "owner/Cockpit", gitRoot: root);
+		string pathId = ProjectId(withoutRepository);
+		string repositoryId = ProjectId(withRepository);
+
+		SessionListProjectionSource source = SessionListProjection.CreateSource([withRepository]);
+
+		source.ProjectGroupIds.ShouldBe(new HashSet<string>([repositoryId], SessionProjectIdentityResolver.ProjectIdComparer));
+		source.ProjectGroupIdAliases[pathId].ShouldBe(repositoryId);
+		source.ProjectGroupIdAliases[repositoryId].ShouldBe(repositoryId);
 	}
 
 	[Fact]

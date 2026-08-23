@@ -8,6 +8,9 @@ namespace Cockpit.Components.Pages.SessionsPanel;
 
 public partial class SessionList : ComponentBase, IDisposable
 {
+	internal const string chatsGroupId = "chats";
+	internal const string pinnedSessionsGroupId = "pinned-sessions";
+
 	[Parameter] public DeleteSessionPopup? DeletePopup { get; set; }
 	[Parameter] public bool ShowSearch { get; set; }
 	[Parameter] public EventCallback<string?> OnCreateSessionFromPath { get; set; }
@@ -237,12 +240,19 @@ public partial class SessionList : ComponentBase, IDisposable
 	{
 		IReadOnlySet<string> projectGroupIds = source.ProjectGroupIds;
 		_expandedProjectGroups.RemoveWhere(groupId => !projectGroupIds.Contains(groupId));
+		PruneStaleSessionLimits(_sessionLimits, projectGroupIds);
+	}
 
-		foreach(string groupId in _sessionLimits.Keys
-			.Where(groupId => !string.Equals(groupId, "chats", StringComparison.OrdinalIgnoreCase) && !projectGroupIds.Contains(groupId))
+	internal static void PruneStaleSessionLimits(IDictionary<string, int> sessionLimits, IReadOnlySet<string> projectGroupIds)
+	{
+		foreach(string groupId in sessionLimits.Keys
+			.Where(groupId =>
+				!string.Equals(groupId, chatsGroupId, StringComparison.OrdinalIgnoreCase) &&
+				!string.Equals(groupId, pinnedSessionsGroupId, StringComparison.OrdinalIgnoreCase) &&
+				!projectGroupIds.Contains(groupId))
 			.ToList())
 		{
-			_sessionLimits.Remove(groupId);
+			sessionLimits.Remove(groupId);
 		}
 	}
 

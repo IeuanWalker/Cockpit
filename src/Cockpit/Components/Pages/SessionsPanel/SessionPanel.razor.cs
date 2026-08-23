@@ -38,7 +38,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 
 	void OnSessionStateChanged(SessionStateChange change)
 	{
-		if((change.Kind & SessionChangeKind.SessionCollection) != 0)
+		if(SessionPanelStateChangeFilter.RequiresPinReconciliation(change))
 		{
 			_ = ReconcilePinsAsync();
 		}
@@ -77,7 +77,10 @@ public partial class SessionPanel : ComponentBase, IDisposable
 		HashSet<string> sessionIds = _sessionFeature.Sessions
 			.Select(session => session.Id)
 			.ToHashSet(StringComparer.Ordinal);
-		await _pinnedItemsFeature.ReconcileAsync(sessionIds, source.ProjectGroupIds);
+		await _pinnedItemsFeature.ReconcileAsync(
+			sessionIds,
+			source.ProjectGroupIds,
+			source.ProjectGroupIdAliases);
 	}
 
 	bool _isRefreshingSessions = false;
@@ -162,6 +165,10 @@ public partial class SessionPanel : ComponentBase, IDisposable
 static class SessionPanelStateChangeFilter
 {
 	const SessionChangeKind relevantChanges = SessionChangeKind.SessionCollection | SessionChangeKind.CurrentSession;
+	const SessionChangeKind pinReconciliationChanges = SessionChangeKind.SessionCollection | SessionChangeKind.SessionSummary;
 
 	public static bool IsRelevant(SessionStateChange change) => (change.Kind & relevantChanges) != 0;
+
+	public static bool RequiresPinReconciliation(SessionStateChange change) =>
+		(change.Kind & pinReconciliationChanges) != 0;
 }

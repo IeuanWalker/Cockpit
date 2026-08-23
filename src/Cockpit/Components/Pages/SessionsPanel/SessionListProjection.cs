@@ -74,6 +74,9 @@ sealed record SessionListProjectionSource(
 	public IReadOnlySet<string> ProjectGroupIds { get; } = ProjectGroups
 		.Select(group => group.Id)
 		.ToHashSet(SessionProjectIdentityResolver.ProjectIdComparer);
+	public IReadOnlyDictionary<string, string> ProjectGroupIdAliases { get; } = ProjectGroups
+		.SelectMany(group => group.AliasIds.Select(alias => new KeyValuePair<string, string>(alias, group.Id)))
+		.ToDictionary(pair => pair.Key, pair => pair.Value, SessionProjectIdentityResolver.ProjectIdComparer);
 
 	public string? MostRecentProjectGroupId => ProjectGroups.FirstOrDefault()?.Id;
 }
@@ -83,6 +86,7 @@ sealed class ProjectSessionGroup(
 	string baseName,
 	string rootPath,
 	string? repository,
+	IReadOnlySet<string> aliasIds,
 	IReadOnlyList<SessionModel> sessions,
 	DateTime lastActivity)
 {
@@ -90,6 +94,7 @@ sealed class ProjectSessionGroup(
 	public string BaseName { get; } = baseName;
 	public string RootPath { get; } = rootPath;
 	public string? Repository { get; } = repository;
+	public IReadOnlySet<string> AliasIds { get; } = aliasIds;
 	public IReadOnlyList<SessionModel> Sessions { get; } = sessions;
 	public DateTime LastActivity { get; } = lastActivity;
 	public string Name { get; set; } = baseName;
@@ -296,12 +301,18 @@ static class SessionListProjection
 				string? repository = entries
 					.Select(entry => entry.Session.Context.Repository)
 					.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? identity.Repository;
+				HashSet<string> aliasIds = entries
+					.SelectMany(entry => new[] { entry.Identity!.RootId, entry.Identity.RepositoryId })
+					.Where(value => value is not null)
+					.Select(value => value!)
+					.ToHashSet(SessionProjectIdentityResolver.ProjectIdComparer);
 
 				return new ProjectSessionGroup(
 					groupId,
 					baseName,
 					identity.RootPath,
 					repository,
+					aliasIds,
 					[.. entries.Select(entry => entry.Session)],
 					entries[0].Session.LastActivity);
 			})];

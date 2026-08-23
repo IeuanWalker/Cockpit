@@ -93,11 +93,13 @@ public sealed class PinnedItemsFeature
 	}
 
 	/// <summary>
-	/// Removes pins whose corresponding session or project no longer exists.
+	/// Removes pins whose corresponding session or project no longer exists, migrating project aliases
+	/// to the current canonical project identifiers when supplied.
 	/// </summary>
 	public async Task ReconcileAsync(
 		IReadOnlySet<string> validSessionIds,
-		IReadOnlySet<string> validProjectIds)
+		IReadOnlySet<string> validProjectIds,
+		IReadOnlyDictionary<string, string>? projectIdAliases = null)
 	{
 		ArgumentNullException.ThrowIfNull(validSessionIds);
 		ArgumentNullException.ThrowIfNull(validProjectIds);
@@ -110,15 +112,28 @@ public sealed class PinnedItemsFeature
 		{
 			HashSet<string> validSessions = new(validSessionIds, StringComparer.Ordinal);
 			HashSet<string> validProjects = new(validProjectIds, projectIdComparer);
+			Dictionary<string, string> projectAliases = projectIdAliases is null
+				? new(projectIdComparer)
+				: new(projectIdAliases, projectIdComparer);
 			HashSet<string> reconciledSessions = new(
 				_sessionIds.Where(validSessions.Contains),
 				StringComparer.Ordinal);
-			HashSet<string> reconciledProjects = new(
-				_projectIds.Where(validProjects.Contains),
-				projectIdComparer);
+			HashSet<string> reconciledProjects = new(projectIdComparer);
+			foreach(string projectId in _projectIds)
+			{
+				if(validProjects.Contains(projectId))
+				{
+					reconciledProjects.Add(projectId);
+				}
+				else if(projectAliases.TryGetValue(projectId, out string? canonicalProjectId) &&
+					validProjects.Contains(canonicalProjectId))
+				{
+					reconciledProjects.Add(canonicalProjectId);
+				}
+			}
 
-			changed = reconciledSessions.Count != _sessionIds.Count ||
-				reconciledProjects.Count != _projectIds.Count;
+			changed = !_sessionIds.SetEquals(reconciledSessions) ||
+				!_projectIds.SetEquals(reconciledProjects);
 			if(changed)
 			{
 				Volatile.Write(ref _sessionIds, reconciledSessions);

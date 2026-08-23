@@ -141,6 +141,30 @@ public sealed class PinnedItemsFeatureTests : IDisposable
 	}
 
 	[Fact]
+	public async Task ReconcileAsync_MigratesPinnedProjectAliasToCurrentCanonicalIdAndPersistsIt()
+	{
+		PinnedItemsFeature feature = CreateFeature();
+		await feature.ToggleProjectAsync("path:C:\\WORK\\COCKPIT");
+		Dictionary<string, string> aliases = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["path:C:\\WORK\\COCKPIT"] = "repo:OWNER/COCKPIT",
+			["repo:OWNER/COCKPIT"] = "repo:OWNER/COCKPIT"
+		};
+
+		await feature.ReconcileAsync(
+			new HashSet<string>(),
+			new HashSet<string>(["repo:OWNER/COCKPIT"], StringComparer.OrdinalIgnoreCase),
+			aliases);
+
+		feature.IsProjectPinned("path:C:\\WORK\\COCKPIT").ShouldBeFalse();
+		feature.IsProjectPinned("repo:OWNER/COCKPIT").ShouldBeTrue();
+		PinnedItemsFeature reloaded = CreateFeature();
+		await reloaded.InitializeAsync();
+		reloaded.IsProjectPinned("path:C:\\WORK\\COCKPIT").ShouldBeFalse();
+		reloaded.IsProjectPinned("repo:OWNER/COCKPIT").ShouldBeTrue();
+	}
+
+	[Fact]
 	public async Task InitializeAsync_WhenJsonIsMalformed_StartsEmpty()
 	{
 		Directory.CreateDirectory(_directory);

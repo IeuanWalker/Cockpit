@@ -8,6 +8,26 @@ public sealed class SessionPanelStateChangeFilterTests
 {
 	[Theory]
 	[InlineData(SessionChangeKind.SessionCollection)]
+	[InlineData(SessionChangeKind.SessionSummary)]
+	[InlineData(SessionChangeKind.ConversationContent | SessionChangeKind.SessionSummary)]
+	public void RequiresPinReconciliation_ForCollectionOrIdentityBearingSummaryChanges_ReturnsTrue(SessionChangeKind kind)
+	{
+		SessionPanelStateChangeFilter.RequiresPinReconciliation(new SessionStateChange("session", kind)).ShouldBeTrue();
+	}
+
+	[Theory]
+	[InlineData(SessionChangeKind.None)]
+	[InlineData(SessionChangeKind.CurrentSession)]
+	[InlineData(SessionChangeKind.ConversationContent)]
+	[InlineData(SessionChangeKind.ConversationStructure)]
+	[InlineData(SessionChangeKind.WorkingState)]
+	public void RequiresPinReconciliation_ForUnrelatedChanges_ReturnsFalse(SessionChangeKind kind)
+	{
+		SessionPanelStateChangeFilter.RequiresPinReconciliation(new SessionStateChange("session", kind)).ShouldBeFalse();
+	}
+
+	[Theory]
+	[InlineData(SessionChangeKind.SessionCollection)]
 	[InlineData(SessionChangeKind.CurrentSession)]
 	[InlineData(SessionChangeKind.SessionCollection | SessionChangeKind.SessionSummary)]
 	public void IsRelevant_ForShellChanges_ReturnsTrue(SessionChangeKind kind)
