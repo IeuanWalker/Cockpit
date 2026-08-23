@@ -21,11 +21,16 @@ public enum SessionChangeKind
 	/// </summary>
 	ConversationReset = 1 << 6,
 	/// <summary>
+	/// Session context used to classify the session or project changed, such as its working
+	/// directory, Git root, or repository identity.
+	/// </summary>
+	SessionContext = 1 << 7,
+	/// <summary>
 	/// General invalidation of all renderable state. <see cref="ConversationReset"/> is
 	/// intentionally excluded because it describes a specific transition and must never
 	/// be inferred from legacy/global "state changed" notifications.
 	/// </summary>
-	All = ConversationContent | ConversationStructure | SessionSummary | SessionCollection | CurrentSession | WorkingState
+	All = ConversationContent | ConversationStructure | SessionSummary | SessionCollection | CurrentSession | WorkingState | SessionContext
 }
 
 /// <summary>

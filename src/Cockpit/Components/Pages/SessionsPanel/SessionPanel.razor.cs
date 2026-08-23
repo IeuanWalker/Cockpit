@@ -165,7 +165,7 @@ public partial class SessionPanel : ComponentBase, IDisposable
 static class SessionPanelStateChangeFilter
 {
 	const SessionChangeKind relevantChanges = SessionChangeKind.SessionCollection | SessionChangeKind.CurrentSession;
-	const SessionChangeKind pinReconciliationChanges = SessionChangeKind.SessionCollection | SessionChangeKind.SessionSummary;
+	const SessionChangeKind pinReconciliationChanges = SessionChangeKind.SessionCollection | SessionChangeKind.SessionContext;
 
 	public static bool IsRelevant(SessionStateChange change) => (change.Kind & relevantChanges) != 0;
 
