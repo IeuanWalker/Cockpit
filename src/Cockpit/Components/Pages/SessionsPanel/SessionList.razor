@@ -172,15 +172,29 @@
                     @switch(row)
                     {
                         case SessionListSectionHeaderRow section:
-                            <button type="button"
-                                    @onclick="() => ToggleSectionExpand(section.Section)"
-                                    class="session-section-header"
-                                    aria-expanded="@(section.IsExpanded ? "true" : "false")">
-                                <span>@section.Name</span>
-                                <svg class="session-section-chevron @(section.IsExpanded ? "expanded" : string.Empty)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18 6-6-6-6" />
-                                </svg>
-                            </button>
+                            <div class="session-section-header-row">
+                                <button type="button"
+                                        @onclick="() => ToggleSectionExpand(section.Section)"
+                                        class="session-section-header"
+                                        aria-expanded="@(section.IsExpanded ? "true" : "false")">
+                                    <span>@section.Name</span>
+                                    <svg class="session-section-chevron @(section.IsExpanded ? "expanded" : string.Empty)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 18 6-6-6-6" />
+                                    </svg>
+                                </button>
+                                @if(section.Section == SessionListSection.Chats)
+                                {
+                                    <button type="button"
+                                            @onclick="CreateChatSession"
+                                            class="session-section-add"
+                                            title="Create new chat session"
+                                            aria-label="Create new chat session">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                        </svg>
+                                    </button>
+                                }
+                            </div>
                             break;
                         case SessionListSessionRow sessionRow:
                             <div data-session-scope="@sessionRow.ScopeId"
