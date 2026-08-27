@@ -612,6 +612,41 @@ public class UpdateFeatureTests
 	}
 
 	[Fact]
+	public void SelectTrustedInstallerLaunchDirectory_PrefersRegistryInstallDirectory()
+	{
+		string? result = UpdateFeature.SelectTrustedInstallerLaunchDirectory(
+			@"C:\Users\Example\Desktop\Cockpit.exe",
+			@"C:\Program Files\Cockpit",
+			[@"C:\Program Files"]);
+
+		result.ShouldBe(@"C:\Program Files\Cockpit");
+	}
+
+	[Fact]
+	public void SelectTrustedInstallerLaunchDirectory_AllowsProcessUnderProtectedDirectory()
+	{
+		string? result = UpdateFeature.SelectTrustedInstallerLaunchDirectory(
+			@"C:\Program Files\Cockpit\Cockpit.exe",
+			null,
+			[@"C:\Program Files"]);
+
+		result.ShouldBe(@"C:\Program Files\Cockpit");
+	}
+
+	[Theory]
+	[InlineData(@"C:\Users\Example\Desktop\Cockpit.exe")]
+	[InlineData(@"C:\Program Files Malicious\Cockpit\Cockpit.exe")]
+	public void SelectTrustedInstallerLaunchDirectory_RejectsProcessOutsideProtectedDirectory(string processPath)
+	{
+		string? result = UpdateFeature.SelectTrustedInstallerLaunchDirectory(
+			processPath,
+			null,
+			[@"C:\Program Files"]);
+
+		result.ShouldBeNull();
+	}
+
+	[Fact]
 	public void FindInstallerAsset_ReturnsSetupInstaller_WhenPresent()
 	{
 		GitHubReleaseModel release = MakeRelease("Cockpit-windows-x64-1.8.0-Portable.exe", "Cockpit-windows-x64-1.8.0-Setup.exe");

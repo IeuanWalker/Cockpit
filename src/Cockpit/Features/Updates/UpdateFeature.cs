@@ -801,14 +801,56 @@ public sealed partial class UpdateFeature : IDisposable
 
 	string? TryGetTrustedInstallerLaunchDirectory()
 	{
-		string? processPath = Environment.ProcessPath;
-		string? processDirectory = string.IsNullOrWhiteSpace(processPath) ? null : Path.GetDirectoryName(processPath);
-		if(!string.IsNullOrWhiteSpace(processDirectory))
+		string? installedDirectory = TryGetInstalledDirectoryFromRegistry(_logger);
+		string[] protectedDirectories =
+		[
+			Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+			Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)
+		];
+
+		return SelectTrustedInstallerLaunchDirectory(Environment.ProcessPath, installedDirectory, protectedDirectories);
+	}
+
+	internal static string? SelectTrustedInstallerLaunchDirectory(
+		string? processPath,
+		string? installedDirectory,
+		IEnumerable<string> protectedDirectories)
+	{
+		if(!string.IsNullOrWhiteSpace(installedDirectory))
 		{
-			return processDirectory;
+			return installedDirectory;
 		}
 
-		return TryGetInstalledDirectoryFromRegistry(_logger);
+		string? processDirectory = string.IsNullOrWhiteSpace(processPath) ? null : Path.GetDirectoryName(processPath);
+		if(string.IsNullOrWhiteSpace(processDirectory))
+		{
+			return null;
+		}
+
+		return protectedDirectories.Any(directory => IsPathWithinDirectory(processDirectory, directory))
+			? processDirectory
+			: null;
+	}
+
+	static bool IsPathWithinDirectory(string path, string directory)
+	{
+		if(string.IsNullOrWhiteSpace(directory))
+		{
+			return false;
+		}
+
+		try
+		{
+			string normalizedPath = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			string normalizedDirectory = Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+			return string.Equals(normalizedPath, normalizedDirectory, StringComparison.OrdinalIgnoreCase) ||
+				normalizedPath.StartsWith(normalizedDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+		}
+		catch
+		{
+			return false;
+		}
 	}
 
 	static string QuoteForCmd(string value)
