@@ -162,6 +162,7 @@ public sealed partial class UpdateFeature : IDisposable
 				return;
 			}
 
+			CleanupInstallerDownloadCache();
 			_checkTask = RunPeriodicCheckAsync(_cts.Token);
 		}
 		finally
@@ -714,6 +715,23 @@ public sealed partial class UpdateFeature : IDisposable
 		if(File.Exists(path))
 		{
 			File.Delete(path);
+		}
+	}
+
+	void CleanupInstallerDownloadCache()
+	{
+		if(!Directory.Exists(_downloadRootDirectory))
+		{
+			return;
+		}
+
+		try
+		{
+			Directory.Delete(_downloadRootDirectory, true);
+		}
+		catch(Exception ex)
+		{
+			_logger.LogWarning(ex, "Failed to clean installer download cache {Directory}.", _downloadRootDirectory);
 		}
 	}
 

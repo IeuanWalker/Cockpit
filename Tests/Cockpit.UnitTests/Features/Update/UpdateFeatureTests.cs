@@ -592,6 +592,31 @@ public class UpdateFeatureTests
 	}
 
 	[Fact]
+	public void Initialize_RemovesInstallerDownloadCache()
+	{
+		string root = Path.Combine(Path.GetTempPath(), "Cockpit-UpdateTests", Guid.NewGuid().ToString("N"));
+		string cachedInstaller = Path.Combine(root, "1.7.0", "Cockpit-windows-x64-1.7.0-Setup.exe");
+		try
+		{
+			Directory.CreateDirectory(Path.GetDirectoryName(cachedInstaller)!);
+			File.WriteAllBytes(cachedInstaller, [1, 2, 3]);
+			using HttpClient httpClient = new(new MockHttpMessageHandler(HttpStatusCode.OK));
+			using UpdateFeature feature = new(httpClient, "1.7.0", downloadRootDirectory: root);
+
+			feature.Initialize();
+
+			Directory.Exists(root).ShouldBeFalse();
+		}
+		finally
+		{
+			if(Directory.Exists(root))
+			{
+				Directory.Delete(root, true);
+			}
+		}
+	}
+
+	[Fact]
 	public void IsInstalledPath_ReturnsTrue_WhenExeIsInsideInstallDirectory()
 	{
 		bool result = UpdateFeature.IsInstalledPath(
