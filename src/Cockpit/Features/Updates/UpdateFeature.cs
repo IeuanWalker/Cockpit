@@ -455,7 +455,7 @@ public sealed partial class UpdateFeature : IDisposable
 			bool launched = LaunchInstaller(installerPath);
 			if(!launched)
 			{
-				SetDownloadFailed("Installer launch was blocked by permissions or policy. Run the installer as Administrator.");
+				SetDownloadFailed("Installer could not be launched. It may have been blocked by permissions or policy. Try running the installer as Administrator.");
 				return;
 			}
 
@@ -759,8 +759,8 @@ public sealed partial class UpdateFeature : IDisposable
 
 	static bool ShouldRetryInstallerLaunchWithElevation(Win32Exception ex)
 	{
-		// 1260 = blocked by policy; 5 = access denied.
-		return ex.NativeErrorCode is 1260 or 5;
+		// 1260 = blocked by policy; 5 = access denied; 740 = elevation required.
+		return ex.NativeErrorCode is 1260 or 5 or 740;
 	}
 
 	bool TryLaunchInstallerWithElevationFromInstallDirectory(string sourceInstallerPath)
@@ -811,7 +811,18 @@ public sealed partial class UpdateFeature : IDisposable
 		return TryGetInstalledDirectoryFromRegistry(_logger);
 	}
 
-	static string QuoteForCmd(string value) => $"\"{value}\"";
+	static string QuoteForCmd(string value)
+	{
+		// Escape cmd.exe metacharacters and prevent %VAR% expansion.
+		string escaped = value
+			.Replace("^", "^^")
+			.Replace("&", "^&")
+			.Replace("|", "^|")
+			.Replace("<", "^<")
+			.Replace(">", "^>")
+			.Replace("%", "%%");
+		return $"\"{escaped}\"";
+	}
 
 	void CleanupStaleInstallerDownloads(string currentTargetDirectory)
 	{
