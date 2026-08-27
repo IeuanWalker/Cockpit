@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using Cockpit.Features.Sessions;
 using Cockpit.Features.Sessions.Models;
@@ -776,14 +775,14 @@ public sealed partial class UpdateFeature : IDisposable
 		string installerFileName = Path.GetFileName(sourceInstallerPath);
 		string targetDirectory = Path.Combine(trustedDirectory, "Updates");
 		string targetInstallerPath = Path.Combine(targetDirectory, installerFileName);
-		string encodedCommand = BuildElevatedInstallerCommand(sourceInstallerPath, targetDirectory, targetInstallerPath);
+		string commandArguments = BuildElevatedInstallerCommand(sourceInstallerPath, targetDirectory, targetInstallerPath);
 
 		try
 		{
 			ProcessStartInfo elevatedStartInfo = new()
 			{
-				FileName = "powershell.exe",
-				Arguments = $"-NoLogo -NoProfile -NonInteractive -EncodedCommand {encodedCommand}",
+				FileName = "cmd.exe",
+				Arguments = commandArguments,
 				UseShellExecute = true,
 				Verb = "runas",
 				CreateNoWindow = true
@@ -868,22 +867,21 @@ public sealed partial class UpdateFeature : IDisposable
 	internal static string BuildElevatedInstallerCommand(
 		string sourceInstallerPath,
 		string targetDirectory,
-		string targetInstallerPath)
+		string targetInstallerPath) =>
+		$"/d /c (if not exist {QuoteForCmd(targetDirectory)} mkdir {QuoteForCmd(targetDirectory)}) & copy /y {QuoteForCmd(sourceInstallerPath)} {QuoteForCmd(targetInstallerPath)} >nul && start \"\" {QuoteForCmd(targetInstallerPath)}";
+
+	internal static string QuoteForCmd(string value)
 	{
-		string command = $$"""
-			$ErrorActionPreference = 'Stop'
-			$targetDirectory = {{QuoteForPowerShell(targetDirectory)}}
-			$sourceInstallerPath = {{QuoteForPowerShell(sourceInstallerPath)}}
-			$targetInstallerPath = {{QuoteForPowerShell(targetInstallerPath)}}
-			[System.IO.Directory]::CreateDirectory($targetDirectory) | Out-Null
-			[System.IO.File]::Copy($sourceInstallerPath, $targetInstallerPath, $true)
-			Start-Process -FilePath $targetInstallerPath
-			""";
-
-		return Convert.ToBase64String(Encoding.Unicode.GetBytes(command));
+		// Escape cmd.exe metacharacters and prevent %VAR% expansion.
+		string escaped = value
+			.Replace("^", "^^")
+			.Replace("&", "^&")
+			.Replace("|", "^|")
+			.Replace("<", "^<")
+			.Replace(">", "^>")
+			.Replace("%", "%%");
+		return $"\"{escaped}\"";
 	}
-
-	internal static string QuoteForPowerShell(string value) => $"'{value.Replace("'", "''")}'";
 
 	void CleanupStaleInstallerDownloads(string currentTargetDirectory)
 	{

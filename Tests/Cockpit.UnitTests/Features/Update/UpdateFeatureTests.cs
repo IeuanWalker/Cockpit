@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using Cockpit.Extensions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Updates;
@@ -648,18 +647,16 @@ public class UpdateFeatureTests
 	}
 
 	[Fact]
-	public void BuildElevatedInstallerCommand_PreservesCmdMetacharactersInPaths()
+	public void BuildElevatedInstallerCommand_CopiesWhenTargetDirectoryAlreadyExists()
 	{
-		string encodedCommand = UpdateFeature.BuildElevatedInstallerCommand(
+		string command = UpdateFeature.BuildElevatedInstallerCommand(
 			@"C:\Users\100% Real & Safe\Cockpit's Setup.exe",
 			@"C:\Program Files\Cockpit & Tools\Updates",
 			@"C:\Program Files\Cockpit & Tools\Updates\Cockpit's Setup.exe");
 
-		string command = Encoding.Unicode.GetString(Convert.FromBase64String(encodedCommand));
-
-		command.ShouldContain("$sourceInstallerPath = 'C:\\Users\\100% Real & Safe\\Cockpit''s Setup.exe'");
-		command.ShouldContain("$targetDirectory = 'C:\\Program Files\\Cockpit & Tools\\Updates'");
-		command.ShouldContain("$targetInstallerPath = 'C:\\Program Files\\Cockpit & Tools\\Updates\\Cockpit''s Setup.exe'");
+		command.ShouldContain("(if not exist \"C:\\Program Files\\Cockpit ^& Tools\\Updates\" mkdir \"C:\\Program Files\\Cockpit ^& Tools\\Updates\") & copy");
+		command.ShouldContain("\"C:\\Users\\100%% Real ^& Safe\\Cockpit's Setup.exe\"");
+		command.ShouldEndWith("start \"\" \"C:\\Program Files\\Cockpit ^& Tools\\Updates\\Cockpit's Setup.exe\"");
 	}
 
 	[Fact]
