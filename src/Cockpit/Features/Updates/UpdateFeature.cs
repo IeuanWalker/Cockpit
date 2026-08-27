@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -161,6 +162,7 @@ public sealed partial class UpdateFeature : IDisposable
 				return;
 			}
 
+			CleanupInstallerDownloadCache();
 			_checkTask = RunPeriodicCheckAsync(_cts.Token);
 		}
 		finally
@@ -454,7 +456,7 @@ public sealed partial class UpdateFeature : IDisposable
 			bool launched = LaunchInstaller(installerPath);
 			if(!launched)
 			{
-				SetDownloadFailed("Permission was denied or the installer could not be launched.");
+				SetDownloadFailed("Installer could not be launched. It may have been blocked by permissions or policy. Try running the installer as Administrator.");
 				return;
 			}
 
@@ -716,6 +718,23 @@ public sealed partial class UpdateFeature : IDisposable
 		}
 	}
 
+	void CleanupInstallerDownloadCache()
+	{
+		if(!Directory.Exists(_downloadRootDirectory))
+		{
+			return;
+		}
+
+		try
+		{
+			Directory.Delete(_downloadRootDirectory, true);
+		}
+		catch(Exception ex)
+		{
+			_logger.LogWarning(ex, "Failed to clean installer download cache {Directory}.", _downloadRootDirectory);
+		}
+	}
+
 	bool LaunchInstaller(string installerPath)
 	{
 		if(!OperatingSystem.IsWindows())
@@ -728,7 +747,8 @@ public sealed partial class UpdateFeature : IDisposable
 			ProcessStartInfo startInfo = new()
 			{
 				FileName = installerPath,
-				UseShellExecute = true
+				UseShellExecute = true,
+				CreateNoWindow = true
 			};
 
 			string? workingDirectory = Path.GetDirectoryName(installerPath);
@@ -740,11 +760,145 @@ public sealed partial class UpdateFeature : IDisposable
 			using Process? installerProcess = Process.Start(startInfo);
 			return installerProcess is not null;
 		}
+		catch(Win32Exception ex) when(ShouldRetryInstallerLaunchWithElevation(ex))
+		{
+			_logger.LogWarning(
+				ex,
+				"Installer launch from {InstallerPath} was blocked by policy or access restrictions. Retrying with elevation from install directory.",
+				installerPath);
+			return TryLaunchInstallerWithElevationFromInstallDirectory(installerPath);
+		}
 		catch(Exception ex)
 		{
 			_logger.LogWarning(ex, "Failed to launch NSIS installer.");
 			return false;
 		}
+	}
+
+	static bool ShouldRetryInstallerLaunchWithElevation(Win32Exception ex)
+	{
+		// 1260 = blocked by policy; 5 = access denied; 740 = elevation required.
+		return ex.NativeErrorCode is 1260 or 5 or 740;
+	}
+
+	bool TryLaunchInstallerWithElevationFromInstallDirectory(string sourceInstallerPath)
+	{
+		string? trustedDirectory = TryGetTrustedInstallerLaunchDirectory();
+		if(string.IsNullOrWhiteSpace(trustedDirectory))
+		{
+			_logger.LogWarning("Could not resolve a trusted install directory for elevated installer launch.");
+			return false;
+		}
+
+		string installerFileName = Path.GetFileName(sourceInstallerPath);
+		string targetDirectory = Path.Combine(trustedDirectory, "Updates");
+		string targetInstallerPath = Path.Combine(targetDirectory, installerFileName);
+		string commandArguments = BuildElevatedInstallerCommand(sourceInstallerPath, targetDirectory, targetInstallerPath);
+
+		try
+		{
+			ProcessStartInfo elevatedStartInfo = new()
+			{
+				FileName = "cmd.exe",
+				Arguments = commandArguments,
+				UseShellExecute = true,
+				Verb = "runas",
+				CreateNoWindow = true
+			};
+
+			using Process? installerProcess = Process.Start(elevatedStartInfo);
+			if(installerProcess is null)
+			{
+				return false;
+			}
+
+			installerProcess.WaitForExit();
+			if(installerProcess.ExitCode == 0)
+			{
+				return true;
+			}
+
+			_logger.LogWarning("Elevated installer helper exited with code {ExitCode}.", installerProcess.ExitCode);
+			return false;
+		}
+		catch(Exception ex)
+		{
+			_logger.LogWarning(ex, "Failed to launch elevated installer from trusted directory.");
+			return false;
+		}
+	}
+
+	string? TryGetTrustedInstallerLaunchDirectory()
+	{
+		string? installedDirectory = TryGetInstalledDirectoryFromRegistry(_logger);
+		string[] protectedDirectories =
+		[
+			Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+			Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)
+		];
+
+		return SelectTrustedInstallerLaunchDirectory(Environment.ProcessPath, installedDirectory, protectedDirectories);
+	}
+
+	internal static string? SelectTrustedInstallerLaunchDirectory(
+		string? processPath,
+		string? installedDirectory,
+		IEnumerable<string> protectedDirectories)
+	{
+		if(!string.IsNullOrWhiteSpace(installedDirectory))
+		{
+			return installedDirectory;
+		}
+
+		string? processDirectory = string.IsNullOrWhiteSpace(processPath) ? null : Path.GetDirectoryName(processPath);
+		if(string.IsNullOrWhiteSpace(processDirectory))
+		{
+			return null;
+		}
+
+		return protectedDirectories.Any(directory => IsPathWithinDirectory(processDirectory, directory))
+			? processDirectory
+			: null;
+	}
+
+	static bool IsPathWithinDirectory(string path, string directory)
+	{
+		if(string.IsNullOrWhiteSpace(directory))
+		{
+			return false;
+		}
+
+		try
+		{
+			string normalizedPath = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			string normalizedDirectory = Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+			return string.Equals(normalizedPath, normalizedDirectory, StringComparison.OrdinalIgnoreCase) ||
+				normalizedPath.StartsWith(normalizedDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
+	internal static string BuildElevatedInstallerCommand(
+		string sourceInstallerPath,
+		string targetDirectory,
+		string targetInstallerPath) =>
+		$"/d /c (if not exist {QuoteForCmd(targetDirectory)} mkdir {QuoteForCmd(targetDirectory)}) & copy /y {QuoteForCmd(sourceInstallerPath)} {QuoteForCmd(targetInstallerPath)} >nul && start \"\" {QuoteForCmd(targetInstallerPath)}";
+
+	internal static string QuoteForCmd(string value)
+	{
+		// Escape cmd.exe metacharacters and prevent %VAR% expansion.
+		string escaped = value
+			.Replace("^", "^^")
+			.Replace("&", "^&")
+			.Replace("|", "^|")
+			.Replace("<", "^<")
+			.Replace(">", "^>")
+			.Replace("%", "%%");
+		return $"\"{escaped}\"";
 	}
 
 	void CleanupStaleInstallerDownloads(string currentTargetDirectory)

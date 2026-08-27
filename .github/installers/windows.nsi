@@ -85,6 +85,12 @@ Section "Cockpit" SecMain
   ; Desktop shortcut
   CreateShortcut "$DESKTOP\${APP_NAME}.lnk" \
     "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 0 SW_SHOWNORMAL "" "$INSTDIR"
+
+  ; Remove cached update installers after a successful install. The elevated
+  ; fallback runs this installer from $INSTDIR\Updates, so locked files are
+  ; scheduled for deletion on reboot.
+  RMDir /r /REBOOTOK "$INSTDIR\Updates"
+  RMDir /r /REBOOTOK "$LOCALAPPDATA\${APP_NAME}\Updates"
 SectionEnd
 
 ; ── Uninstall ─────────────────────────────────────────────────────────────────

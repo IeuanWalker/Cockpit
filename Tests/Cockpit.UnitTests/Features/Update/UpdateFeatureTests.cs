@@ -592,6 +592,31 @@ public class UpdateFeatureTests
 	}
 
 	[Fact]
+	public void Initialize_RemovesInstallerDownloadCache()
+	{
+		string root = Path.Combine(Path.GetTempPath(), "Cockpit-UpdateTests", Guid.NewGuid().ToString("N"));
+		string cachedInstaller = Path.Combine(root, "1.7.0", "Cockpit-windows-x64-1.7.0-Setup.exe");
+		try
+		{
+			Directory.CreateDirectory(Path.GetDirectoryName(cachedInstaller)!);
+			File.WriteAllBytes(cachedInstaller, [1, 2, 3]);
+			using HttpClient httpClient = new(new MockHttpMessageHandler(HttpStatusCode.OK));
+			using UpdateFeature feature = new(httpClient, "1.7.0", downloadRootDirectory: root);
+
+			feature.Initialize();
+
+			Directory.Exists(root).ShouldBeFalse();
+		}
+		finally
+		{
+			if(Directory.Exists(root))
+			{
+				Directory.Delete(root, true);
+			}
+		}
+	}
+
+	[Fact]
 	public void IsInstalledPath_ReturnsTrue_WhenExeIsInsideInstallDirectory()
 	{
 		bool result = UpdateFeature.IsInstalledPath(
@@ -609,6 +634,54 @@ public class UpdateFeatureTests
 			@"C:\Program Files\Cockpit");
 
 		result.ShouldBeFalse();
+	}
+
+	[Fact]
+	public void SelectTrustedInstallerLaunchDirectory_PrefersRegistryInstallDirectory()
+	{
+		string? result = UpdateFeature.SelectTrustedInstallerLaunchDirectory(
+			@"C:\Users\Example\Desktop\Cockpit.exe",
+			@"C:\Program Files\Cockpit",
+			[@"C:\Program Files"]);
+
+		result.ShouldBe(@"C:\Program Files\Cockpit");
+	}
+
+	[Fact]
+	public void SelectTrustedInstallerLaunchDirectory_AllowsProcessUnderProtectedDirectory()
+	{
+		string? result = UpdateFeature.SelectTrustedInstallerLaunchDirectory(
+			@"C:\Program Files\Cockpit\Cockpit.exe",
+			null,
+			[@"C:\Program Files"]);
+
+		result.ShouldBe(@"C:\Program Files\Cockpit");
+	}
+
+	[Theory]
+	[InlineData(@"C:\Users\Example\Desktop\Cockpit.exe")]
+	[InlineData(@"C:\Program Files Malicious\Cockpit\Cockpit.exe")]
+	public void SelectTrustedInstallerLaunchDirectory_RejectsProcessOutsideProtectedDirectory(string processPath)
+	{
+		string? result = UpdateFeature.SelectTrustedInstallerLaunchDirectory(
+			processPath,
+			null,
+			[@"C:\Program Files"]);
+
+		result.ShouldBeNull();
+	}
+
+	[Fact]
+	public void BuildElevatedInstallerCommand_CopiesWhenTargetDirectoryAlreadyExists()
+	{
+		string command = UpdateFeature.BuildElevatedInstallerCommand(
+			@"C:\Users\100% Real & Safe\Cockpit's Setup.exe",
+			@"C:\Program Files\Cockpit & Tools\Updates",
+			@"C:\Program Files\Cockpit & Tools\Updates\Cockpit's Setup.exe");
+
+		command.ShouldContain("(if not exist \"C:\\Program Files\\Cockpit ^& Tools\\Updates\" mkdir \"C:\\Program Files\\Cockpit ^& Tools\\Updates\") & copy");
+		command.ShouldContain("\"C:\\Users\\100%% Real ^& Safe\\Cockpit's Setup.exe\"");
+		command.ShouldEndWith("start \"\" \"C:\\Program Files\\Cockpit ^& Tools\\Updates\\Cockpit's Setup.exe\"");
 	}
 
 	[Fact]
