@@ -96,7 +96,7 @@
     font-weight: 700;
     padding: 1px 4px;
     border: none;
-    background: color-mix(in srgb, var(--accent-color) 18%, transparent);
+    background: transparent;
     color: var(--title-color);
     opacity: 0.9;
     cursor: pointer;
