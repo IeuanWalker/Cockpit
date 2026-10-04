@@ -130,7 +130,7 @@ public sealed partial class SessionFeature
 			session.PendingMessageCount = 0;
 			session.PendingTaskSummary = null;
 
-			// Clear context panel data (populated by LoadContextPanelDataAsync)
+			// Clear tool panel data (populated by LoadToolPanelDataAsync)
 			session.Context.Agents = [];
 			session.Context.Instructions = [];
 			session.Context.McpServers = [];

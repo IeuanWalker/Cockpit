@@ -1,0 +1,86 @@
+@using Cockpit.Components.Pages.ToolPanel.ConnectionStatus
+@using Cockpit.Features.Workspace
+@using Cockpit.Tooling
+@using Cockpit.Tooling.Discovery
+
+<div id="rightSidebar" class="sidebar workspace-sidebar @(_uiStateFeature.RightSidebarCollapsed ? "collapsed" : "") @(_uiStateFeature.RightSidebarExpanded ? "expanded" : "") @(_toolPickerGroupId is not null ? "popover-open" : "") bg-app-sidebar border-l border-app-border flex flex-col" style="width: @(_uiStateFeature.RightSidebarWidth)px">
+    <div class="workspace-window-actions">
+        <button class="workspace-icon-button" @onclick="_uiStateFeature.ToggleRightSidebarExpanded"
+                title="@(_uiStateFeature.RightSidebarExpanded ? "Restore tools sidebar" : "Expand tools to fill app")"
+                aria-label="@(_uiStateFeature.RightSidebarExpanded ? "Restore tools sidebar" : "Expand tools to fill app")">
+            @if(_uiStateFeature.RightSidebarExpanded)
+            {
+                <span aria-hidden="true">↙</span>
+            }
+            else
+            {
+                <span aria-hidden="true">↗</span>
+            }
+        </button>
+        <button class="workspace-icon-button" @onclick="_uiStateFeature.ToggleRightSidebar" title="Collapse tools" aria-label="Collapse tools">
+            <span aria-hidden="true">›</span>
+        </button>
+    </div>
+
+    <div class="workspace-surface">
+        @if(Workspace.Current is null)
+        {
+            <div class="workspace-empty">Select a session to open its tools.</div>
+        }
+        else if(!HasVisibleTools)
+        {
+            <div class="workspace-launcher">
+                <div class="workspace-launcher-list" aria-label="Available tools">
+                    @foreach(RegisteredWorkspaceTool tool in Workspace.Tools.Where(tool => IsToolAvailable(tool.Descriptor.ToolId)))
+                    {
+                        <button type="button" title="@tool.Descriptor.Description" @onclick="() => OpenToolFromLauncherAsync(tool.Descriptor.ToolId)">
+                            <span class="workspace-launcher-icon" aria-hidden="true">@ToolIcon(tool.Descriptor.Icon)</span>
+                            <span>@tool.Descriptor.DisplayName</span>
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <WorkspaceNodeView State="Workspace.Current" NodeId="@Workspace.Current.Visible.RootNodeId"
+                               Tools="Workspace.Tools" ToolPickerGroupId="@_toolPickerGroupId"
+                               DraggingInstanceId="@_draggingInstanceId" OnDragStarted="SetDragging" OnDragEnded="ClearDragging"
+                               OnActivate="Activate" OnClose="RequestCloseAsync" OnTabContextMenu="OpenTabContextMenu" OnMove="Move"
+                               OnSnap="Snap" OnToggleToolPicker="ToggleToolPicker" OnOpenTool="OpenToolAsync"
+                               OnSplitRatio="SetSplitRatio" OnToggleMaximise="ToggleMaximise" />
+        }
+    </div>
+
+    <ConnectionStatusBanner />
+</div>
+
+@if(_tabContextMenu is not null)
+{
+    <div class="workspace-tab-context-menu" style="@ContextMenuStyle" role="menu" aria-label="Tab actions" @oncontextmenu:preventDefault>
+        <button type="button" role="menuitem" @onclick="CloseContextTabAsync">Close tab</button>
+        <button type="button" role="menuitem" disabled="@(!HasOtherContextTabs)" @onclick="CloseOtherContextTabsAsync">Close other tabs</button>
+        <button type="button" role="menuitem" @onclick="CloseAllContextTabsAsync">Close all tabs</button>
+        <div class="workspace-tab-context-divider" role="separator"></div>
+        @foreach(string edge in new[] { "top", "right", "left", "bottom" }.Where(ShouldShowContextPlacement))
+        {
+            <button type="button" role="menuitem" disabled="@(!CanPlaceContextTab(edge))" @onclick="() => PlaceContextTab(edge)">
+                @ContextPlacementLabel(edge)
+            </button>
+        }
+    </div>
+}
+
+@if(_pendingClose is not null)
+{
+    <div class="workspace-confirm-backdrop" role="presentation">
+        <div class="workspace-confirm" role="alertdialog" aria-modal="true" aria-labelledby="workspace-confirm-title">
+            <h3 id="workspace-confirm-title">@PendingCloseTitle</h3>
+            <p>@_pendingClose.Decision.Message</p>
+            <div>
+                <button @onclick="CancelClose">@_pendingClose.Decision.CancelLabel</button>
+                <button class="danger" @onclick="ConfirmCloseAsync">@_pendingClose.Decision.ConfirmLabel</button>
+            </div>
+        </div>
+    </div>
+}

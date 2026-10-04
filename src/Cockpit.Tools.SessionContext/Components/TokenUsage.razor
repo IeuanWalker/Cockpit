@@ -1,0 +1,25 @@
+@using Cockpit.Tools.SessionContext.Sources
+
+@if(Snapshot is not null)
+{
+    <footer class="token-usage">
+        <div class="token-title"><span>CONTEXT WINDOW</span>@if(Snapshot.TokenUsage is not null){<button type="button" title="View token breakdown" @onclick="OnShowBreakdown">ⓘ</button>}</div>
+        @if(Snapshot.TokenUsage is { } usage)
+        {
+            <div class="token-row"><div class="token-track"><span style="width:@Percent(usage)%"></span></div><span>@Format(usage.UsedTokens) / @Format(usage.MaximumTokens)</span></div>
+            <button type="button" class="compact-button" disabled="@(!Snapshot.CanCompact)" @onclick="OnCompact">@(Snapshot.IsCompacting ? "Compacting…" : "⌄ Compact")</button>
+        }
+        else
+        {
+            <div class="context-empty">Waiting for usage data…</div>
+        }
+    </footer>
+}
+
+@code {
+    [Parameter] public SessionContextSnapshot? Snapshot { get; set; }
+    [Parameter] public EventCallback OnCompact { get; set; }
+    [Parameter] public EventCallback OnShowBreakdown { get; set; }
+    static string Percent(TokenUsageSnapshot usage) => Math.Clamp(usage.Percentage ?? 0, 0, 100).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+    internal static string Format(double tokens) => tokens >= 1_000_000 ? $"{tokens / 1_000_000:F1}M" : tokens >= 1_000 ? $"{tokens / 1_000:F1}K" : ((int)tokens).ToString();
+}

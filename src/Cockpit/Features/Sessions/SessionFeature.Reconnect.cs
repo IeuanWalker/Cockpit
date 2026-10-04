@@ -161,7 +161,10 @@ public sealed partial class SessionFeature
 		{
 			try
 			{
-				await LoadSession(current.Id);
+				await LoadSessionInternal(
+					current.Id,
+					applyOpenPreference: false,
+					requiredCurrentSessionId: current.Id);
 			}
 			catch(Exception ex)
 			{
@@ -307,7 +310,12 @@ public sealed partial class SessionFeature
 
 			try
 			{
-				await LoadSessionCore(session.Id, session);
+				await LoadSessionCore(
+					session.Id,
+					session,
+					applyOpenPreference: false,
+					navigationRequestId: null,
+					requiredCurrentSessionId: session.Id);
 			}
 			catch(Exception loadEx)
 			{

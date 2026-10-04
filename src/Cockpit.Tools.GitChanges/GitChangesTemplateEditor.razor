@@ -1,0 +1,15 @@
+@using Cockpit.Tools.GitChanges.State
+
+<div>
+    <label><input type="checkbox" checked="@Value.TreeView" @onchange="SetTree" /> Tree view</label>
+    <label><input type="checkbox" checked="@Value.SplitDiffView" @onchange="SetSplit" /> Split diff</label>
+    <label>Initial file filter <input value="@Value.FilterText" @oninput="SetFilter" /></label>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public GitChangesState Value { get; set; } = new();
+    [Parameter] public EventCallback<GitChangesState> ValueChanged { get; set; }
+    Task SetTree(ChangeEventArgs e) => ValueChanged.InvokeAsync(Value with { TreeView = e.Value is true });
+    Task SetSplit(ChangeEventArgs e) => ValueChanged.InvokeAsync(Value with { SplitDiffView = e.Value is true });
+    Task SetFilter(ChangeEventArgs e) => ValueChanged.InvokeAsync(Value with { FilterText = e.Value?.ToString() });
+}

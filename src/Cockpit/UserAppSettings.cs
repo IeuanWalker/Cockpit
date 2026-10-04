@@ -23,6 +23,7 @@ public class UserAppSettings
 		internal const string sendOnEnter = "SendOnEnter";
 		internal const string leftSidebarWidth = "LeftSidebarWidth";
 		internal const string rightSidebarWidth = "RightSidebarWidth";
+		internal const string openSidebarOnSessionOpen = "OpenSidebarOnSessionOpen";
 		internal const string textToSpeechEnabled = "TextToSpeechEnabled";
 		internal const string voiceVolume = "VoiceVolume";
 		internal const string voicePitch = "VoicePitch";
@@ -107,6 +108,16 @@ public class UserAppSettings
 	{
 		get => _preferences.Get(Keys.rightSidebarWidth, 256);
 		set => _preferences.Set(Keys.rightSidebarWidth, value);
+	}
+
+	/// <summary>
+	/// Whether the right sidebar opens when a session is newly created or cold-resumed.
+	/// Warm session switches preserve the user's current sidebar state.
+	/// </summary>
+	public bool OpenSidebarOnSessionOpen
+	{
+		get => _preferences.Get(Keys.openSidebarOnSessionOpen, true);
+		set => _preferences.Set(Keys.openSidebarOnSessionOpen, value);
 	}
 
 	public bool TextToSpeechEnabled

@@ -58,7 +58,7 @@ public sealed partial class TerminalFeature : IDisposable, IAsyncDisposable
 			};
 
 			IPtyConnection ptyConnection = await _connectionFactory(options, ct);
-			TerminalSessionModel session = new(sessionId, ptyConnection);
+			TerminalSessionModel session = new(sessionId, ptyConnection) { Cols = cols, Rows = rows };
 
 			CancellationTokenSource cts = new();
 			session.ReadTaskCancellation = cts;
@@ -204,6 +204,11 @@ public sealed partial class TerminalFeature : IDisposable, IAsyncDisposable
 			await TearDownSessionAsync(session, sessionId);
 		}
 	}
+
+	/// <summary>Closes the owning session's legacy shell and all independent tool shells.</summary>
+	public Task CloseAllForSessionAsync(string sessionId) => Task.WhenAll(_sessions.Keys
+		.Where(id => id == sessionId || id.StartsWith(sessionId + ":", StringComparison.Ordinal))
+		.Select(CloseSessionAsync));
 
 	public void Dispose()
 	{

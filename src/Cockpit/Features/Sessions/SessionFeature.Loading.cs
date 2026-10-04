@@ -20,7 +20,16 @@ public sealed partial class SessionFeature
 	/// <c>LastActivity</c>. The SDK session is registered and ready to send messages; calling
 	/// <see cref="ResumeSession"/> on first message send simply promotes the flags.
 	/// </summary>
-	public async Task<bool> LoadSession(string sessionId)
+	public Task<bool> LoadSession(string sessionId) => LoadSessionInternal(
+		sessionId,
+		applyOpenPreference: true,
+		navigationRequestId: Interlocked.Increment(ref _navigationRequestId));
+
+	async Task<bool> LoadSessionInternal(
+		string sessionId,
+		bool applyOpenPreference,
+		long? navigationRequestId = null,
+		string? requiredCurrentSessionId = null)
 	{
 		SessionModel? session = _sessionListFeature.Sessions.FirstOrDefault(s => s.Id == sessionId);
 		if(session is null)
@@ -39,7 +48,12 @@ public sealed partial class SessionFeature
 				return false;
 			}
 
-			return await LoadSessionCore(sessionId, session);
+			return await LoadSessionCore(
+				sessionId,
+				session,
+				applyOpenPreference,
+				navigationRequestId,
+				requiredCurrentSessionId);
 		}
 		finally
 		{
@@ -47,7 +61,12 @@ public sealed partial class SessionFeature
 		}
 	}
 
-	async Task<bool> LoadSessionCore(string sessionId, SessionModel session)
+	async Task<bool> LoadSessionCore(
+		string sessionId,
+		SessionModel session,
+		bool applyOpenPreference,
+		long? navigationRequestId,
+		string? requiredCurrentSessionId)
 	{
 		SdkLifecycleTransition loadTransition = default;
 		bool loadClaimed = false;
@@ -57,7 +76,13 @@ public sealed partial class SessionFeature
 			if(session.Lifecycle.SdkState != SdkSessionStateEnum.NotLoaded)
 			{
 				_logger.LogInformation("Session {SessionId} already loaded or loading, switching to it", sessionId);
-				await SwitchCurrentSessionAsync(session);
+				if(CanCommitNavigation(navigationRequestId, requiredCurrentSessionId))
+				{
+					await SwitchCurrentSessionAsync(
+						session,
+						navigationRequestId: navigationRequestId,
+						requiredCurrentSessionId: requiredCurrentSessionId);
+				}
 
 				// Guard: eviction may have cleared the session between the state check and SwitchCurrentSessionAsync.
 				// If state is now NotLoaded, fall through to perform a full reload.
@@ -131,16 +156,16 @@ public sealed partial class SessionFeature
 			CopilotClient client = await _clientFeature.GetClientAsync();
 			CopilotSession sdkSession = await client.ResumeSessionAsync(sessionId, config);
 
-			// The context-panel load and the event replay below are independent: the replay rebuilds
+			// The tool-panel load and the event replay below are independent: the replay rebuilds
 			// session.Messages and may mutate session.Context through SessionContextChangedEvent
-			// (which processes during replay), while LoadContextPanelDataAsync also writes
+			// (which processes during replay), while LoadToolPanelDataAsync also writes
 			// session.Context. To prevent concurrent mutations, pass replay a snapshot of Context
 			// rather than the live reference. Replayed context mutations are discarded after replay
-			// completes, since LoadContextPanelDataAsync provides the authoritative values.
+			// completes, since LoadToolPanelDataAsync provides the authoritative values.
 			// Run the panel's SDK round-trips concurrently with the (length-dependent) event fetch +
 			// replay so they hide under it instead of adding to resume time. Joined before the restore
 			// section below, which reads session.Context.
-			Task contextPanelTask = LoadContextPanelDataAsync(session, sdkSession);
+			Task toolPanelTask = LoadToolPanelDataAsync(session, sdkSession);
 
 			bool registered = false;
 			try
@@ -149,7 +174,7 @@ public sealed partial class SessionFeature
 				_logger.LogInformation("Loading {Count} events for session {SessionId}", events.Count, sessionId);
 
 				// Create a snapshot of the context for replay to mutate independently, avoiding
-				// concurrent writes with LoadContextPanelDataAsync.
+				// concurrent writes with LoadToolPanelDataAsync.
 				Models.SessionContext replayContext = new()
 				{
 					CurrentWorkingDirectory = session.Context.CurrentWorkingDirectory,
@@ -200,9 +225,9 @@ public sealed partial class SessionFeature
 					session.Title = tempSession.Title;
 				}
 
-				// Join the context-panel load before the restore section below, which reads
+				// Join the tool-panel load before the restore section below, which reads
 				// session.Context (e.g. resolving the selected agent against the loaded agent list).
-				await contextPanelTask;
+				await toolPanelTask;
 
 				session.Context.WorkspacePath = sdkSession.WorkspacePath;
 				SessionPermissionFeature.TryRestoreSessionCommands(session, _logger);
@@ -240,8 +265,20 @@ public sealed partial class SessionFeature
 				// message component. Preserve that distinction and publish a reset only after every
 				// fallible load/switch step has succeeded.
 				SessionChangeKind successfulHistoryReplacementKind = SessionLoadNotificationPolicy.GetSuccessfulHistoryReplacementKind(_sessionListFeature.CurrentSession?.Id, sessionId);
-				await SwitchCurrentSessionAsync(session);
-				_sessionListFeature.NotifyStateChanged(sessionId, successfulHistoryReplacementKind);
+				if(!CanCommitNavigation(navigationRequestId, requiredCurrentSessionId))
+				{
+					_logger.LogInformation("Session {SessionId} loaded but a newer navigation request owns the visible session", sessionId);
+					return true;
+				}
+				bool switched = await SwitchCurrentSessionAsync(
+					session,
+					applyOpenPreference ? _appSettingsFeature.OpenSidebarOnSessionOpen : null,
+					navigationRequestId,
+					requiredCurrentSessionId);
+				if(switched)
+				{
+					_sessionListFeature.NotifyStateChanged(sessionId, successfulHistoryReplacementKind);
+				}
 				_logger.LogInformation("Successfully loaded session {SessionId} with {MessageCount} messages", sessionId, session.Messages.Count);
 				return true;
 			}
@@ -251,9 +288,9 @@ public sealed partial class SessionFeature
 				{
 					_sdkRegistry.TryRemove(session.Id, sdkSession);
 
-					// The context-panel load may still be in flight on an error path. Wait for it
+					// The tool-panel load may still be in flight on an error path. Wait for it
 					// (observing any failure) before disposing the SDK session it reads from.
-					try { await contextPanelTask; } catch { /* surfaced via the outer catch / loaders */ }
+					try { await toolPanelTask; } catch { /* surfaced via the outer catch / loaders */ }
 					await sdkSession.DisposeAsync();
 					if(loadClaimed)
 					{
@@ -297,8 +334,21 @@ public sealed partial class SessionFeature
 		}
 	}
 
+	bool IsLatestNavigationRequest(long requestId) => Volatile.Read(ref _navigationRequestId) == requestId;
 
-	async Task LoadContextPanelDataAsync(SessionModel session, CopilotSession sdkSession)
+	bool CanCommitNavigation(long? requestId, string? requiredCurrentSessionId)
+	{
+		if(requestId.HasValue && !IsLatestNavigationRequest(requestId.Value))
+		{
+			return false;
+		}
+
+		return requiredCurrentSessionId is null
+			|| string.Equals(_sessionListFeature.CurrentSession?.Id, requiredCurrentSessionId, StringComparison.Ordinal);
+	}
+
+
+	async Task LoadToolPanelDataAsync(SessionModel session, CopilotSession sdkSession)
 	{
 		Task<List<AgentProfile>> agentsTask = _agentFeature.LoadSessionAgentsAsync(sdkSession, session.Context.GitRoot);
 		Task<List<InstructionSource>> instructionsTask = _instructionsFeature.LoadSessionInstructionsAsync(sdkSession);

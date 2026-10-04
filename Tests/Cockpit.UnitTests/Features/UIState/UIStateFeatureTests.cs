@@ -73,6 +73,7 @@ public class UIStateFeatureTests
 
 		feature.LeftSidebarCollapsed.ShouldBeFalse();
 		feature.RightSidebarCollapsed.ShouldBeFalse();
+		feature.RightSidebarExpanded.ShouldBeFalse();
 	}
 
 	[Fact]
@@ -218,6 +219,71 @@ public class UIStateFeatureTests
 		feature.ToggleRightSidebar();
 
 		count.ShouldBe(2);
+	}
+
+	[Fact]
+	public void ToggleRightSidebarExpanded_ExpandsOpenSidebarThenRestoresIt()
+	{
+		UIStateFeature feature = CreateFeature();
+		feature.ToggleRightSidebar();
+
+		feature.ToggleRightSidebarExpanded();
+
+		feature.RightSidebarExpanded.ShouldBeTrue();
+		feature.RightSidebarCollapsed.ShouldBeFalse();
+
+		feature.ToggleRightSidebarExpanded();
+		feature.RightSidebarExpanded.ShouldBeFalse();
+		feature.RightSidebarCollapsed.ShouldBeFalse();
+	}
+
+	[Fact]
+	public void ToggleRightSidebar_WhenFullApp_CollapsesAndLeavesFullAppMode()
+	{
+		UIStateFeature feature = CreateFeature();
+		feature.ToggleRightSidebarExpanded();
+
+		feature.ToggleRightSidebar();
+
+		feature.RightSidebarExpanded.ShouldBeFalse();
+		feature.RightSidebarCollapsed.ShouldBeTrue();
+	}
+
+	[Fact]
+	public void SetRightSidebarOpenFalse_LeavesFullAppMode()
+	{
+		UIStateFeature feature = CreateFeature();
+		feature.ToggleRightSidebarExpanded();
+
+		feature.SetRightSidebarOpen(false);
+
+		feature.RightSidebarExpanded.ShouldBeFalse();
+		feature.RightSidebarCollapsed.ShouldBeTrue();
+	}
+
+	[Theory]
+	[InlineData(true, false)]
+	[InlineData(false, true)]
+	public void SetRightSidebarOpen_SetsRequestedState(bool isOpen, bool expectedCollapsed)
+	{
+		UIStateFeature feature = CreateFeature();
+
+		feature.SetRightSidebarOpen(isOpen);
+
+		feature.RightSidebarCollapsed.ShouldBe(expectedCollapsed);
+	}
+
+	[Fact]
+	public void SetRightSidebarOpen_DoesNotNotifyWhenStateIsAlreadyEffective()
+	{
+		UIStateFeature feature = CreateFeature();
+		int count = 0;
+		feature.OnStateChanged += () => count++;
+
+		feature.SetRightSidebarOpen(true);
+		feature.SetRightSidebarOpen(true);
+
+		count.ShouldBe(0);
 	}
 
 	// -------------------------------------------------------------------------
@@ -664,6 +730,7 @@ sealed class MockAppSettings : IAppSettingsFeature
 	public bool SendOnEnter { get; set; }
 	public int LeftSidebarWidth { get; set; }
 	public int RightSidebarWidth { get; set; }
+	public bool OpenSidebarOnSessionOpen { get; set; } = true;
 	public bool TextToSpeechEnabled { get; set; }
 	public float VoiceVolume { get; set; }
 	public float VoicePitch { get; set; }

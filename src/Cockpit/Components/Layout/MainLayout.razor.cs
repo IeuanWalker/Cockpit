@@ -36,6 +36,7 @@ public partial class MainLayout : IDisposable
 		_authCheckFeature = authCheckFeature;
 
 		_uiStateFeature.OnStateChanged += OnStateChanged;
+		_uiStateFeature.OnOpenSettings += OpenSettings;
 		_sessionListFeature.OnSessionStateChanged += OnSessionStateChanged;
 		_authCheckFeature.OnStateChanged += OnStateChanged;
 	}
@@ -89,6 +90,7 @@ public partial class MainLayout : IDisposable
 	bool _renderedHasSession;
 	bool _renderedLeftCollapsed;
 	bool _renderedRightCollapsed;
+	bool _renderedRightExpanded;
 	AuthState _renderedAuthState;
 
 	protected override bool ShouldRender()
@@ -96,11 +98,13 @@ public partial class MainLayout : IDisposable
 		bool hasSession = _sessionListFeature.CurrentSession is not null;
 		bool leftCollapsed = _uiStateFeature.LeftSidebarCollapsed;
 		bool rightCollapsed = _uiStateFeature.RightSidebarCollapsed;
+		bool rightExpanded = _uiStateFeature.RightSidebarExpanded;
 		AuthState authState = _authCheckFeature.State;
 
 		if(hasSession == _renderedHasSession &&
 		   leftCollapsed == _renderedLeftCollapsed &&
 		   rightCollapsed == _renderedRightCollapsed &&
+		   rightExpanded == _renderedRightExpanded &&
 		   authState == _renderedAuthState)
 		{
 			return false;
@@ -109,6 +113,7 @@ public partial class MainLayout : IDisposable
 		_renderedHasSession = hasSession;
 		_renderedLeftCollapsed = leftCollapsed;
 		_renderedRightCollapsed = rightCollapsed;
+		_renderedRightExpanded = rightExpanded;
 		_renderedAuthState = authState;
 		return true;
 	}
@@ -118,6 +123,8 @@ public partial class MainLayout : IDisposable
 	{
 		_settingsPopup?.OpenToSection(SettingsSectionEnum.Appearance);
 	}
+
+	void OpenSettings(SettingsSectionEnum section) => _settingsPopup?.OpenToSection(section);
 
 	public void Dispose()
 	{
@@ -130,6 +137,7 @@ public partial class MainLayout : IDisposable
 		if(disposing)
 		{
 			_uiStateFeature.OnStateChanged -= OnStateChanged;
+			_uiStateFeature.OnOpenSettings -= OpenSettings;
 			_sessionListFeature.OnSessionStateChanged -= OnSessionStateChanged;
 			_authCheckFeature.OnStateChanged -= OnStateChanged;
 			_dotNetRef?.Dispose();

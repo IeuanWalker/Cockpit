@@ -1,0 +1,23 @@
+.markdown-content { min-width:0; max-width:100%; line-height:1.5; word-break:break-word; }
+.markdown-content ::deep > *:first-child { margin-top:0; }
+.markdown-content ::deep > *:last-child { margin-bottom:0; }
+.markdown-content ::deep p { margin:0 0 .75rem; }
+.markdown-content ::deep h1,.markdown-content ::deep h2,.markdown-content ::deep h3,.markdown-content ::deep h4,.markdown-content ::deep h5,.markdown-content ::deep h6 { margin:1rem 0 .5rem; color:var(--title-color); font-weight:600; }
+.markdown-content ::deep ul { margin:0 0 .75rem 1.25rem; padding:0; list-style:disc; }
+.markdown-content ::deep ol { margin:0 0 .75rem 1.25rem; padding:0; list-style:decimal; }
+.markdown-content ::deep li { margin:.25rem 0; }
+.markdown-content ::deep blockquote { margin:0 0 .75rem; padding:.5rem .75rem; border-left:3px solid var(--markdown-blockquote-border); background:var(--markdown-blockquote-bg); }
+.markdown-content ::deep hr { margin:1rem 0; border:0; border-top:1px solid var(--border-color); }
+.markdown-content ::deep table { width:100%; margin:0 0 .75rem; border-collapse:collapse; font-size:.875rem; }
+.markdown-content ::deep th,.markdown-content ::deep td { padding:.35rem .5rem; border:1px solid var(--border-color); text-align:left; }
+.markdown-content ::deep a { position:relative; color:inherit; transition:all .1s linear; }
+.markdown-content ::deep a::before { position:absolute; bottom:0; left:0; width:100%; border-bottom:1px solid currentColor; content:""; transition:all .3s ease; }
+.markdown-content ::deep a:hover { text-shadow:.3px 0 currentColor,-.3px 0 currentColor,0 .3px currentColor,0 -.3px currentColor; }
+.markdown-content ::deep a:hover::before { transform:scaleY(2); }
+.markdown-content ::deep code { padding:.1rem .3rem; border-radius:4px; background:var(--markdown-code-bg); font-size:.85em; }
+.markdown-content ::deep pre { min-width:0; max-width:100%; margin:0 0 .75rem; padding:.75rem; overflow-x:auto; border:1px solid var(--border-color); border-radius:6px; background:var(--markdown-code-bg); font-size:.85rem; }
+.markdown-content ::deep .code-block { position:relative; margin:0 0 .75rem; }
+.markdown-content ::deep .code-block pre { margin:0; padding-bottom:2rem; }
+.markdown-content ::deep pre code,.markdown-content ::deep pre code.hljs { display:block; padding:0; background:transparent; white-space:pre; }
+.markdown-content ::deep .code-copy-button { position:absolute; right:.6rem; bottom:.5rem; padding:.2rem .5rem; border:1px solid var(--border-color); border-radius:4px; color:var(--text-color); background:var(--sidebar-color); font-size:.7rem; cursor:pointer; }
+.markdown-content ::deep .code-copy-button.copied { color:#10893e; }

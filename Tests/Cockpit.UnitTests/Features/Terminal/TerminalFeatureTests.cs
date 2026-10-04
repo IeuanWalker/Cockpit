@@ -38,6 +38,18 @@ public sealed class TerminalFeatureTests : IAsyncDisposable
 		result.ShouldBeTrue();
 	}
 
+	[Fact]
+	public async Task CloseAllForSession_closes_its_tabs_but_preserves_other_sessions()
+	{
+		await CreateSessionAsync("owner:first");
+		await CreateSessionAsync("owner:second");
+		await CreateSessionAsync("owner-other:first");
+		await _feature.CloseAllForSessionAsync("owner");
+		_feature.GetSession("owner:first").ShouldBeNull();
+		_feature.GetSession("owner:second").ShouldBeNull();
+		_feature.GetSession("owner-other:first").ShouldNotBeNull();
+	}
+
 	// ── GetBufferedOutput ───────────────────────────────────────────────────────
 
 	[Fact]

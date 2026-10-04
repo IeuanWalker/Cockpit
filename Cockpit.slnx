@@ -13,6 +13,19 @@
   <Project Path="src/Cockpit/Cockpit.csproj">
     <Deploy />
   </Project>
+  <Project Path="src/Cockpit.Tooling.Abstractions/Cockpit.Tooling.Abstractions.csproj" />
+  <Project Path="src/Cockpit.Tooling.Discovery/Cockpit.Tooling.Discovery.csproj" />
+  <Project Path="src/Cockpit.Tooling.Discovery.Build/Cockpit.Tooling.Discovery.Build.csproj" />
+  <Project Path="src/Cockpit.Tooling.Maui/Cockpit.Tooling.Maui.csproj" />
+  <Project Path="src/Cockpit.Tools.SessionContext/Cockpit.Tools.SessionContext.csproj" />
+  <Project Path="src/Cockpit.Tools.GitChanges/Cockpit.Tools.GitChanges.csproj" />
+  <Project Path="src/Cockpit.Tools.Terminal/Cockpit.Tools.Terminal.csproj" />
+  <Project Path="src/Cockpit.Tools.FileExplorer/Cockpit.Tools.FileExplorer.csproj" />
+  <Project Path="src/Cockpit.Tools.Browser/Cockpit.Tools.Browser.csproj" />
   <Project Path="Tests/Cockpit.Benchmarks/Cockpit.Benchmarks.csproj" />
+  <Project Path="Tests/Cockpit.Tooling.Tests/Cockpit.Tooling.Tests.csproj" />
+  <Project Path="Tests/Cockpit.Tools.SessionContext.Tests/Cockpit.Tools.SessionContext.Tests.csproj" />
+  <Project Path="Tests/Cockpit.Tools.GitChanges.Tests/Cockpit.Tools.GitChanges.Tests.csproj" />
+  <Project Path="Tests/Cockpit.Tools.BuiltIns.Tests/Cockpit.Tools.BuiltIns.Tests.csproj" />
   <Project Path="Tests/Cockpit.UnitTests/Cockpit.UnitTests.csproj" />
 </Solution>

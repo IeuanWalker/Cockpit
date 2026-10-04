@@ -12,11 +12,17 @@ public interface IUIStateFeature
 	/// <summary>Raised when text should be appended to the active chat input.</summary>
 	event Action<string>? OnAppendChatInput;
 
+	/// <summary>Raised when a feature asks the application to show a settings section.</summary>
+	event Action<SettingsSectionEnum>? OnOpenSettings;
+
 	/// <summary>Whether the left sidebar is currently collapsed.</summary>
 	bool LeftSidebarCollapsed { get; }
 
 	/// <summary>Whether the right sidebar is currently collapsed.</summary>
 	bool RightSidebarCollapsed { get; }
+
+	/// <summary>Whether the tools workspace currently fills the application window.</summary>
+	bool RightSidebarExpanded { get; }
 
 	/// <summary>Current width of the left sidebar in pixels.</summary>
 	int LeftSidebarWidth { get; }
@@ -35,6 +41,15 @@ public interface IUIStateFeature
 
 	/// <summary>Toggles the right sidebar between collapsed and expanded.</summary>
 	void ToggleRightSidebar();
+
+	/// <summary>Toggles the tools workspace between sidebar and full-application modes.</summary>
+	void ToggleRightSidebarExpanded();
+
+	/// <summary>
+	/// Idempotently sets whether the right sidebar is open. No event is raised when
+	/// the requested state is already effective.
+	/// </summary>
+	void SetRightSidebarOpen(bool isOpen);
 
 	/// <summary>
 	/// Sets the left sidebar width, clamped to [<see cref="UIStateFeature.MinSidebarWidth"/>, <see cref="UIStateFeature.MaxSidebarWidth"/>].
@@ -65,4 +80,7 @@ public interface IUIStateFeature
 	/// <see cref="OnAppendChatInput"/>.
 	/// </summary>
 	void AppendChatInput(string text);
+
+	/// <summary>Requests that the application settings popup opens to a section.</summary>
+	void OpenSettings(SettingsSectionEnum section);
 }

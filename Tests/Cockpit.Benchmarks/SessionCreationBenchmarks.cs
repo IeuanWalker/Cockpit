@@ -14,7 +14,7 @@ namespace Cockpit.Benchmarks;
 ///
 /// <para>
 /// <c>CreateSession</c> is dominated by <em>awaited I/O</em> — spawning git subprocesses,
-/// the SDK <c>CreateSessionAsync</c> IPC round-trip, the context-panel SDK reads, and three
+/// the SDK <c>CreateSessionAsync</c> IPC round-trip, the tool-panel SDK reads, and three
 /// best-effort disk writes. None of that work is CPU/allocation bound, so a classic
 /// micro-benchmark of the synchronous object construction would measure the wrong thing.
 /// </para>
@@ -55,8 +55,8 @@ public class SessionCreationBenchmarks
 	// client.CreateSessionAsync: a single SDK IPC round-trip.
 	const int createSdkSessionMs = 30;
 
-	// LoadContextPanelDataAsync: 5 concurrent SDK reads.
-	const int loadContextPanelMs = 20;
+	// LoadToolPanelDataAsync: 5 concurrent SDK reads.
+	const int loadToolPanelMs = 20;
 
 	// Each of SaveSessionModel / SaveSessionAgent / SaveSessionMode: a small atomic file write.
 	const int saveMs = 16;
@@ -78,7 +78,7 @@ public class SessionCreationBenchmarks
 		await Io(gitContextMs);          // GetContext — blocks here before doing anything else
 										 // build SessionConfig (synchronous)
 		await Io(createSdkSessionMs);    // client.CreateSessionAsync
-		await Io(loadContextPanelMs);    // LoadContextPanelDataAsync
+		await Io(loadToolPanelMs);    // LoadToolPanelDataAsync
 		await Io(saveMs);                // SaveSessionModel
 		await Io(saveMs);                // SaveSessionAgent
 		await Io(saveMs);                // SaveSessionMode
@@ -103,7 +103,7 @@ public class SessionCreationBenchmarks
 
 		_ = await gitContextTask;        // await git just before it's consumed (already done)
 
-		await Io(loadContextPanelMs);    // LoadContextPanelDataAsync
+		await Io(loadToolPanelMs);    // LoadToolPanelDataAsync
 
 		// Persistence (3 file writes) is fire-and-forget in production — the user doesn't wait
 		// for it, so it isn't part of the perceived create latency modeled here.

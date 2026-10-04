@@ -1,0 +1,212 @@
+@using Cockpit.Tools.GitChanges.Diff
+@using Cockpit.Tools.GitChanges.Sources
+@implements IDisposable
+
+<div class="ef-root">
+    <header class="ef-header">
+        <span class="ef-title">Edited Files (@Files.Count)</span>
+        <div class="ef-header-right">
+            <div class="view-toggle">
+                <button class="toggle-btn @(!Instance.State.TreeView ? "active" : "")" type="button" @onclick="() => Instance.SetTreeView(false)">Flat</button>
+                <button class="toggle-btn @(Instance.State.TreeView ? "active" : "")" type="button" @onclick="() => Instance.SetTreeView(true)">Tree</button>
+            </div>
+            @if(Instance.DisplayedFile?.Status == GitChangeStatus.Modified)
+            {
+                <div class="view-toggle">
+                    <button class="toggle-btn @(!Instance.State.SplitDiffView ? "active" : "")" type="button" @onclick="() => Instance.SetSplitView(false)">Unified</button>
+                    <button class="toggle-btn @(Instance.State.SplitDiffView ? "active" : "")" type="button" @onclick="() => Instance.SetSplitView(true)">Split</button>
+                </div>
+            }
+            <button class="ef-action-btn" type="button" disabled="@(Instance.DisplayedFile is null || Instance.DisplayedFile.Status == GitChangeStatus.Deleted)" @onclick="RevealAsync" title="Reveal in file explorer">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                <span>Reveal</span>
+            </button>
+        </div>
+    </header>
+
+    @if(Instance.IsShowingCachedContent)
+    {
+        <div class="git-notice" role="status">Showing a saved read-only diff while current Git data is resolved.</div>
+    }
+    @if(Instance.RecoveryMessage is not null)
+    {
+        <div class="git-notice error" role="alert">@Instance.RecoveryMessage <button type="button" @onclick="RefreshAsync">Retry</button></div>
+    }
+
+    <div class="ef-body">
+        <nav class="ef-file-tree scrollbar-thin" aria-label="Changed files">
+            @if(Files.Count == 0)
+            {
+                <div class="empty-state">No edited files</div>
+            }
+            @foreach(DisplayNode node in DisplayNodes)
+            {
+                @if(node.IsDirectory)
+                {
+                    <button class="ef-dir-item" type="button" style="padding-left:@(8 + node.Depth * 12)px" @onclick="() => Instance.ToggleDirectory(node.DirectoryKey!)">
+                        <svg class="ef-chevron @(Instance.IsDirectoryExpanded(node.DirectoryKey!) ? "expanded" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <svg class="ef-folder-icon" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                        <span class="file-name">@node.Name</span>
+                    </button>
+                }
+                else if(node.File is not null)
+                {
+                    <button class="ef-file-item @StatusBorder(node.File.Status) @(node.File == Instance.DisplayedFile ? "selected" : "")" type="button" style="padding-left:@(12 + node.Depth * 12)px" @onclick="() => Instance.SelectFile(node.File)">
+                        <span class="file-name @(node.File.Status == GitChangeStatus.Deleted ? "deleted" : "")">@node.Name</span>
+                        <span class="status-badge @StatusBadgeClass(node.File.Status)">@StatusBadge(node.File.Status)</span>
+                    </button>
+                }
+            }
+        </nav>
+
+        <section class="gitdiff-panel" aria-label="Selected file diff">
+            @if(Instance.DisplayedFile is null)
+            {
+                <div class="diff-empty">Select a changed file.</div>
+            }
+            else
+            {
+                <div class="gitdiff-panel-header">
+                    <div class="file-summary">
+                        <strong>@Instance.DisplayedFile.Name</strong>
+                        @if(Parsed.LinesAdded > 0) { <span class="diff-added-count">+@Parsed.LinesAdded</span> }
+                        @if(Parsed.LinesRemoved > 0) { <span class="diff-removed-count">-@Parsed.LinesRemoved</span> }
+                    </div>
+                    <span class="file-path" title="@SelectedFilePath">@SelectedFilePath</span>
+                </div>
+                @if(Parsed.Hunks.Count == 0)
+                {
+                    <div class="diff-empty">@(string.IsNullOrEmpty(Instance.DisplayedFile.Diff) ? "No diff available for this file" : "Empty diff")</div>
+                }
+                else if(Instance.State.SplitDiffView && Instance.DisplayedFile.Status == GitChangeStatus.Modified)
+                {
+                    <div class="gitdiff-split-wrapper">
+                        <div class="gitdiff-split-pane scrollbar-thin">
+                            <table class="gitdiff-table">
+                                <colgroup><col class="col-linenum" /><col class="col-content" /></colgroup>
+                                @foreach(DiffHunk hunk in Parsed.Hunks)
+                                {
+                                    <tr class="hunk-header-row"><td class="expand-gutter"></td><td class="hunk-header-cell">@hunk.Header</td></tr>
+                                    @foreach(SplitDiffRow row in BuildSplitRows(hunk))
+                                    {
+                                        <tr><td class="line-num">@row.Left?.OldLineNumber</td><td class="diff-cell @(row.Left is null ? "split-empty" : row.Left.Type == DiffLineType.Removed ? "removed" : "context")">@(row.Left?.Content ?? string.Empty)</td></tr>
+                                    }
+                                }
+                            </table>
+                        </div>
+                        <div class="gitdiff-split-divider"></div>
+                        <div class="gitdiff-split-pane scrollbar-thin">
+                            <table class="gitdiff-table">
+                                <colgroup><col class="col-linenum" /><col class="col-content" /></colgroup>
+                                @foreach(DiffHunk hunk in Parsed.Hunks)
+                                {
+                                    <tr class="hunk-header-row"><td class="expand-gutter"></td><td class="hunk-header-cell">@hunk.Header</td></tr>
+                                    @foreach(SplitDiffRow row in BuildSplitRows(hunk))
+                                    {
+                                        <tr><td class="line-num">@row.Right?.NewLineNumber</td><td class="diff-cell @(row.Right is null ? "split-empty" : row.Right.Type == DiffLineType.Added ? "added" : "context")">@(row.Right?.Content ?? string.Empty)</td></tr>
+                                    }
+                                }
+                            </table>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="gitdiff-scroll scrollbar-thin">
+                        <table class="gitdiff-table">
+                            <colgroup><col class="col-linenum" /><col class="col-linenum" /><col class="col-content" /></colgroup>
+                            @foreach(DiffHunk hunk in Parsed.Hunks)
+                            {
+                                <tr class="hunk-header-row"><td class="expand-gutter" colspan="2"></td><td class="hunk-header-cell">@hunk.Header</td></tr>
+                                @foreach(DiffLine line in hunk.Lines)
+                                {
+                                    <tr class="@(line.Type == DiffLineType.Removed ? "diff-row-removed" : line.Type == DiffLineType.Added ? "diff-row-added" : "")">
+                                        <td class="line-num">@(line.Type == DiffLineType.Added ? null : line.OldLineNumber)</td>
+                                        <td class="line-num">@(line.Type == DiffLineType.Removed ? null : line.NewLineNumber)</td>
+                                        <td class="diff-cell @(line.Type == DiffLineType.Removed ? "removed" : line.Type == DiffLineType.Added ? "added" : "context")"><span class="diff-prefix">@Prefix(line.Type)</span>@line.Content</td>
+                                    </tr>
+                                }
+                            }
+                        </table>
+                    </div>
+                }
+            }
+        </section>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public GitChangesToolInstance Instance { get; set; } = null!;
+    IReadOnlyList<GitChangedFileSnapshot> Files => Instance.Snapshot?.Files ?? Instance.State.CachedDisplay?.Listing ?? [];
+    ParsedDiff Parsed => DiffParser.Parse(Instance.DisplayedFile?.Diff);
+    string SelectedFilePath => Instance.DisplayedFile is null ? string.Empty : Instance.Snapshot is null ? Instance.DisplayedFile.RelativePath : Path.Combine(Instance.Snapshot.Repository.CanonicalRoot, Instance.DisplayedFile.RelativePath.Replace('/', Path.DirectorySeparatorChar));
+    IReadOnlyList<DisplayNode> DisplayNodes => BuildDisplayNodes();
+
+    protected override void OnInitialized() => Instance.Changed += OnChanged;
+    Task RefreshAsync() => Instance.RefreshAsync().AsTask();
+    Task RevealAsync() => Instance.RevealSelectedAsync(default).AsTask();
+    void OnChanged() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Instance.Changed -= OnChanged;
+
+    IReadOnlyList<DisplayNode> BuildDisplayNodes()
+    {
+        if(!Instance.State.TreeView) return [.. Files.Select(file => new DisplayNode(file.Name, 0, false, null, file))];
+        DisplayDirectory root = new(string.Empty, string.Empty);
+        foreach(GitChangedFileSnapshot file in Files)
+        {
+            string[] parts = file.RelativePath.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries);
+            DisplayDirectory directory = root;
+            for(int index = 0; index < parts.Length - 1; index++)
+            {
+                string key = string.IsNullOrEmpty(directory.Key) ? parts[index] : $"{directory.Key}/{parts[index]}";
+                if(!directory.Directories.TryGetValue(parts[index], out DisplayDirectory? child)) directory.Directories[parts[index]] = child = new(parts[index], key);
+                directory = child;
+            }
+            directory.Files.Add(file);
+        }
+        List<DisplayNode> nodes = [];
+        AppendDirectory(root, 0, nodes);
+        return nodes;
+    }
+
+    void AppendDirectory(DisplayDirectory directory, int depth, List<DisplayNode> nodes)
+    {
+        foreach(DisplayDirectory child in directory.Directories.Values.OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            nodes.Add(new(child.Name, depth, true, child.Key, null));
+            if(Instance.IsDirectoryExpanded(child.Key)) AppendDirectory(child, depth + 1, nodes);
+        }
+        nodes.AddRange(directory.Files.OrderBy(file => file.Name, StringComparer.OrdinalIgnoreCase).Select(file => new DisplayNode(file.Name, depth, false, null, file)));
+    }
+
+    static IReadOnlyList<SplitDiffRow> BuildSplitRows(DiffHunk hunk)
+    {
+        List<SplitDiffRow> rows = [];
+        for(int index = 0; index < hunk.Lines.Count;)
+        {
+            DiffLine line = hunk.Lines[index];
+            if(line.Type == DiffLineType.Context) { rows.Add(new(line, line)); index++; continue; }
+            List<DiffLine> removed = [];
+            while(index < hunk.Lines.Count && hunk.Lines[index].Type == DiffLineType.Removed) removed.Add(hunk.Lines[index++]);
+            List<DiffLine> added = [];
+            while(index < hunk.Lines.Count && hunk.Lines[index].Type == DiffLineType.Added) added.Add(hunk.Lines[index++]);
+            for(int pair = 0; pair < Math.Max(removed.Count, added.Count); pair++) rows.Add(new(pair < removed.Count ? removed[pair] : null, pair < added.Count ? added[pair] : null));
+        }
+        return rows;
+    }
+
+    static char Prefix(DiffLineType type) => type switch { DiffLineType.Added => '+', DiffLineType.Removed => '-', _ => ' ' };
+    static string StatusBadge(GitChangeStatus status) => status switch { GitChangeStatus.Modified => "M", GitChangeStatus.Added => "A", GitChangeStatus.Deleted => "D", GitChangeStatus.Renamed => "R", _ => "U" };
+    static string StatusBorder(GitChangeStatus status) => status switch { GitChangeStatus.Modified => "modified", GitChangeStatus.Added => "added", GitChangeStatus.Deleted => "deleted-status", GitChangeStatus.Renamed => "renamed", _ => "untracked" };
+    static string StatusBadgeClass(GitChangeStatus status) => StatusBorder(status);
+    sealed record DisplayNode(string Name, int Depth, bool IsDirectory, string? DirectoryKey, GitChangedFileSnapshot? File);
+    sealed class DisplayDirectory(string name, string key)
+    {
+        public string Name { get; } = name;
+        public string Key { get; } = key;
+        public Dictionary<string, DisplayDirectory> Directories { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public List<GitChangedFileSnapshot> Files { get; } = [];
+    }
+}

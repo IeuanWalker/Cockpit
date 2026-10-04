@@ -1,0 +1,8 @@
+@using Cockpit.Tools.SessionContext.State
+
+<div class="session-context-template-editor">The Session Context tool uses the legacy context-panel presentation.</div>
+
+@code {
+    [Parameter, EditorRequired] public SessionContextState Value { get; set; } = new();
+    [Parameter] public EventCallback<SessionContextState> ValueChanged { get; set; }
+}

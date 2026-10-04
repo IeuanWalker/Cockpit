@@ -1,5 +1,6 @@
 using Cockpit.Features.Sessions;
 using Cockpit.Features.UIState;
+using Cockpit.Features.Workspace;
 using Microsoft.AspNetCore.Components;
 
 namespace Cockpit.Components.Pages.ChatPanel;
@@ -36,12 +37,15 @@ public sealed partial class ChatPanel : ComponentBase, IDisposable
 
 	void OnUiStateChanged() => InvokeAsync(StateHasChanged);
 
-	void ToggleTerminalPanel()
+	[Inject] IServiceProvider Services { get; set; } = default!;
+	async Task OpenTerminal()
 	{
 		if(_sessionFeature.CurrentSession is not null)
 		{
-			_sessionFeature.CurrentSession.Ui.IsTerminalOpen = !_sessionFeature.CurrentSession.Ui.IsTerminalOpen;
-			StateHasChanged();
+			WorkspaceFeature workspace = Services.GetRequiredService<WorkspaceFeature>();
+			await workspace.EnsureCurrentAsync();
+			if(_uiStateFeature.RightSidebarCollapsed) _uiStateFeature.ToggleRightSidebar();
+			await workspace.OpenToolAsync("cockpit.terminal");
 		}
 	}
 

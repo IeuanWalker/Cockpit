@@ -13,7 +13,7 @@ namespace Cockpit.Benchmarks;
 /// <para>
 /// Resuming replays every event so the UI is reconstructed exactly as it was left — that cost grows
 /// with session length and is intentional. What the optimization changes is the <em>ordering</em> of
-/// the surrounding awaits: the context-panel SDK reads (agents / instructions / MCP / skills / plugins)
+/// the surrounding awaits: the tool-panel SDK reads (agents / instructions / MCP / skills / plugins)
 /// are independent of the replay (the replay never touches <c>session.Context</c>), so they can run
 /// concurrently with the event fetch + replay instead of before it.
 /// </para>
@@ -21,7 +21,7 @@ namespace Cockpit.Benchmarks;
 /// <para>
 /// The benchmark models both orderings with representative I/O latencies, parameterized by the replay
 /// duration (a proxy for session length). The takeaway it makes visible: the overlap hides up to the
-/// fixed context-panel cost, which is a meaningful fraction of a short session's resume but negligible
+/// fixed tool-panel cost, which is a meaningful fraction of a short session's resume but negligible
 /// next to a long replay — i.e. it helps most where the replay is cheap. Absolute numbers are modeled
 /// latencies, not measured production timings; the <c>Sequential</c> vs <c>Optimized</c> ratio is the
 /// meaningful output.
@@ -47,8 +47,8 @@ public class SessionResumeBenchmarks
 	// in both orderings — included for a realistic total.
 	const int resumeIpcMs = 32;
 
-	// LoadContextPanelDataAsync: 5 concurrent SDK reads.
-	const int contextPanelMs = 20;
+	// LoadToolPanelDataAsync: 5 concurrent SDK reads.
+	const int toolPanelMs = 20;
 
 	// sdkSession.GetEventsAsync: one IPC that returns the event list.
 	const int getEventsMs = 16;
@@ -66,20 +66,20 @@ public class SessionResumeBenchmarks
 	static Task Io(int milliseconds) => milliseconds <= 0 ? Task.CompletedTask : Task.Delay(milliseconds);
 
 	/// <summary>
-	/// Current ordering: the context-panel load is awaited up front, before the event fetch + replay.
+	/// Current ordering: the tool-panel load is awaited up front, before the event fetch + replay.
 	/// </summary>
 	[Benchmark(Baseline = true)]
 	public async Task Sequential()
 	{
 		await Io(resumeIpcMs);       // client.ResumeSessionAsync
-		await Io(contextPanelMs);    // LoadContextPanelDataAsync — blocks here before the replay
+		await Io(toolPanelMs);    // LoadToolPanelDataAsync — blocks here before the replay
 		await Io(getEventsMs);       // sdkSession.GetEventsAsync
 		await Io(ReplayMs);          // Task.Run replay of all events
 		await Io(restoreMs);         // restore model/agent/mode + SDK Select/Set
 	}
 
 	/// <summary>
-	/// Optimized ordering: the context-panel load is started right after the SDK session is obtained
+	/// Optimized ordering: the tool-panel load is started right after the SDK session is obtained
 	/// and runs concurrently with the event fetch + replay, then joined just before the restore section
 	/// (which reads session.Context).
 	/// </summary>
@@ -88,12 +88,12 @@ public class SessionResumeBenchmarks
 	{
 		await Io(resumeIpcMs);                       // client.ResumeSessionAsync
 
-		Task contextPanelTask = Io(contextPanelMs);  // start, don't await yet
+		Task toolPanelTask = Io(toolPanelMs);  // start, don't await yet
 
 		await Io(getEventsMs);                       // sdkSession.GetEventsAsync — overlaps panel
 		await Io(ReplayMs);                          // Task.Run replay — overlaps panel
 
-		await contextPanelTask;                      // join before reading session.Context
+		await toolPanelTask;                      // join before reading session.Context
 
 		await Io(restoreMs);                         // restore model/agent/mode + SDK Select/Set
 	}

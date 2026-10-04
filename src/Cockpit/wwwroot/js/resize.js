@@ -1,7 +1,7 @@
 /*
  * Shared horizontal resize support for sidebar and split-panel handles.
  * JavaScript owns the mouse event lifecycle and DOM updates.
- * .NET owns persisted UI state through optional OnResize notifications.
+ * .NET owns persisted UI state through a single OnResize notification when dragging ends.
  */
 (function () {
     window.cockpit ??= {};
@@ -96,18 +96,57 @@
 
         let isDragging = false;
         let lastAppliedWidth;
+        let pendingWidth;
+        let animationFrame;
+        let dragOverlay;
+
+        const applyPendingWidth = () => {
+            if (animationFrame !== undefined) {
+                window.cancelAnimationFrame?.(animationFrame);
+                animationFrame = undefined;
+            }
+            if (!Number.isFinite(pendingWidth) || pendingWidth === lastAppliedWidth) {
+                pendingWidth = undefined;
+                return;
+            }
+
+            lastAppliedWidth = pendingWidth;
+            pendingWidth = undefined;
+            applyWidth(lastAppliedWidth);
+        };
+
+        const scheduleWidth = (width) => {
+            pendingWidth = width;
+            if (animationFrame !== undefined) {
+                return;
+            }
+            if (typeof window.requestAnimationFrame !== 'function') {
+                applyPendingWidth();
+                return;
+            }
+            animationFrame = window.requestAnimationFrame(() => {
+                animationFrame = undefined;
+                applyPendingWidth();
+            });
+        };
 
         const stopDrag = () => {
             if (!isDragging) {
                 return;
             }
 
+            applyPendingWidth();
             isDragging = false;
             handle.classList.remove('resizing');
             setDocumentResizeState(false);
+            dragOverlay?.remove();
+            dragOverlay = undefined;
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', stopDrag);
             window.removeEventListener('blur', stopDrag);
+            if (Number.isFinite(lastAppliedWidth)) {
+                reportWidthChanged(onWidthChanged, lastAppliedWidth);
+            }
         };
 
         const onMouseMove = (event) => {
@@ -121,13 +160,12 @@
                 return;
             }
 
-            if (nextWidth === lastAppliedWidth) {
+            const roundedWidth = Math.round(nextWidth);
+            if (roundedWidth === lastAppliedWidth || roundedWidth === pendingWidth) {
                 return;
             }
 
-            lastAppliedWidth = nextWidth;
-            applyWidth(nextWidth);
-            reportWidthChanged(onWidthChanged, nextWidth);
+            scheduleWidth(roundedWidth);
         };
 
         const onMouseDown = (event) => {
@@ -139,8 +177,20 @@
 
             isDragging = true;
             lastAppliedWidth = undefined;
+            pendingWidth = undefined;
             handle.classList.add('resizing');
             setDocumentResizeState(true);
+            dragOverlay = document.createElement('div');
+            dragOverlay.className = 'resize-drag-overlay';
+            dragOverlay.setAttribute('aria-hidden', 'true');
+            Object.assign(dragOverlay.style, {
+                position: 'fixed',
+                inset: '0',
+                zIndex: '2147483647',
+                cursor: resizeCursor,
+                background: 'transparent'
+            });
+            document.body.appendChild(dragOverlay);
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', stopDrag);
             window.addEventListener('blur', stopDrag);

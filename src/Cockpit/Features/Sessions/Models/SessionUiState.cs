@@ -7,7 +7,6 @@ namespace Cockpit.Features.Sessions.Models;
 public sealed class SessionUiState
 {
 	public bool IsYolo { get; set; }
-	public bool IsTerminalOpen { get; set; }
 
 	/// <summary>
 	/// Draft text preserved when the user switches sessions.

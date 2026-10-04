@@ -18,6 +18,7 @@ using Cockpit.Features.Sessions.Interactions;
 using Cockpit.Features.Sessions.Models;
 using Cockpit.Features.Skills;
 using Cockpit.Features.Terminal;
+using Cockpit.Features.UIState;
 using Cockpit.Features.UserInputRequests;
 using GitHub.Copilot;
 using Microsoft.Extensions.Logging;
@@ -46,6 +47,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly SkillsFeature _skillsFeature;
 	readonly PluginsFeature _pluginsFeature;
 	readonly IAppSettingsFeature _appSettingsFeature;
+	readonly IUIStateFeature _uiStateFeature;
 	readonly SessionHooksFactory _hooksFactory;
 	readonly CanvasWindowManager _canvasWindowManager;
 	readonly SessionInteractionCoordinator _interactionCoordinator;
@@ -72,6 +74,7 @@ public sealed partial class SessionFeature : IDisposable
 		SkillsFeature skillsFeature,
 		PluginsFeature pluginsFeature,
 		IAppSettingsFeature appSettingsFeature,
+		IUIStateFeature uiStateFeature,
 		SessionHooksFactory hooksFactory,
 		CanvasWindowManager canvasWindowManager,
 		SessionInteractionCoordinator interactionCoordinator,
@@ -97,6 +100,7 @@ public sealed partial class SessionFeature : IDisposable
 		_skillsFeature = skillsFeature;
 		_pluginsFeature = pluginsFeature;
 		_appSettingsFeature = appSettingsFeature;
+		_uiStateFeature = uiStateFeature;
 		_hooksFactory = hooksFactory;
 		_canvasWindowManager = canvasWindowManager;
 		_interactionCoordinator = interactionCoordinator;
@@ -117,6 +121,7 @@ public sealed partial class SessionFeature : IDisposable
 	readonly ConcurrentDictionary<string, string?> _sdkSessionByokId = new();
 
 	IDisposable? _currentWatcher;
+	long _navigationRequestId;
 
 	public SessionModel? CurrentSession => _sessionListFeature.CurrentSession;
 	public IReadOnlyList<SessionModel> Sessions => _sessionListFeature.Sessions;

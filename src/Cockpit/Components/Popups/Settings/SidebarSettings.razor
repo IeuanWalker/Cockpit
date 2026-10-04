@@ -1,0 +1,33 @@
+<div class="settings-section">
+	<h4 class="text-sm font-semibold text-app-title mb-3">Sidebar</h4>
+
+	<div class="sidebar-setting-card">
+		<div class="flex items-center justify-between gap-4">
+			<div>
+				<div class="text-sm font-medium text-app-title">Open sidebar on new or resumed sessions</div>
+				<div class="text-xs secondary-text">Applies when a session is created or loaded from disk. It does not change the tabs saved in that session.</div>
+			</div>
+			<label class="sidebar-toggle-control">
+				<input type="checkbox" @bind="_openSidebarOnSessionOpen" @bind:after="OnOpenSidebarChanged" />
+				<span class="sidebar-toggle-track"></span>
+			</label>
+		</div>
+	</div>
+
+	<div class="sidebar-setting-card mt-3">
+		<div class="text-sm font-medium text-app-title">Default tabs and layout</div>
+		<div class="text-xs secondary-text mt-1">Copied into new sessions and sessions that do not yet have a saved workspace. Existing sessions are unchanged.</div>
+		<div class="sidebar-layout-preview mt-3" aria-label="Default sidebar layout preview">
+			<div class="text-xs secondary-text">The saved default includes tab groups, split positions, active tabs, and each tool's restorable content.</div>
+		</div>
+		<div class="flex flex-wrap gap-2 mt-3">
+			<button class="sidebar-action" @onclick="EditLayout">Edit in sidebar</button>
+			<button class="sidebar-action" disabled="@(!_workspace.HasCurrentWorkspace)" @onclick="UseCurrentAsync">Use current workspace</button>
+			<button class="sidebar-action" @onclick="ResetAsync">Reset to Cockpit default</button>
+		</div>
+		@if (!string.IsNullOrWhiteSpace(_status))
+		{
+			<div class="text-xs secondary-text mt-2">@_status</div>
+		}
+	</div>
+</div>

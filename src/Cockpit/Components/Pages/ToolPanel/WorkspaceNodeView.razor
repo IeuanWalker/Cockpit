@@ -1,0 +1,215 @@
+@using Cockpit.Features.Workspace
+@using Cockpit.Tooling
+@using Cockpit.Tooling.Discovery
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@if (State.Visible.Nodes.TryGetValue(NodeId, out WorkspaceNode? node))
+{
+    @if (node is WorkspaceSplitNode split)
+    {
+        <div class="workspace-split @(split.Axis == WorkspaceSplitAxis.Columns ? "columns" : "rows")" style="@SplitStyle(split)">
+            <WorkspaceNodeView State="State" NodeId="@split.FirstNodeId" Tools="Tools" ToolPickerGroupId="@ToolPickerGroupId" DraggingInstanceId="@DraggingInstanceId" OnDragStarted="OnDragStarted" OnDragEnded="OnDragEnded" OnActivate="OnActivate" OnClose="OnClose" OnTabContextMenu="OnTabContextMenu" OnMove="OnMove" OnSnap="OnSnap" OnToggleToolPicker="OnToggleToolPicker" OnOpenTool="OnOpenTool" OnSplitRatio="OnSplitRatio" OnToggleMaximise="OnToggleMaximise" />
+            <div class="workspace-divider @(split.Axis == WorkspaceSplitAxis.Columns ? "vertical" : "horizontal")"
+                 role="separator"
+                 aria-orientation="@(split.Axis == WorkspaceSplitAxis.Columns ? "vertical" : "horizontal")"
+                 title="Drag to resize panels"
+                 data-workspace-split-id="@split.Id"
+                 data-workspace-axis="@(split.Axis == WorkspaceSplitAxis.Columns ? "columns" : "rows")"
+                 data-workspace-split-ratio="@split.Ratio"></div>
+            <WorkspaceNodeView State="State" NodeId="@split.SecondNodeId" Tools="Tools" ToolPickerGroupId="@ToolPickerGroupId" DraggingInstanceId="@DraggingInstanceId" OnDragStarted="OnDragStarted" OnDragEnded="OnDragEnded" OnActivate="OnActivate" OnClose="OnClose" OnTabContextMenu="OnTabContextMenu" OnMove="OnMove" OnSnap="OnSnap" OnToggleToolPicker="OnToggleToolPicker" OnOpenTool="OnOpenTool" OnSplitRatio="OnSplitRatio" OnToggleMaximise="OnToggleMaximise" />
+        </div>
+    }
+    else if (node is WorkspaceGroupNode group && (State.Visible.MaximisedGroupId is null || State.Visible.MaximisedGroupId == group.Id))
+    {
+        <section @ref="_groupElement" class="workspace-group @(State.Visible.FocusedGroupId == group.Id ? "focused" : "") @(ToolPickerGroupId == group.Id || _overflowOpen ? "popover-open" : "")" data-workspace-group-id="@group.Id" data-section-count="@(State.State.Nodes.Values.OfType<WorkspaceGroupNode>().Count())" data-tab-count="@group.OrderedInstanceIds.Count" @ondragover:preventDefault @ondrop="() => Drop(group)">
+            <div class="workspace-tabs">
+                <div class="workspace-tab-list">
+                    @foreach (string instanceId in group.OrderedInstanceIds)
+                    {
+                        WorkspaceRenderedInstance rendered = State.Instances[instanceId];
+                        <button type="button" class="workspace-tab @(group.ActiveInstanceId == instanceId ? "active" : "")" draggable="false" data-workspace-instance-id="@instanceId" @onclick="() => OnActivate.InvokeAsync((group.Id, instanceId))" @oncontextmenu:preventDefault @oncontextmenu="(MouseEventArgs args) => OnTabContextMenu.InvokeAsync((instanceId, group.Id, args.ClientX, args.ClientY))">
+                            <span class="workspace-tab-label">
+                                <span class="workspace-tab-icon" aria-hidden="true">@ToolIcon(rendered.Descriptor?.Icon)</span>
+                                <span class="workspace-tab-title">@(rendered.Model.TitleOverride ?? rendered.Descriptor?.DisplayName ?? rendered.Model.ToolId)</span>
+                            </span>
+                            <span class="tab-close" role="button" aria-label="Close tab" title="Close" @onclick:stopPropagation @onclick="() => OnClose.InvokeAsync(instanceId)">×</span>
+                        </button>
+                    }
+                </div>
+                <div class="workspace-tab-actions">
+                    <div class="workspace-tab-overflow">
+                        <button type="button" class="workspace-tab-overflow-toggle" title="More tabs" aria-label="More tabs" aria-expanded="@_overflowOpen" @onclick="ToggleOverflow">
+                            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                                <circle cx="3" cy="8" r="1.25"></circle>
+                                <circle cx="8" cy="8" r="1.25"></circle>
+                                <circle cx="13" cy="8" r="1.25"></circle>
+                            </svg>
+                        </button>
+                        @if (_overflowOpen)
+                        {
+                            <div class="workspace-tab-overflow-menu" role="menu">
+                                @foreach (string instanceId in group.OrderedInstanceIds)
+                                {
+                                    WorkspaceRenderedInstance rendered = State.Instances[instanceId];
+                                    <button type="button" class="workspace-tab-overflow-item @(group.ActiveInstanceId == instanceId ? "active" : "")" data-workspace-overflow-instance-id="@instanceId" role="menuitem" @onclick="() => ActivateFromOverflow(group.Id, instanceId)">
+                                        <span class="workspace-tab-icon" aria-hidden="true">@ToolIcon(rendered.Descriptor?.Icon)</span>
+                                        <span>@(rendered.Model.TitleOverride ?? rendered.Descriptor?.DisplayName ?? rendered.Model.ToolId)</span>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="workspace-tab-add-wrap">
+                        <button type="button" class="workspace-tab-add" title="Open tool in this section" aria-label="Open tool in this section" aria-expanded="@(ToolPickerGroupId == group.Id)" @onclick="() => OnToggleToolPicker.InvokeAsync(group.Id)">+</button>
+                        @if (ToolPickerGroupId == group.Id)
+                        {
+                            <div class="tool-picker" role="menu">
+                                @foreach (RegisteredWorkspaceTool tool in Tools)
+                                {
+                                    bool available = IsToolAvailable(tool.Descriptor.ToolId);
+                                    <button type="button" role="menuitem" disabled="@(!available)" title="@(available ? tool.Descriptor.Description : ToolUnavailableReason(tool.Descriptor.ToolId))" @onclick="() => OnOpenTool.InvokeAsync((tool.Descriptor.ToolId, group.Id))">
+                                        <span>@ToolIcon(tool.Descriptor.Icon)</span><span>@tool.Descriptor.DisplayName</span>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="workspace-tool-content">
+                @if (DraggingInstanceId is not null && CanCreateSection(group.Id))
+                {
+                    <div class="workspace-snap-targets">
+                        <div class="snap-target top" title="Create section above" @ondragover:preventDefault @ondrop:stopPropagation @ondrop='() => Snap(group.Id, "top")'></div>
+                        <div class="snap-target left" title="Create section on the left" @ondragover:preventDefault @ondrop:stopPropagation @ondrop='() => Snap(group.Id, "left")'></div>
+                        <div class="snap-target right" title="Create section on the right" @ondragover:preventDefault @ondrop:stopPropagation @ondrop='() => Snap(group.Id, "right")'></div>
+                        <div class="snap-target bottom" title="Create section below" @ondragover:preventDefault @ondrop:stopPropagation @ondrop='() => Snap(group.Id, "bottom")'></div>
+                    </div>
+                }
+                @if (group.ActiveInstanceId is null)
+                {
+                    <div class="workspace-empty">Drop a tab here or open a tool.</div>
+                }
+                else
+                {
+                    WorkspaceRenderedInstance rendered = State.Instances[group.ActiveInstanceId];
+                    @if (rendered.Descriptor?.Content is WorkspaceToolContentDescriptor.Razor razor && rendered.ComponentContext is not null)
+                    {
+                        <DynamicComponent Type="razor.ComponentType" Parameters="ComponentParameters(rendered.ComponentContext)" />
+                    }
+                    else
+                    {
+                        <div class="workspace-empty">@(rendered.Error ?? "This native tool surface is not available here.")</div>
+                    }
+                }
+            </div>
+        </section>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public WorkspaceRenderedState State { get; set; } = default!;
+    [Parameter, EditorRequired] public string NodeId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<RegisteredWorkspaceTool> Tools { get; set; } = [];
+    [Parameter] public string? ToolPickerGroupId { get; set; }
+    [Parameter] public string? DraggingInstanceId { get; set; }
+    [Parameter] public EventCallback<string> OnDragStarted { get; set; }
+    [Parameter] public EventCallback OnDragEnded { get; set; }
+    [Parameter] public EventCallback<(string GroupId, string InstanceId)> OnActivate { get; set; }
+    [Parameter] public EventCallback<string> OnClose { get; set; }
+    [Parameter] public EventCallback<(string InstanceId, string GroupId, double ClientX, double ClientY)> OnTabContextMenu { get; set; }
+    [Parameter] public EventCallback<(string InstanceId, string GroupId, int Index)> OnMove { get; set; }
+    [Parameter] public EventCallback<(string InstanceId, string GroupId, string Edge)> OnSnap { get; set; }
+    [Parameter] public EventCallback<string> OnToggleToolPicker { get; set; }
+    [Parameter] public EventCallback<(string ToolId, string GroupId)> OnOpenTool { get; set; }
+    [Parameter] public EventCallback<(string SplitId, double Ratio)> OnSplitRatio { get; set; }
+    [Parameter] public EventCallback<string> OnToggleMaximise { get; set; }
+
+    ElementReference _groupElement;
+    IJSObjectReference? _tabStripModule;
+    bool _overflowOpen;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!IsCurrentNodeAGroup() || string.IsNullOrEmpty(_groupElement.Id)) return;
+        _tabStripModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/workspace-tabs.js");
+        if (!IsCurrentNodeAGroup()) return;
+        await _tabStripModule.InvokeVoidAsync("initialize", _groupElement);
+    }
+
+    bool IsCurrentNodeAGroup() => State.Visible.Nodes.TryGetValue(NodeId, out WorkspaceNode? currentNode) &&
+        currentNode is WorkspaceGroupNode;
+
+    void ToggleOverflow() => _overflowOpen = !_overflowOpen;
+
+    async Task ActivateFromOverflow(string groupId, string instanceId)
+    {
+        _overflowOpen = false;
+        await OnActivate.InvokeAsync((groupId, instanceId));
+    }
+
+    bool CanCreateSection(string targetGroupId) => DraggingInstanceId is not null &&
+        WorkspaceLayoutPolicy.CanSplitExistingInstance(State.State, DraggingInstanceId, targetGroupId);
+    async Task Drop(WorkspaceGroupNode group)
+    {
+        if (DraggingInstanceId is not null)
+        {
+            int index = group.OrderedInstanceIds.Contains(DraggingInstanceId, StringComparer.Ordinal)
+                ? Math.Max(0, group.OrderedInstanceIds.Count - 1)
+                : group.OrderedInstanceIds.Count;
+            await OnMove.InvokeAsync((DraggingInstanceId, group.Id, index));
+            await OnDragEnded.InvokeAsync();
+        }
+    }
+
+    async Task DropAt(WorkspaceGroupNode group, string beforeInstanceId)
+    {
+        if (DraggingInstanceId is null || DraggingInstanceId == beforeInstanceId) return;
+        int index = group.OrderedInstanceIds.ToList().IndexOf(beforeInstanceId);
+        if (index < 0) return;
+        if (group.OrderedInstanceIds.Contains(DraggingInstanceId, StringComparer.Ordinal) &&
+            group.OrderedInstanceIds.ToList().IndexOf(DraggingInstanceId) < index) index--;
+        await OnMove.InvokeAsync((DraggingInstanceId, group.Id, Math.Max(0, index)));
+        await OnDragEnded.InvokeAsync();
+    }
+
+    static IDictionary<string, object> ComponentParameters(WorkspaceToolComponentContext context) =>
+        new Dictionary<string, object> { ["Context"] = context };
+
+    void Snap(string groupId, string edge)
+    {
+        if (DraggingInstanceId is not null) _ = OnSnap.InvokeAsync((DraggingInstanceId, groupId, edge));
+    }
+
+    bool IsToolAvailable(string toolId) => State.State.Availability.TryGetValue(toolId, out WorkspaceAvailabilityState? state) && state.Status == WorkspaceToolAvailability.Available;
+    string? ToolUnavailableReason(string toolId) => State.State.Availability.TryGetValue(toolId, out WorkspaceAvailabilityState? state) ? state.Reason : "This tool is unavailable.";
+    static string ToolIcon(string? icon) => icon switch
+    {
+        "git" or "git-changes" => "⑂",
+        "terminal" => ">_",
+        "files" => "▱",
+        "browser" => "◎",
+        "context" => "◉",
+        _ => "◇"
+    };
+
+    static string SplitStyle(WorkspaceSplitNode split) => split.Axis == WorkspaceSplitAxis.Columns
+        ? $"grid-template-columns: minmax(0,{split.Ratio}fr) 4px minmax(0,{1 - split.Ratio}fr)"
+        : $"grid-template-rows: minmax(0,{split.Ratio}fr) 4px minmax(0,{1 - split.Ratio}fr)";
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_tabStripModule is null || string.IsNullOrEmpty(_groupElement.Id)) return;
+        try
+        {
+            await _tabStripModule.InvokeVoidAsync("dispose", _groupElement);
+            await _tabStripModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The WebView is already gone.
+        }
+    }
+}

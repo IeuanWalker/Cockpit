@@ -1,0 +1,351 @@
+@using Cockpit.Tools.SessionContext.Components
+@using Cockpit.Tools.SessionContext.Sources
+@using Cockpit.Tooling
+@using Microsoft.JSInterop
+@inject Microsoft.JSInterop.IJSRuntime JS
+@implements IDisposable
+@implements IWorkspaceToolComponent
+
+<div class="session-context-tool">
+    @if (Instance.Error is not null)
+    {
+        <p class="context-error" role="alert">@Instance.Error <button type="button" @onclick="RefreshAsync">Retry</button></p>
+    }
+    @if (Instance.Snapshot is null && Instance.Error is null)
+    {
+        <div class="context-loading">Loading session context…</div>
+    }
+    else
+    {
+        <div class="context-sections scrollbar-thin">
+            @foreach (SessionContextSectionSnapshot section in VisibleSections)
+            {
+                    <ControlledExpander SectionId="@section.SectionId"
+                                        Title="@section.DisplayName"
+                                        Expanded="@Instance.State.SectionExpansion.GetValueOrDefault(section.SectionId, section.SectionId == "directory")"
+                                        ExpandedChanged="expanded => SetExpanded(section.SectionId, expanded)"
+                                        CanRefresh="@section.CanRefresh"
+                                        OnRefresh="() => ExecuteAsync(SessionContextCommand.RefreshSection, section.SectionId)">
+                        @if (section.Error is not null)
+                        {
+                            <p class="context-error" role="alert">@section.Error</p>
+                        }
+                        @if(section.SectionId == "commands")
+                        {
+                            @if(!SessionCommands(section).Any())
+                            {
+                                <div class="context-empty">No session commands yet</div>
+                            }
+                            @foreach(SessionContextItemSnapshot item in SessionCommands(section))
+                            {
+                                <div class="context-item command-item">
+                                    <span class="context-item-label">@item.Label</span>
+                                    <button type="button" class="item-action remove" title="Remove command from this session"
+                                            @onclick="() => ExecuteAsync(SessionContextCommand.RemoveSessionCommand, section.SectionId, item.Key, item.Label)">×</button>
+                                </div>
+                            }
+                            <details class="global-commands-expander" open="@_globalCommandsExpanded">
+                                <summary @onclick="ToggleGlobalCommands">Global Commands</summary>
+                                @if(!GlobalCommands(section).Any())
+                                {
+                                    <div class="context-empty">No commands configured</div>
+                                }
+                                @foreach(SessionContextItemSnapshot item in GlobalCommands(section))
+                                {
+                                    <button type="button" class="global-command-item" title="Click to manage commands"
+                                            @onclick="() => ExecuteAsync(SessionContextCommand.OpenCommandSettings, section.SectionId, item.Key)">@item.Label</button>
+                                }
+                            </details>
+                        }
+                        else if(!FilteredItems(section).Any())
+                        {
+                            <div class="context-empty">@EmptyText(section.SectionId)</div>
+                        }
+                        else
+                        {
+                            @foreach (SessionContextItemSnapshot item in FilteredItems(section))
+                            {
+                                <div class="context-item @(item.IsSelected ? "selected" : "") @(item.Enabled == false ? "disabled-item" : "")">
+                                    <button type="button" class="context-item-main" @onclick="() => ActivateItemAsync(section, item)">
+                                        @if(item.Status is not null) { <span class="status-dot @StatusClass(item.Status)" title="@item.Status">●</span> }
+                                        <span class="context-item-label">@item.Label</span>
+                                        @if(item.Badge is not null) { <span class="context-badge">@item.Badge</span> }
+                                    </button>
+                                    @if(section.SectionId == "directory" && item.Key == "working" && Instance.Snapshot?.CanOpenInVsCode == true)
+                                    {
+                                        <button type="button" class="item-action vscode" title="Open in VS Code" @onclick="() => ExecuteAsync(SessionContextCommand.OpenInVsCode, section.SectionId, item.Key, item.Path)">VS</button>
+                                    }
+                                    @if(item.CanToggle)
+                                    {
+                                        <input type="checkbox" checked="@item.Enabled" aria-label="Enable @item.Label" @onclick:stopPropagation="true"
+                                               @onchange="() => ExecuteAsync(SessionContextCommand.ToggleItem, section.SectionId, item.Key)" />
+                                    }
+                                </div>
+                            }
+                        }
+                    </ControlledExpander>
+            }
+        </div>
+
+        <TokenUsage Snapshot="@Instance.Snapshot" OnCompact="CompactAsync" OnShowBreakdown="ShowUsageBreakdown" />
+    }
+</div>
+
+<dialog @ref="_detailDialog" class="context-detail-dialog" aria-labelledby="context-detail-title" @onclose="HandleDetailClosed">
+    @if(_detailItem is not null)
+    {
+        <div class="context-popup-frame" style="@DetailPopupStyle">
+            <div class="context-popup-shell">
+                <header class="context-popup-header">
+                    <h3 id="context-detail-title">@DetailDialogTitle</h3>
+                    <div class="context-popup-actions">
+                        @if(_detailItem.Kind is "agent" or "skill")
+                        {
+                            <div class="view-toggle"><button class="toggle-btn @(!_detailTree ? "active" : "")" @onclick="() => SetDetailTree(false)">Flat</button><button class="toggle-btn @(_detailTree ? "active" : "")" @onclick="() => SetDetailTree(true)">Tree</button></div>
+                        }
+                        @if(!string.IsNullOrWhiteSpace(_detailItem.Path))
+                        {
+                            <button class="ef-action-btn" type="button" @onclick="RevealDetailAsync"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg><span>Reveal</span></button>
+                        }
+                        @if(_detailSection is "mcp" or "skills")
+                        {
+                            <button class="ef-action-btn" type="button" @onclick="() => ExecuteAsync(SessionContextCommand.RefreshSection, _detailSection)"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg><span>Reload</span></button>
+                        }
+                        <button class="context-popup-close" type="button" aria-label="Close dialog" @onclick="CloseDetailAsync"><svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                    </div>
+                </header>
+                <div class="context-popup-body">
+                    <nav id="@_detailLeftId" class="detail-list ai-file-tree scrollbar-thin" aria-label="@_detailSection details">
+                    @foreach(DetailNode node in DetailNodes)
+                    {
+                        @if(node.IsGroup)
+                        {
+                            <button class="ai-dir-item" type="button" style="padding-left:@(8 + node.Depth * 12)px" @onclick="() => ToggleDetailGroup(node.Key)">
+                                <svg class="ai-chevron @(_expandedDetailGroups.GetValueOrDefault(node.Key, true) ? "expanded" : "")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                                <svg class="ai-folder-icon" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                                </svg>
+                                <span class="detail-name">@node.Label</span>
+                            </button>
+                        }
+                        else if(node.Item is not null)
+                        {
+                            <div class="detail-list-item ai-file-item @(node.Item.Key == _detailItem.Key ? "selected" : "")"
+                                 style="padding-left:@(12 + node.Depth * 12)px" role="button" tabindex="0"
+                                 @onclick="() => SelectDetail(node.Item)" @onkeydown="args => SelectDetailFromKeyboard(args, node.Item)">
+                                @if(node.Item.CanToggle)
+                                {
+                                    <input type="checkbox" checked="@node.Item.Enabled" aria-label="Enable @node.Item.Label" @onclick:stopPropagation="true" @onchange="() => ExecuteAsync(SessionContextCommand.ToggleItem, _detailSection, node.Item.Key)" />
+                                }
+                                @if(node.Item.Status is not null){<span class="status-dot @StatusClass(node.Item.Status)">●</span>}
+                                <span class="detail-name">@node.Item.Label</span>
+                                @if(node.Item.Badge is not null){<span class="context-badge">@node.Item.Badge</span>}
+                            </div>
+                        }
+                    }
+                    </nav>
+                    <div id="@_detailHandleId" class="popup-split-handle"></div>
+                    <section class="detail-content">
+                        <div class="detail-file-header"><strong>@DetailHeaderName</strong><span title="@_detailItem.Path">@_detailItem.Path</span>@if(_detailItem.Status is not null){<span class="detail-status @StatusClass(_detailItem.Status)">@_detailItem.Status</span>}</div>
+                        <div class="detail-scroll scrollbar-thin">
+                    @if(_detailItem.Properties.Count > 0)
+                    {
+                        <dl class="detail-properties">
+                            <dt class="detail-card-title">@DetailCardTitle</dt>
+                            @foreach(var property in OrderedDetailProperties)
+                            {
+                                <dt>@property.Key</dt><dd>@property.Value</dd>
+                            }
+                        </dl>
+                    }
+                    @if(!string.IsNullOrWhiteSpace(_detailItem.Detail) && !_detailItem.Properties.ContainsKey("Description"))
+                    {
+                        <p>@_detailItem.Detail</p>
+                    }
+                    @if(!string.IsNullOrWhiteSpace(_detailItem.Content))
+                    {
+                        <ContextMarkdown Content="@_detailItem.Content" />
+                    }
+                    else if(_detailItem.Properties.Count == 0 && string.IsNullOrWhiteSpace(_detailItem.Detail))
+                    {
+                        <p class="context-empty">No additional details are available.</p>
+                    }
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    }
+</dialog>
+
+@if(_showUsageBreakdown && Instance.Snapshot?.TokenUsage is { } usage)
+{
+    <div class="context-modal-backdrop" @onclick="HideUsageBreakdown">
+        <div class="context-modal usage-modal" role="dialog" aria-modal="true" @onclick:stopPropagation="true">
+            <header><h3>Context Usage Breakdown</h3><button type="button" @onclick="HideUsageBreakdown">×</button></header>
+            <div class="context-modal-body scrollbar-thin"><TokenBreakdown Usage="usage" /></div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public WorkspaceToolComponentContext Context { get; set; } = null!;
+    SessionContextToolInstance Instance => (SessionContextToolInstance)Context.Instance;
+    SessionContextItemSnapshot? _detailItem;
+    string? _detailSection;
+    ElementReference _detailDialog;
+    readonly string _detailLeftId = $"session-context-detail-left-{Guid.NewGuid():N}";
+    readonly string _detailHandleId = $"session-context-detail-handle-{Guid.NewGuid():N}";
+    IReadOnlyList<SessionContextItemSnapshot> _detailItems = [];
+    bool _detailTree;
+    readonly Dictionary<string, bool> _expandedDetailGroups = new(StringComparer.OrdinalIgnoreCase);
+    bool _showUsageBreakdown;
+    bool _globalCommandsExpanded;
+
+    IEnumerable<SessionContextSectionSnapshot> VisibleSections
+    {
+        get
+        {
+            IEnumerable<SessionContextSectionSnapshot> sections = Instance.Snapshot?.Sections ?? [];
+            Dictionary<string, int> positions = Instance.State.SectionOrder
+                .Select((id, index) => (id, index)).ToDictionary(static x => x.id, static x => x.index, StringComparer.Ordinal);
+            return sections.Where(section => Instance.State.SectionVisibility.GetValueOrDefault(section.SectionId, true))
+                .Where(section => section.SectionId != "git" || section.Items.Length > 0)
+                .OrderBy(section => positions.GetValueOrDefault(section.SectionId, int.MaxValue));
+        }
+    }
+
+    protected override void OnInitialized() => Instance.Changed += OnChanged;
+    protected override Task OnInitializedAsync() => Instance.RefreshAsync().AsTask();
+
+    IEnumerable<SessionContextItemSnapshot> FilteredItems(SessionContextSectionSnapshot section)
+        => section.Items;
+    static IEnumerable<SessionContextItemSnapshot> SessionCommands(SessionContextSectionSnapshot section) => section.Items.Where(item => item.Kind == "session-command");
+    static IEnumerable<SessionContextItemSnapshot> GlobalCommands(SessionContextSectionSnapshot section) => section.Items.Where(item => item.Kind == "global-command");
+
+    async Task ActivateItemAsync(SessionContextSectionSnapshot section, SessionContextItemSnapshot item)
+    {
+		if(section.SectionId is "agents" or "instructions" or "mcp" or "skills" or "plugins")
+		{
+			_detailSection = section.SectionId;
+			_detailItems = section.Items;
+			_detailItem = item;
+			Instance.Select(section.SectionId, item.Key);
+			await OpenDetailAsync();
+			return;
+		}
+
+		Instance.Select(section.SectionId, item.Key);
+		if(item.Kind == "directory") await ExecuteAsync(SessionContextCommand.OpenPath, section.SectionId, item.Key, item.Path);
+        else if(item.Kind == "global-command") await ExecuteAsync(SessionContextCommand.OpenCommandSettings, section.SectionId, item.Key);
+    }
+
+    Task ExecuteAsync(SessionContextCommand command, string? sectionId = null, string? itemKey = null, string? argument = null) =>
+        Instance.ExecuteAsync(command, sectionId, itemKey, argument).AsTask();
+	async Task OpenDetailAsync()
+	{
+		await InvokeAsync(StateHasChanged);
+		await JS.InvokeVoidAsync("cockpit.openDialog", _detailDialog);
+		await JS.InvokeVoidAsync("cockpit.initializePanelSplit", _detailLeftId, _detailHandleId);
+	}
+    Task RevealDetailAsync() => ExecuteAsync(SessionContextCommand.RevealItem, _detailSection, _detailItem?.Key, _detailItem?.Path);
+    Task CompactAsync() => ExecuteAsync(SessionContextCommand.CompactContext);
+    Task CloseDetailAsync() => JS.InvokeVoidAsync("cockpit.closeDialog", _detailDialog).AsTask();
+    void HandleDetailClosed() { _detailItem = null; _detailSection = null; _detailItems = []; }
+    void SelectDetail(SessionContextItemSnapshot item) => _detailItem = item;
+    void SelectDetailFromKeyboard(KeyboardEventArgs args, SessionContextItemSnapshot item)
+    {
+        if(args.Key is "Enter" or " ") SelectDetail(item);
+    }
+    void SetDetailTree(bool value) => _detailTree = value;
+    void ToggleDetailGroup(string key) => _expandedDetailGroups[key] = !_expandedDetailGroups.GetValueOrDefault(key, true);
+    IEnumerable<DetailNode> DetailNodes => BuildDetailNodes();
+    IReadOnlyList<DetailNode> BuildDetailNodes()
+    {
+        if(!_detailTree) return [.. _detailItems.OrderBy(item => item.Label, StringComparer.OrdinalIgnoreCase).Select(item => new DetailNode(false, item.Label, item.Key, item, 0))];
+        DetailDirectory root = new(string.Empty, string.Empty);
+        foreach(SessionContextItemSnapshot item in _detailItems)
+        {
+            string[] parts = (item.Path ?? item.Label).Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+            DetailDirectory directory = root;
+            foreach(string part in parts.Take(Math.Max(0, parts.Length - 1)))
+            {
+                string key = string.IsNullOrEmpty(directory.Key) ? part : $"{directory.Key}/{part}";
+                if(!directory.Directories.TryGetValue(part, out DetailDirectory? child)) directory.Directories[part] = child = new(part, key);
+                directory = child;
+            }
+            directory.Items.Add(item);
+        }
+        List<DetailNode> result = [];
+        AppendDetailNodes(root, 0, result);
+        return result;
+    }
+    void AppendDetailNodes(DetailDirectory directory, int depth, List<DetailNode> result)
+    {
+        foreach(DetailDirectory child in directory.Directories.Values.OrderBy(value => value.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            result.Add(new(true, child.Name, child.Key, null, depth));
+            if(_expandedDetailGroups.GetValueOrDefault(child.Key, true)) AppendDetailNodes(child, depth + 1, result);
+        }
+        result.AddRange(directory.Items.OrderBy(item => item.Label, StringComparer.OrdinalIgnoreCase).Select(item => new DetailNode(false, item.Label, item.Key, item, depth)));
+    }
+    void ShowUsageBreakdown() => _showUsageBreakdown = true;
+    void HideUsageBreakdown() => _showUsageBreakdown = false;
+    void ToggleGlobalCommands() => _globalCommandsExpanded = !_globalCommandsExpanded;
+    void SetExpanded(string sectionId, bool expanded) => Instance.SetSectionExpanded(sectionId, expanded);
+    Task RefreshAsync() => Instance.RefreshAsync().AsTask();
+    void OnChanged() => _ = InvokeAsync(() =>
+    {
+        if(_detailItem is not null && _detailSection is not null && Instance.Snapshot?.Sections.FirstOrDefault(section => section.SectionId == _detailSection) is { } section)
+        {
+            _detailItems = section.Items;
+            _detailItem = section.Items.FirstOrDefault(item => item.Key == _detailItem.Key) ?? _detailItem;
+        }
+        StateHasChanged();
+    });
+    public void Dispose() => Instance.Changed -= OnChanged;
+    static string EmptyText(string id) => id switch { "directory" => "No working directory set", "agents" => "No agents available", "instructions" => "No instruction files found", "mcp" => "No MCP servers configured", "skills" => "No skills available", "plugins" => "No plugins installed", "commands" => "No commands configured", _ => "Nothing to show" };
+    static string StatusClass(string status) => status.ToLowerInvariant() switch { "connected" => "good", "failed" => "bad", "disabled" => "muted", _ => "pending" };
+    string DetailDialogTitle => Instance.Snapshot?.Sections.FirstOrDefault(section => section.SectionId == _detailSection)?.DisplayName ?? "Session context";
+    string DetailHeaderName => string.IsNullOrWhiteSpace(_detailItem?.Path) ? _detailItem?.Label ?? string.Empty : Path.GetFileName(_detailItem.Path);
+    string DetailPopupStyle => _detailSection == "plugins" ? "width:900px;height:600px" : "width:1100px;height:700px";
+    string DetailCardTitle => _detailSection is "agents" or "mcp" ? "Frontmatter" : "Details";
+    IEnumerable<KeyValuePair<string, string>> OrderedDetailProperties
+    {
+        get
+        {
+            if(_detailItem is null) return [];
+            string[] preferred = _detailSection switch
+            {
+                "skills" => ["Source", "Enabled", "User Invocable", "Description"],
+                "plugins" => ["Marketplace", "Version", "Enabled"],
+                "mcp" => ["Source", "Status"],
+                "agents" => ["Name", "Description", "user-invokable", "disable-model-invocation", "licence"],
+                "instructions" => ["Location", "Apply To", "Description"],
+                _ => []
+            };
+            HashSet<string> emitted = new(StringComparer.Ordinal);
+            List<KeyValuePair<string, string>> result = [];
+            foreach(string key in preferred)
+            {
+                if(_detailItem.Properties.TryGetValue(key, out string? value))
+                {
+                    result.Add(new(key, value));
+                    emitted.Add(key);
+                }
+            }
+            result.AddRange(_detailItem.Properties.Where(property => !emitted.Contains(property.Key)).OrderBy(property => property.Key, StringComparer.Ordinal));
+            return result;
+        }
+    }
+    sealed record DetailNode(bool IsGroup, string Label, string Key, SessionContextItemSnapshot? Item, int Depth);
+    sealed class DetailDirectory(string name, string key)
+    {
+        public string Name { get; } = name;
+        public string Key { get; } = key;
+        public Dictionary<string, DetailDirectory> Directories { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public List<SessionContextItemSnapshot> Items { get; } = [];
+    }
+}

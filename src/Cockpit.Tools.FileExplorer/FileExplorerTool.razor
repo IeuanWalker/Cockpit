@@ -1,0 +1,31 @@
+@using Cockpit.Tooling
+@implements IWorkspaceToolComponent
+@implements IDisposable
+
+<div class="file-tool">
+    <div class="file-toolbar"><button @onclick="Up" title="Parent folder">↑</button><input value="@Controller?.ViewState.Filter" @oninput="Filter" placeholder="Filter files…" /></div>
+    <div class="file-path">@Controller?.ViewState.CurrentPath</div>
+    <div class="file-body">
+        <div class="file-list">
+            @foreach (FileExplorerEntry entry in Controller?.Entries ?? [])
+            {
+                <button class="@(Controller?.ViewState.SelectedPath == entry.FullPath ? "selected" : "")" @onclick="() => Open(entry)"><span>@(entry.IsDirectory ? "▸" : "·")</span>@entry.Name</button>
+            }
+        </div>
+        @if (Controller?.ViewState.SelectedPath is not null)
+        {
+            <div class="file-preview"><strong>@Path.GetFileName(Controller.ViewState.SelectedPath)</strong><pre>@Controller.ViewState.PreviewText</pre></div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public WorkspaceToolComponentContext Context { get; set; } = default!;
+    FileExplorerToolInstance? Controller => Context.Instance as FileExplorerToolInstance;
+    protected override void OnInitialized() { if(Controller is not null) Controller.Changed += Refresh; }
+    void Filter(ChangeEventArgs e) => Controller?.SetFilter(e.Value?.ToString() ?? string.Empty);
+    void Up() => Controller?.Up();
+    async Task Open(FileExplorerEntry entry) { if(Controller is not null) await Controller.OpenAsync(entry); }
+    void Refresh() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() { if(Controller is not null) Controller.Changed -= Refresh; GC.SuppressFinalize(this); }
+}

@@ -88,12 +88,22 @@
     <PackageReference Include="Plugin.Maui.Audio" Version="4.0.0" />
     <PackageReference Include="Plugin.Maui.ContentButton" Version="0.3.0" />
     <PackageReference Include="Porta.Pty" Version="1.0.7" />
-    <PackageReference Include="XtermBlazor" Version="2.4.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)'=='Debug'">
     <PackageReference Include="Redth.MauiDevFlow.Agent" Version="0.23.1" />
     <PackageReference Include="Redth.MauiDevFlow.Blazor" Version="0.23.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cockpit.Tooling.Abstractions\Cockpit.Tooling.Abstractions.csproj" />
+    <ProjectReference Include="..\Cockpit.Tooling.Discovery\Cockpit.Tooling.Discovery.csproj" />
+    <ProjectReference Include="..\Cockpit.Tooling.Discovery.Build\Cockpit.Tooling.Discovery.Build.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Cockpit.Tools.SessionContext\Cockpit.Tools.SessionContext.csproj" />
+    <ProjectReference Include="..\Cockpit.Tools.GitChanges\Cockpit.Tools.GitChanges.csproj" />
+    <ProjectReference Include="..\Cockpit.Tools.Terminal\Cockpit.Tools.Terminal.csproj" />
+    <ProjectReference Include="..\Cockpit.Tools.FileExplorer\Cockpit.Tools.FileExplorer.csproj" />
+    <ProjectReference Include="..\Cockpit.Tools.Browser\Cockpit.Tools.Browser.csproj" />
   </ItemGroup>
 
   <!-- Run only once per OS: on Windows use the Windows TFM, on macOS use maccatalyst.
@@ -105,5 +115,7 @@
       <MauiAsset Include="$(MSBuildProjectDirectory)\Resources\Raw\libraries.json" LogicalName="libraries.json" />
     </ItemGroup>
   </Target>
+
+  <Import Project="..\Cockpit.Tooling.Discovery.Build\buildTransitive\Cockpit.Tooling.Discovery.Build.targets" />
 
 </Project>

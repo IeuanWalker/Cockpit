@@ -4,6 +4,13 @@
     flex-direction: column;
 }
 
+.tools-expanded ::deep #leftSidebar,
+.tools-expanded #leftResizeHandle,
+.tools-expanded .layout-chat,
+.tools-expanded #rightResizeHandle {
+    display: none !important;
+}
+
 main {
     flex: 1;
 }

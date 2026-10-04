@@ -26,11 +26,16 @@ public enum SessionChangeKind
 	/// </summary>
 	SessionContext = 1 << 7,
 	/// <summary>
+	/// The session-owned sidebar workspace layout, availability projection, or
+	/// persistence health changed.
+	/// </summary>
+	WorkspaceLayout = 1 << 8,
+	/// <summary>
 	/// General invalidation of all renderable state. <see cref="ConversationReset"/> is
 	/// intentionally excluded because it describes a specific transition and must never
 	/// be inferred from legacy/global "state changed" notifications.
 	/// </summary>
-	All = ConversationContent | ConversationStructure | SessionSummary | SessionCollection | CurrentSession | WorkingState | SessionContext
+	All = ConversationContent | ConversationStructure | SessionSummary | SessionCollection | CurrentSession | WorkingState | SessionContext | WorkspaceLayout
 }
 
 /// <summary>

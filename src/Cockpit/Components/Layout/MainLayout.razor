@@ -20,7 +20,7 @@ else if(_authCheckFeature.State == AuthState.Checking)
 else
 {
     <!-- Main Container -->
-    <div class="flex h-screen">
+    <div class="app-layout flex h-screen @(_uiStateFeature.RightSidebarExpanded && _sessionListFeature.CurrentSession is not null ? "tools-expanded" : "")">
         <!-- Left Sidebar - Sessions -->
         <SessionPanel />
 
@@ -28,7 +28,7 @@ else
         <div id="leftResizeHandle" class="resize-handle @(_uiStateFeature.LeftSidebarCollapsed ? "hidden" : "")"></div>
 
         <!-- Middle - Chat Window -->
-        <div class="flex-1 flex flex-col bg-app-bg min-w-0">
+        <div class="layout-chat flex-1 flex flex-col bg-app-bg min-w-0">
             @Body
         </div>
 
@@ -38,7 +38,7 @@ else
             <div id="rightResizeHandle" class="resize-handle @(_uiStateFeature.RightSidebarCollapsed ? "hidden" : "")"></div>
 
             <!-- Right Sidebar - Context Panel -->
-            <ContextPanel />
+            <ToolPanel />
         }
     </div>
 

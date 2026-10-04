@@ -1,0 +1,89 @@
+@using System.Text
+@using System.Text.RegularExpressions
+@using Markdig
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<div class="markdown-content" id="@_containerId">
+    @((MarkupString)_html)
+</div>
+
+@code {
+    [Parameter] public string Content { get; set; } = string.Empty;
+
+    readonly string _containerId = $"session-context-markdown-{Guid.NewGuid():N}";
+    string? _lastContent;
+    string _html = string.Empty;
+    bool _enhancePending;
+
+    static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+        .DisableHtml()
+        .UseAdvancedExtensions()
+        .UseSoftlineBreakAsHardlineBreak()
+        .UseEmojiAndSmiley()
+        .UseGridTables()
+        .UseListExtras()
+        .UsePipeTables()
+        .UseTaskLists()
+        .Build();
+    static readonly Regex PreOpenTagRegex = new(@"<pre(?:\s[^>]*)?>", RegexOptions.Compiled);
+    static readonly Regex LinkTagRegex = new(@"<a(\s[^>]*)>(.*?)</a>", RegexOptions.Compiled | RegexOptions.Singleline);
+
+    protected override void OnParametersSet()
+    {
+        if(Content == _lastContent) return;
+        _lastContent = Content;
+        _html = RenderMarkdown(Content);
+        _enhancePending = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(!_enhancePending) return;
+        _enhancePending = false;
+        try
+        {
+            await JS.InvokeVoidAsync("cockpit.highlightCodeBlocks", _containerId);
+            await JS.InvokeVoidAsync("cockpit.addCopyButtonsToCodeBlocks", _containerId);
+        }
+        catch
+        {
+            // Rendering remains usable when optional host-side enhancements are unavailable.
+        }
+    }
+
+    static string RenderMarkdown(string? content)
+    {
+        if(string.IsNullOrWhiteSpace(content)) return string.Empty;
+        string markdown = ReplaceLoneSurrogates(content.Replace("\u200B", string.Empty));
+        string html = Markdown.ToHtml(markdown, Pipeline);
+        if(html.Contains("<pre", StringComparison.Ordinal))
+        {
+            html = PreOpenTagRegex.Replace(html, static match => $"<div class=\"code-block\"><button type=\"button\" class=\"code-copy-button\">Copy</button>{match.Value}");
+            html = html.Replace("</pre>", "</pre></div>", StringComparison.Ordinal);
+        }
+        return html.Contains("<a", StringComparison.Ordinal)
+            ? LinkTagRegex.Replace(html, static match => $"<a{match.Groups[1].Value}><span>{match.Groups[2].Value}</span></a>")
+            : html;
+    }
+
+    static string ReplaceLoneSurrogates(string input)
+    {
+        StringBuilder output = new(input.Length);
+        for(int index = 0; index < input.Length; index++)
+        {
+            char value = input[index];
+            if(char.IsHighSurrogate(value))
+            {
+                if(index + 1 < input.Length && char.IsLowSurrogate(input[index + 1]))
+                {
+                    output.Append(value).Append(input[++index]);
+                }
+                else output.Append('\uFFFD');
+            }
+            else if(char.IsLowSurrogate(value)) output.Append('\uFFFD');
+            else output.Append(value);
+        }
+        return output.ToString();
+    }
+}

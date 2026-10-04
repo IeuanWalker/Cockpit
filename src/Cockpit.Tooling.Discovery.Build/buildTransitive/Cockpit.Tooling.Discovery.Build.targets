@@ -1,0 +1,58 @@
+<Project>
+  <PropertyGroup>
+    <CockpitWorkspaceToolDiscoveryTaskSource Condition="'$(CockpitWorkspaceToolDiscoveryTaskSource)' == '' and Exists('$(MSBuildThisFileDirectory)..\tools\net10.0\Cockpit.Tooling.Discovery.Build.dll')">$(MSBuildThisFileDirectory)..\tools\net10.0\Cockpit.Tooling.Discovery.Build.dll</CockpitWorkspaceToolDiscoveryTaskSource>
+    <CockpitWorkspaceToolDiscoveryTaskSource Condition="'$(CockpitWorkspaceToolDiscoveryTaskSource)' == ''">$(MSBuildThisFileDirectory)..\bin\$(Configuration)\net10.0\Cockpit.Tooling.Discovery.Build.dll</CockpitWorkspaceToolDiscoveryTaskSource>
+    <!-- Never load an MSBuild task from its project's bin/obj output. MSBuild keeps
+         task assemblies loaded for the node lifetime, which otherwise prevents
+         Clean/Rebuild from replacing the output on Windows. -->
+    <CockpitWorkspaceToolDiscoveryTaskAssembly Condition="'$(CockpitWorkspaceToolDiscoveryTaskAssembly)' == ''">$(MSBuildProjectDirectory)\obj\$(Configuration)\$(TargetFramework)\workspace-tool-task\Cockpit.Tooling.Discovery.Build.dll</CockpitWorkspaceToolDiscoveryTaskAssembly>
+  </PropertyGroup>
+  <UsingTask TaskName="Cockpit.Tooling.Discovery.Build.GenerateWorkspaceToolCatalog"
+             AssemblyFile="$(CockpitWorkspaceToolDiscoveryTaskAssembly)" />
+
+  <Target Name="PrepareWorkspaceToolDiscoveryTask"
+          BeforeTargets="GenerateWorkspaceToolCatalog"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(CockpitWorkspaceToolDiscoveryTaskAssembly)'))" />
+    <Copy SourceFiles="$(CockpitWorkspaceToolDiscoveryTaskSource)"
+          DestinationFiles="$(CockpitWorkspaceToolDiscoveryTaskAssembly)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Declare the resource during project evaluation. Adding it inside the
+       generation target is too late: CreateManifestResourceNames has already
+       snapshotted @(EmbeddedResource) by the time target bodies execute. -->
+  <ItemGroup Condition="'$(DesignTimeBuild)' != 'true'">
+    <EmbeddedResource Include="$(IntermediateOutputPath)workspace-tool-assemblies.json"
+                      LogicalName="workspace-tool-assemblies.json" />
+  </ItemGroup>
+
+  <Target Name="GenerateWorkspaceToolCatalog"
+          BeforeTargets="CreateManifestResourceNames;CoreCompile"
+          DependsOnTargets="ResolveReferences;PrepareWorkspaceToolDiscoveryTask"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_WorkspaceToolCatalogPath>$(IntermediateOutputPath)workspace-tool-assemblies.json</_WorkspaceToolCatalogPath>
+      <_WorkspaceToolLinkerPath>$(IntermediateOutputPath)workspace-tool-linker.xml</_WorkspaceToolLinkerPath>
+    </PropertyGroup>
+    <GenerateWorkspaceToolCatalog Assemblies="@(ReferenceCopyLocalPaths)"
+                                  ContractAssemblyName="Cockpit.Tooling.Abstractions"
+                                  CatalogPath="$(_WorkspaceToolCatalogPath)"
+                                  LinkerDescriptorPath="$(_WorkspaceToolLinkerPath)">
+      <Output TaskParameter="ToolAssemblies" ItemName="_WorkspaceToolAssemblies" />
+    </GenerateWorkspaceToolCatalog>
+    <ItemGroup>
+      <TrimmerRootDescriptor Include="$(_WorkspaceToolLinkerPath)" />
+      <TrimmerRootAssembly Include="@(_WorkspaceToolAssemblies->'%(Filename)')" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="VerifyWorkspaceToolCatalogEmbedded"
+          AfterTargets="CoreCompile"
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(BuildingProject)' != 'false'">
+    <Error Condition="!Exists('$(_WorkspaceToolCatalogPath)')"
+           Text="The workspace tool catalogue was not generated at '$(_WorkspaceToolCatalogPath)'." />
+    <Error Condition="'@(EmbeddedResource->WithMetadataValue('LogicalName', 'workspace-tool-assemblies.json'))' == ''"
+           Text="The generated workspace tool catalogue was not registered as an embedded resource." />
+  </Target>
+</Project>

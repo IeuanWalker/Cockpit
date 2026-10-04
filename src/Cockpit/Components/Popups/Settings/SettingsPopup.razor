@@ -16,6 +16,12 @@
                     <span class="text-sm font-medium text-app-title">Appearance</span>
                     <span class="text-xs secondary-text">Theme, accent</span>
                 </button>
+                <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Sidebar ? "active" : "")"
+                        @onclick="() => SetActiveSection(SettingsSectionEnum.Sidebar)"
+                        aria-label="Select Sidebar settings section">
+                    <span class="text-sm font-medium text-app-title">Sidebar</span>
+                    <span class="text-xs secondary-text">Opening, default tabs and layout</span>
+                </button>
                 <button class="settings-menu-item @(_activeSection == SettingsSectionEnum.Commands ? "active" : "")"
                         @onclick="() => SetActiveSection(SettingsSectionEnum.Commands)"
                         aria-label="Select Commands settings section">
@@ -76,6 +82,9 @@
                 {
                     case SettingsSectionEnum.Appearance:
                         <AppearanceSettings />
+                        break;
+                    case SettingsSectionEnum.Sidebar:
+                        <SidebarSettings />
                         break;
                     case SettingsSectionEnum.Input:
                         <InputSettings />

@@ -10,6 +10,7 @@ public sealed partial class SessionFeature
 {
 	public async Task<SessionModel> CreateSession(string? workingDirectory, CancellationToken cancellationToken = default)
 	{
+		long navigationRequestId = Interlocked.Increment(ref _navigationRequestId);
 		CopilotClient? client = null;
 		CopilotSession? sdkSession = null;
 		bool sdkSessionRegistered = false;
@@ -110,7 +111,7 @@ public sealed partial class SessionFeature
 
 			cancellationToken.ThrowIfCancellationRequested();
 
-			await LoadContextPanelDataAsync(chatSession, createdSession);
+			await LoadToolPanelDataAsync(chatSession, createdSession);
 
 			cancellationToken.ThrowIfCancellationRequested();
 
@@ -125,7 +126,13 @@ public sealed partial class SessionFeature
 			// wait on disk I/O — persist them in the background and just log any failure.
 			_ = PersistSessionMetadataInBackground(chatSession);
 
-			await SwitchCurrentSessionAsync(chatSession);
+			if(IsLatestNavigationRequest(navigationRequestId))
+			{
+				await SwitchCurrentSessionAsync(
+					chatSession,
+					_appSettingsFeature.OpenSidebarOnSessionOpen,
+					navigationRequestId);
+			}
 
 			return chatSession;
 		}

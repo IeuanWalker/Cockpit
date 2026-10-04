@@ -55,6 +55,12 @@ public sealed class AppSettingsFeature : IAppSettingsFeature
 		set => _settings.RightSidebarWidth = value;
 	}
 
+	public bool OpenSidebarOnSessionOpen
+	{
+		get => _settings.OpenSidebarOnSessionOpen;
+		set => _settings.OpenSidebarOnSessionOpen = value;
+	}
+
 	public bool DiffSplitView
 	{
 		get => _settings.DiffSplitView;

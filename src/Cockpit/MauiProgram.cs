@@ -46,6 +46,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Cockpit.Features.KeepAlive;
 using Cockpit.Features.VSCode;
+using Cockpit.Features.Workspace;
+using Cockpit.Features.Workspace.Storage;
+using Cockpit.Tooling.Discovery;
+using Cockpit.Tools.GitChanges.Sources;
+using Cockpit.Tools.SessionContext.Sources;
+using Cockpit.Tools.Terminal;
 
 namespace Cockpit;
 
@@ -104,6 +110,29 @@ public static class MauiProgram
 		builder.Services.AddScoped<IThemeFeature, ThemeFeature>();
 		builder.Services.AddScoped<IMarkdownFeature, MarkdownFeature>();
 		builder.Services.AddSingleton<IUIStateFeature, UIStateFeature>();
+		builder.Services.AddSingleton(_ => new WorkspaceStateFeature());
+		builder.Services.AddSingleton<IWorkspaceGenerationStore>(_ => new FileWorkspaceGenerationStore());
+		builder.Services.AddSingleton<ISessionContextToolSource>(services => new SessionContextToolSource(
+			services.GetRequiredService<SessionListFeature>(),
+			services.GetRequiredService<SessionFeature>(),
+			services.GetRequiredService<McpFeature>(),
+			services.GetRequiredService<SkillsFeature>(),
+			services.GetRequiredService<GlobalPermissionFeature>(),
+			services.GetRequiredService<SessionPermissionFeature>(),
+			services.GetRequiredService<VsCodeFeature>(),
+			services.GetRequiredService<IUIStateFeature>()));
+		builder.Services.AddSingleton<IGitChangesToolSource>(services => new GitChangesToolSource(
+			services.GetRequiredService<SessionListFeature>(),
+			services.GetRequiredService<GitFeature>()));
+		builder.Services.AddSingleton<ITerminalToolBackend, TerminalToolBackend>();
+		builder.Services.AddCockpitWorkspace();
+		builder.Services.AddSingleton(services => new WorkspaceFeature(
+			services.GetRequiredService<WorkspaceToolRegistry>(),
+			services.GetRequiredService<SessionListFeature>(),
+			services.GetRequiredService<WorkspaceStateFeature>(),
+			services.GetRequiredService<IWorkspaceGenerationStore>(),
+			services.GetRequiredService<IUIStateFeature>(),
+			services.GetRequiredService<ILogger<WorkspaceFeature>>()));
 		builder.Services.AddSingleton(TimeProvider.System);
 		builder.Services.AddSingleton<ITimestampFeature, TimestampFeature>();
 		builder.Services.AddSingleton<TerminalFeature>();
@@ -191,6 +220,19 @@ public static class MauiProgram
 		builder.Services.AddSingleton<PluginsFeature>();
 
 		MauiApp app = builder.Build();
+
+		// Freeze and validate the reflection-discovered tool catalogue before any session
+		// workspace is restored. Startup failures are recorded with an actionable managed stack.
+		try
+		{
+			app.Services.GetRequiredService<WorkspaceToolRegistry>();
+			app.Services.GetRequiredService<WorkspaceFeature>();
+		}
+		catch(Exception exception)
+		{
+			LogCrash("Workspace startup", exception);
+			throw;
+		}
 
 		// Clean up any leftover internal probe sessions from previous runs
 		SystemMessageFeature.CleanupInternalSessionsDirectory();

@@ -1,0 +1,17 @@
+@using Cockpit.Tools.SessionContext.Sources
+
+<div class="usage-summary"><strong>Total Usage</strong><span>@TokenUsage.Format(Usage.UsedTokens) / @TokenUsage.Format(Usage.MaximumTokens)</span></div>
+<div class="usage-track"><span style="width:@Percent(Usage.UsedTokens)%"></span></div>
+<dl class="usage-details">
+    @if(Usage.SystemTokens.HasValue){<dt>System</dt><dd>@TokenUsage.Format(Usage.SystemTokens.Value)</dd>}
+    @if(Usage.ConversationTokens.HasValue){<dt>Conversation</dt><dd>@TokenUsage.Format(Usage.ConversationTokens.Value)</dd>}
+    @if(Usage.ToolDefinitionsTokens.HasValue){<dt>Tool Definitions</dt><dd>@TokenUsage.Format(Usage.ToolDefinitionsTokens.Value)</dd>}
+    <dt>Total Current</dt><dd>@TokenUsage.Format(Usage.UsedTokens)</dd>
+    <dt>Context Window Limit</dt><dd>@TokenUsage.Format(Usage.MaximumTokens)</dd>
+    <dt>Messages</dt><dd>@((int)Usage.MessagesLength)</dd>
+</dl>
+
+@code {
+    [Parameter, EditorRequired] public TokenUsageSnapshot Usage { get; set; } = null!;
+    string Percent(double value) => Math.Clamp(Usage.MaximumTokens <= 0 ? 0 : value / Usage.MaximumTokens * 100, 0, 100).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+}

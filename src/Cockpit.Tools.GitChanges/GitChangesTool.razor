@@ -1,0 +1,11 @@
+@using Cockpit.Tooling
+@implements IWorkspaceToolComponent
+@implements IDisposable
+
+<GitChangesView Instance="Instance" />
+
+@code {
+    [Parameter, EditorRequired] public WorkspaceToolComponentContext Context { get; set; } = null!;
+    GitChangesToolInstance Instance => (GitChangesToolInstance)Context.Instance;
+    public void Dispose() { }
+}

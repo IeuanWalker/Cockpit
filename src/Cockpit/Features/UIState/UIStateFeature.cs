@@ -33,10 +33,16 @@ public sealed class UIStateFeature : IUIStateFeature
 	public event Action<string>? OnAppendChatInput;
 
 	/// <inheritdoc />
+	public event Action<SettingsSectionEnum>? OnOpenSettings;
+
+	/// <inheritdoc />
 	public bool LeftSidebarCollapsed { get; private set; } = false;
 
 	/// <inheritdoc />
 	public bool RightSidebarCollapsed { get; private set; } = false;
+
+	/// <inheritdoc />
+	public bool RightSidebarExpanded { get; private set; } = false;
 
 	int _leftSidebarWidth;
 
@@ -100,7 +106,44 @@ public sealed class UIStateFeature : IUIStateFeature
 	/// <inheritdoc />
 	public void ToggleRightSidebar()
 	{
+		if(RightSidebarExpanded)
+		{
+			RightSidebarExpanded = false;
+			RightSidebarCollapsed = true;
+			OnStateChanged?.Invoke();
+			return;
+		}
+
 		RightSidebarCollapsed = !RightSidebarCollapsed;
+		OnStateChanged?.Invoke();
+	}
+
+	/// <inheritdoc />
+	public void ToggleRightSidebarExpanded()
+	{
+		RightSidebarExpanded = !RightSidebarExpanded;
+		if(RightSidebarExpanded)
+		{
+			RightSidebarCollapsed = false;
+		}
+		OnStateChanged?.Invoke();
+	}
+
+	/// <inheritdoc />
+	public void SetRightSidebarOpen(bool isOpen)
+	{
+		bool collapsed = !isOpen;
+		bool leaveExpandedMode = !isOpen && RightSidebarExpanded;
+		if(RightSidebarCollapsed == collapsed && !leaveExpandedMode)
+		{
+			return;
+		}
+
+		if(leaveExpandedMode)
+		{
+			RightSidebarExpanded = false;
+		}
+		RightSidebarCollapsed = collapsed;
 		OnStateChanged?.Invoke();
 	}
 
@@ -164,4 +207,7 @@ public sealed class UIStateFeature : IUIStateFeature
 	{
 		OnAppendChatInput?.Invoke(text);
 	}
+
+	/// <inheritdoc />
+	public void OpenSettings(SettingsSectionEnum section) => OnOpenSettings?.Invoke(section);
 }

@@ -182,7 +182,7 @@ public sealed partial class SessionFeature
 
 			if(chatSession is not null)
 			{
-				await LoadContextPanelDataAsync(chatSession, newSdkSession);
+				await LoadToolPanelDataAsync(chatSession, newSdkSession);
 
 				AgentProfile? restored = chatSession.Context.SelectedAgent is not null
 					? chatSession.Context.Agents.FirstOrDefault(a =>
@@ -272,7 +272,7 @@ public sealed partial class SessionFeature
 				await sdkSession.DisposeAsync();
 			}
 
-			await _terminalFeature.CloseSessionAsync(sessionId);
+			await _terminalFeature.CloseAllForSessionAsync(sessionId);
 			_userInputHandler.CancelPendingRequestsForSession(sessionId);
 			_permissionHandler.CancelPendingRequestsForSession(sessionId);
 			_elicitationHandler.CancelPendingRequestsForSession(sessionId);

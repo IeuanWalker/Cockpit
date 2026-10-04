@@ -13,6 +13,7 @@ public interface IAppSettingsFeature
 	bool SendOnEnter { get; set; }
 	int LeftSidebarWidth { get; set; }
 	int RightSidebarWidth { get; set; }
+	bool OpenSidebarOnSessionOpen { get; set; }
 	bool DiffSplitView { get; set; }
 	bool DiffTreeView { get; set; }
 	bool SoundPermissionEnabled { get; set; }

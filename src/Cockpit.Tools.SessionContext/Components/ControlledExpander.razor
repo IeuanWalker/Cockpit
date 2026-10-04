@@ -1,0 +1,46 @@
+<details class="context-expander section-@SectionId" open="@_isOpen">
+    <summary class="context-expander-row" @onclick="RecordToggleAsync">
+        <span class="context-expander-header">
+            <LegacySectionIcon SectionId="@SectionId" />
+            <span>@Title</span>
+        </span>
+        <span class="context-expander-actions">
+            @if(CanRefresh)
+            {
+                <button type="button" title="Reload @Title" @onclick:preventDefault="true" @onclick:stopPropagation="true" @onclick="RefreshAsync"><svg class="refresh-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>
+            }
+            <span class="chevron-button" aria-hidden="true"><svg class="chevron" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
+        </span>
+    </summary>
+    <div class="context-expander-content">@ChildContent</div>
+</details>
+
+@code {
+    [Parameter, EditorRequired] public string SectionId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public bool Expanded { get; set; }
+    [Parameter] public EventCallback<bool> ExpandedChanged { get; set; }
+    [Parameter] public bool CanRefresh { get; set; }
+    [Parameter] public EventCallback OnRefresh { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    bool _isOpen;
+    bool _initialized;
+
+    protected override void OnParametersSet()
+    {
+        if(!_initialized)
+        {
+            _isOpen = Expanded;
+            _initialized = true;
+        }
+    }
+
+    Task RecordToggleAsync()
+    {
+        _isOpen = !_isOpen;
+        return ExpandedChanged.InvokeAsync(_isOpen);
+    }
+
+    Task RefreshAsync() => OnRefresh.InvokeAsync();
+}

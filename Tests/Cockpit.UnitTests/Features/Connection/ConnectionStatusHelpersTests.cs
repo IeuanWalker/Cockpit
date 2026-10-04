@@ -1,4 +1,4 @@
-using Cockpit.Components.Pages.ContextPanel.ConnectionStatus;
+using Cockpit.Components.Pages.ToolPanel.ConnectionStatus;
 using Cockpit.Features.Connection;
 using Shouldly;
 

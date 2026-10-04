@@ -1129,3 +1129,9 @@ body:not(.light-theme) [data-sonner-toast][data-styled='true']:hover [data-close
 .canvas-sandbox-body::-webkit-scrollbar-thumb:hover {
     background: var(--hover-color);
 }
+html.workspace-tab-dragging,
+html.workspace-tab-dragging body.workspace-tab-dragging,
+html.workspace-tab-dragging body.workspace-tab-dragging .workspace-tab-dragging,
+html.workspace-tab-dragging body.workspace-tab-dragging .workspace-tab-dragging * {
+    cursor: grabbing !important;
+}

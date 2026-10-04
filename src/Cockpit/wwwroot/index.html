@@ -7,7 +7,6 @@
     <base href="/" />
     <script src="js/Tailwind.js"></script>
     <link rel="stylesheet" href="_content/Blazor.Sonner/styles.css" />
-    <link rel="stylesheet" href="_content/XtermBlazor/XtermBlazor.min.css" />
     <link rel="stylesheet" href="css/app.css" />
     <link rel="stylesheet" href="Cockpit.styles.css" />
 </head>
@@ -32,8 +31,6 @@
 
     <script src="_framework/blazor.webview.js" autostart="false"></script>
     <script src="js/highlight.min.js"></script>
-    <script src="js/xterm-addon-fit.js"></script>
-    <script src="_content/XtermBlazor/XtermBlazor.min.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/dom-utils.js"></script>
     <script src="js/scroll.js"></script>
@@ -44,8 +41,9 @@
     <script src="js/image-handling.js"></script>
     <script src="js/content-editable.js"></script>
     <script src="js/click-guards.js"></script>
-    <script src="js/xtermInterop.js"></script>
     <script src="js/canvas-interop.js"></script>
+    <script src="js/workspace-drag.js"></script>
+    <script src="js/workspace-split-resize.js"></script>
     <script>
         // Initialize highlight.js when ready
         if (window.hljs) {
@@ -54,16 +52,6 @@
             });
         }
 
-        // Register XtermBlazor addons
-        if (window.XtermBlazor && window.FitAddon && typeof window.FitAddon.FitAddon === 'function') {
-            try {
-                XtermBlazor.registerAddons({ "addon-fit": new FitAddon.FitAddon() });
-            } catch (e) {
-                console.error("Failed to register XtermBlazor addon-fit:", e);
-            }
-        } else if (window.XtermBlazor) {
-            console.warn("XtermBlazor addon-fit not registered: FitAddon is unavailable or invalid.");
-        }
     </script>
 
 </body>

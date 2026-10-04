@@ -12,12 +12,6 @@ public partial class SessionModel
 		set => Ui.IsYolo = value;
 	}
 
-	public bool IsTerminalOpen
-	{
-		get => Ui.IsTerminalOpen;
-		set => Ui.IsTerminalOpen = value;
-	}
-
 	public string UserInput
 	{
 		get => Ui.DraftText;

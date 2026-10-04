@@ -3,6 +3,7 @@ namespace Cockpit.Features.UIState;
 public enum SettingsSectionEnum
 {
 	Appearance,
+	Sidebar,
 	Commands,
 	Input,
 	Voice,

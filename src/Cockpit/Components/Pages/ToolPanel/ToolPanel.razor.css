@@ -1,0 +1,31 @@
+.workspace-sidebar { min-width: 240px; position: relative; height: 100%; }
+.workspace-sidebar.popover-open { z-index: 200; }
+.workspace-sidebar.expanded { width: 100% !important; min-width: 0; border-left: 0; }
+.workspace-window-actions { position: absolute; top: 4px; right: 4px; z-index: 120; display: flex; height: 28px; align-items: center; gap: 2px; }
+.workspace-icon-button, .workspace-tabs button { border: 0; border-radius: 5px; background: transparent; color: inherit; min-width: 26px; height: 26px; cursor: pointer; }
+.workspace-icon-button:hover, .workspace-tabs button:hover { background: var(--hover-color); }
+.workspace-icon-button > span { display: grid; place-items: center; font-size: 15px; line-height: 1; }
+.tool-picker-wrap { position: relative; }
+.tool-picker { position: absolute; left: 0; top: 32px; z-index: 50; width: 220px; padding: 6px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--sidebar-color); box-shadow: 0 10px 30px #0008; }
+.tool-picker button { display: flex; width: 100%; gap: 9px; padding: 7px 8px; align-items: center; border: 0; border-radius: 5px; background: transparent; color: inherit; text-align: left; }
+.tool-picker button:hover:not(:disabled) { background: var(--hover-color); }
+.tool-picker button:disabled { opacity: .45; }
+.workspace-surface { flex: 1; width: 100%; min-width: 0; min-height: 0; overflow: visible; }
+.workspace-empty { height: 100%; display: grid; place-items: center; padding: 24px; color: var(--secondary-text); font-size: 12px; text-align: center; }
+.workspace-launcher { width: 100%; height: 100%; display: grid; place-items: center; padding: 44px 24px; }
+.workspace-launcher-list { display: flex; width: min(360px, 100%); flex-direction: column; gap: 5px; }
+.workspace-launcher-list button { display: flex; width: 100%; min-height: 40px; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid transparent; border-radius: 7px; background: color-mix(in srgb, var(--hover-color) 58%, transparent); color: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.workspace-launcher-list button:hover { border-color: var(--border-color); background: var(--hover-color); }
+.workspace-launcher-icon { display: grid; flex: 0 0 18px; place-items: center; color: var(--secondary-text); font-family: Consolas, monospace; font-size: 12px; }
+.workspace-confirm-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: #0009; }
+.workspace-confirm { width: min(420px, calc(100vw - 32px)); padding: 18px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--sidebar-color); box-shadow: 0 20px 60px #000b; }
+.workspace-confirm h3 { margin: 0 0 8px; font-size: 15px; }
+.workspace-confirm p { color: var(--secondary-text); font-size: 13px; }
+.workspace-confirm > div { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.workspace-confirm button { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--hover-color); color: inherit; }
+.workspace-confirm button.danger { border-color: #b84646; background: #8f3030; color: white; }
+.workspace-tab-context-menu { position: fixed; z-index: 1100; display: flex; width: 184px; flex-direction: column; padding: 5px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--sidebar-color); box-shadow: 0 10px 30px #0009; }
+.workspace-tab-context-menu button { min-height: 28px; padding: 4px 9px; border: 0; border-radius: 5px; background: transparent; color: inherit; font: inherit; font-size: 11px; line-height: 1.25; text-align: left; cursor: pointer; }
+.workspace-tab-context-menu button:hover:not(:disabled) { background: var(--hover-color); }
+.workspace-tab-context-menu button:disabled { opacity: .42; cursor: default; }
+.workspace-tab-context-divider { height: 1px; margin: 5px 4px; background: var(--border-color); }

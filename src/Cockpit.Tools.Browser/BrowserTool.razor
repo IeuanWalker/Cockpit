@@ -1,0 +1,40 @@
+@using Cockpit.Tooling
+@implements IWorkspaceToolComponent
+@implements IDisposable
+
+<div class="browser-tool">
+    <div class="browser-tabs">
+        @foreach (BrowserPageState tab in Controller?.ViewState.Tabs ?? [])
+        {
+            <button class="@(Controller?.ViewState.ActiveTabId == tab.Id ? "active" : "")" @onclick="() => Activate(tab.Id)"><span>@(tab.Title ?? Host(tab.Url))</span><b @onclick:stopPropagation @onclick="() => Close(tab.Id)">×</b></button>
+        }
+        <button class="add" title="New browser tab" @onclick="Add">+</button>
+    </div>
+    <form class="browser-bar" @onsubmit="Go" @onsubmit:preventDefault>
+        <button type="button" disabled="@(Controller?.Active?.BackHistory.Length is not > 0)" @onclick="Back">←</button>
+        <button type="button" disabled="@(Controller?.Active?.ForwardHistory.Length is not > 0)" @onclick="Forward">→</button>
+        <button type="button" @onclick="Reload">↻</button>
+        <input @bind="_address" aria-label="Address or search" />
+    </form>
+    @if (Controller?.Active is BrowserPageState active)
+    {
+        <iframe @key="@(active.Id + Controller.RenderKey)" src="@active.Url" title="Embedded browser"></iframe>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public WorkspaceToolComponentContext Context { get; set; } = default!;
+    BrowserToolInstance? Controller => Context.Instance as BrowserToolInstance;
+    string _address = string.Empty;
+    protected override void OnInitialized() { if(Controller is not null) { Controller.Changed += Refresh; _address = Controller.Active?.Url ?? string.Empty; } }
+    void Add() => Controller?.AddTab();
+    void Activate(string id) { Controller?.Activate(id); _address = Controller?.Active?.Url ?? string.Empty; }
+    void Close(string id) => Controller?.Close(id);
+    void Back() => Controller?.Back();
+    void Forward() => Controller?.Forward();
+    void Reload() => Controller?.Reload();
+    void Go() { Controller?.Navigate(_address); _address = Controller?.Active?.Url ?? _address; }
+    void Refresh() { _address = Controller?.Active?.Url ?? _address; _ = InvokeAsync(StateHasChanged); }
+    static string Host(string url) => Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) ? uri.Host : "New tab";
+    public void Dispose() { if(Controller is not null) Controller.Changed -= Refresh; GC.SuppressFinalize(this); }
+}

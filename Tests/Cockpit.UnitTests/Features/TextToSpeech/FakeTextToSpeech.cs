@@ -60,6 +60,7 @@ sealed class MockAppSettingsFeature : IAppSettingsFeature
 	public bool SendOnEnter { get; set; }
 	public int LeftSidebarWidth { get; set; }
 	public int RightSidebarWidth { get; set; }
+	public bool OpenSidebarOnSessionOpen { get; set; } = true;
 	public bool TextToSpeechEnabled { get; set; }
 	public float VoiceVolume { get; set; }
 	public float VoicePitch { get; set; }

@@ -5,29 +5,51 @@ namespace Cockpit.Features.Sessions;
 
 public sealed partial class SessionFeature
 {
-	async Task SwitchCurrentSessionAsync(SessionModel session)
+	async Task<bool> SwitchCurrentSessionAsync(
+		SessionModel session,
+		bool? rightSidebarOpenOnCommit = null,
+		long? navigationRequestId = null,
+		string? requiredCurrentSessionId = null)
 	{
+		SessionWorkingDirectoryNormalizer.ApplyContextConsistency(session.Context);
+		List<GitChangedFileModel>? editedFiles = null;
+		string? gitRoot = session.Context.GitRoot;
+		if(session.Context.CurrentWorkingDirectory is not null && gitRoot is not null)
+		{
+			// Complete fallible preparation before publishing this session or applying its
+			// cold-open sidebar preference. A failed/stale load must not disturb the view.
+			editedFiles = await _gitFeature.GetChangedFiles(gitRoot);
+		}
+
+		// Git preparation above is asynchronous. A newer navigation can win while it is in
+		// flight, so re-check ownership at the actual commit point.
+		if(!CanCommitNavigation(navigationRequestId, requiredCurrentSessionId))
+		{
+			return false;
+		}
+
 		_currentWatcher?.Dispose();
 		_currentWatcher = null;
-
-		_sessionListFeature.SetCurrentSession(session);
-
-		SessionWorkingDirectoryNormalizer.ApplyContextConsistency(session.Context);
-		if(session.Context.CurrentWorkingDirectory is null)
+		if(editedFiles is not null)
 		{
-			_sessionListFeature.NotifyStateChanged();
-			return;
+			session.Context.EditedFiles = editedFiles;
 		}
-
-		if(session.Context.GitRoot is null)
+		else if(gitRoot is null)
 		{
 			session.Context.EditedFiles = [];
-			return;
 		}
 
-		string gitRoot = session.Context.GitRoot;
-		session.Context.EditedFiles = await _gitFeature.GetChangedFiles(gitRoot);
+		if(rightSidebarOpenOnCommit.HasValue)
+		{
+			_uiStateFeature.SetRightSidebarOpen(rightSidebarOpenOnCommit.Value);
+		}
+		_sessionListFeature.SetCurrentSession(session);
 		_sessionListFeature.NotifyStateChanged();
+
+		if(gitRoot is null)
+		{
+			return true;
+		}
 
 		_currentWatcher = _gitFeature.Watch(gitRoot, async () =>
 		{
@@ -54,5 +76,6 @@ public sealed partial class SessionFeature
 				_sessionListFeature.NotifyStateChanged();
 			});
 		});
+		return true;
 	}
 }

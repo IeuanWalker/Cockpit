@@ -206,6 +206,26 @@ public class AppSettingsFeatureTests
 		settings.RightSidebarWidth.ShouldBe(350);
 	}
 
+	[Fact]
+	public void OpenSidebarOnSessionOpen_DefaultsTo_True()
+	{
+		UserAppSettings settings = CreateSettings();
+
+		settings.OpenSidebarOnSessionOpen.ShouldBeTrue();
+	}
+
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void OpenSidebarOnSessionOpen_RoundTrip_PreservesValue(bool value)
+	{
+		UserAppSettings settings = CreateSettings();
+
+		settings.OpenSidebarOnSessionOpen = value;
+
+		settings.OpenSidebarOnSessionOpen.ShouldBe(value);
+	}
+
 	// -------------------------------------------------------------------------
 	// Diff view settings
 	// -------------------------------------------------------------------------

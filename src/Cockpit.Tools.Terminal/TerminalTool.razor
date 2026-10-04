@@ -1,0 +1,110 @@
+@using Cockpit.Tooling
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@implements IWorkspaceToolComponent
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div class="terminal-tool">
+    <div class="terminal-toolbar">
+        <span class="toolbar-spacer"></span>
+        <button type="button" @onclick="OpenMessage">Add to message</button>
+        <button type="button" @onclick="Reset" disabled="@_busy" title="Reset shell">Reset</button>
+    </div>
+    @if (Controller.Error is { } error)
+    {
+        <div class="terminal-error" role="alert">@error</div>
+    }
+    <div class="terminal-surface" @ref="_surface"></div>
+</div>
+
+<dialog class="terminal-message-dialog" @ref="_dialog" aria-labelledby="@_messageTitleId" @onclick="CloseMessage" @onkeydown="DialogKey">
+    <div class="message-body" @onclick:stopPropagation>
+        <div class="message-header">
+            <h2 id="@_messageTitleId">Add Terminal Output to Message</h2>
+            <button type="button" class="message-close" @onclick="CloseMessage" aria-label="Close dialog">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="message-line-selector">
+            <label for="@_lineInputId">Lines to include</label>
+            <input id="@_lineInputId" type="number" min="1" max="@Math.Max(1, _allLines.Length)" @bind="_lineCount" @bind:event="oninput" @bind:after="RefreshPreview" />
+        </div>
+        <div class="message-preview">
+            <p>Preview (@_previewLineCount lines)</p>
+            <pre>@(string.IsNullOrEmpty(_preview) ? "(no terminal output available)" : _preview)</pre>
+        </div>
+        <div class="message-actions">
+            <button type="button" @onclick="CloseMessage">Cancel</button>
+            <button type="button" class="message-primary" @onclick="AddMessage" disabled="@(string.IsNullOrWhiteSpace(_preview))">Add to Message</button>
+        </div>
+    </div>
+</dialog>
+
+@code {
+    [Parameter, EditorRequired] public WorkspaceToolComponentContext Context { get; set; } = default!;
+    TerminalToolInstance Controller => (TerminalToolInstance)Context.Instance;
+    TerminalToolInstance? _attached;
+    ElementReference _surface, _dialog;
+    readonly string _attachment = Guid.NewGuid().ToString("N");
+    readonly string _messageTitleId = $"terminal-message-title-{Guid.NewGuid():N}";
+    readonly string _lineInputId = $"terminal-message-lines-{Guid.NewGuid():N}";
+    IJSObjectReference? _module;
+    int _lineCount = 50;
+    int _previewLineCount;
+    string[] _allLines = [];
+    string _preview = string.Empty;
+    bool _busy, _disposed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed || ReferenceEquals(_attached, Controller)) return;
+        if (_attached is not null) { _attached.Changed -= Refresh; await _attached.DetachAsync(_attachment); }
+        _attached = Controller;
+        _attached.Changed += Refresh;
+        try { await _attached.AttachAsync(JS, _surface, _attachment); }
+        catch (Exception ex) { _attached.ReportError(ex.Message); }
+    }
+    void Refresh() { if (!_disposed) _ = InvokeAsync(StateHasChanged); }
+    async Task Reset()
+    {
+        _busy = true;
+        try { await Controller.ResetAsync(); }
+        catch (Exception ex) { Controller.ReportError(ex.Message); }
+        finally { _busy = false; }
+    }
+    async Task OpenMessage()
+    {
+        string output = await Controller.GetTextAsync(10000);
+        _allLines = string.IsNullOrEmpty(output) ? [] : output.Split('\n');
+        _lineCount = Math.Min(50, Math.Max(1, _allLines.Length));
+        RefreshPreview();
+        _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Cockpit.Tools.Terminal/terminal.js");
+        await _module.InvokeVoidAsync("showDialog", _dialog);
+    }
+    void RefreshPreview()
+    {
+        _previewLineCount = Math.Clamp(_lineCount, 0, _allLines.Length);
+        int start = _allLines.Length - _previewLineCount;
+        while (start < _allLines.Length && string.IsNullOrWhiteSpace(_allLines[start])) start++;
+        _previewLineCount = _allLines.Length - start;
+        _preview = _previewLineCount == 0 ? string.Empty : string.Join('\n', _allLines[^_previewLineCount..]);
+    }
+    async Task CloseMessage()
+    {
+        if (_module is not null) await _module.InvokeVoidAsync("closeDialog", _dialog);
+        await Controller.FocusAsync();
+    }
+    Task DialogKey(KeyboardEventArgs args) => args.Key == "Escape" ? CloseMessage() : Task.CompletedTask;
+    async Task AddMessage()
+    {
+        await Controller.AddToMessageAsync(_preview);
+        await CloseMessage();
+    }
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        if (_attached is not null) { _attached.Changed -= Refresh; await _attached.DetachAsync(_attachment); }
+        if (_module is not null) await _module.DisposeAsync();
+    }
+}

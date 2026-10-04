@@ -33,13 +33,11 @@ public sealed class SessionUiStateTests
 		];
 
 		session.IsYolo = true;
-		session.IsTerminalOpen = true;
 		session.UserInput = "draft";
 		session.PendingAttachments = attachments;
 		session.UserInputResponseText = "response";
 
 		session.Ui.IsYolo.ShouldBeTrue();
-		session.Ui.IsTerminalOpen.ShouldBeTrue();
 		session.Ui.DraftText.ShouldBe("draft");
 		session.Ui.PendingAttachments.ShouldBeSameAs(attachments);
 		session.Ui.UserInputResponseText.ShouldBe("response");
